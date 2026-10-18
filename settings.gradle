@@ -1,0 +1,3 @@
+rootProject.name = 'white-eyes-spring'
+
+include 'common', 'user', 'admin'
