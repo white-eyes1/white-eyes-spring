@@ -29,6 +29,10 @@
 - 로깅은 Log4j2다. Logback(spring-boot-starter-logging)을 다시 들이지 않는다.
 - 테이블·칼럼은 tables.md와 같아야 한다. 다르면 tables.md PR을 먼저 올린다.
 
+## 트러블슈팅
+- 원인을 찾는 데 오래 걸렸거나 다른 팀원도 겪을 문제를 해결하면 `docs/troubleshooting/`에 기록한다. 기준·양식은 그 폴더의 README.md.
+- 원인을 확인하지 못했으면 '미확인(추정: …)'으로 쓴다. 비밀값은 쓰지 않는다.
+
 ## git
 - 브랜치: feature/<이슈 번호>-<이름>. PR 대상은 항상 dev.
 - main·dev에 직접 push하지 않는다.
