@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(gh issue view *)",
+      "Bash(gh pr view *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)"
+    ],
+    "deny": [
+      "Read(./.env)"
+    ]
+  }
+}
