@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.util.StringUtils;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.ModelAndView;
@@ -58,8 +60,11 @@ public class GlobalExceptionHandler {
             BusinessException ex, HttpServletRequest request, HttpServletResponse response) {
         ErrorCode errorCode = ex.getErrorCode();
         String uri = request.getRequestURI();
-        // 5xx는 사람이 봐야 하는 오류, 감싼 원인이 있으면 원인 추적이 필요해서 스택을 남긴다(code-conventions.md 7-3)
-        if (errorCode.getStatus().is5xxServerError()) {
+        // 외부 연결 실패(502)는 재시도로 풀릴 수 있어 ResourceAccessException과 같이 WARN, 그 밖의 5xx는 사람이
+        // 봐야 하는 오류라 ERROR, 감싼 원인이 있으면 원인 추적을 위해 스택을 남긴다(code-conventions.md 7-3)
+        if (errorCode.getStatus() == HttpStatus.BAD_GATEWAY) {
+            log.warn("업무 오류 code={} uri={}", errorCode, uri, ex);
+        } else if (errorCode.getStatus().is5xxServerError()) {
             log.error("업무 오류 code={} uri={}", errorCode, uri, ex);
         } else if (ex.getCause() != null) {
             log.warn("업무 오류 code={} uri={}", errorCode, uri, ex);
@@ -119,6 +124,16 @@ public class GlobalExceptionHandler {
         // SSE 등에서 브라우저가 먼저 연결을 끊은 경우라 응답을 쓸 곳이 없다
         log.debug("클라이언트 연결 끊김 uri={}", request.getRequestURI());
         return new ModelAndView();
+    }
+
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public ModelAndView handleAsyncTimeout(
+            AsyncRequestTimeoutException ex, HttpServletRequest request, HttpServletResponse response) {
+        // SSE처럼 오래 열어 두는 연결은 시간이 지나면 끊기는 것이 정상이라 오류 로그를 남기지 않는다
+        log.debug("비동기 요청 시간 초과 uri={}", request.getRequestURI());
+        ErrorCode errorCode = ErrorCode.INTERNAL_ERROR;
+        return render(
+                request, response, ex.getStatusCode(), ErrorResponse.of(errorCode.name(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
