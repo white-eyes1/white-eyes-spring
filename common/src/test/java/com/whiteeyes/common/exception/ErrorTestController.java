@@ -3,6 +3,7 @@ package com.whiteeyes.common.exception;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.server.ResponseStatusException;
 
 @Controller
 class ErrorTestController {
@@ -51,6 +53,12 @@ class ErrorTestController {
     @ResponseBody
     String analyzer() {
         throw new ResourceAccessException("I/O error on POST request for http://10.0.0.5:5000");
+    }
+
+    @GetMapping("/api/v1/test/forbidden")
+    @ResponseBody
+    String forbidden() {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 
     @GetMapping("/api/v1/test/duplicate")

@@ -75,7 +75,17 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/api/v1/test/positive/0"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("id"))
                 .andExpect(jsonPath("$.fieldErrors[0].message").value("1 이상이어야 합니다."));
+    }
+
+    @Test
+    @DisplayName("FNC-C-027 Spring이 상태를 정한 403은 FORBIDDEN 코드로 응답")
+    void springStatusForbidden() throws Exception {
+        mockMvc.perform(get("/api/v1/test/forbidden"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("권한이 없습니다."));
     }
 
     @Test
