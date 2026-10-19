@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -95,7 +96,35 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("size"))
-                .andExpect(content().string(not(containsString("NumberFormatException"))));
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("형식이 올바르지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("FNC-C-027 객체 바인딩 실패는 400, 영어 변환 메시지 대신 한국어 문장")
+    void modelAttributeBindingFailure() throws Exception {
+        mockMvc.perform(get("/api/v1/test/model-attribute").param("count", "abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("count"))
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("형식이 올바르지 않습니다."))
+                .andExpect(content().string(not(containsString("Failed to convert"))));
+    }
+
+    @Test
+    @DisplayName("FNC-C-027 Spring이 상태를 정한 401은 UNAUTHORIZED 코드로 응답")
+    void springStatusUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/v1/test/unauthorized"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("로그인이 필요합니다."));
+    }
+
+    @Test
+    @DisplayName("FNC-C-027 Spring이 상태를 정한 409는 STATUS_CONFLICT 코드로 응답")
+    void springStatusConflict() throws Exception {
+        mockMvc.perform(get("/api/v1/test/conflict"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("STATUS_CONFLICT"));
     }
 
     @Test
@@ -104,7 +133,8 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/api/v1/test/page-size"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
-                .andExpect(jsonPath("$.fieldErrors[0].field").value("size"));
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("size"))
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("필수입니다."));
     }
 
     @Test
@@ -148,6 +178,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/api/v1/test/unexpected"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.message").value("일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."))
                 .andExpect(content().string(not(containsString("내부 비밀 정보"))));
     }
 
@@ -164,6 +195,7 @@ class GlobalExceptionHandlerTest {
     void methodNotAllowed() throws Exception {
         mockMvc.perform(post("/api/v1/test/not-found"))
                 .andExpect(status().isMethodNotAllowed())
+                .andExpect(header().string("Allow", containsString("GET")))
                 .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
     }
 

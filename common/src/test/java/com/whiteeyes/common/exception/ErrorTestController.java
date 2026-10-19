@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 class ErrorTestController {
 
     record SampleRequest(@NotBlank(message = "필수입니다.") String name) {}
+
+    record SampleQuery(int count) {}
 
     @PostMapping("/api/v1/test/validation")
     @ResponseBody
@@ -59,6 +62,24 @@ class ErrorTestController {
     @ResponseBody
     String forbidden() {
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+    }
+
+    @GetMapping("/api/v1/test/unauthorized")
+    @ResponseBody
+    String unauthorized() {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+    }
+
+    @GetMapping("/api/v1/test/conflict")
+    @ResponseBody
+    String conflict() {
+        throw new ResponseStatusException(HttpStatus.CONFLICT);
+    }
+
+    @GetMapping("/api/v1/test/model-attribute")
+    @ResponseBody
+    String modelAttribute(@ModelAttribute SampleQuery query) {
+        return String.valueOf(query.count());
     }
 
     @GetMapping("/api/v1/test/duplicate")
