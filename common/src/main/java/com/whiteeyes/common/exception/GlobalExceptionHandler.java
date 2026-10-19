@@ -1,14 +1,16 @@
 package com.whiteeyes.common.exception;
 
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.method.ParameterErrors;
@@ -16,6 +18,8 @@ import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -50,47 +54,64 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BusinessException.class)
-    public ModelAndView handleBusiness(BusinessException ex, HttpServletRequest request) {
+    public ModelAndView handleBusiness(
+            BusinessException ex, HttpServletRequest request, HttpServletResponse response) {
         ErrorCode errorCode = ex.getErrorCode();
-        log.warn("업무 오류 code={} uri={}", errorCode, request.getRequestURI());
-        return render(request, errorCode.getStatus(), ErrorResponse.of(errorCode.name(), ex.getMessage()));
+        String uri = request.getRequestURI();
+        // 5xx는 사람이 봐야 하는 오류, 감싼 원인이 있으면 원인 추적이 필요해서 스택을 남긴다(code-conventions.md 7-3)
+        if (errorCode.getStatus().is5xxServerError()) {
+            log.error("업무 오류 code={} uri={}", errorCode, uri, ex);
+        } else if (ex.getCause() != null) {
+            log.warn("업무 오류 code={} uri={}", errorCode, uri, ex);
+        } else {
+            log.warn("업무 오류 code={} uri={}", errorCode, uri);
+        }
+        return render(request, response, errorCode.getStatus(), ErrorResponse.of(errorCode.name(), ex.getMessage()));
     }
 
     @ExceptionHandler(BindException.class)
-    public ModelAndView handleBind(BindException ex, HttpServletRequest request) {
-        return renderInvalidInput(request, toFieldErrors(ex.getFieldErrors()));
+    public ModelAndView handleBind(BindException ex, HttpServletRequest request, HttpServletResponse response) {
+        return renderInvalidInput(request, response, toFieldErrors(ex.getFieldErrors()));
     }
 
     @ExceptionHandler(HandlerMethodValidationException.class)
-    public ModelAndView handleMethodValidation(HandlerMethodValidationException ex, HttpServletRequest request) {
+    public ModelAndView handleMethodValidation(
+            HandlerMethodValidationException ex, HttpServletRequest request, HttpServletResponse response) {
         List<FieldErrorResponse> fieldErrors = ex.getParameterValidationResults().stream()
                 .flatMap(result -> toFieldErrors(result).stream())
                 .toList();
-        return renderInvalidInput(request, fieldErrors);
+        return renderInvalidInput(request, response, fieldErrors);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ModelAndView handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
-        return renderInvalidInput(request, List.of(new FieldErrorResponse(ex.getName(), TYPE_MISMATCH_MESSAGE)));
+    public ModelAndView handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request, HttpServletResponse response) {
+        List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse(ex.getName(), TYPE_MISMATCH_MESSAGE));
+        return renderInvalidInput(request, response, fieldErrors);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ModelAndView handleMissingParameter(MissingServletRequestParameterException ex, HttpServletRequest request) {
-        return renderInvalidInput(request, List.of(new FieldErrorResponse(ex.getParameterName(), REQUIRED_MESSAGE)));
+    public ModelAndView handleMissingParameter(
+            MissingServletRequestParameterException ex, HttpServletRequest request, HttpServletResponse response) {
+        List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse(ex.getParameterName(), REQUIRED_MESSAGE));
+        return renderInvalidInput(request, response, fieldErrors);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ModelAndView handleNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+    public ModelAndView handleNotReadable(
+            HttpMessageNotReadableException ex, HttpServletRequest request, HttpServletResponse response) {
         log.debug("읽을 수 없는 요청 본문 uri={}", request.getRequestURI());
-        return renderInvalidInput(request, null);
+        return renderInvalidInput(request, response, null);
     }
 
     @ExceptionHandler(ResourceAccessException.class)
-    public ModelAndView handleResourceAccess(ResourceAccessException ex, HttpServletRequest request) {
+    public ModelAndView handleResourceAccess(
+            ResourceAccessException ex, HttpServletRequest request, HttpServletResponse response) {
         // 다른 서버 주소가 응답에 새지 않게 기본 문구만 보낸다. 재시도 대상이라 WARN(code-conventions.md 7-3)
         log.warn("외부 서버 연결 실패 uri={}", request.getRequestURI(), ex);
         ErrorCode errorCode = ErrorCode.EXTERNAL_UNAVAILABLE;
-        return render(request, errorCode.getStatus(), ErrorResponse.of(errorCode.name(), errorCode.getMessage()));
+        return render(
+                request, response, errorCode.getStatus(), ErrorResponse.of(errorCode.name(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(AsyncRequestNotUsableException.class)
@@ -102,22 +123,24 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ModelAndView handleOther(Exception ex, HttpServletRequest request, HttpServletResponse response) {
-        if (response.isCommitted()) {
-            log.warn("응답을 이미 보낸 뒤 예외 uri={}", request.getRequestURI(), ex);
-            return new ModelAndView();
-        }
         // 없는 경로(404)·지원하지 않는 메서드(405)·비동기 시간 초과(503) 등 Spring이 상태를 정한 오류는 그 상태를 따른다
         if (ex instanceof org.springframework.web.ErrorResponse springError) {
             HttpStatusCode status = springError.getStatusCode();
-            springError.getHeaders().forEach((name, values) -> values.forEach(value -> response.addHeader(name, value)));
+            if (status.is5xxServerError()) {
+                log.error("요청 처리 오류 status={} uri={}", status.value(), request.getRequestURI(), ex);
+            } else {
+                log.debug("요청 오류 status={} uri={}", status.value(), request.getRequestURI());
+            }
+            springError.getHeaders()
+                    .forEach((name, values) -> values.forEach(value -> response.addHeader(name, value)));
             ErrorCode errorCode = toErrorCode(status);
-            log.debug("요청 오류 status={} uri={}", status.value(), request.getRequestURI());
-            return render(request, status, ErrorResponse.of(errorCode.name(), errorCode.getMessage()));
+            return render(request, response, status, ErrorResponse.of(errorCode.name(), errorCode.getMessage()));
         }
         // 내부 정보가 새지 않게 응답에는 기본 문구만 보내고 원인은 로그에만 남긴다
         log.error("처리하지 못한 예외 uri={}", request.getRequestURI(), ex);
         ErrorCode errorCode = ErrorCode.INTERNAL_ERROR;
-        return render(request, errorCode.getStatus(), ErrorResponse.of(errorCode.name(), errorCode.getMessage()));
+        return render(
+                request, response, errorCode.getStatus(), ErrorResponse.of(errorCode.name(), errorCode.getMessage()));
     }
 
     private List<FieldErrorResponse> toFieldErrors(List<FieldError> errors) {
@@ -132,21 +155,48 @@ public class GlobalExceptionHandler {
         if (result instanceof ParameterErrors parameterErrors) {
             return toFieldErrors(parameterErrors.getFieldErrors());
         }
-        String parameterName = result.getMethodParameter().getParameterName();
+        String parameterName = resolveParameterName(result.getMethodParameter());
         return result.getResolvableErrors().stream()
                 .map(error -> new FieldErrorResponse(parameterName, error.getDefaultMessage()))
                 .toList();
     }
 
-    private ModelAndView renderInvalidInput(HttpServletRequest request, List<FieldErrorResponse> fieldErrors) {
+    // common은 -parameters 없이 컴파일되어 매개변수 이름이 비어 있을 수 있으므로 애너테이션에 적힌 이름을 먼저 쓴다
+    private String resolveParameterName(MethodParameter parameter) {
+        PathVariable pathVariable = parameter.getParameterAnnotation(PathVariable.class);
+        if (pathVariable != null) {
+            String name = StringUtils.hasText(pathVariable.name()) ? pathVariable.name() : pathVariable.value();
+            if (StringUtils.hasText(name)) {
+                return name;
+            }
+        }
+        RequestParam requestParam = parameter.getParameterAnnotation(RequestParam.class);
+        if (requestParam != null) {
+            String name = StringUtils.hasText(requestParam.name()) ? requestParam.name() : requestParam.value();
+            if (StringUtils.hasText(name)) {
+                return name;
+            }
+        }
+        return Objects.requireNonNullElse(parameter.getParameterName(), "");
+    }
+
+    private ModelAndView renderInvalidInput(
+            HttpServletRequest request, HttpServletResponse response, List<FieldErrorResponse> fieldErrors) {
         ErrorCode errorCode = ErrorCode.INVALID_INPUT;
         return render(
                 request,
+                response,
                 errorCode.getStatus(),
                 new ErrorResponse(errorCode.name(), errorCode.getMessage(), fieldErrors));
     }
 
-    private ModelAndView render(HttpServletRequest request, HttpStatusCode status, ErrorResponse body) {
+    private ModelAndView render(
+            HttpServletRequest request, HttpServletResponse response, HttpStatusCode status, ErrorResponse body) {
+        // SSE처럼 응답을 이미 보내기 시작했으면 그 위에 오류 응답을 다시 쓸 수 없다
+        if (response.isCommitted()) {
+            log.debug("응답을 이미 보낸 뒤 오류 code={} uri={}", body.code(), request.getRequestURI());
+            return new ModelAndView();
+        }
         ModelAndView modelAndView;
         if (isApiRequest(request)) {
             JacksonJsonView jsonView = new JacksonJsonView(jsonMapper);
@@ -171,15 +221,13 @@ public class GlobalExceptionHandler {
     }
 
     private ErrorCode toErrorCode(HttpStatusCode status) {
-        if (status.value() == HttpStatus.NOT_FOUND.value()) {
-            return ErrorCode.NOT_FOUND;
-        }
-        if (status.value() == HttpStatus.METHOD_NOT_ALLOWED.value()) {
-            return ErrorCode.METHOD_NOT_ALLOWED;
-        }
-        if (status.is5xxServerError()) {
-            return ErrorCode.INTERNAL_ERROR;
-        }
-        return ErrorCode.INVALID_INPUT;
+        return switch (status.value()) {
+            case 401 -> ErrorCode.UNAUTHORIZED;
+            case 403 -> ErrorCode.FORBIDDEN;
+            case 404 -> ErrorCode.NOT_FOUND;
+            case 405 -> ErrorCode.METHOD_NOT_ALLOWED;
+            case 409 -> ErrorCode.STATUS_CONFLICT;
+            default -> status.is5xxServerError() ? ErrorCode.INTERNAL_ERROR : ErrorCode.INVALID_INPUT;
+        };
     }
 }
