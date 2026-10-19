@@ -15,7 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 // TODO(#11): 캠 등록(FNC-A-018)에서 tables.md 'camera'의 전체 칼럼으로 정식으로 만든다.
-// 지금은 FNC-A-025에 필요한 칼럼만 둔 임시 코드
+// 지금은 FNC-A-024·025에 필요한 칼럼만 둔 임시 코드(#15·#16 브랜치에서 같은 내용으로 유지)
 @Entity
 @Table(name = "camera")
 @Getter
@@ -25,6 +25,10 @@ public class Camera {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Zone 엔티티가 아직 없어 id 값으로 둔다
+    @Column(name = "zone_id", nullable = false)
+    private Long zoneId;
 
     @Column(name = "run_requested", nullable = false)
     private boolean runRequested;
