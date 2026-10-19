@@ -1,0 +1,26 @@
+# [해석본] 원본: admin/src/test/resources/application.yml (#15·#16 두 브랜치에서 같은 내용)
+# [무엇] 테스트를 돌릴 때만 쓰는 admin 설정. src/main의 application.yml 위에 덮어씌워진다.
+# [염두에 둔 것] analyzer·internal-api 값은 #15(AnalyzerClient)만 쓰지만 #16 브랜치에도 똑같이 넣었다.
+#   두 브랜치가 같은 파일을 서로 다르게 고치면 합칠 때 충돌이 나기 때문이다(쓰지 않는 설정이라 #16 동작엔 영향 없음).
+spring:
+  datasource:
+    # [해석] 테스트용 메모리 DB(H2). MODE=MySQL로 MySQL 문법을 흉내 낸다. DB_CLOSE_DELAY=-1은 테스트 도중 연결이
+    #   잠깐 끊겨도 DB가 사라지지 않게 한다. 실제 MySQL 없이 AdminApplicationTests(앱이 뜨는지)를 돌릴 수 있다.
+    url: jdbc:h2:mem:admin;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      # TODO(#11): camera 마이그레이션이 생기면 지우고 validate로 되돌린다
+      # [해석] 원래 설정은 validate(엔티티와 실제 테이블이 맞는지 검사만 함). 그런데 camera 테이블을 만드는 Flyway 파일이
+      #   아직 없어(#11 몫, V번호 충돌 때문에 일부러 안 넣음) validate면 "camera 테이블 없음"으로 앱이 안 뜬다.
+      #   그래서 테스트에서만 Hibernate가 엔티티 모양대로 테이블을 만들고(create) 끝나면 지우게(drop) 했다. 운영 설정은 그대로.
+      ddl-auto: create-drop
+
+# [해석] #15의 AnalyzerClient가 앱 시작 때 이 두 값을 요구한다. 운영에서는 환경변수(ANALYZER_BASE_URL, INTERNAL_API_TOKEN)에서
+#   읽지만 테스트에는 환경변수가 없으므로 가짜 값을 둔다. 테스트는 실제 분석 서버를 부르지 않으므로 주소가 틀려도 상관없다.
+analyzer:
+  base-url: http://localhost:5000
+
+internal-api:
+  token: test-internal-token
