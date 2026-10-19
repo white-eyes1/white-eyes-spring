@@ -18,10 +18,9 @@ CI(ubuntu)에서는 발생하지 않는다.
 ## 원인
 build.gradle에 컴파일 인코딩 설정이 없어 javac가 OS 기본 인코딩(CP949)을 쓴다.
 Java 17은 기본 인코딩이 OS를 따른다(UTF-8 기본은 Java 18부터).
-Gradle JVM을 UTF-8로 지정하고 데몬을 정리한 뒤 다시 빌드하면 정상인 것으로 확인했다.
 
 ## 해결
-우회:
+우회(Gradle JVM을 UTF-8로 지정하고 데몬을 정리한 뒤 다시 빌드하면 정상인 것으로 확인했다):
 
 ```
 ./gradlew --stop
