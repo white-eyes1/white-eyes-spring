@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.whiteeyes.common.camera.entity.Camera;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +42,24 @@ class CameraQueryServiceTest {
         Map<Long, Long> zoneIdByCamera = cameraQueryService.findZoneIdsOfReceivingCameras(Set.of(7L, 8L, 9L, 10L));
 
         assertThat(zoneIdByCamera).containsExactly(Map.entry(7L, 3L));
+    }
+
+    @Test
+    @DisplayName("FNC-A-026 삭제되지 않은 캠이면 정지 상태여도 입력 방식을 돌려줌")
+    void returnsSourceTypeOfStoppedCamera() {
+        Camera stopped = camera(8L, 4L, false, null);
+        ReflectionTestUtils.setField(stopped, "sourceType", CameraSourceType.LIVE);
+        given(cameraRepository.findByIdAndDeletedAtIsNull(8L)).willReturn(Optional.of(stopped));
+
+        assertThat(cameraQueryService.findSourceTypeOfExistingCamera(8L)).contains(CameraSourceType.LIVE);
+    }
+
+    @Test
+    @DisplayName("FNC-A-026 없거나 삭제된 캠이면 빈 값")
+    void returnsEmptyWhenCameraMissing() {
+        given(cameraRepository.findByIdAndDeletedAtIsNull(9L)).willReturn(Optional.empty());
+
+        assertThat(cameraQueryService.findSourceTypeOfExistingCamera(9L)).isEmpty();
     }
 
     // TODO(#11): Camera에 생성 메서드가 생기면 그것으로 바꾼다
