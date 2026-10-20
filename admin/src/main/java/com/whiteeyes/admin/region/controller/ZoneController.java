@@ -1,8 +1,8 @@
-package com.whiteeyes.admin.zone.controller;
+package com.whiteeyes.admin.region.controller;
 
-import com.whiteeyes.admin.zone.dto.ZoneCreateRequest;
-import com.whiteeyes.admin.zone.dto.ZoneCreateResponse;
-import com.whiteeyes.admin.zone.service.ZoneRegisterService;
+import com.whiteeyes.admin.region.dto.ZoneCreateRequest;
+import com.whiteeyes.admin.region.dto.ZoneCreateResponse;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

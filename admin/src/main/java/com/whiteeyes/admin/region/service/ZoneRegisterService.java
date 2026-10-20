@@ -1,11 +1,11 @@
-package com.whiteeyes.admin.zone.service;
+package com.whiteeyes.admin.region.service;
 
 import com.whiteeyes.admin.region.dto.ZoneCalculation;
 import com.whiteeyes.admin.region.service.ZonePreviewService;
-import com.whiteeyes.admin.zone.dto.ZoneCreateResponse;
-import com.whiteeyes.admin.zone.exception.DuplicateZoneNameException;
-import com.whiteeyes.common.zone.entity.Zone;
-import com.whiteeyes.common.zone.repository.ZoneRepository;
+import com.whiteeyes.admin.region.dto.ZoneCreateResponse;
+import com.whiteeyes.admin.region.exception.DuplicateZoneNameException;
+import com.whiteeyes.common.region.entity.Zone;
+import com.whiteeyes.common.region.repository.ZoneRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;

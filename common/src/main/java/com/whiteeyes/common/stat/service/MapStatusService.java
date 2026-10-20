@@ -20,14 +20,13 @@ import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.level.service.LevelTarget;
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.service.RegionQueryService;
 import com.whiteeyes.common.stat.dto.MapStatusItem;
 import com.whiteeyes.common.stat.dto.MapStatusResponse;
 import com.whiteeyes.common.stat.dto.MapUnit;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
-import com.whiteeyes.common.zone.entity.Zone;
-import com.whiteeyes.common.zone.service.ZoneLookupService;
 
 /**
  * 지도 혼잡 단계 색 표시(FNC-C-009). 대상 지역의 하위 단위별 최근 1분 통계와 혼잡 단계를 돌려준다.
@@ -44,17 +43,14 @@ public class MapStatusService {
     private static final String ZONE_UNIT_TYPE = "ZONE";
 
     private final RegionQueryService regionQueryService;
-    private final ZoneLookupService zoneLookupService;
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final LevelService levelService;
 
     public MapStatusService(
             RegionQueryService regionQueryService,
-            ZoneLookupService zoneLookupService,
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             LevelService levelService) {
         this.regionQueryService = regionQueryService;
-        this.zoneLookupService = zoneLookupService;
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.levelService = levelService;
     }
@@ -70,7 +66,7 @@ public class MapStatusService {
                 .collect(Collectors.toMap(Region::getId, Region::getCode));
         List<Zone> zones = emdCodeById.isEmpty()
                 ? List.of()
-                : zoneLookupService.findZonesInDongs(emdCodeById.keySet()).stream()
+                : regionQueryService.findZonesInDongs(emdCodeById.keySet()).stream()
                         .sorted(Comparator.comparing(Zone::getId))
                         .toList();
         Map<Long, ZoneStatMinute> latestStatByZone = findLatestStats(zones, now);

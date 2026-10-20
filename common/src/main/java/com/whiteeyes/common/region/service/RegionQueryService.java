@@ -1,5 +1,6 @@
 package com.whiteeyes.common.region.service;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -7,20 +8,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.exception.RegionNotFoundException;
 import com.whiteeyes.common.region.repository.RegionRepository;
+import com.whiteeyes.common.region.repository.ZoneRepository;
 
 /**
- * 다른 도메인(지도 현황 등)에 지역 계층을 내주는 조회 서비스(FNC-C-009).
+ * 다른 도메인(지도 현황 등)에 지역 계층과 구역을 내주는 조회 서비스(FNC-C-009).
  */
 // TODO(#8): 지역·구역 목록(FNC-C-008)에서 지역 서비스가 생기면 그쪽으로 옮긴다
 @Service
 public class RegionQueryService {
 
     private final RegionRepository regionRepository;
+    private final ZoneRepository zoneRepository;
 
-    public RegionQueryService(RegionRepository regionRepository) {
+    public RegionQueryService(RegionRepository regionRepository, ZoneRepository zoneRepository) {
         this.regionRepository = regionRepository;
+        this.zoneRepository = zoneRepository;
     }
 
     /**
@@ -41,5 +46,11 @@ public class RegionQueryService {
     @Transactional(readOnly = true)
     public List<Region> findEmdsUnder(Region region) {
         return regionRepository.findByLevelAndCodeStartingWith(RegionLevel.EMD, region.getCode());
+    }
+
+    /** 읍·면·동들에 속한 삭제되지 않은 구역(삭제된 구역은 목록·지도에서 뺀다, tables.md zone). */
+    @Transactional(readOnly = true)
+    public List<Zone> findZonesInDongs(Collection<Long> dongIds) {
+        return zoneRepository.findByDongIdInAndDeletedAtIsNull(dongIds);
     }
 }
