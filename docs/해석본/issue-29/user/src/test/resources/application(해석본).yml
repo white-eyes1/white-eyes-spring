@@ -1,4 +1,4 @@
-# [해석본] 원본: user/src/test/resources/application.yml (29-fnc-u-001-아이디-중복-확인 브랜치)
+# [해석본] 원본: user/src/test/resources/application.yml (feature/29-check-login-id 브랜치)
 # 관련 이슈: #29(FNC-U-001)
 # [무엇] 사용자 앱(user) 테스트 설정. 테스트는 MySQL 대신 메모리 H2(MySQL 호환 모드)를 쓴다.
 # [왜 바꿨나] UserAccount 엔티티가 생겼는데 user_account 테이블을 만드는 마이그레이션은 아직 없다.

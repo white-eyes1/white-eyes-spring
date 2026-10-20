@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: user/src/main/java/com/whiteeyes/user/account/controller/SignupApiController.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: user/src/main/java/com/whiteeyes/user/account/controller/SignupApiController.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001), API: GET /api/v1/signup/check-id (public.md), 화면: SCR-U-001 '아이디 + 중복 확인'
  *
  * [무엇] 회원가입 화면이 부르는 REST API 입구.

@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: user/src/test/java/com/whiteeyes/user/account/controller/SignupApiControllerTest.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: user/src/test/java/com/whiteeyes/user/account/controller/SignupApiControllerTest.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001), API: GET /api/v1/signup/check-id (public.md)
  *
  * [무엇] 컨트롤러가 요청을 제대로 받고, 규칙을 어긴 아이디를 서비스까지 보내지 않는지 확인하는 테스트.

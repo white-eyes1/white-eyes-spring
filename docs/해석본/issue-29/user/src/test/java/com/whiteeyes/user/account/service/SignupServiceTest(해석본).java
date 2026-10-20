@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: user/src/test/java/com/whiteeyes/user/account/service/SignupServiceTest.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: user/src/test/java/com/whiteeyes/user/account/service/SignupServiceTest.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001)
  *
  * [무엇] 이번 이슈의 완료 기준 '탈퇴 계정 아이디가 사용 불가로 나오는지'를 확인하는 테스트.

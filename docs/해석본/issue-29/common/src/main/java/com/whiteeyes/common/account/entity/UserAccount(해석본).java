@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: common/src/main/java/com/whiteeyes/common/account/entity/UserAccount.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: common/src/main/java/com/whiteeyes/common/account/entity/UserAccount.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001), 테이블: tables.md user_account
  *
  * [무엇] user_account 테이블의 JPA 엔티티.

@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: common/src/main/java/com/whiteeyes/common/account/entity/UserAccountStatus.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: common/src/main/java/com/whiteeyes/common/account/entity/UserAccountStatus.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001), 테이블: tables.md user_account.status
  *
  * [무엇] 사용자 계정 상태 세 가지. tables.md의 'PENDING(미승인) / ACTIVE(정상) / WITHDRAWN(탈퇴)'를 철자 그대로 옮겼다

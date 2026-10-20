@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: user/src/main/java/com/whiteeyes/user/account/service/SignupService.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: user/src/main/java/com/whiteeyes/user/account/service/SignupService.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001)
  *
  * [무엇] 회원가입 쪽 비즈니스 로직. 지금은 '아이디를 쓸 수 있는가' 판단 하나뿐이다.

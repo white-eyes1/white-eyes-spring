@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: common/src/main/java/com/whiteeyes/common/account/repository/UserAccountRepository.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: common/src/main/java/com/whiteeyes/common/account/repository/UserAccountRepository.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001)
  *
  * [무엇] user_account를 읽고 쓰는 Spring Data JPA 리포지토리.

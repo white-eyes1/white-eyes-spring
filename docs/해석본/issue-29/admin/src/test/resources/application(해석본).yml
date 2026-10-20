@@ -1,4 +1,4 @@
-# [해석본] 원본: admin/src/test/resources/application.yml (29-fnc-u-001-아이디-중복-확인 브랜치)
+# [해석본] 원본: admin/src/test/resources/application.yml (feature/29-check-login-id 브랜치)
 # 관련 이슈: #29(FNC-U-001)
 # [무엇] 관리자 앱(admin) 테스트 설정. #29는 사용자 앱 기능인데 왜 admin 설정까지 바꿨는가?
 #   UserAccount 엔티티를 common 모듈에 뒀기 때문이다. 관리자 앱도 common의 엔티티를 스캔하므로(AdminApplication의 @EntityScan),

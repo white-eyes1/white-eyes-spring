@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: common/src/main/java/com/whiteeyes/common/constant/InputRules.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: common/src/main/java/com/whiteeyes/common/constant/InputRules.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001), 규칙: conventions.md '입력값 규칙 > 아이디(login_id)'
  *
  * [무엇] 입력값 규칙을 상수로 모은 곳. 지금은 아이디 규칙만 있다.

@@ -1,5 +1,5 @@
 /*
- * [해석본] 원본: user/src/main/java/com/whiteeyes/user/account/dto/LoginIdCheckResponse.java (29-fnc-u-001-아이디-중복-확인 브랜치)
+ * [해석본] 원본: user/src/main/java/com/whiteeyes/user/account/dto/LoginIdCheckResponse.java (feature/29-check-login-id 브랜치)
  * 관련 이슈: #29(FNC-U-001), API: GET /api/v1/signup/check-id (public.md)
  *
  * [무엇] 아이디 중복 확인 응답 본문. JSON으로 {"available": true} 또는 {"available": false}가 된다(public.md Response 그대로).
