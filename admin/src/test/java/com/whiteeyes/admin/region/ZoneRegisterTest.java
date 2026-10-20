@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.zone;
+package com.whiteeyes.admin.region;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
