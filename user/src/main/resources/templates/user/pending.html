@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>승인 대기</title>
+</head>
+<body>
+<main>
+    <h1>승인 대기</h1>
+    <p>관리자 승인을 기다리고 있습니다</p>
+    <!-- 로그아웃(FNC-C-002). th:action이 CSRF 토큰을 숨은 칸으로 넣는다 -->
+    <form th:action="@{/logout}" method="post">
+        <button type="submit">로그아웃</button>
+    </form>
+</main>
+</body>
+</html>
