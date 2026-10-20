@@ -10,6 +10,7 @@ import com.whiteeyes.admin.region.service.RegionLoadService;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,12 @@ class ZoneRegisterTest {
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
         regionLoadService.load(REGION_FILE);
+    }
+
+    // zone이 region을 가리키는 외래키라, 남겨 두면 뒤에 도는 지역 테스트가 region을 지우다 실패한다
+    @AfterEach
+    void clearZones() {
+        jdbcTemplate.update("DELETE FROM zone");
     }
 
     @Test
