@@ -1,12 +1,19 @@
 package com.whiteeyes.admin.zone.service;
 
+import com.whiteeyes.admin.zone.dto.ZoneSummary;
 import com.whiteeyes.admin.zone.exception.ZoneNotFoundException;
+import com.whiteeyes.common.zone.entity.Zone;
 import com.whiteeyes.common.zone.repository.ZoneRepository;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 다른 도메인(캠)이 구역을 확인할 때 부르는 구역 도메인의 공개 service. */
+/** 다른 도메인(캠)이 구역을 확인·조회할 때 부르는 구역 도메인의 공개 service. */
 @Service
 @RequiredArgsConstructor
 public class ZoneService {
@@ -19,5 +26,19 @@ public class ZoneService {
         if (!zoneRepository.existsByIdAndDeletedAtIsNull(zoneId)) {
             throw new ZoneNotFoundException(zoneId);
         }
+    }
+
+    /** 구역 번호 → 구역 요약. 쿼리 한 번으로 모아서 가져온다(캠 목록 FNC-A-022). 없는 번호는 빠진다. */
+    @Transactional(readOnly = true)
+    public Map<Long, ZoneSummary> findSummaries(Collection<Long> zoneIds) {
+        return zoneRepository.findAllById(zoneIds).stream()
+                .map(ZoneSummary::from)
+                .collect(Collectors.toMap(ZoneSummary::id, Function.identity()));
+    }
+
+    /** 주어진 읍·면·동들에 속한 삭제되지 않은 구역 번호(캠 목록 지역 필터, FNC-A-022). */
+    @Transactional(readOnly = true)
+    public List<Long> findActiveZoneIdsInDongs(Collection<Long> dongIds) {
+        return zoneRepository.findActiveIdsByDongIdIn(dongIds);
     }
 }
