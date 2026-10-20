@@ -12,9 +12,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +29,8 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
-import com.whiteeyes.common.zone.entity.Zone;
-import com.whiteeyes.common.zone.repository.ZoneRepository;
+import com.whiteeyes.common.region.entity.Zone;
+import com.whiteeyes.common.region.repository.ZoneRepository;
 
 // INSERT … ON DUPLICATE KEY UPDATE와 수신 → 마감 → 저장 흐름이 실제 DB에서 맞게 동작하는지 H2로 확인한다.
 // 앱의 스케줄러는 실제 현재 시각으로 돌기 때문에, 테스트 시각은 스케줄러가 마감하지 않을 먼 미래(2099년)로 둔다
@@ -56,6 +56,9 @@ class MinuteStatSaveIntegrationTest {
 
     @Autowired
     private CameraRepository cameraRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Test
     @DisplayName("FNC-A-028 같은 (구역, 분)을 다시 저장하면 행 하나를 덮어씀")
@@ -112,18 +115,19 @@ class MinuteStatSaveIntegrationTest {
                 cameraId, OffsetDateTime.of(at, KST_OFFSET), personCount, none, none, List.of());
     }
 
-    // TODO(#10): Zone에 생성 메서드가 생기면 그것으로 바꾼다
+    // zone → region 외래키가 있어 테스트용 동을 먼저 넣는다. 테스트가 끝나면 롤백된다
     private Long saveZone(String areaM2) {
-        Zone zone = BeanUtils.instantiateClass(Zone.class);
-        ReflectionTestUtils.setField(zone, "areaM2", new BigDecimal(areaM2));
+        jdbcTemplate.update("INSERT INTO region (level, code, name, boundary, center_lat, center_lng)"
+                + " VALUES ('EMD', '99999991', '통계 테스트동', '{}', 37.600000, 127.002000)");
+        Long dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '99999991'", Long.class);
+        Zone zone = new Zone(dongId, "통계 1구역", new BigDecimal(areaM2), "{}", new BigDecimal("37.600000"),
+                new BigDecimal("127.002000"));
         return zoneRepository.save(zone).getId();
     }
 
-    // TODO(#11): Camera에 생성 메서드가 생기면 그것으로 바꾼다
+    // 가동 상태는 생성자로 정할 수 없어 직접 넣는다
     private Long saveRunningCamera(Long zoneId) {
-        Camera camera = BeanUtils.instantiateClass(Camera.class);
-        ReflectionTestUtils.setField(camera, "zoneId", zoneId);
-        ReflectionTestUtils.setField(camera, "sourceType", CameraSourceType.DUMMY);
+        Camera camera = new Camera(zoneId, "통계 캠", CameraSourceType.DUMMY, "dummy/videos/a.mp4");
         ReflectionTestUtils.setField(camera, "status", CameraStatus.RUNNING);
         ReflectionTestUtils.setField(camera, "runRequested", true);
         return cameraRepository.save(camera).getId();

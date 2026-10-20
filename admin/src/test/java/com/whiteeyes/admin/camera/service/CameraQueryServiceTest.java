@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.BeanUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.whiteeyes.common.camera.entity.Camera;
@@ -63,11 +62,10 @@ class CameraQueryServiceTest {
         assertThat(cameraQueryService.findSourceTypeOfExistingCamera(9L)).isEmpty();
     }
 
-    // TODO(#11): Camera에 생성 메서드가 생기면 그것으로 바꾼다
+    // id·run_requested·deleted_at은 생성자로 정할 수 없어 직접 넣는다
     private Camera camera(long id, long zoneId, boolean runRequested, LocalDateTime deletedAt) {
-        Camera camera = BeanUtils.instantiateClass(Camera.class);
+        Camera camera = new Camera(zoneId, "캠" + id, CameraSourceType.DUMMY, "dummy/videos/cam" + id + ".mp4");
         ReflectionTestUtils.setField(camera, "id", id);
-        ReflectionTestUtils.setField(camera, "zoneId", zoneId);
         ReflectionTestUtils.setField(camera, "runRequested", runRequested);
         ReflectionTestUtils.setField(camera, "deletedAt", deletedAt);
         return camera;

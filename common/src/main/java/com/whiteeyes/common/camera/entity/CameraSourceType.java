@@ -1,6 +1,6 @@
 package com.whiteeyes.common.camera.entity;
 
-// TODO(#11): 캠 등록(FNC-A-018)에서 정식으로 만든다. FNC-A-026 구현을 위해 먼저 둔 임시 코드
+/** 캠의 입력 방식. 분석 서버가 실시간 분석(LIVE)과 캐시 재생(DUMMY) 중 고른다. */
 public enum CameraSourceType {
     LIVE,
     DUMMY

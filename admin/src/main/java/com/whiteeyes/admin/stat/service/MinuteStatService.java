@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.whiteeyes.admin.zone.service.ZoneQueryService;
+import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /** 1분 통계 저장(FNC-A-028) */
@@ -23,18 +23,18 @@ public class MinuteStatService {
     private static final Logger log = LoggerFactory.getLogger(MinuteStatService.class);
 
     private final MinuteAccumulatorStore minuteAccumulatorStore;
-    private final ZoneQueryService zoneQueryService;
+    private final ZoneService zoneService;
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final Duration closeGrace;
 
     public MinuteStatService(
             MinuteAccumulatorStore minuteAccumulatorStore,
-            ZoneQueryService zoneQueryService,
+            ZoneService zoneService,
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본 5초, conventions.md)
             @Value("${MINUTE_CLOSE_GRACE_SEC:5}") long closeGraceSec) {
         this.minuteAccumulatorStore = minuteAccumulatorStore;
-        this.zoneQueryService = zoneQueryService;
+        this.zoneService = zoneService;
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.closeGrace = Duration.ofSeconds(closeGraceSec);
     }
@@ -53,7 +53,7 @@ public class MinuteStatService {
         Set<Long> zoneIds =
                 endedMinutes.stream().map(MinuteAccumulator::getZoneId).collect(Collectors.toSet());
         // 마감 시점의 현재 면적으로 계산한다(면적을 바꾸면 이후 통계부터 적용, tables.md 'zone')
-        Map<Long, BigDecimal> areaByZone = zoneQueryService.findAreasByZoneIds(zoneIds);
+        Map<Long, BigDecimal> areaByZone = zoneService.findAreasByZoneIds(zoneIds);
 
         for (MinuteAccumulator accumulator : endedMinutes) {
             save(accumulator, areaByZone.get(accumulator.getZoneId()));

@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 
-import com.whiteeyes.admin.zone.service.ZoneQueryService;
+import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
@@ -38,7 +38,7 @@ class MinuteStatServiceTest {
     private static final long CLOSE_GRACE_SEC = 5;
 
     @Mock
-    private ZoneQueryService zoneQueryService;
+    private ZoneService zoneService;
 
     @Mock
     private ZoneStatMinuteRepository zoneStatMinuteRepository;
@@ -50,14 +50,14 @@ class MinuteStatServiceTest {
     void setUp() {
         minuteAccumulatorStore = new MinuteAccumulatorStore();
         minuteStatService = new MinuteStatService(
-                minuteAccumulatorStore, zoneQueryService, zoneStatMinuteRepository, CLOSE_GRACE_SEC);
+                minuteAccumulatorStore, zoneService, zoneStatMinuteRepository, CLOSE_GRACE_SEC);
     }
 
     @Test
     @DisplayName("FNC-A-028 14:03 구간은 14:04:04에는 마감하지 않고 14:04:05에 마감해 저장")
     void closesMinuteAfterGrace() {
         minuteAccumulatorStore.add(ZONE_ID, MINUTE.withSecond(10), secondResult(40));
-        given(zoneQueryService.findAreasByZoneIds(anySet())).willReturn(Map.of(ZONE_ID, new BigDecimal("100.00")));
+        given(zoneService.findAreasByZoneIds(anySet())).willReturn(Map.of(ZONE_ID, new BigDecimal("100.00")));
 
         minuteStatService.closeEndedMinutes(LocalDateTime.of(2026, 10, 12, 14, 4, 4));
         verify(zoneStatMinuteRepository, never()).upsert(any());
@@ -76,7 +76,7 @@ class MinuteStatServiceTest {
     void continuesWhenOneSaveFails() {
         minuteAccumulatorStore.add(ZONE_ID, MINUTE.withSecond(10), secondResult(40));
         minuteAccumulatorStore.add(OTHER_ZONE_ID, MINUTE.withSecond(10), secondResult(30));
-        given(zoneQueryService.findAreasByZoneIds(anySet()))
+        given(zoneService.findAreasByZoneIds(anySet()))
                 .willReturn(Map.of(ZONE_ID, new BigDecimal("100.00"), OTHER_ZONE_ID, new BigDecimal("100.00")));
         // 구역 순서(3 → 4)로 저장하므로 첫 저장(구역 3)만 실패시킨다
         willThrow(new DataAccessResourceFailureException("DB 연결 끊김"))
@@ -97,7 +97,7 @@ class MinuteStatServiceTest {
     void skipsZoneWithoutArea() {
         minuteAccumulatorStore.add(ZONE_ID, MINUTE.withSecond(10), secondResult(40));
         minuteAccumulatorStore.add(OTHER_ZONE_ID, MINUTE.withSecond(10), secondResult(30));
-        given(zoneQueryService.findAreasByZoneIds(anySet()))
+        given(zoneService.findAreasByZoneIds(anySet()))
                 .willReturn(Map.of(OTHER_ZONE_ID, new BigDecimal("100.00")));
 
         minuteStatService.closeEndedMinutes(MINUTE.plusMinutes(1).plusSeconds(CLOSE_GRACE_SEC));
@@ -111,7 +111,7 @@ class MinuteStatServiceTest {
     void doesNothingWhenNoEndedMinutes() {
         minuteStatService.closeEndedMinutes(MINUTE);
 
-        verify(zoneQueryService, never()).findAreasByZoneIds(anySet());
+        verify(zoneService, never()).findAreasByZoneIds(anySet());
         verify(zoneStatMinuteRepository, never()).upsert(any());
     }
 
