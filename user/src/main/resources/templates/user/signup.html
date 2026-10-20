@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- common/api.js가 읽는다. CSRF 토큰은 보안 설정이 생기기 전에는 비어 있다 -->
+    <meta name="context-path" th:content="@{/}">
+    <meta name="_csrf" th:content="${_csrf?.token}">
+    <title>회원가입</title>
+    <script type="module" th:src="@{/js/pages/signup.js}"></script>
+</head>
+<body>
+<main>
+    <h1>회원가입</h1>
+    <form id="signup-form" novalidate>
+        <p id="form-error" role="alert"></p>
+
+        <div>
+            <label for="loginId">아이디</label>
+            <input id="loginId" name="loginId" type="text" maxlength="20" autocomplete="username" required>
+            <button type="button" id="check-login-id">중복 확인</button>
+            <p id="login-id-status" aria-live="polite"></p>
+            <p data-error-for="loginId" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="password">비밀번호</label>
+            <input id="password" name="password" type="password" maxlength="64" autocomplete="new-password" required>
+            <p data-error-for="password" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="passwordConfirm">비밀번호 확인</label>
+            <input id="passwordConfirm" name="passwordConfirm" type="password" maxlength="64"
+                   autocomplete="new-password" required>
+            <p data-error-for="passwordConfirm" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="name">이름</label>
+            <input id="name" name="name" type="text" maxlength="50" autocomplete="name" required>
+            <p data-error-for="name" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="email">메일(선택)</label>
+            <input id="email" name="email" type="email" maxlength="100" autocomplete="email">
+            <p data-error-for="email" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="phone">연락처(선택)</label>
+            <input id="phone" name="phone" type="tel" maxlength="20" autocomplete="tel">
+            <p data-error-for="phone" role="alert"></p>
+        </div>
+
+        <button type="submit" id="signup-submit" disabled>가입하기</button>
+    </form>
+</main>
+</body>
+</html>
