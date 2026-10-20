@@ -1,6 +1,4 @@
--- TODO(#18): 1분 통계 저장(FNC-A-028)에서 정식 V파일을 만들면 이 파일을 지운다.
--- 테스트에서만 실행되는 마이그레이션이다(src/test/resources). 지도 현황(FNC-C-009) 테스트가 zone_stat_minute을 쓰려고 둔다.
--- 정식 번호와 겹치지 않게 큰 번호를 쓴다. 내용은 tables.md 'zone_stat_minute'
+-- 구역별 1분 통계: tables.md 'zone_stat_minute'. 관리자 앱이 1분마다 (구역, 분) 기준으로 넣거나 덮어쓴다(FNC-A-028). 90일만 보관
 
 CREATE TABLE zone_stat_minute (
     zone_id BIGINT NOT NULL COMMENT '구역(zone.id)',
