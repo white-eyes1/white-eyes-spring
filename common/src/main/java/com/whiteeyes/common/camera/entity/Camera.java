@@ -88,6 +88,11 @@ public class Camera {
         this.runRequested = true;
     }
 
+    /** 분석 서버가 이 캠을 가동하지 않아도 된다고 기록한다. 분석 서버가 다시 켜져도 가동하지 않는다(FNC-A-021 처리 순서 1). */
+    public void cancelRunRequest() {
+        this.runRequested = false;
+    }
+
     /** 처음 가동에 성공한 시각을 기록한다. 이미 있으면 바꾸지 않는다(FNC-A-020 처리 순서 4). */
     public void markFirstStartedIfAbsent(LocalDateTime now) {
         if (this.firstStartedAt == null) {
