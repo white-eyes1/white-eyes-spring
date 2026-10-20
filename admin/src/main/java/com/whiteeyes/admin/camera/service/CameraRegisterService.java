@@ -3,7 +3,7 @@ package com.whiteeyes.admin.camera.service;
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.dto.CameraResponse;
 import com.whiteeyes.admin.camera.exception.ZoneHasCameraException;
-import com.whiteeyes.admin.zone.service.ZoneService;
+import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.zone.dto;
+package com.whiteeyes.admin.region.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

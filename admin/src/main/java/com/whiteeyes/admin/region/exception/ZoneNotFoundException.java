@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.zone.exception;
+package com.whiteeyes.admin.region.exception;
 
 import com.whiteeyes.common.exception.BusinessException;
 import com.whiteeyes.common.exception.ErrorCode;
