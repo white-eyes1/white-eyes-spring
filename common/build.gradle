@@ -13,7 +13,6 @@ dependencies {
     api 'org.springframework.security:spring-security-crypto'
     // 로그인 핸들러용. Boot 자동 설정(starter-security)은 넣지 않아 로그인을 만드는 앱만 보안이 켜진다
     api 'org.springframework.security:spring-security-web'
-    api 'org.springframework.security:spring-security-config'
     runtimeOnly 'com.mysql:mysql-connector-j'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
