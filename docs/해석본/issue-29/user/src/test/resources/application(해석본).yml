@@ -1,0 +1,18 @@
+# [해석본] 원본: user/src/test/resources/application.yml (29-fnc-u-001-아이디-중복-확인 브랜치)
+# 관련 이슈: #29(FNC-U-001)
+# [무엇] 사용자 앱(user) 테스트 설정. 테스트는 MySQL 대신 메모리 H2(MySQL 호환 모드)를 쓴다.
+# [왜 바꿨나] UserAccount 엔티티가 생겼는데 user_account 테이블을 만드는 마이그레이션은 아직 없다.
+#   사용자 앱은 Flyway를 돌리지 않고(spring.flyway.enabled=false) ddl-auto=validate라서, 그대로 두면
+#   UserApplicationTests와 SignupServiceTest가 '테이블 없음'으로 시작부터 실패한다.
+#   그래서 테스트에서만 Hibernate가 엔티티대로 테이블을 만들고 끝나면 지우게(create-drop) 했다. #15·#16과 같은 방식.
+# [실제 앱은 그대로] main의 application.yml은 validate 그대로다. 실제 DB에서는 테이블이 생길 때까지 앱이 시작하지 않는다(PR 본문에 명시).
+spring:
+  datasource:
+    url: jdbc:h2:mem:user;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      # [해석] TODO에 이슈 번호가 없는 이유: user_account 마이그레이션 이슈가 아직 없다. 생기면 번호를 붙인다.
+      # TODO: user_account 마이그레이션이 생기면 지우고 validate로 되돌린다
+      ddl-auto: create-drop
