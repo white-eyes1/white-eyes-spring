@@ -28,6 +28,7 @@ import com.whiteeyes.admin.zone.service.ZoneQueryService;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
+/** 1분 통계 저장(FNC-A-028) */
 @ExtendWith(MockitoExtension.class)
 class MinuteStatServiceTest {
 

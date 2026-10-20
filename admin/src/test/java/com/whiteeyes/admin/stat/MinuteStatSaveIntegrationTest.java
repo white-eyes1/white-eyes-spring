@@ -34,6 +34,7 @@ import com.whiteeyes.common.zone.repository.ZoneRepository;
 
 // INSERT … ON DUPLICATE KEY UPDATE와 수신 → 마감 → 저장 흐름이 실제 DB에서 맞게 동작하는지 H2로 확인한다.
 // 앱의 스케줄러는 실제 현재 시각으로 돌기 때문에, 테스트 시각은 스케줄러가 마감하지 않을 먼 미래(2099년)로 둔다
+/** 1분 통계 저장(FNC-A-028) */
 @SpringBootTest
 @Transactional
 class MinuteStatSaveIntegrationTest {

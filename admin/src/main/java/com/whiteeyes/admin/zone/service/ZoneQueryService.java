@@ -12,6 +12,7 @@ import com.whiteeyes.common.zone.entity.Zone;
 import com.whiteeyes.common.zone.repository.ZoneRepository;
 
 // TODO(#10): 구역 등록(FNC-A-014)에서 ZoneService가 생기면 그쪽으로 옮긴다
+/** 1분 통계 저장(FNC-A-028) */
 @Service
 public class ZoneQueryService {
 

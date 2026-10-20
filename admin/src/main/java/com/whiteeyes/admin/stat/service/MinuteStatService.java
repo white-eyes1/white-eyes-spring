@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import com.whiteeyes.admin.zone.service.ZoneQueryService;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
+/** 1분 통계 저장(FNC-A-028) */
 @Service
 public class MinuteStatService {
 

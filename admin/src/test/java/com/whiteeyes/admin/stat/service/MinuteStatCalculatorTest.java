@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 
+/** 1분 통계 저장(FNC-A-028) */
 class MinuteStatCalculatorTest {
 
     private static final long ZONE_ID = 3L;

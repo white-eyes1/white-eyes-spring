@@ -20,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.whiteeyes.common.zone.entity.Zone;
 import com.whiteeyes.common.zone.repository.ZoneRepository;
 
+/** 1분 통계 저장(FNC-A-028) */
 @ExtendWith(MockitoExtension.class)
 class ZoneQueryServiceTest {
 
