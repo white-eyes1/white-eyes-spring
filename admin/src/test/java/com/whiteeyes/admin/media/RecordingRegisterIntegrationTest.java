@@ -8,9 +8,9 @@ import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,11 +41,19 @@ class RecordingRegisterIntegrationTest {
     @Autowired
     private CameraRepository cameraRepository;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private Long dongId;
     private Long dummyCameraId;
 
+    // camera → zone → region 외래키가 있어 테스트용 동을 먼저 넣는다. 테스트가 끝나면 롤백된다
     @BeforeEach
     void setUp() {
-        dummyCameraId = saveDummyCamera(3L);
+        jdbcTemplate.update("INSERT INTO region (level, code, name, boundary, center_lat, center_lng)"
+                + " VALUES ('EMD', '99999990', '녹화 테스트동', '{}', 37.600000, 127.002000)");
+        dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '99999990'", Long.class);
+        dummyCameraId = saveDummyCamera("녹화 1구역");
     }
 
     @Test
@@ -74,7 +82,7 @@ class RecordingRegisterIntegrationTest {
     @Test
     @DisplayName("FNC-A-026 다른 캠의 진행 중인 녹화는 닫지 않음")
     void doesNotCloseOtherCameraRecording() {
-        Long otherCameraId = saveDummyCamera(4L);
+        Long otherCameraId = saveDummyCamera("녹화 2구역");
         Long otherId = register(otherCameraId, "2026-10-12T14:00:00+09:00");
 
         register(dummyCameraId, "2026-10-12T14:05:00+09:00");
@@ -90,11 +98,15 @@ class RecordingRegisterIntegrationTest {
                 .id();
     }
 
-    // TODO(#11): Camera에 생성 메서드가 생기면 그것으로 바꾼다
-    private Long saveDummyCamera(Long zoneId) {
-        Camera camera = BeanUtils.instantiateClass(Camera.class);
-        ReflectionTestUtils.setField(camera, "zoneId", zoneId);
-        ReflectionTestUtils.setField(camera, "sourceType", CameraSourceType.DUMMY);
+    // 캠마다 구역 하나(구역당 캠 1대). 가동 상태는 생성자로 정할 수 없어 직접 넣는다
+    private Long saveDummyCamera(String zoneName) {
+        jdbcTemplate.update(
+                "INSERT INTO zone (dong_id, name, area_m2, boundary, center_lat, center_lng)"
+                        + " VALUES (?, ?, 100.00, '{}', 37.600000, 127.002000)",
+                dongId,
+                zoneName);
+        Long zoneId = jdbcTemplate.queryForObject("SELECT MAX(id) FROM zone", Long.class);
+        Camera camera = new Camera(zoneId, zoneName + " 캠", CameraSourceType.DUMMY, DUMMY_VIDEO);
         ReflectionTestUtils.setField(camera, "status", CameraStatus.RUNNING);
         ReflectionTestUtils.setField(camera, "runRequested", true);
         return cameraRepository.save(camera).getId();

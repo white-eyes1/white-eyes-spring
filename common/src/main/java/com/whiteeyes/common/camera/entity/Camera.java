@@ -1,7 +1,5 @@
 package com.whiteeyes.common.camera.entity;
 
-import java.time.LocalDateTime;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,29 +8,40 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.generator.EventType;
+import org.hibernate.type.SqlTypes;
 
-// TODO(#11): 캠 등록(FNC-A-018)에서 tables.md 'camera'의 전체 칼럼으로 정식으로 만든다.
-// 지금은 FNC-A-024·025·026에 필요한 칼럼만 둔 임시 코드(#15·#16·#17 브랜치에서 같은 내용으로 유지)
 @Entity
 @Table(name = "camera")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Camera {
 
+    private static final int INITIAL_PROGRESS = 0;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Zone 엔티티가 아직 없어 id 값으로 둔다
+    // zone 도메인의 엔티티를 직접 들지 않고 번호만 둔다(package-structure.md)
     @Column(name = "zone_id", nullable = false)
     private Long zoneId;
+
+    @Column(nullable = false, length = 50)
+    private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false, length = 10)
     private CameraSourceType sourceType;
+
+    @Column(name = "source_uri", nullable = false, length = 255)
+    private String sourceUri;
 
     @Column(name = "run_requested", nullable = false)
     private boolean runRequested;
@@ -41,14 +50,38 @@ public class Camera {
     @Column(name = "status", nullable = false, length = 20)
     private CameraStatus status;
 
+    @JdbcTypeCode(SqlTypes.TINYINT)
     @Column(name = "progress", nullable = false)
     private int progress;
 
     @Column(name = "error_message", length = 500)
     private String errorMessage;
 
+    @Column(name = "first_started_at")
+    private LocalDateTime firstStartedAt;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    // 아래 두 시각은 DB 기본값(CURRENT_TIMESTAMP, updated_at은 ON UPDATE)이 채운다
+    @Generated(event = EventType.INSERT)
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Generated(event = {EventType.INSERT, EventType.UPDATE})
+    @Column(name = "updated_at", insertable = false, updatable = false)
+    private LocalDateTime updatedAt;
+
+    /** 새 캠은 정지 상태(STOPPED), 가동 요청 없음(run_requested=0)으로 만든다(FNC-A-018 처리 순서 4). */
+    public Camera(Long zoneId, String name, CameraSourceType sourceType, String sourceUri) {
+        this.zoneId = zoneId;
+        this.name = name;
+        this.sourceType = sourceType;
+        this.sourceUri = sourceUri;
+        this.runRequested = false;
+        this.status = CameraStatus.STOPPED;
+        this.progress = INITIAL_PROGRESS;
+    }
 
     /**
      * 분석 서버가 보고한 상태로 바꾼다(FNC-A-025). progress가 null이면 기존 진행률을 유지한다.

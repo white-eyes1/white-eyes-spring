@@ -1,5 +1,6 @@
 package com.whiteeyes.admin.region.service;
 
+import com.whiteeyes.admin.region.dto.ZoneCalculation;
 import com.whiteeyes.admin.region.dto.ZonePreviewResponse;
 import com.whiteeyes.admin.region.exception.OutOfServiceAreaException;
 import com.whiteeyes.common.region.entity.Region;
@@ -20,6 +21,7 @@ import tools.jackson.databind.JsonNode;
 public class ZonePreviewService {
 
     private static final int AREA_SCALE = 1;
+    private static final int COORDINATE_SCALE = 6;
 
     private final RegionRepository regionRepository;
     private final ZonePolygonReader polygonReader;
@@ -28,13 +30,29 @@ public class ZonePreviewService {
 
     @Transactional(readOnly = true)
     public ZonePreviewResponse preview(JsonNode boundary) {
+        ZoneCalculation calculation = calculate(boundary);
+        return new ZonePreviewResponse(calculation.areaM2(), calculation.dongId(), calculation.dongName());
+    }
+
+    /** 검증 → 소속 동 → 면적 → 중심점을 한 번에 계산한다. 구역 등록이 서버 값을 쓰려고 다시 호출한다. */
+    @Transactional(readOnly = true)
+    public ZoneCalculation calculate(JsonNode boundary) {
         Polygon polygon = polygonReader.read(boundary);
         Point interiorPoint = polygon.getInteriorPoint();
         Region dong = findDongContaining(interiorPoint);
         double areaM2 = BigDecimal.valueOf(areaCalculator.areaM2(polygon, interiorPoint))
                 .setScale(AREA_SCALE, RoundingMode.HALF_UP)
                 .doubleValue();
-        return new ZonePreviewResponse(areaM2, dong.getId(), dong.getName());
+        return new ZoneCalculation(
+                areaM2,
+                dong.getId(),
+                dong.getName(),
+                scaled(interiorPoint.getY()),
+                scaled(interiorPoint.getX()));
+    }
+
+    private BigDecimal scaled(double value) {
+        return BigDecimal.valueOf(value).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP);
     }
 
     private Region findDongContaining(Point point) {
