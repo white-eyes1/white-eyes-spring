@@ -13,6 +13,7 @@ import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 
 // TODO(#11): 캠 등록(FNC-A-018)에서 CameraService가 생기면 그쪽으로 옮긴다
+/** 분석 결과 수신(FNC-A-024) */
 @Service
 public class CameraQueryService {
 
