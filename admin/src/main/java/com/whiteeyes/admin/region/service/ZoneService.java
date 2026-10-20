@@ -1,7 +1,7 @@
-package com.whiteeyes.admin.zone.service;
+package com.whiteeyes.admin.region.service;
 
-import com.whiteeyes.admin.zone.exception.ZoneNotFoundException;
-import com.whiteeyes.common.zone.repository.ZoneRepository;
+import com.whiteeyes.admin.region.exception.ZoneNotFoundException;
+import com.whiteeyes.common.region.repository.ZoneRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

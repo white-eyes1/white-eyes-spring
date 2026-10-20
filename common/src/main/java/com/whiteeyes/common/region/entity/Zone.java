@@ -1,4 +1,4 @@
-package com.whiteeyes.common.zone.entity;
+package com.whiteeyes.common.region.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
