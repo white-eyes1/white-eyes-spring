@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,11 +18,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.camera.dto.CameraStatusUpdateRequest;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
 import com.whiteeyes.admin.camera.service.CameraStatusService;
 import com.whiteeyes.common.camera.entity.CameraStatus;
+import com.whiteeyes.common.exception.GlobalExceptionHandler;
 
 @ExtendWith(MockitoExtension.class)
 class CameraInternalControllerTest {
@@ -35,7 +38,9 @@ class CameraInternalControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 실제 앱처럼 공통 오류 처리(FNC-C-027)를 붙여 상태 코드와 오류 응답 code를 함께 확인한다
         mockMvc = MockMvcBuilders.standaloneSetup(new CameraInternalController(cameraStatusService))
+                .setControllerAdvice(new GlobalExceptionHandler(JsonMapper.builder().build()))
                 .build();
     }
 
@@ -63,7 +68,8 @@ class CameraInternalControllerTest {
         mockMvc.perform(patch(STATUS_URL).contentType(MediaType.APPLICATION_JSON).content("""
                         {"status": "RUNNING"}
                         """))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     @Test
@@ -72,7 +78,8 @@ class CameraInternalControllerTest {
         mockMvc.perform(patch(STATUS_URL).contentType(MediaType.APPLICATION_JSON).content("""
                         {"status": "PAUSED"}
                         """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
 
         verifyNoInteractions(cameraStatusService);
     }

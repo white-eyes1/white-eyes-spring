@@ -1,6 +1,9 @@
 package com.whiteeyes.admin.camera.client;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -10,12 +13,18 @@ import org.springframework.web.client.RestClient;
 public class AnalyzerClient {
 
     private static final String INTERNAL_TOKEN_HEADER = "X-Internal-Token";
+    // 분석 서버가 종료를 최대 10초 기다리므로 15초(api/analyzer.md 캠 정지). 명세의 값이 하나라 연결·응답 모두 같게 둔다
+    private static final Duration STOP_TIMEOUT = Duration.ofSeconds(15);
 
     private final RestClient restClient;
 
     public AnalyzerClient(
             @Value("${analyzer.base-url}") String baseUrl, @Value("${internal-api.token}") String internalToken) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(STOP_TIMEOUT);
+        requestFactory.setReadTimeout(STOP_TIMEOUT);
         this.restClient = RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl(baseUrl)
                 .defaultHeader(INTERNAL_TOKEN_HEADER, internalToken)
                 .build();
