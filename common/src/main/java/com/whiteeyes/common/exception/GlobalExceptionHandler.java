@@ -61,13 +61,12 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = ex.getErrorCode();
         String uri = request.getRequestURI();
         // 외부 연결 실패(502)는 재시도로 풀릴 수 있어 ResourceAccessException과 같이 WARN, 그 밖의 5xx는 사람이
-        // 봐야 하는 오류라 ERROR, 감싼 원인이 있으면 원인 추적을 위해 스택을 남긴다(code-conventions.md 7-3)
+        // 봐야 하는 오류라 ERROR이고 둘 다 원인 추적을 위해 스택을 남긴다. 4xx는 예상된 업무 오류라 감싼 원인이
+        // 있어도 스택 없이 WARN이다(code-conventions.md 7-3)
         if (errorCode.getStatus() == HttpStatus.BAD_GATEWAY) {
             log.warn("업무 오류 code={} uri={}", errorCode, uri, ex);
         } else if (errorCode.getStatus().is5xxServerError()) {
             log.error("업무 오류 code={} uri={}", errorCode, uri, ex);
-        } else if (ex.getCause() != null) {
-            log.warn("업무 오류 code={} uri={}", errorCode, uri, ex);
         } else {
             log.warn("업무 오류 code={} uri={}", errorCode, uri);
         }
