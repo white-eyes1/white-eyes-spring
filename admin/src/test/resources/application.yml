@@ -3,3 +3,9 @@ spring:
     url: jdbc:h2:mem:admin;MODE=MySQL;DB_CLOSE_DELAY=-1
     username: sa
     password:
+
+analyzer:
+  base-url: http://localhost:5000
+
+internal-api:
+  token: test-internal-token

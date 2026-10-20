@@ -2,10 +2,13 @@ package com.whiteeyes.admin.camera.controller;
 
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.dto.CameraResponse;
+import com.whiteeyes.admin.camera.dto.CameraStartResponse;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
+import com.whiteeyes.admin.camera.service.CameraStartService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CameraController {
 
     private final CameraRegisterService cameraRegisterService;
+    private final CameraStartService cameraStartService;
+
+    @PostMapping("/{id}/start")
+    public CameraStartResponse start(@PathVariable Long id) {
+        return cameraStartService.start(id);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
