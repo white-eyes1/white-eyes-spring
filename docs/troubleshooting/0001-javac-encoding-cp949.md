@@ -2,7 +2,7 @@
 
 - 기록: 2026-10-19
 - 관련: 이슈 #1, PR #92, FNC-C-027
-- 상태: 우회
+- 상태: 해결
 
 ## 증상
 한글 Windows에서 `./gradlew build` 시 한글 주석이 있는 Java 파일에서 컴파일 실패.
@@ -38,3 +38,8 @@ tasks.withType(JavaCompile).configureEach {
 ## 재발 방지
 빌드 설정에 소스 인코딩을 명시한다(white-eyes-docs code-conventions.md '2-2. 형식'의 UTF-8 규칙).
 근본 해결 전까지는 한글이 깨진 테스트 실패를 보면 `./gradlew --status`로 데몬이 여러 개인지 먼저 확인한다.
+
+## 갱신 (2026-10-20)
+PR #95(2026-10-19 병합)가 build.gradle `subprojects`에 `options.encoding = 'UTF-8'`을 넣어 근본 해결했다.
+우회 명령(`-Dorg.gradle.jvmargs=-Dfile.encoding=UTF-8`)은 더 필요 없고, 한글 Windows에서 `./gradlew build`만으로
+컴파일과 테스트가 통과하는 것을 확인했다. 위 우회 설명은 당시 기록이라 그대로 둔다.
