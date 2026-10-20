@@ -1,5 +1,9 @@
 package com.whiteeyes.common.stat.repository;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +14,9 @@ import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 
 public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, ZoneStatMinuteId> {
+
+    /** 구역들의 from 이후(포함) 1분 통계. 최근 현황 조회(FNC-C-009)에 쓴다. */
+    List<ZoneStatMinute> findByZoneIdInAndStatAtGreaterThanEqual(Collection<Long> zoneIds, LocalDateTime from);
 
     /**
      * (zone_id, stat_at) 기준으로 넣거나 덮어쓴다(FNC-A-028 처리 순서 3).
