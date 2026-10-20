@@ -11,7 +11,7 @@ import com.whiteeyes.common.region.exception.RegionNotFoundException;
 import com.whiteeyes.common.region.repository.RegionRepository;
 
 /**
- * 다른 도메인(지도 현황 등)에 지역 계층을 내주는 조회 서비스.
+ * 다른 도메인(지도 현황 등)에 지역 계층을 내주는 조회 서비스(FNC-C-009).
  */
 // TODO(#8): 지역·구역 목록(FNC-C-008)에서 지역 서비스가 생기면 그쪽으로 옮긴다
 @Service

@@ -12,6 +12,7 @@ import com.whiteeyes.common.stat.dto.MapUnit;
 import com.whiteeyes.common.stat.service.MapStatusService;
 
 // 두 앱이 함께 등록한다. 관리자 앱에서는 컨텍스트 경로가 붙어 /admin/api/v1/map/status
+/** 혼잡 단계 색 표시(FNC-C-009) */
 @RestController
 public class MapApiController {
 

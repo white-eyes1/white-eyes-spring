@@ -30,6 +30,7 @@ import com.whiteeyes.admin.region.service.RegionLoadService;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 // 통계 시각은 실제 현재 시각 기준이다(컨트롤러가 현재 시각으로 '최근 5분'을 판정)
+/** 혼잡 단계 색 표시(FNC-C-009) */
 @SpringBootTest
 @AutoConfigureMockMvc
 class MapStatusIntegrationTest {
