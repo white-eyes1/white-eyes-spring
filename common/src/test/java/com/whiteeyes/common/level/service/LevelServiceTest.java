@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+/** 혼잡 단계 판정(FNC-C-025) */
 class LevelServiceTest {
 
     private static final LevelTarget ZONE = LevelTarget.zone(3L);
