@@ -3,3 +3,8 @@ spring:
     url: jdbc:h2:mem:admin;MODE=MySQL;DB_CLOSE_DELAY=-1
     username: sa
     password:
+
+# 테스트용 가짜 값
+super-admin:
+  login-id: test-super-admin
+  initial-password: test-password-1!
