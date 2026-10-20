@@ -77,10 +77,10 @@ public class RegionLoadService {
         }
 
         log.info(
-                "행정구역 적재 완료 시={} 구={} 동={}",
-                count(ordered, RegionLevel.SI),
-                count(ordered, RegionLevel.GU),
-                count(ordered, RegionLevel.DONG));
+                "행정구역 적재 완료 시·도={} 시·군·구={} 읍·면·동={}",
+                count(ordered, RegionLevel.SIDO),
+                count(ordered, RegionLevel.SIGUNGU),
+                count(ordered, RegionLevel.EMD));
         return ordered.size();
     }
 

@@ -38,7 +38,7 @@ public class ZonePreviewService {
     }
 
     private Region findDongContaining(Point point) {
-        for (Region dong : regionRepository.findByLevel(RegionLevel.DONG)) {
+        for (Region dong : regionRepository.findByLevel(RegionLevel.EMD)) {
             if (boundaryReader.read(dong).contains(point)) {
                 return dong;
             }
