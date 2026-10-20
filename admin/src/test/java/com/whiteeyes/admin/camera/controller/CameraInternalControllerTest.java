@@ -26,6 +26,7 @@ import com.whiteeyes.admin.camera.service.CameraStatusService;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.exception.GlobalExceptionHandler;
 
+/** 캠 상태 보고 수신(FNC-A-025) */
 @ExtendWith(MockitoExtension.class)
 class CameraInternalControllerTest {
 

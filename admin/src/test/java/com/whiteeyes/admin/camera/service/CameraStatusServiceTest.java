@@ -27,6 +27,7 @@ import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 
+/** 캠 상태 보고 수신(FNC-A-025) */
 @ExtendWith(MockitoExtension.class)
 class CameraStatusServiceTest {
 

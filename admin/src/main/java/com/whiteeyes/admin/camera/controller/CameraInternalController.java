@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.whiteeyes.admin.camera.dto.CameraStatusUpdateRequest;
 import com.whiteeyes.admin.camera.service.CameraStatusService;
 
+/** 캠 상태 보고 수신(FNC-A-025) */
 @RestController
 @RequestMapping("/internal/v1/cameras")
 public class CameraInternalController {
