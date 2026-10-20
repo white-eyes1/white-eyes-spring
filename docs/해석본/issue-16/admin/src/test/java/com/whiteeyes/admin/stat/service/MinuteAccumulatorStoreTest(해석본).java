@@ -1,6 +1,7 @@
 /*
  * [해석본] 원본: admin/src/test/java/com/whiteeyes/admin/stat/service/MinuteAccumulatorStoreTest.java
  * 관련 이슈: #16(FNC-A-024)
+ * #18에서 바꾼 것: closeOnlyMinutesEndedByCutoff 테스트 추가(#18이 추가한 closeMinutesEndedBy 확인)
  *
  * [무엇] 누적기 저장소의 단위 테스트. 이슈의 완료 기준 두 개가 여기서 확인된다.
  *   - "같은 초가 두 번 오면 한 번만 반영" → countsSameSecondOnce
@@ -128,6 +129,30 @@ class MinuteAccumulatorStoreTest {
     @DisplayName("FNC-A-024 결과가 하나도 없는 분을 마감하면 빈 값")
     void returnsEmptyWhenNoResults() {
         assertThat(store.closeMinute(ZONE_ID, MINUTE)).isEmpty();
+    }
+
+    // [해석] #18에서 추가. 분이 끝난 바구니만 골라 마감하는지 경계를 확인한다.
+    //        준비: 구역 4·3의 14:03 바구니, 구역 3의 14:04 바구니.
+    //        - cutoff 14:03:59: 14:03 구간은 아직 안 끝남(끝 = 14:04:00) → 아무것도 마감하지 않음
+    //        - cutoff 14:04:00: 14:03 구간 두 개만 마감, 구역 순서(3 → 4)로 나옴. 14:04 바구니는 그대로 남음
+    //        - 마감한 분에 늦게 온 결과는 버림(마감 기록이 남았는지), 14:04 바구니는 여전히 꺼낼 수 있음
+    //        구역 4를 먼저 넣은 이유: 넣은 순서가 아니라 정렬 순서로 나오는지 보려고.
+    @Test
+    @DisplayName("FNC-A-028 분 끝 시각이 cutoff 이하인 누적기만 마감하고 분·구역 순서로 돌려줌")
+    void closesOnlyMinutesEndedByCutoff() {
+        store.add(4L, MINUTE.withSecond(10), secondResult(40));
+        store.add(ZONE_ID, MINUTE.withSecond(10), secondResult(30));
+        store.add(ZONE_ID, MINUTE.plusMinutes(1).withSecond(10), secondResult(20));
+
+        assertThat(store.closeMinutesEndedBy(MINUTE.plusMinutes(1).minusSeconds(1))).isEmpty();
+
+        List<MinuteAccumulator> closed = store.closeMinutesEndedBy(MINUTE.plusMinutes(1));
+
+        // [해석] extracting: 꺼낸 바구니들에서 구역 id만 뽑아 순서까지 비교한다.
+        assertThat(closed).extracting(MinuteAccumulator::getZoneId).containsExactly(ZONE_ID, 4L);
+        assertThat(closed).extracting(MinuteAccumulator::getMinute).containsOnly(MINUTE);
+        assertThat(store.add(ZONE_ID, MINUTE.withSecond(59), secondResult(41))).isFalse();
+        assertThat(store.closeMinute(ZONE_ID, MINUTE.plusMinutes(1))).isPresent();
     }
 
     // [해석] 테스트마다 반복되는 '1초 결과 만들기'를 짧게 쓰려는 도우미. 인원만 중요한 테스트는 첫 번째를,

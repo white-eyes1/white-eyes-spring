@@ -1,6 +1,7 @@
 /*
  * [해석본] 원본: admin/src/main/java/com/whiteeyes/admin/stat/service/MinuteAccumulatorStore.java
  * 관련 이슈: #16(FNC-A-024), closeMinute를 부르는 쪽은 #18(FNC-A-028)
+ * #18에서 바꾼 것: closeMinutesEndedBy(분이 끝난 바구니를 한꺼번에 마감) 추가, import 2줄(Comparator, List)
  *
  * [무엇] 모든 (구역, 분) 바구니(MinuteAccumulator)를 보관하는 메모리 저장소 + '이미 마감한 (구역, 분)' 기록.
  *   DB가 아니라 메모리에 모으는 이유: 1초마다 DB에 쓰지 않고 1분에 1번만 쓰려고(requirements.md stagg-001 "DB 쓰기를 1/60로").
@@ -20,7 +21,7 @@
  *   #18이 그 작은 바구니로 '덮어쓰기 저장'(ON DUPLICATE KEY UPDATE)을 해서 정상 행을 일부 데이터로 망가뜨린다.
  *
  * [핵심 설계 3: 동시성] 결과 수신(HTTP 요청 스레드)과 1분 마감(#18의 예약 작업 스레드)이 동시에 이 객체를 건드린다.
- *   - 메서드 두 개를 synchronized로 묶어 '넣기'와 '마감'이 절대 겹치지 않게 했다.
+ *   - 메서드를 모두 synchronized로 묶어 '넣기'와 '마감'이 절대 겹치지 않게 했다.
  *   - ConcurrentHashMap 대신 synchronized를 고른 이유: "마감 기록 확인 → 바구니에 넣기"처럼 두 자료구조를 함께 보는
  *     동작이라, 맵 하나만 스레드 안전해서는 그 사이에 마감이 끼어드는 틈을 막을 수 없다.
  *   - 성능: 요청이 1초에 1번 정도이고 잠금 안의 일이 아주 짧아 기다림이 거의 없다(단순함을 택함).
@@ -30,8 +31,10 @@ package com.whiteeyes.admin.stat.service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -104,6 +107,33 @@ public class MinuteAccumulatorStore {
         //        빼낸 뒤에는 아무도 이 바구니에 넣지 않으므로, #18은 잠금 없이 안전하게 읽을 수 있다.
         //        결과가 없던 분이면 Optional.empty() → #18은 행을 만들지 않으면 된다(FNC-A-028 "빈 구간").
         return Optional.ofNullable(accumulators.remove(key));
+    }
+
+    /**
+     * 분 끝 시각이 cutoff 이하인 누적기를 모두 마감해 꺼낸다(FNC-A-028 처리 순서 1). 분·구역 순서로 돌려준다.
+     *
+     * @param cutoff 지금 − MINUTE_CLOSE_GRACE_SEC. 14:03 구간은 cutoff가 14:04:00 이상일 때 마감된다
+     */
+    // [해석] #18에서 추가. #16의 PR 본문에 "열려 있는 누적기 목록을 찾는 메서드는 #18에서 추가해야 한다"고 적어 둔 그 메서드다.
+    //        목록을 따로 꺼내 주고 #18이 하나씩 closeMinute를 부르는 방식(메서드 두 개)으로 하지 않고, 찾기와 마감을
+    //        한 메서드 안에서 끝낸 이유: 두 동작 사이에 잠금이 풀리면 그 틈에 결과가 들어오거나 다른 실행이 같은 분을
+    //        마감할 수 있다. synchronized 메서드 하나로 묶으면 그런 틈이 없다.
+    public synchronized List<MinuteAccumulator> closeMinutesEndedBy(LocalDateTime cutoff) {
+        // [해석] 분 끝 = 분 시작 + 1분. "분 끝 ≤ cutoff"를 "분 끝이 cutoff보다 뒤가 아니다(!isAfter)"로 쓴다.
+        //        14:03 구간의 끝은 14:04:00이므로 cutoff가 14:04:00이면(= 지금 14:04:05) 마감, 14:03:59면 아직 열어 둔다.
+        //        정렬은 결과에 영향을 주지 않지만, 저장·로그 순서가 매번 같아야 테스트와 로그를 읽기 쉽다.
+        //        (HashMap은 순서가 정해져 있지 않다.)
+        List<MinuteKey> endedKeys = accumulators.keySet().stream()
+                .filter(key -> !key.minute().plusMinutes(1).isAfter(cutoff))
+                .sorted(Comparator.comparing(MinuteKey::minute).thenComparing(MinuteKey::zoneId))
+                .toList();
+        // [해석] 이미 있는 closeMinute를 그대로 불러 '마감 기록 남기기 + 바구니 빼기'를 같은 방식으로 한다.
+        //        endedKeys는 바구니가 있는 키만 골랐으므로 결과가 비어 있을 수 없어 orElseThrow를 쓴다.
+        //        먼저 키 목록을 toList()로 확정한 뒤 마감하는 이유: 맵을 돌면서 그 맵에서 지우면 오류가 난다.
+        //        synchronized 메서드 안에서 다른 synchronized 메서드를 부르는 것은 같은 스레드라 문제없다(재진입).
+        return endedKeys.stream()
+                .map(key -> closeMinute(key.zoneId(), key.minute()).orElseThrow())
+                .toList();
     }
 
     // [해석] (구역, 분) 두 값을 묶은 맵의 키. record라 equals/hashCode가 두 값으로 자동 생성돼 키로 바로 쓸 수 있다.
