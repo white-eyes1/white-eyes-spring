@@ -1,6 +1,6 @@
-package com.whiteeyes.common.zone.repository;
+package com.whiteeyes.common.region.repository;
 
-import com.whiteeyes.common.zone.entity.Zone;
+import com.whiteeyes.common.region.entity.Zone;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;

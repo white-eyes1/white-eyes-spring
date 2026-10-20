@@ -2,8 +2,8 @@ package com.whiteeyes.admin.camera.service;
 
 import com.whiteeyes.admin.camera.dto.CameraListItem;
 import com.whiteeyes.admin.region.service.RegionLookupService;
-import com.whiteeyes.admin.zone.dto.ZoneSummary;
-import com.whiteeyes.admin.zone.service.ZoneService;
+import com.whiteeyes.admin.region.dto.ZoneSummary;
+import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;

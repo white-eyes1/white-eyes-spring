@@ -1,9 +1,9 @@
-package com.whiteeyes.admin.zone.service;
+package com.whiteeyes.admin.region.service;
 
-import com.whiteeyes.admin.zone.dto.ZoneSummary;
-import com.whiteeyes.admin.zone.exception.ZoneNotFoundException;
-import com.whiteeyes.common.zone.entity.Zone;
-import com.whiteeyes.common.zone.repository.ZoneRepository;
+import com.whiteeyes.admin.region.dto.ZoneSummary;
+import com.whiteeyes.admin.region.exception.ZoneNotFoundException;
+import com.whiteeyes.common.region.entity.Zone;
+import com.whiteeyes.common.region.repository.ZoneRepository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;

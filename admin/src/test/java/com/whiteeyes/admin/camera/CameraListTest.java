@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
 import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.zone.service.ZoneRegisterService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import jakarta.persistence.EntityManagerFactory;
 import java.nio.file.Path;
