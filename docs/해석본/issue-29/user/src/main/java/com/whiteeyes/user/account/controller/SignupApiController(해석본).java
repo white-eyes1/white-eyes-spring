@@ -8,8 +8,8 @@
  * [하는 일] loginId 형식 검증 → 서비스 호출 → {available} 응답. DB 접근·판단은 하지 않는다(package-structure 3-1).
  * [권한] public.md에서 '공개'. 지금은 Spring Security 자체가 없어서 따로 열어 줄 설정이 없다.
  *   #4(FNC-C-003 접근 권한 검사)에서 보안 설정이 생기면 이 경로를 공개로 등록해야 한다.
- * [아직 없는 것] 규칙 위반 시 {code, message, fieldErrors} 본문. 공통 오류 처리(#96)가 머지되면 그 핸들러가 만든다.
- *   지금은 상태 400까지만 보장되고 본문은 Spring 기본 형식이다.
+ * [오류 응답] 규칙 위반 시 {code, message, fieldErrors} 본문은 공통 오류 처리(#96, dev에 머지됨)의 GlobalExceptionHandler가 만든다.
+ *   이 컨트롤러에는 오류 처리 코드가 없다. 본문 형식은 SignupApiControllerTest가 확인한다.
  */
 package com.whiteeyes.user.account.controller;
 
@@ -36,8 +36,9 @@ public class SignupApiController {
 
     // [해석] @Validated를 붙이지 않은 이유: Spring 6.1부터 MVC가 @RequestParam에 붙은 제약(@Pattern)을 직접 검사하고,
     //        어기면 HandlerMethodValidationException(400)을 낸다. #96의 GlobalExceptionHandler는 바로 이 예외를 fieldErrors로 바꾼다.
-    //        클래스에 @Validated를 붙이면 AOP 방식 검증이 먼저 돌아 ConstraintViolationException이 나는데,
-    //        #96은 그 예외를 따로 다루지 않아 500이 될 수 있다.
+    //        클래스에 @Validated를 붙이면 MVC 내장 검증 대신 AOP 방식 검증이 돌아 ConstraintViolationException이 나는데,
+    //        #96은 그 예외를 따로 다루지 않아 500이 된다. 실제로 붙여서 SignupApiControllerTest를 돌려 보니
+    //        규칙 위반 6건이 모두 500이었다(rebase 후 확인).
     // @Validated를 붙이지 않는다. Spring MVC 내장 메서드 검증이 HandlerMethodValidationException(400)을 낸다
     @GetMapping("/check-id")
     public LoginIdCheckResponse checkLoginId(
