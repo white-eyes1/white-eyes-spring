@@ -69,6 +69,15 @@ public class RegionGeoJsonParser {
         return sources;
     }
 
+    /** 저장된 region.boundary(Polygon/MultiPolygon GeoJSON 문자열)를 도형으로 읽는다. 구역 미리보기(FNC-A-013)가 쓴다. */
+    public Geometry readGeometry(String geometryJson, String code) {
+        try {
+            return toGeometry(jsonMapper.readTree(geometryJson), code);
+        } catch (JacksonException e) {
+            throw new RegionFileFormatException("경계를 읽을 수 없습니다: " + code, e);
+        }
+    }
+
     private RegionSource toSource(JsonNode feature) {
         JsonNode properties = feature.path("properties");
         String code = properties.path(CODE_PROPERTY).asString("").trim();
