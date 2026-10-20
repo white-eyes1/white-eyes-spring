@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.zone.service.ZoneRegisterService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
