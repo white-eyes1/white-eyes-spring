@@ -39,6 +39,11 @@ subprojects {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
 
+    // 소스는 UTF-8 (code-conventions.md '형식'). 지정하지 않으면 Windows에서 javac가 MS949로 읽는다
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
     }
