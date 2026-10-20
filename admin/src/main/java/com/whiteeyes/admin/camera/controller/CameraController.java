@@ -31,6 +31,7 @@ public class CameraController {
         return cameraStartService.start(id);
     }
 
+    /** 캠 정지(FNC-A-021) */
     @PostMapping("/{id}/stop")
     public CameraStopResponse stop(@PathVariable Long id) {
         return cameraStopService.stop(id);
