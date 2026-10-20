@@ -1,5 +1,4 @@
--- TODO(#11): 캠 등록(FNC-A-018) 뒤에 recording 정식 V파일(camera FK 포함)을 추가하면 이 파일을 지운다.
--- 테스트에서만 실행되는 마이그레이션이다(src/test/resources). 내용은 tables.md 'recording'
+-- 녹화 기록(영상 1개 + 좌표 파일 1개): tables.md 'recording'. 분석 서버가 녹화 파일을 등록한다(FNC-A-026). 30일 지난 행은 매일 지운다
 
 CREATE TABLE recording (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '녹화 번호',
