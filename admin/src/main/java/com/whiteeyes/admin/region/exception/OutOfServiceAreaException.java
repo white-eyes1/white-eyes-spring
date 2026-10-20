@@ -1,8 +1,11 @@
 package com.whiteeyes.admin.region.exception;
 
-public class OutOfServiceAreaException extends RuntimeException {
+import com.whiteeyes.common.exception.BusinessException;
+import com.whiteeyes.common.exception.ErrorCode;
+
+public class OutOfServiceAreaException extends BusinessException {
 
     public OutOfServiceAreaException(String message) {
-        super(message);
+        super(ErrorCode.OUT_OF_SERVICE_AREA, message);
     }
 }
