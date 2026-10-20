@@ -9,3 +9,9 @@ analyzer:
 
 internal-api:
   token: test-internal-token
+
+# 테스트용 가짜 값
+super-admin:
+  login-id: test-super-admin
+  initial-password: test-password-1!
+
