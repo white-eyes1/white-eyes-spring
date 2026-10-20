@@ -9,6 +9,7 @@ import com.whiteeyes.common.level.dto.LevelResponse;
 import com.whiteeyes.common.level.service.LevelService;
 
 // 두 앱이 함께 등록한다. 관리자 앱에서는 컨텍스트 경로가 붙어 /admin/api/v1/meta/levels
+/** 혼잡 단계 판정(FNC-C-025) */
 @RestController
 public class LevelApiController {
 
