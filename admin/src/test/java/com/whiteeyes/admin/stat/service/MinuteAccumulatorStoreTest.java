@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/** 분석 결과 수신(FNC-A-024) */
 class MinuteAccumulatorStoreTest {
 
     private static final long ZONE_ID = 3L;

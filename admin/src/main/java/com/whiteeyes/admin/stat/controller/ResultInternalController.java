@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.whiteeyes.admin.stat.dto.ResultReceiveRequest;
 import com.whiteeyes.admin.stat.service.ResultReceiveService;
 
+/** 분석 결과 수신(FNC-A-024) */
 @RestController
 @RequestMapping("/internal/v1/results")
 public class ResultInternalController {
