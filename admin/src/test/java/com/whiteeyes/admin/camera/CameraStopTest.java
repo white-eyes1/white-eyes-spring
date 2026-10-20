@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.zone.service.ZoneRegisterService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
