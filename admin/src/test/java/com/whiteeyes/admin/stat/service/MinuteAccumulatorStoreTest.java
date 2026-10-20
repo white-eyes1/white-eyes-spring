@@ -97,6 +97,23 @@ class MinuteAccumulatorStoreTest {
         assertThat(store.closeMinute(ZONE_ID, MINUTE)).isEmpty();
     }
 
+    @Test
+    @DisplayName("FNC-A-028 분 끝 시각이 cutoff 이하인 누적기만 마감하고 분·구역 순서로 돌려줌")
+    void closesOnlyMinutesEndedByCutoff() {
+        store.add(4L, MINUTE.withSecond(10), secondResult(40));
+        store.add(ZONE_ID, MINUTE.withSecond(10), secondResult(30));
+        store.add(ZONE_ID, MINUTE.plusMinutes(1).withSecond(10), secondResult(20));
+
+        assertThat(store.closeMinutesEndedBy(MINUTE.plusMinutes(1).minusSeconds(1))).isEmpty();
+
+        List<MinuteAccumulator> closed = store.closeMinutesEndedBy(MINUTE.plusMinutes(1));
+
+        assertThat(closed).extracting(MinuteAccumulator::getZoneId).containsExactly(ZONE_ID, 4L);
+        assertThat(closed).extracting(MinuteAccumulator::getMinute).containsOnly(MINUTE);
+        assertThat(store.add(ZONE_ID, MINUTE.withSecond(59), secondResult(41))).isFalse();
+        assertThat(store.closeMinute(ZONE_ID, MINUTE.plusMinutes(1))).isPresent();
+    }
+
     private SecondResult secondResult(int personCount) {
         return secondResult(personCount, DirectionCounts.ZERO, List.of());
     }
