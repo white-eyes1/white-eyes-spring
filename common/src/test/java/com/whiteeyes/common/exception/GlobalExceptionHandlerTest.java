@@ -1,5 +1,6 @@
 package com.whiteeyes.common.exception;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -13,12 +14,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = ErrorTestController.class)
+@ExtendWith(OutputCaptureExtension.class)
 class GlobalExceptionHandlerTest {
 
     @Autowired
@@ -145,6 +150,18 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.code").value("EXTERNAL_UNAVAILABLE"))
                 .andExpect(jsonPath("$.message").value("외부 서버에 연결할 수 없습니다."))
                 .andExpect(content().string(not(containsString("10.0.0.5"))));
+    }
+
+    @Test
+    @DisplayName("FNC-C-027 원인 예외가 붙은 4xx 업무 오류도 스택 없이 WARN으로만 남김")
+    void clientErrorWithCauseLogsNoStack(CapturedOutput output) throws Exception {
+        mockMvc.perform(get("/api/v1/test/not-found-with-cause")).andExpect(status().isNotFound());
+
+        // 출력은 같은 클래스의 앞선 테스트 로그도 담으므로, 이 테스트에서만 쓰는 원인 문구가 로그에 없는지 본다
+        assertThat(output.getOut())
+                .contains("WARN")
+                .contains("업무 오류 code=NOT_FOUND uri=/api/v1/test/not-found-with-cause")
+                .doesNotContain("감싼 원인 예외");
     }
 
     @Test
