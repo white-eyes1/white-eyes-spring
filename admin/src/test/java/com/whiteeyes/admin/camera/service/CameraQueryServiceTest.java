@@ -22,6 +22,7 @@ import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 
+/** 분석 결과 수신(FNC-A-024) */
 @ExtendWith(MockitoExtension.class)
 class CameraQueryServiceTest {
 

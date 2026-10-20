@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import com.whiteeyes.admin.media.exception.RecordingRegisterException;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 
+/** 녹화 등록 수신(FNC-A-026) */
 class RecordingPathValidatorTest {
 
     private static final String LIVE_VIDEO = "recordings/live/cam7/20261012/cam7_20261012_1403.mp4";

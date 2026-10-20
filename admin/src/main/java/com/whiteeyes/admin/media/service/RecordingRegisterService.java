@@ -19,6 +19,7 @@ import com.whiteeyes.admin.media.exception.RecordingRegisterException;
 import com.whiteeyes.admin.media.repository.RecordingRepository;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 
+/** 녹화 등록 수신(FNC-A-026) */
 @Service
 public class RecordingRegisterService {
 

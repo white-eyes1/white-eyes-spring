@@ -26,6 +26,7 @@ import com.whiteeyes.admin.media.exception.RecordingRegisterException;
 import com.whiteeyes.admin.media.service.RecordingRegisterService;
 import com.whiteeyes.common.exception.GlobalExceptionHandler;
 
+/** 녹화 등록 수신(FNC-A-026) */
 @ExtendWith(MockitoExtension.class)
 class RecordingInternalControllerTest {
 

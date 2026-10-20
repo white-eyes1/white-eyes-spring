@@ -24,6 +24,7 @@ import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 
 // 이전 녹화를 닫는 UPDATE 쿼리가 실제 DB에서 맞게 동작하는지 H2로 확인한다
+/** 녹화 등록 수신(FNC-A-026) */
 @SpringBootTest
 @Transactional
 class RecordingRegisterIntegrationTest {

@@ -13,6 +13,7 @@ import com.whiteeyes.admin.media.dto.RecordingRegisterRequest;
 import com.whiteeyes.admin.media.dto.RecordingRegisterResponse;
 import com.whiteeyes.admin.media.service.RecordingRegisterService;
 
+/** 녹화 등록 수신(FNC-A-026) */
 @RestController
 @RequestMapping("/internal/v1/recordings")
 public class RecordingInternalController {
