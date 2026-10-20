@@ -17,12 +17,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
 import com.whiteeyes.admin.media.dto.RecordingRegisterRequest;
 import com.whiteeyes.admin.media.dto.RecordingRegisterResponse;
 import com.whiteeyes.admin.media.exception.RecordingRegisterException;
 import com.whiteeyes.admin.media.service.RecordingRegisterService;
+import com.whiteeyes.common.exception.GlobalExceptionHandler;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingInternalControllerTest {
@@ -41,7 +43,9 @@ class RecordingInternalControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 실제 앱처럼 공통 오류 처리(FNC-C-027)를 붙여 상태 코드와 오류 응답 code를 함께 확인한다
         mockMvc = MockMvcBuilders.standaloneSetup(new RecordingInternalController(recordingRegisterService))
+                .setControllerAdvice(new GlobalExceptionHandler(JsonMapper.builder().build()))
                 .build();
     }
 
@@ -89,7 +93,8 @@ class RecordingInternalControllerTest {
                 .registerRecording(any(RecordingRegisterRequest.class));
 
         mockMvc.perform(post(RECORDINGS_URL).contentType(MediaType.APPLICATION_JSON).content(LIVE_BODY))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     @Test
@@ -100,6 +105,8 @@ class RecordingInternalControllerTest {
                 .registerRecording(any(RecordingRegisterRequest.class));
 
         mockMvc.perform(post(RECORDINGS_URL).contentType(MediaType.APPLICATION_JSON).content(LIVE_BODY))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("라이브 캠 녹화는 endedAt이 필요합니다."));
     }
 }
