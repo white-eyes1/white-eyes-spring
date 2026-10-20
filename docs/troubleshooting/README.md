@@ -23,3 +23,5 @@
 
 ## 목록
 (기록이 생기면 한 줄씩 추가: `- [0001 제목](0001-xxx.md)`)
+- [0001 한글 Windows에서 javac가 소스를 CP949로 읽어 한글이 깨짐](0001-javac-encoding-cp949.md)
+- [0002 dev를 합친 뒤 admin:test가 AdminAccount 클래스를 못 찾아 실패(재현 안 됨)](0002-admin-test-noclassdef-adminaccount.md)
