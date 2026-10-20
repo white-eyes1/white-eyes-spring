@@ -3,8 +3,10 @@ package com.whiteeyes.admin.stat.service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -55,6 +57,21 @@ public class MinuteAccumulatorStore {
         LocalDateTime retentionStart = minute.minus(CLOSED_MINUTE_RETENTION);
         closedMinutes.removeIf(closed -> closed.minute().isBefore(retentionStart));
         return Optional.ofNullable(accumulators.remove(key));
+    }
+
+    /**
+     * 분 끝 시각이 cutoff 이하인 누적기를 모두 마감해 꺼낸다(FNC-A-028 처리 순서 1). 분·구역 순서로 돌려준다.
+     *
+     * @param cutoff 지금 − MINUTE_CLOSE_GRACE_SEC. 14:03 구간은 cutoff가 14:04:00 이상일 때 마감된다
+     */
+    public synchronized List<MinuteAccumulator> closeMinutesEndedBy(LocalDateTime cutoff) {
+        List<MinuteKey> endedKeys = accumulators.keySet().stream()
+                .filter(key -> !key.minute().plusMinutes(1).isAfter(cutoff))
+                .sorted(Comparator.comparing(MinuteKey::minute).thenComparing(MinuteKey::zoneId))
+                .toList();
+        return endedKeys.stream()
+                .map(key -> closeMinute(key.zoneId(), key.minute()).orElseThrow())
+                .toList();
     }
 
     private record MinuteKey(long zoneId, LocalDateTime minute) {}
