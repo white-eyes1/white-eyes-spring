@@ -34,6 +34,16 @@ class SuperAdminPropertiesTest {
         }
     }
 
+    @Test
+    @DisplayName("toString은 초기 비밀번호를 찍지 않는다")
+    void toString_masksInitialPassword() {
+        SuperAdminProperties properties = new SuperAdminProperties("env-super-admin", "env-password-1");
+
+        assertThat(properties.toString())
+                .contains("env-super-admin")
+                .doesNotContain("env-password-1");
+    }
+
     @Configuration
     static class EmptyConfig {}
 }
