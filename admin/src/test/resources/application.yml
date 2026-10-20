@@ -3,3 +3,7 @@ spring:
     url: jdbc:h2:mem:admin;MODE=MySQL;DB_CLOSE_DELAY=-1
     username: sa
     password:
+  jpa:
+    hibernate:
+      # TODO: user_account 마이그레이션이 생기면 지우고 validate로 되돌린다
+      ddl-auto: create-drop
