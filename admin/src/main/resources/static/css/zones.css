@@ -1,0 +1,26 @@
+/* 구역 관리 화면(SCR-A-004) 전용. 공통 스타일은 we.css */
+.region-select { width: 150px; height: 34px; font-size: 12px; }
+.hint-text { margin-left: 8px; font-size: 12px; }
+
+.zones-body { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 640px; }
+.zones-map { flex: 999 1 560px; min-width: 0; min-height: 640px; }
+.zones-side { flex: 0 1 380px; min-width: 300px; border-left: 1px solid #253242; background: #0d131b; display: flex; flex-direction: column; }
+
+.side-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #253242; font-size: 13px; }
+.draw-guide { margin: 0; padding: 10px 16px; font-size: 12px; color: #9aa8b8; border-bottom: 1px solid #253242; }
+
+.zone-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #1e2a38; cursor: pointer; }
+.zone-row.sel { background: rgba(79, 140, 255, .08); }
+.zone-row .info { flex: 1; min-width: 0; }
+.zone-row .name { font-size: 13px; font-weight: 700; }
+.zone-row .meta { font-size: 11px; color: var(--muted); }
+.zone-empty { padding: 24px 16px; font-size: 12px; color: var(--muted); }
+
+.draft { margin: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.draft strong { font-size: 14px; }
+.draft-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.draft-stats > div { padding: 10px; border-radius: 8px; background: #151e29; font-size: 11px; }
+.draft-stats > div > div { margin-top: 2px; font-size: 18px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+.draft-error { margin: 0; padding: 8px 10px; border: 1px solid #5a2a31; border-radius: 8px; background: #1f141a; color: #ff8c91; font-size: 12px; }
+.draft-actions { display: flex; gap: 8px; }
+.draft-actions .btn { flex: 1; }
