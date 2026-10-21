@@ -15,6 +15,9 @@ import com.whiteeyes.admin.camera.service.CameraRegisterService;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
+import com.whiteeyes.common.region.entity.Region;
+import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.repository.RegionRepository;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -56,6 +59,9 @@ class RegionListTest {
 
     @Autowired
     private CameraRegisterService cameraRegisterService;
+
+    @Autowired
+    private RegionRepository regionRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -146,6 +152,18 @@ class RegionListTest {
         regions(regionId("11"))
                 .andExpect(jsonPath("$[0].boundary.type").isString())
                 .andExpect(jsonPath("$[0].boundary.coordinates").isArray());
+    }
+
+    @Test
+    @DisplayName("FNC-C-008 지역 목록은 저장 순서가 아니라 code 오름차순이다")
+    void regions_orderedByCodeNotInsertionOrder() throws Exception {
+        // 나중에 저장해 번호는 더 크지만 code는 더 작은 지역을 둔다
+        regionRepository.save(newRegion(null, RegionLevel.SIDO, "10", "먼저인 시도"));
+        regionRepository.save(newRegion(
+                regionRepository.findById(regionId("11")).orElseThrow(), RegionLevel.SIGUNGU, "11105", "먼저인 구"));
+
+        regions(null).andExpect(jsonPath("$[*].code", contains("10", "11")));
+        regions(regionId("11")).andExpect(jsonPath("$[*].code", contains("11105", "11110", "11140")));
     }
 
     @Test
@@ -258,6 +276,17 @@ class RegionListTest {
         jdbcTemplate.update("DELETE FROM zone");
 
         zones(null).andExpect(status().isOk()).andExpect(jsonPath("$", empty()));
+    }
+
+    private Region newRegion(Region parent, RegionLevel level, String code, String name) {
+        return new Region(
+                parent,
+                level,
+                code,
+                name,
+                SOGONG_SQUARE,
+                new BigDecimal("37.560000"),
+                new BigDecimal("127.060000"));
     }
 
     private void clearAll() {
