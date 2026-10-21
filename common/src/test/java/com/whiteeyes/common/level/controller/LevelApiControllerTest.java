@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.whiteeyes.common.level.service.LevelService;
 
+/** 혼잡 단계 판정(FNC-C-025) */
 class LevelApiControllerTest {
 
     private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
