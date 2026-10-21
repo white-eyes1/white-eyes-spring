@@ -4,6 +4,7 @@ import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStartResponse;
 import com.whiteeyes.admin.camera.exception.AnalyzerUnavailableException;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
+import com.whiteeyes.admin.camera.exception.CameraStoppingException;
 import com.whiteeyes.admin.camera.exception.InvalidCameraStatusException;
 import com.whiteeyes.admin.camera.exception.SourceNotFoundException;
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
@@ -58,6 +59,10 @@ public class CameraStartService {
         } catch (SourceNotFoundException e) {
             recordFailure(cameraId, SOURCE_NOT_FOUND_MESSAGE);
             throw e;
+        } catch (CameraStoppingException e) {
+            // 직전 정지가 아직 끝나지 않은 것이라 가동하지 않은 것으로 본다: ERROR로 바꾸지 않고 요청 전 값으로 되돌린다
+            revertRunRequest(cameraId, target.runRequested());
+            throw e;
         }
 
         // 처리 순서 4: 응답의 상태로 갱신, first_started_at이 비어 있으면 현재 시각
@@ -72,14 +77,25 @@ public class CameraStartService {
         if (!isStartable(camera.getStatus())) {
             throw new InvalidCameraStatusException(cameraId, camera.getStatus());
         }
+        boolean runRequestedBefore = camera.isRunRequested();
         camera.requestRun();
-        return new StartTarget(camera.getSourceType(), camera.getSourceUri());
+        return new StartTarget(camera.getSourceType(), camera.getSourceUri(), runRequestedBefore);
     }
 
     private void recordFailure(Long cameraId, String errorMessage) {
         transactionTemplate.executeWithoutResult(status ->
                 cameraRepository.findByIdAndDeletedAtIsNull(cameraId)
                         .ifPresent(camera -> camera.updateStatus(CameraStatus.ERROR, null, errorMessage)));
+    }
+
+    // status·error_message는 결과 기록 전이라 요청 전 그대로이므로 run_requested만 되돌린다.
+    // 요청 전에 이미 1이었다면(ERROR 캠 등) 그대로 두고, 응답을 기다리는 사이 정지가 0으로 만들었다면 되살리지 않는다
+    private void revertRunRequest(Long cameraId, boolean runRequestedBefore) {
+        if (runRequestedBefore) {
+            return;
+        }
+        transactionTemplate.executeWithoutResult(status ->
+                cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(Camera::cancelRunRequest));
     }
 
     private void recordStarted(Long cameraId, CameraStatus started, LoginAccount actor) {
@@ -104,5 +120,5 @@ public class CameraStartService {
         return status == CameraStatus.STOPPED || status == CameraStatus.ERROR;
     }
 
-    private record StartTarget(CameraSourceType sourceType, String sourceUri) {}
+    private record StartTarget(CameraSourceType sourceType, String sourceUri, boolean runRequested) {}
 }

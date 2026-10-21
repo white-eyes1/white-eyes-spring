@@ -267,7 +267,60 @@ class CameraStartTest {
     }
 
     @Test
-    @DisplayName("분석 서버가 그 밖의 오류(500·401·501·400 다른 코드)로 답하면 502 ANALYZER_UNAVAILABLE이고 캠은 ERROR가 된다")
+    @DisplayName("FNC-A-020 분석 서버가 409 CAMERA_STOPPING으로 답하면 409 CAMERA_STOPPING이고 캠은 요청 전 그대로(STOPPED·run_requested=0), 첫 가동·작업 기록도 없다")
+    void start_cameraStopping_revertsToBefore() throws Exception {
+        long cameraId = insertCamera("STOPPED", 0, null, false, null);
+        ANALYZER.replyWith(409, "{\"code\":\"CAMERA_STOPPING\",\"message\":\"정지 중\"}");
+
+        start(cameraId)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CAMERA_STOPPING"))
+                .andExpect(jsonPath("$.message").value("이전 정지가 아직 끝나지 않았습니다. 잠시 뒤 다시 시작해 주세요."));
+
+        Map<String, Object> row = camera(cameraId);
+        assertThat(row.get("STATUS")).isEqualTo("STOPPED");
+        assertThat(row.get("ERROR_MESSAGE")).isNull();
+        assertThat(isRunRequested(row)).isFalse();
+        assertThat(row.get("FIRST_STARTED_AT")).isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM work_history WHERE action = 'CAMERA_RUN' AND target_id = ?",
+                        Long.class,
+                        cameraId))
+                .isZero();
+    }
+
+    @Test
+    @DisplayName("FNC-A-020 ERROR 캠이 409 CAMERA_STOPPING을 받으면 ERROR·오류 내용·run_requested=1이 그대로 남는다")
+    void start_cameraStopping_errorCameraKeepsItsState() throws Exception {
+        long cameraId = insertCamera("ERROR", 0, "분석 서버 연결 실패", true, null);
+        ANALYZER.replyWith(409, "{\"code\":\"CAMERA_STOPPING\"}");
+
+        start(cameraId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CAMERA_STOPPING"));
+
+        Map<String, Object> row = camera(cameraId);
+        assertThat(row.get("STATUS")).isEqualTo("ERROR");
+        assertThat(row.get("ERROR_MESSAGE")).isEqualTo("분석 서버 연결 실패");
+        assertThat(isRunRequested(row)).isTrue();
+    }
+
+    @Test
+    @DisplayName("FNC-A-020 409 CAMERA_STOPPING 뒤에 정지가 끝나 다시 시작하면 정상적으로 가동된다")
+    void start_afterCameraStopping_retrySucceeds() throws Exception {
+        long cameraId = insertCamera("STOPPED", 0, null, false, null);
+        ANALYZER.replyWith(409, "{\"code\":\"CAMERA_STOPPING\"}");
+        start(cameraId).andExpect(status().isConflict());
+
+        ANALYZER.replyWith(200, "{\"status\":\"PREPARING\"}");
+        start(cameraId).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PREPARING"));
+
+        Map<String, Object> row = camera(cameraId);
+        assertThat(row.get("STATUS")).isEqualTo("PREPARING");
+        assertThat(isRunRequested(row)).isTrue();
+        assertThat(row.get("FIRST_STARTED_AT")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("분석 서버가 그 밖의 오류(500·401·501·400·409 다른 코드)로 답하면 502 ANALYZER_UNAVAILABLE이고 캠은 ERROR가 된다")
     void start_otherAnalyzerErrors_badGateway() throws Exception {
         record Case(int http, String body) {}
         Case[] cases = {
@@ -275,6 +328,7 @@ class CameraStartTest {
             new Case(401, "{\"code\":\"UNAUTHORIZED\"}"),
             new Case(501, "{\"code\":\"SOURCE_TYPE_NOT_SUPPORTED\"}"),
             new Case(400, "{\"code\":\"INVALID_INPUT\"}"),
+            new Case(409, "{\"code\":\"INVALID_STATUS\"}"),
             new Case(500, "<html>Bad Gateway</html>")
         };
         for (Case c : cases) {
