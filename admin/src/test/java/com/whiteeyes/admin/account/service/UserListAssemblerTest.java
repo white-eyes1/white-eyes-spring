@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.whiteeyes.admin.account.dto.UserListItem;
 import com.whiteeyes.admin.account.dto.UserSearchRequest;
 import com.whiteeyes.admin.account.repository.UserRow;
+import com.whiteeyes.common.account.entity.UserAccountStatus;
 import com.whiteeyes.common.web.PageResponse;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -139,6 +140,16 @@ class UserListAssemblerTest {
         assertThat(beyond.totalElements()).isEqualTo(45);
     }
 
+    @Test
+    @DisplayName("FNC-A-002 page가 아주 커서 page×size가 int를 넘어도 빈 목록")
+    void assembleInMemory_hugePage_empty() {
+        PageResponse<UserListItem> page = UserListAssembler.assembleInMemory(
+                rows(3), activities(), request(false, "loginId,asc", Integer.MAX_VALUE, 100));
+
+        assertThat(page.items()).isEmpty();
+        assertThat(page.totalElements()).isEqualTo(3);
+    }
+
     private UserActivities activities() {
         return new UserActivities(sessions, KST, NOW.minusMinutes(30));
     }
@@ -148,7 +159,7 @@ class UserListAssemblerTest {
     }
 
     private static UserRow row(long id, String loginId, LocalDateTime lastLoginAt) {
-        return new UserRow(id, loginId, "이름" + id, null, null, "ACTIVE", JOINED, lastLoginAt);
+        return new UserRow(id, loginId, "이름" + id, null, null, UserAccountStatus.ACTIVE, JOINED, lastLoginAt);
     }
 
     private static List<UserRow> rows(int count) {
