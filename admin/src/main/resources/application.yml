@@ -29,6 +29,10 @@ super-admin:
   login-id: ${SUPER_ADMIN_LOGIN_ID:}
   initial-password: ${SUPER_ADMIN_INITIAL_PASSWORD:}
 
+# 활동 중 판단 기준 시간(conventions.md '활동 중 판단', FNC-A-002)
+account:
+  active-window: ${ACTIVE_WINDOW:30m}
+
 management:
   endpoints:
     web:
