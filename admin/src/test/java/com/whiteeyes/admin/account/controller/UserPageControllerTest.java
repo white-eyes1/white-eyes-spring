@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -35,6 +37,25 @@ class UserPageControllerTest {
                 .andExpect(content().string(containsString("data-sort=\"createdAt\"")))
                 .andExpect(content().string(containsString("data-sort=\"lastActiveAt\"")))
                 .andExpect(content().string(containsString("id=\"user-list-truncated\"")))
+                .andExpect(content().string(containsString("id=\"user-list-error\"")))
                 .andExpect(content().string(containsString("id=\"user-pagination\"")));
+    }
+
+    // common/api.js가 이 두 meta로 컨텍스트 경로(/admin)와 CSRF 토큰을 읽는다
+    @Test
+    @DisplayName("SCR-A-001 사용자 관리 화면은 목록 JS와 api.js가 읽을 meta를 갖는다")
+    void users_linksScriptAndMeta() throws Exception {
+        mockMvc.perform(get("/users"))
+                .andExpect(content().string(containsString("src=\"/js/admin/pages/users.js\"")))
+                .andExpect(content().string(containsString("<meta name=\"context-path\" content=\"/\">")))
+                .andExpect(content().string(containsString("<meta name=\"_csrf\" content=\"")));
+    }
+
+    // users.js는 admin 모듈, api.js는 common 모듈에 있어 두 곳 모두 관리자 앱에서 내려가는지 본다
+    @ParameterizedTest
+    @ValueSource(strings = {"/js/admin/pages/users.js", "/js/common/api.js"})
+    @DisplayName("SCR-A-001 화면이 쓰는 JS 파일을 관리자 앱이 내려준다")
+    void users_scriptsServed(String path) throws Exception {
+        mockMvc.perform(get(path)).andExpect(status().isOk());
     }
 }
