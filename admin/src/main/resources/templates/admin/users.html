@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- common/api.js가 읽는다. 관리자 앱은 /admin 아래에서 돈다 -->
+    <meta name="context-path" th:content="@{/}">
+    <meta name="_csrf" th:content="${_csrf?.token}">
     <title>사용자 관리</title>
+    <script type="module" th:src="@{/js/admin/pages/users.js}"></script>
 </head>
 <body>
-<!-- SCR-A-001 사용자 관리. 목록은 화면 JS가 GET /api/v1/users(FNC-A-002)로 받아 채운다 -->
+<!-- SCR-A-001 사용자 관리. 목록은 화면 JS(js/admin/pages/users.js)가 GET /api/v1/users(FNC-A-002)로 받아 채운다 -->
 <main>
     <h1>사용자 관리</h1>
 
@@ -45,17 +49,18 @@
         <button type="submit">조회</button>
     </form>
 
+    <p id="user-list-error" role="alert" hidden></p>
     <!-- 활동 중 필터·최근 활동 정렬이 1,000명 상한에 걸리면(truncated) 보인다 -->
     <p id="user-list-truncated" role="status" hidden>조건에 맞는 사용자가 많아 1,000명까지만 표시합니다.</p>
 
     <table id="user-table">
         <thead>
         <tr>
-            <th scope="col"><button type="button" data-sort="loginId">아이디</button></th>
+            <th scope="col" aria-sort="none"><button type="button" data-sort="loginId">아이디</button></th>
             <th scope="col">이름</th>
             <th scope="col">상태</th>
-            <th scope="col"><button type="button" data-sort="createdAt">가입일</button></th>
-            <th scope="col"><button type="button" data-sort="lastActiveAt">최근 활동</button></th>
+            <th scope="col" aria-sort="descending"><button type="button" data-sort="createdAt">가입일</button></th>
+            <th scope="col" aria-sort="none"><button type="button" data-sort="lastActiveAt">최근 활동</button></th>
             <th scope="col">활동 중</th>
         </tr>
         </thead>
