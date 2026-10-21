@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
+/** 사용자 관리 화면 틀(SCR-A-001, FNC-A-002). */
 @SpringBootTest
 @AutoConfigureMockMvc
 class UserPageControllerTest {

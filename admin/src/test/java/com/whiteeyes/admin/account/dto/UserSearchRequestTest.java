@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+/** 사용자 목록 조회 조건의 기본값과 검증(FNC-A-002). */
 class UserSearchRequestTest {
 
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();

@@ -19,6 +19,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/** 사용자 목록 응답 조립: 최근 활동 붙이기·1,000명 상한·메모리 정렬과 페이지(FNC-A-002). */
 class UserListAssemblerTest {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");

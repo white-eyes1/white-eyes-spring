@@ -15,6 +15,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/** 최근 활동 시각과 활동 중 판정(FNC-A-002). */
 class UserActivityServiceTest {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");

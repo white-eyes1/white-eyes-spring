@@ -40,6 +40,7 @@ import org.springframework.test.context.jdbc.SqlConfig;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+/** 사용자 목록 API 검수 기준: 필터 조합·정렬·페이지 이동(FNC-A-002). */
 @SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 @AutoConfigureMockMvc
 // 지정하지 않으면 JVM 기본 인코딩(Windows에서는 MS949)으로 읽어 한글 이름이 깨진다

@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.jdbc.Sql;
 
+/** 사용자 세션의 마지막 접근 시각 조회(FNC-A-002). */
 @SpringBootTest
 @Sql("/sql/account/user-sessions.sql")
 @Sql(statements = "DELETE FROM SPRING_SESSION_USER", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
