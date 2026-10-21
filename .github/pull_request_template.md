@@ -12,4 +12,5 @@ Closes #
 - [ ] 다른 팀원의 Claude도 알아야 할 규칙이 생겼으면 CLAUDE.md 또는 .claude/rules를 고쳤음
 - [ ] 겪은 문제 중 기록할 것이 있으면 docs/troubleshooting에 남겼음(없으면 '해당 없음')
 - [ ] 미룬 처리가 있으면 받을 이슈 본문의 '넘겨받은 일'에 옮기고 이슈 번호를 적었음(없으면 '해당 없음'): 
+- [ ] 이슈에 화면 ID(SCR-…)가 있으면 해당 화면 부분을 구현하고, 시안 PNG(white-eyes-docs `design/png/`)와 나란히 비교한 캡처를 첨부했음(없으면 '해당 없음')
 - [ ] 구현한 기능의 ID(FNC-…)를 진입점 클래스와 테스트 클래스 주석에 적었음 (code-conventions 2-4)
