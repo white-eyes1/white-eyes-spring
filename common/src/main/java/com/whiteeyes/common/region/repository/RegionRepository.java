@@ -14,6 +14,12 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
 
     List<Region> findByLevel(RegionLevel level);
 
+    /** 시·도 목록처럼 한 단위의 지역을 코드 순으로(FNC-C-008). */
+    List<Region> findByLevelOrderByCode(RegionLevel level);
+
+    /** 바로 아래 지역을 코드 순으로(FNC-C-008). */
+    List<Region> findByParent_IdOrderByCode(Long parentId);
+
     /** 상위 지역(parent)까지 한 번에 불러온다. 지역 경로(시·군·구 · 읍·면·동) 표시에 쓴다(FNC-A-022). */
     @Query("select r from Region r left join fetch r.parent where r.id in :ids")
     List<Region> findAllWithParentByIdIn(@Param("ids") Collection<Long> ids);

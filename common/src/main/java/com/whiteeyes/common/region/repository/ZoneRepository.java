@@ -15,6 +15,12 @@ public interface ZoneRepository extends JpaRepository<Zone, Long> {
     /** 구역이 있고 삭제되지 않았는지 본다(캠 등록 FNC-A-018 처리 순서 1). */
     boolean existsByIdAndDeletedAtIsNull(Long id);
 
+    /** 삭제되지 않은 모든 구역을 번호 순으로(FNC-C-008). */
+    List<Zone> findByDeletedAtIsNullOrderById();
+
+    /** 한 동의 삭제되지 않은 구역을 번호 순으로(FNC-C-008). */
+    List<Zone> findByDongIdAndDeletedAtIsNullOrderById(Long dongId);
+
     /** 주어진 읍·면·동에 속한 삭제되지 않은 구역 번호(캠 목록 지역 필터, FNC-A-022). */
     @Query("select z.id from Zone z where z.dongId in :dongIds and z.deletedAt is null")
     List<Long> findActiveIdsByDongIdIn(@Param("dongIds") Collection<Long> dongIds);
