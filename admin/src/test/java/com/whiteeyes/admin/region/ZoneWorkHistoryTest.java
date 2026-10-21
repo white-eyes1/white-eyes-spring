@@ -147,7 +147,8 @@ class ZoneWorkHistoryTest {
                         .contextPath("/admin")
                         .cookie(session)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body()))
+                        .content(body())
+                        .with(csrf()))
                 .andExpect(status().isCreated());
 
         List<Map<String, Object>> rows =
@@ -161,7 +162,8 @@ class ZoneWorkHistoryTest {
     private ResultActions register(RequestPostProcessor login) throws Exception {
         MockHttpServletRequestBuilder request =
                 post(ZONES_URL).contentType(MediaType.APPLICATION_JSON).content(body());
-        return mockMvc.perform(login == null ? request : request.with(login));
+        MockHttpServletRequestBuilder withCsrf = request.with(csrf());
+        return mockMvc.perform(login == null ? withCsrf : withCsrf.with(login));
     }
 
     private String body() {

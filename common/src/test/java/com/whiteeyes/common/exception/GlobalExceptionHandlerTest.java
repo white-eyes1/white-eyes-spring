@@ -1,6 +1,7 @@
 package com.whiteeyes.common.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,6 +21,8 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = ErrorTestController.class)
@@ -241,6 +244,20 @@ class GlobalExceptionHandlerTest {
                 .andExpect(model().attribute("status", 404))
                 .andExpect(model().attribute("message", "구역을 찾을 수 없습니다."))
                 .andExpect(content().string(containsString("구역을 찾을 수 없습니다.")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-003 권한 예외는 500으로 바꾸지 않고 다시 던져 보안 필터가 처리하게 한다")
+    void accessDenied_isRethrownForSecurity() {
+        assertThatThrownBy(() -> mockMvc.perform(get("/api/v1/test/access-denied")))
+                .hasRootCauseInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("FNC-C-003 인증 예외도 500으로 바꾸지 않고 다시 던진다")
+    void authenticationFailed_isRethrownForSecurity() {
+        assertThatThrownBy(() -> mockMvc.perform(get("/api/v1/test/authentication-failed")))
+                .hasRootCauseInstanceOf(AuthenticationException.class);
     }
 
     @Test

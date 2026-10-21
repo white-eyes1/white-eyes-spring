@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
 import com.whiteeyes.admin.region.service.RegionLoadService;
@@ -29,12 +30,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
 /** 지역·구역 목록(FNC-C-008). common 컨트롤러를 관리자 앱 컨텍스트에서 DB(H2+Flyway)와 함께 확인한다. */
+@Import(AdminTestUserConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 class RegionListTest {

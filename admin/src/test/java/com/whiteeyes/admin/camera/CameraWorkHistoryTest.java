@@ -1,6 +1,7 @@
 package com.whiteeyes.admin.camera;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -271,7 +272,8 @@ class CameraWorkHistoryTest {
     }
 
     private ResultActions perform(MockHttpServletRequestBuilder request, RequestPostProcessor login) throws Exception {
-        return mockMvc.perform(login == null ? request : request.with(login));
+        MockHttpServletRequestBuilder withCsrf = request.with(csrf());
+        return mockMvc.perform(login == null ? withCsrf : withCsrf.with(login));
     }
 
     private long insertCamera(String status, boolean runRequested) {
