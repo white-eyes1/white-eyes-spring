@@ -14,6 +14,7 @@ import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
@@ -77,6 +78,7 @@ class RegionListTest {
 
     @BeforeEach
     void prepare() {
+        AdminTestLogin.loginForDirectCalls();
         clearAll();
         regionLoadService.load(REGION_FILE);
         samcheongZoneA = createZone("삼청동 1구역", SAMCHEONG_SQUARE_A);
@@ -87,6 +89,7 @@ class RegionListTest {
     // camera → zone → region 순으로 외래키가 걸려 있어 남겨 두면 다른 테스트가 region을 지우다 실패한다
     @AfterEach
     void clearAfter() {
+        AdminTestLogin.clear();
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -297,10 +300,14 @@ class RegionListTest {
     }
 
     private long createZone(String name, String polygon) {
+        // MockMvc 요청이 끝나면 현재 스레드의 로그인 정보가 비워지므로 부를 때마다 다시 채운다
+        AdminTestLogin.loginForDirectCalls();
         return zoneRegisterService.register(name, jsonMapper.readTree(polygon)).id();
     }
 
     private long createCamera(long zoneId, String name) {
+        // MockMvc 요청이 끝나면 현재 스레드의 로그인 정보가 비워지므로 부를 때마다 다시 채운다
+        AdminTestLogin.loginForDirectCalls();
         return cameraRegisterService
                 .register(new CameraCreateRequest(zoneId, name, CameraSourceType.LIVE, LIVE_URI))
                 .id();

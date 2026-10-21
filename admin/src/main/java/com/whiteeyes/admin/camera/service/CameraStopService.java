@@ -3,8 +3,13 @@ package com.whiteeyes.admin.camera.service;
 import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStopResponse;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
+import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
+import com.whiteeyes.common.history.entity.WorkAction;
+import com.whiteeyes.common.history.entity.WorkTargetType;
+import com.whiteeyes.common.security.LoginAccount;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
@@ -28,8 +33,11 @@ public class CameraStopService {
     private final CameraRepository cameraRepository;
     private final AnalyzerClient analyzerClient;
     private final TransactionTemplate transactionTemplate;
+    private final AdminWorkRecorder workRecorder;
 
     public CameraStopResponse stop(Long cameraId) {
+        // 로그인하지 않은 요청은 정지를 시작하기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
+        LoginAccount actor = workRecorder.requireActor();
         // 처리 순서 1: run_requested=0. 분석 서버가 다시 켜져도 가동하지 않게 호출보다 먼저 확정한다
         transactionTemplate.executeWithoutResult(status -> cancelRunRequest(cameraId));
 
@@ -44,10 +52,10 @@ public class CameraStopService {
         }
 
         // 처리 순서 3: status=STOPPED, progress=0 (이전 오류 내용도 지운다)
-        transactionTemplate.executeWithoutResult(status -> markStopped(cameraId));
-        // 처리 순서 4(더미 캠: 마지막 녹화의 ended_at 채우기)는 녹화 등록(FNC-A-026, #17)의 recording 테이블이,
-        // 처리 순서 5(열린 캠 이상 이벤트 종료)는 이벤트 테이블이, 처리 순서 6(작업 기록 CAMERA_RUN, op: STOP)은
-        // 작업 기록 저장(FNC-C-026, #6)이 dev에 들어오면 여기서 호출한다
+        transactionTemplate.executeWithoutResult(status -> markStopped(cameraId, actor));
+        // 처리 순서 6(작업 기록 CAMERA_RUN, op: STOP)은 위 3단계 트랜잭션 안에서 남긴다.
+        // 처리 순서 4(더미 캠: 마지막 녹화의 ended_at 채우기)와 5(열린 캠 이상 이벤트 종료)는 아직 연결하지 않았다
+        // (4는 후속 이슈 #120의 남은 일, 5는 이벤트 테이블이 들어오는 #39)
         return new CameraStopResponse(CameraStatus.STOPPED, warning);
     }
 
@@ -57,8 +65,11 @@ public class CameraStopService {
                 .cancelRunRequest();
     }
 
-    private void markStopped(Long cameraId) {
-        cameraRepository.findByIdAndDeletedAtIsNull(cameraId)
-                .ifPresent(camera -> camera.updateStatus(CameraStatus.STOPPED, STOPPED_PROGRESS, null));
+    private void markStopped(Long cameraId, LoginAccount actor) {
+        cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
+            camera.updateStatus(CameraStatus.STOPPED, STOPPED_PROGRESS, null);
+            workRecorder.record(
+                    actor, WorkAction.CAMERA_RUN, WorkTargetType.CAMERA, cameraId, camera.getName(), Map.of("op", "STOP"));
+        });
     }
 }

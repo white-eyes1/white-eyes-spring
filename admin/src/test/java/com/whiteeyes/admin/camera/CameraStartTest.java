@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.support.AdminTestLogin;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -70,6 +71,7 @@ class CameraStartTest {
 
     @BeforeEach
     void prepareZone() {
+        AdminTestLogin.loginForDirectCalls();
         ANALYZER.reset();
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
@@ -84,6 +86,7 @@ class CameraStartTest {
     // camera → zone → region 순으로 외래키가 걸려 있어, 남겨 두면 다른 테스트가 region을 지우다 실패한다
     @AfterEach
     void clearCamerasAndZones() {
+        AdminTestLogin.clear();
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -311,7 +314,7 @@ class CameraStartTest {
     }
 
     private ResultActions start(long cameraId) throws Exception {
-        return mockMvc.perform(post("/api/v1/manage/cameras/{id}/start", cameraId));
+        return mockMvc.perform(post("/api/v1/manage/cameras/{id}/start", cameraId).with(AdminTestLogin.admin()));
     }
 
     // 구역당 캠 1대 규칙 때문에 한 번에 한 대만 만든다(테스트 안에서 반복할 때는 먼저 지운다)
