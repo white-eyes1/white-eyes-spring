@@ -94,6 +94,11 @@ export function createDeck({ levels, onReload, onResize }) {
         },
         /** 지도 화면 안 구역 id가 바뀌었을 때 */
         setVisibleZones(zoneIds) {
+            // 펼친 동안 지도가 얇은 띠로 줄어 시야 계산이 무의미하므로, 펼치기 직전의 구역 집합을 그대로 쓴다.
+            // 접으면 onResize에서 다시 계산한다.
+            if (dash.classList.contains('expanded')) {
+                return;
+            }
             visibleZoneIds = zoneIds;
             render();
         },
