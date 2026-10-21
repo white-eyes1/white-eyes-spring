@@ -20,6 +20,9 @@ public enum ErrorCode {
     DUPLICATE_ZONE_NAME(HttpStatus.CONFLICT, "같은 동에 같은 이름의 구역이 있습니다."),
     ZONE_HAS_CAMERA(HttpStatus.CONFLICT, "이 구역에는 이미 캠이 있습니다."),
     STATUS_CONFLICT(HttpStatus.CONFLICT, "현재 상태에서는 처리할 수 없습니다."),
+    INVALID_STATUS(HttpStatus.CONFLICT, "현재 캠 상태에서는 처리할 수 없습니다."),
+    SOURCE_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "영상 파일·스트림을 찾을 수 없습니다."),
+    ANALYZER_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "분석 서버에 연결할 수 없습니다."),
     EXTERNAL_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "외부 서버에 연결할 수 없습니다."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
 
