@@ -60,4 +60,9 @@ public class Recording {
             Long cameraId, LocalDateTime startedAt, LocalDateTime endedAt, String videoPath, String boxPath) {
         return new Recording(cameraId, startedAt, endedAt, videoPath, boxPath);
     }
+
+    /** 진행 중인 녹화를 닫는다(FNC-A-021 처리 순서 4). 시작 시각보다 앞선 종료 시각은 시작 시각으로 맞춘다. */
+    public void close(LocalDateTime closedAt) {
+        this.endedAt = closedAt.isBefore(startedAt) ? startedAt : closedAt;
+    }
 }

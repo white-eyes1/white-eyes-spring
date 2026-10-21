@@ -68,7 +68,7 @@ class AccessControlTest {
 
     private static org.springframework.test.web.servlet.request.RequestPostProcessor asMustChangePassword() {
         return user(new AccountPrincipal(
-                "admin02", "encoded", true, true, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+                2L, "admin02", "encoded", true, true, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
     }
 
     private void assertAllowed(MvcResult result) {

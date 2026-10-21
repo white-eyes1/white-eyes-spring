@@ -1,6 +1,7 @@
 package com.whiteeyes.admin.media.repository;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -10,6 +11,9 @@ import org.springframework.data.repository.query.Param;
 import com.whiteeyes.admin.media.entity.Recording;
 
 public interface RecordingRepository extends JpaRepository<Recording, Long> {
+
+    /** 그 캠의 종료 시각이 빈 녹화 중 가장 나중에 시작한 것(FNC-A-021 처리 순서 4). */
+    Optional<Recording> findFirstByCameraIdAndEndedAtIsNullOrderByStartedAtDesc(Long cameraId);
 
     /**
      * 그 캠의 진행 중(ended_at 없음)인 녹화 중 closedAt보다 먼저 시작한 것을 closedAt으로 닫는다(FNC-A-026).

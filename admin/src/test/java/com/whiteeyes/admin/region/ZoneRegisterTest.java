@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -104,7 +105,7 @@ class ZoneRegisterTest {
     void register_ignoresClientCalculatedValues() throws Exception {
         String body = "{\"name\":\"삼청동 1구역\",\"boundary\":" + SAMCHEONG_SQUARE + ",\"areaM2\":1,\"dongId\":999999}";
 
-        mockMvc.perform(post(ZONES_URL).contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ZONES_URL).with(AdminTestLogin.admin()).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.dongId").value(Long.valueOf(samcheongDongId()).intValue()));
 
@@ -197,7 +198,7 @@ class ZoneRegisterTest {
     @Test
     @DisplayName("FNC-A-014 boundary가 없으면 400 INVALID_INPUT")
     void register_missingBoundary_badRequest() throws Exception {
-        mockMvc.perform(post(ZONES_URL).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"삼청동 1구역\"}"))
+        mockMvc.perform(post(ZONES_URL).with(AdminTestLogin.admin()).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"삼청동 1구역\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("boundary"));
@@ -207,7 +208,7 @@ class ZoneRegisterTest {
 
     private ResultActions register(String name, String boundary) throws Exception {
         String body = "{\"name\":\"" + name + "\",\"boundary\":" + boundary + "}";
-        return mockMvc.perform(post(ZONES_URL).contentType(MediaType.APPLICATION_JSON).content(body));
+        return mockMvc.perform(post(ZONES_URL).with(AdminTestLogin.admin()).contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
     private long samcheongDongId() {

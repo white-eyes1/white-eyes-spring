@@ -38,6 +38,7 @@ public class AdminUserDetailsService implements UserDetailsService {
                 .findByLoginId(loginId)
                 .orElseThrow(() -> new UsernameNotFoundException("관리자 계정이 없습니다"));
         return new AccountPrincipal(
+                account.getId(),
                 account.getLoginId(),
                 account.getPassword(),
                 account.getStatus() == AdminStatus.ACTIVE,
