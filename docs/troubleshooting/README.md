@@ -38,6 +38,3 @@
 - [0013 스택 브랜치를 반복문으로 병합하다 충돌 표시가 커밋됨](0013-stack-merge-conflict-markers-committed.md)
 - [0014 최신 dev를 합치자 `.env.example`에서 충돌](0014-env-example-merge-conflict.md)
 - [0015 팀원 브랜치의 임시 코드와 정식 코드가 같은 파일 경로라 합칠 때 충돌](0015-teammate-temp-code-same-path.md)
-- [0016 선행 이슈 #6(작업 기록 저장)이 dev에 없어 "작업 기록" 단계를 구현하지 못함](0016-work-history-not-in-dev.md)
-- [0017 캠 목록의 통계·이벤트 데이터가 dev에 없어 응답 일부를 채우지 못함](0017-camera-list-stat-data-missing.md)
-- [0018 분석 서버가 없어 "준비 중 정지 시 준비 취소"를 끝까지 확인하지 못함](0018-cancel-prepare-needs-analyzer.md)
