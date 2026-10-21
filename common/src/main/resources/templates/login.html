@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="|로그인 - ${appName}|">로그인</title>
+</head>
+<body>
+<main>
+    <h1 th:text="${appName}">white-eyes</h1>
+    <form th:action="@{/login}" method="post">
+        <p th:if="${errorMessage != null}" th:text="${errorMessage}" role="alert">오류 문구</p>
+        <label>아이디
+            <input type="text" name="username" maxlength="20" required autofocus th:value="${loginId}">
+        </label>
+        <label>비밀번호
+            <input type="password" name="password" required>
+        </label>
+        <button type="submit">로그인</button>
+    </form>
+</main>
+</body>
+</html>
