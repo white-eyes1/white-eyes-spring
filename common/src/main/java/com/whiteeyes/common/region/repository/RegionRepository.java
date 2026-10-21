@@ -17,6 +17,9 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
     /** 시·도 목록처럼 한 단위의 지역을 코드 순으로(FNC-C-008). */
     List<Region> findByLevelOrderByCode(RegionLevel level);
 
+    /** 코드가 주어진 앞자리로 시작하는 한 단위의 지역들. 지역 아래의 읍·면·동 찾기에 쓴다(FNC-C-009, decisions/0014). */
+    List<Region> findByLevelAndCodeStartingWith(RegionLevel level, String codePrefix);
+
     /** 바로 아래 지역을 코드 순으로(FNC-C-008). */
     List<Region> findByParent_IdOrderByCode(Long parentId);
 
