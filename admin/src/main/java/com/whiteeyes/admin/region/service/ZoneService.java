@@ -4,9 +4,11 @@ import com.whiteeyes.admin.region.dto.ZoneSummary;
 import com.whiteeyes.admin.region.exception.ZoneNotFoundException;
 import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.repository.ZoneRepository;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,15 @@ public class ZoneService {
         if (!zoneRepository.existsByIdAndDeletedAtIsNull(zoneId)) {
             throw new ZoneNotFoundException(zoneId);
         }
+    }
+
+    /**
+     * 구역의 현재 면적(㎡)을 zoneId → 면적으로 돌려준다(FNC-A-028 밀집도 계산). 없는 구역은 빠진다.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, BigDecimal> findAreasByZoneIds(Set<Long> zoneIds) {
+        return zoneRepository.findAllById(zoneIds).stream()
+                .collect(Collectors.toMap(Zone::getId, Zone::getAreaM2));
     }
 
     /** 구역 번호 → 구역 요약. 쿼리 한 번으로 모아서 가져온다(캠 목록 FNC-A-022). 없는 번호는 빠진다. */
