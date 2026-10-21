@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -227,8 +228,10 @@ class SignupApiControllerTest {
                 "password", InputRules.PASSWORD_MESSAGE);
     }
 
+    // 사용자 앱은 CSRF를 검사하므로(conventions.md 'CSRF') 화면처럼 토큰을 붙여 보낸다
     private MockHttpServletRequestBuilder signupRequest(Map<String, Object> body) {
         return post(SIGNUP_URL)
+                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(body));
     }
