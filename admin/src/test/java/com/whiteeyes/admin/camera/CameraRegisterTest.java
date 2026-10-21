@@ -5,8 +5,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -18,11 +20,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
+@Import(AdminTestUserConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 class CameraRegisterTest {
@@ -57,6 +61,7 @@ class CameraRegisterTest {
 
     @BeforeEach
     void prepareZones() {
+        AdminTestLogin.loginForDirectCalls();
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
@@ -69,6 +74,7 @@ class CameraRegisterTest {
     // camera → zone → region 순으로 외래키가 걸려 있어, 남겨 두면 다른 테스트가 region을 지우다 실패한다
     @AfterEach
     void clearCamerasAndZones() {
+        AdminTestLogin.clear();
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -239,7 +245,7 @@ class CameraRegisterTest {
     @Test
     @DisplayName("FNC-A-018 sourceType이 없거나 LIVE/DUMMY가 아니면 400 INVALID_INPUT")
     void register_invalidSourceType_badRequest() throws Exception {
-        mockMvc.perform(post(CAMERAS_URL)
+        mockMvc.perform(post(CAMERAS_URL).with(AdminTestLogin.admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"zoneId\":" + samcheongZoneId + ",\"name\":\"캠\",\"sourceUri\":\"" + LIVE_URI + "\"}"))
                 .andExpect(status().isBadRequest())
@@ -255,7 +261,7 @@ class CameraRegisterTest {
     @Test
     @DisplayName("FNC-A-018 zoneId가 없으면 400 INVALID_INPUT")
     void register_missingZoneId_badRequest() throws Exception {
-        mockMvc.perform(post(CAMERAS_URL)
+        mockMvc.perform(post(CAMERAS_URL).with(AdminTestLogin.admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"캠\",\"sourceType\":\"LIVE\",\"sourceUri\":\"" + LIVE_URI + "\"}"))
                 .andExpect(status().isBadRequest())
@@ -266,13 +272,15 @@ class CameraRegisterTest {
     }
 
     private long createZone(String name, String polygon) {
+        // MockMvc 요청이 끝나면 현재 스레드의 로그인 정보가 비워지므로 부를 때마다 다시 채운다
+        AdminTestLogin.loginForDirectCalls();
         return zoneRegisterService.register(name, jsonMapper.readTree(polygon)).id();
     }
 
     private ResultActions register(long zoneId, String name, String sourceType, String sourceUri) throws Exception {
         String body = "{\"zoneId\":" + zoneId + ",\"name\":\"" + name + "\",\"sourceType\":\"" + sourceType
                 + "\",\"sourceUri\":\"" + sourceUri + "\"}";
-        return mockMvc.perform(post(CAMERAS_URL).contentType(MediaType.APPLICATION_JSON).content(body));
+        return mockMvc.perform(post(CAMERAS_URL).with(AdminTestLogin.admin()).contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
     private long cameraCount() {

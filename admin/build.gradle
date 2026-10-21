@@ -4,6 +4,8 @@ plugins {
 
 dependencies {
     implementation project(':common')
+    // 로그인(FNC-C-001): Boot 보안 자동 설정은 관리자 앱만 켠다
+    implementation 'org.springframework.boot:spring-boot-starter-security'
     // Flyway는 관리자 앱만 실행 (conventions.md '기술 스택')
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-mysql'
@@ -11,5 +13,6 @@ dependencies {
     implementation 'org.locationtech.jts:jts-core:1.20.0'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'com.h2database:h2'
 }

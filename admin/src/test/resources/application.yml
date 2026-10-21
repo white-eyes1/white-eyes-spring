@@ -4,7 +4,15 @@ spring:
     username: sa
     password:
 
+analyzer:
+  base-url: http://localhost:5000
+
+internal-api:
+  token: test-internal-token
+  port: 8082
+
 # 테스트용 가짜 값
 super-admin:
   login-id: test-super-admin
   initial-password: test-password-1!
+

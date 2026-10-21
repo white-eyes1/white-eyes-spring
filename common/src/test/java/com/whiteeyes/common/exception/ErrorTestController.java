@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -63,6 +65,18 @@ class ErrorTestController {
     @ResponseBody
     String analyzer() {
         throw new ResourceAccessException("I/O error on POST request for http://10.0.0.5:5000");
+    }
+
+    @GetMapping("/api/v1/test/access-denied")
+    @ResponseBody
+    String accessDenied() {
+        throw new AccessDeniedException("권한 없음");
+    }
+
+    @GetMapping("/api/v1/test/authentication-failed")
+    @ResponseBody
+    String authenticationFailed() {
+        throw new BadCredentialsException("인증 실패");
     }
 
     @GetMapping("/api/v1/test/forbidden")
