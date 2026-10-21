@@ -75,7 +75,7 @@ public class AnalyzerClient {
         throw new AnalyzerUnavailableException();
     }
 
-    // TODO(#14): 캠 정지(FNC-A-021)에서 오류 처리와 함께 정식으로 만든다. #15의 엇갈림 정리가 쓰는 stop 호출만 둔다
+    /** 분석 서버에 캠 정지를 지시한다(FNC-A-021, #15의 엇갈림 정리도 쓴다). 실패하면 RestClientException을 던지고 호출하는 쪽이 정한다. */
     public void stopCamera(Long cameraId) {
         stopClient
                 .post()
