@@ -170,6 +170,21 @@ class AdminLoginTest {
     }
 
     @Test
+    @DisplayName("FNC-C-001 bcrypt 한도(72바이트)를 넘는 비밀번호는 500이 아니라 일반 실패 문구로 거부한다")
+    void login_passwordOverBcryptLimit_rejectedWithGenericMessage() throws Exception {
+        insertAccount("admin05", "ADMIN", "ACTIVE", false);
+        // 한글 30자 = 90바이트
+        String longPassword = "가".repeat(30);
+
+        MvcResult failure = login("admin05", longPassword);
+
+        assertThat(failure.getResponse().getStatus()).isEqualTo(302);
+        assertThat(failure.getResponse().getRedirectedUrl()).isEqualTo("/admin/login?error");
+        assertThat(loginPageAfterFailure(failure)).contains(INVALID_MESSAGE);
+        assertThat(lastLoginAt("admin05")).isNull();
+    }
+
+    @Test
     @DisplayName("FNC-C-001 이 앱의 계정 테이블에 없는 아이디(다른 앱 계정 포함)는 틀린 비밀번호와 같은 문구로 거부한다")
     void login_unknownAccount_sameMessage() throws Exception {
         MvcResult failure = login("only-in-user-app", PASSWORD);
