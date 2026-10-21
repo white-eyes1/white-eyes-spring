@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 import jakarta.persistence.EntityManagerFactory;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -30,6 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -43,6 +45,7 @@ import org.springframework.test.web.servlet.ResultActions;
 /** 사용자 목록 API 검수 기준: 필터 조합·정렬·페이지 이동(FNC-A-002). */
 @SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 @AutoConfigureMockMvc
+@Import(AdminTestUserConfig.class)
 // 지정하지 않으면 JVM 기본 인코딩(Windows에서는 MS949)으로 읽어 한글 이름이 깨진다
 @Sql(scripts = "/sql/account/user-list.sql", config = @SqlConfig(encoding = "UTF-8"))
 @Sql(
