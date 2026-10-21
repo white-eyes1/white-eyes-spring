@@ -1,5 +1,5 @@
 // 회원가입 화면(SCR-U-001). 아이디 중복 확인(FNC-U-001)을 마쳐야 가입하기(FNC-U-002)가 켜진다.
-import { ApiError, get, post, url } from '../common/api.js';
+import { ApiError, get, post, url } from '../../common/api.js';
 
 const AVAILABLE_MESSAGE = '사용할 수 있습니다';
 const TAKEN_MESSAGE = '이미 사용 중입니다';
