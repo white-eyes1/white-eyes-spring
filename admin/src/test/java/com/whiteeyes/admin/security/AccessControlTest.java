@@ -85,6 +85,19 @@ class AccessControlTest {
         return Stream.concat(SUPER_SCREENS.stream(), SUPER_APIS.stream());
     }
 
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"/adminsX", "/administrators/1", "/historiesX", "/api/v1/administrators"})
+    @DisplayName("FNC-C-003 최고 관리자 전용 경로와 이름만 비슷한 경로는 ADMIN도 쓸 수 있다")
+    void admin_similarlyNamedPaths_allowed(String path) throws Exception {
+        assertAllowed(mockMvc.perform(get(path).with(asAdmin())).andReturn());
+    }
+
+    @Test
+    @DisplayName("FNC-C-003 명세 권한 표에 없는 /actuator/health는 로그인 없이 열리지 않는다")
+    void anonymous_actuatorHealth_notOpen() throws Exception {
+        mockMvc.perform(get("/actuator/health")).andExpect(status().isFound());
+    }
+
     @Test
     @DisplayName("FNC-C-003 공개 경로 /login은 로그인 없이 열린다")
     void anonymous_loginPage_allowed() throws Exception {
@@ -164,7 +177,7 @@ class AccessControlTest {
     }
 
     @Test
-    @DisplayName("FNC-C-003 로그인했지만 로그인 아이디·비밀번호 외 경로도 CSRF 토큰 없이 쓰기 요청을 보내면 403이다")
+    @DisplayName("FNC-C-003 로그인한 관리자도 CSRF 토큰 없이 쓰기 요청을 보내면 403이다")
     void admin_postWithoutCsrf_forbidden() throws Exception {
         mockMvc.perform(request(HttpMethod.POST, "/api/v1/manage/cameras/1/start").with(asAdmin()))
                 .andExpect(status().isForbidden());
@@ -197,12 +210,20 @@ class AccessControlTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"/stats", "/cameras", "/me", "/admins"})
+    @ValueSource(strings = {"/stats", "/cameras", "/me"})
     @DisplayName("FNC-C-003 비밀번호 변경이 필요한 계정이 다른 화면을 열면 비밀번호 변경 화면으로 보낸다")
     void mustChangePassword_otherScreens_redirectToPasswordChange(String path) throws Exception {
         mockMvc.perform(get(path).with(asMustChangePassword()))
                 .andExpect(status().isFound())
                 .andExpect(header().string("Location", PASSWORD_CHANGE_REDIRECT));
+    }
+
+    @Test
+    @DisplayName("FNC-C-003 권한 검사(순서 3)가 비밀번호 변경 확인(순서 4)보다 먼저라 ADMIN은 변경이 필요해도 최고 관리자 전용 화면은 403이다")
+    void mustChangePassword_superOnlyScreen_forbiddenBeforeRedirect() throws Exception {
+        mockMvc.perform(get("/admins").with(asMustChangePassword()))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist("Location"));
     }
 
     @ParameterizedTest(name = "{0}")

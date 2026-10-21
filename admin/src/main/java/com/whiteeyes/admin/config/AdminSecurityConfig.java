@@ -83,8 +83,10 @@ public class AdminSecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(new LoginRequiredEntryPoint(jsonMapper))
                         .accessDeniedHandler(new ForbiddenHandler(jsonMapper)))
-                // 권한 표를 보기 전에 비밀번호 변경이 필요한 계정을 먼저 걸러낸다
-                .addFilterBefore(new PasswordChangeRequiredFilter(jsonMapper), AuthorizationFilter.class);
+                // 명세 처리 순서대로 권한 표(순서 3)를 통과한 요청에만 비밀번호 변경 필요 여부(순서 4)를 본다
+                .addFilterAfter(new PasswordChangeRequiredFilter(jsonMapper), AuthorizationFilter.class)
+                // 로그인 성공 뒤 이동은 LoginSuccessHandler가 정해 저장한 요청을 쓰지 않으므로, 비로그인 요청마다 세션이 생기지 않게 끈다
+                .requestCache(AbstractHttpConfigurer::disable);
         return http.build();
     }
 

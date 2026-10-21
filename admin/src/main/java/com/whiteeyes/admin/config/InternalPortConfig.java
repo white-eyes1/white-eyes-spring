@@ -9,6 +9,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 관리자 앱의 내부 통신 포트(8082) 연결(FNC-C-003). 웹 포트(8081)와 같은 앱에 포트만 하나 더 열고,
@@ -33,9 +34,9 @@ public class InternalPortConfig {
 
     @Bean
     public FilterRegistrationBean<InternalPortFilter> internalPortFilter(
-            @Value("${internal-api.port}") int internalPort) {
+            @Value("${internal-api.port}") int internalPort, JsonMapper jsonMapper) {
         FilterRegistrationBean<InternalPortFilter> registration =
-                new FilterRegistrationBean<>(new InternalPortFilter(internalPort));
+                new FilterRegistrationBean<>(new InternalPortFilter(internalPort, jsonMapper));
         // 보안 필터 체인보다 앞에서 돌아야 한다
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return registration;

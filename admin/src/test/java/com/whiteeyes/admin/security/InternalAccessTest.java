@@ -78,6 +78,23 @@ class InternalAccessTest {
     @DisplayName("FNC-C-003 웹 포트(8081)로는 올바른 토큰이 있어도 /internal/** 을 받지 않는다")
     void webPort_internalPath_notFound() throws Exception {
         mockMvc.perform(post("/internal/v1/results", WEB_PORT).header(TOKEN_HEADER, TOKEN))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("FNC-C-003 %로 인코딩해 쓴 /internal 경로도 웹 포트로는 받지 않는다")
+    void webPort_encodedInternalPath_notFound() throws Exception {
+        // 문자열로 넘기면 %가 한 번 더 인코딩되므로 URI로 그대로 넘긴다
+        mockMvc.perform(MockMvcRequestBuilders.request(HttpMethod.POST, java.net.URI.create("/admin/%69nternal/v1/results"))
+                        .contextPath(CONTEXT_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[]")
+                        .header(TOKEN_HEADER, TOKEN)
+                        .with(request -> {
+                            request.setLocalPort(WEB_PORT);
+                            return request;
+                        }))
                 .andExpect(status().isNotFound());
     }
 

@@ -1,11 +1,15 @@
 package com.whiteeyes.admin.config;
 
+import com.whiteeyes.common.exception.ErrorCode;
+import com.whiteeyes.common.security.SecurityErrorWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * /internal/** 은 내부 포트로만, 내부 포트로는 /internal/** 만 받는다(FNC-C-003, conventions.md '모듈·포트').
@@ -16,10 +20,14 @@ public class InternalPortFilter extends OncePerRequestFilter {
 
     private static final String INTERNAL_PATH = "/internal";
 
+    // 보안 필터가 보는 경로와 같게 %인코딩을 풀어서 판단한다
+    private final UrlPathHelper pathHelper = new UrlPathHelper();
     private final int internalPort;
+    private final JsonMapper jsonMapper;
 
-    public InternalPortFilter(int internalPort) {
+    public InternalPortFilter(int internalPort, JsonMapper jsonMapper) {
         this.internalPort = internalPort;
+        this.jsonMapper = jsonMapper;
     }
 
     @Override
@@ -27,15 +35,21 @@ public class InternalPortFilter extends OncePerRequestFilter {
             HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         boolean onInternalPort = request.getLocalPort() == internalPort;
-        if (onInternalPort == isInternalPath(request)) {
+        boolean internalPath = isInternalPath(request);
+        if (onInternalPort == internalPath) {
             filterChain.doFilter(request, response);
+            return;
+        }
+        if (internalPath) {
+            // 내부 API를 부르는 쪽은 JSON 오류 응답을 기대한다(conventions.md '인증 오류')
+            SecurityErrorWriter.write(response, jsonMapper, ErrorCode.NOT_FOUND);
             return;
         }
         response.sendError(HttpServletResponse.SC_NOT_FOUND);
     }
 
     private boolean isInternalPath(HttpServletRequest request) {
-        String path = request.getRequestURI().substring(request.getContextPath().length());
+        String path = pathHelper.getPathWithinApplication(request);
         return path.equals(INTERNAL_PATH) || path.startsWith(INTERNAL_PATH + "/");
     }
 }
