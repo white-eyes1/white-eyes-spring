@@ -81,4 +81,9 @@ public class AdminAccount {
         account.mustChangePassword = true;
         return account;
     }
+
+    /** 로그인에 성공한 시각을 남긴다(FNC-C-001). */
+    public void recordLogin(LocalDateTime loggedInAt) {
+        this.lastLoginAt = loggedInAt;
+    }
 }

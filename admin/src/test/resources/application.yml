@@ -14,3 +14,4 @@ internal-api:
 super-admin:
   login-id: test-super-admin
   initial-password: test-password-1!
+

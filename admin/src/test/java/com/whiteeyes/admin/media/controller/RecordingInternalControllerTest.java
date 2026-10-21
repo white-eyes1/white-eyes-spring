@@ -95,7 +95,7 @@ class RecordingInternalControllerTest {
 
         mockMvc.perform(post(RECORDINGS_URL).contentType(MediaType.APPLICATION_JSON).content(LIVE_BODY))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("CAMERA_NOT_FOUND"));
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     @Test
