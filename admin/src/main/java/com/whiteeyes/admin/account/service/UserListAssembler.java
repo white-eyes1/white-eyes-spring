@@ -52,7 +52,8 @@ public final class UserListAssembler {
                 .sorted(comparatorFor(request))
                 .toList();
 
-        int from = Math.min(request.page() * request.size(), matched.size());
+        // page에는 상한이 없어 int로 곱하면 넘칠 수 있다
+        int from = (int) Math.min((long) request.page() * request.size(), matched.size());
         int to = Math.min(from + request.size(), matched.size());
         return PageResponse.of(matched.subList(from, to), request.page(), request.size(), matched.size(), truncated);
     }
