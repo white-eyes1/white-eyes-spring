@@ -20,6 +20,9 @@ server:
   port: 8081
   servlet:
     context-path: /admin
+    session:
+      cookie:
+        name: ADMIN_SESSION
 
 # 최고 관리자 최초 등록용(FNC-A-001). 값은 환경변수로만 준다
 super-admin:
@@ -31,3 +34,9 @@ management:
     web:
       exposure:
         include: health
+
+analyzer:
+  base-url: ${ANALYZER_BASE_URL}
+
+internal-api:
+  token: ${INTERNAL_API_TOKEN}
