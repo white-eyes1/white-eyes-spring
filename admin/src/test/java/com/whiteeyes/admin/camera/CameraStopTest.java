@@ -11,6 +11,8 @@ import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -73,6 +75,7 @@ class CameraStopTest {
     void prepareZone() {
         AdminTestLogin.loginForDirectCalls();
         ANALYZER.reset();
+        jdbcTemplate.update("DELETE FROM recording");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
@@ -87,6 +90,7 @@ class CameraStopTest {
     @AfterEach
     void clearCamerasAndZones() {
         AdminTestLogin.clear();
+        jdbcTemplate.update("DELETE FROM recording");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -200,7 +204,8 @@ class CameraStopTest {
             Map<String, Object> row = camera(cameraId);
             assertThat(row.get("STATUS")).as("http " + http).isEqualTo("STOPPED");
             assertThat(isRunRequested(row)).as("http " + http).isFalse();
-            jdbcTemplate.update("DELETE FROM camera");
+            jdbcTemplate.update("DELETE FROM recording");
+        jdbcTemplate.update("DELETE FROM camera");
         }
     }
 
@@ -230,6 +235,98 @@ class CameraStopTest {
 
         assertThat(ANALYZER.callCount).isZero();
         assertThat(isRunRequested(camera(deletedId))).as("삭제된 캠은 건드리지 않는다").isTrue();
+    }
+
+    @Test
+    @DisplayName("FNC-A-021 더미 캠을 정지하면 종료 시각이 빈 마지막 녹화의 ended_at을 현재 시각(KST)으로 채우고 닫힌 녹화는 건드리지 않는다")
+    void stop_dummyCamera_closesLastOpenRecording() throws Exception {
+        long cameraId = insertCamera("RUNNING", 0, null, true);
+        insertRecording(cameraId, "2026-01-01 10:00:00.000", "2026-01-01 10:01:00.000");
+        long openId = insertRecording(cameraId, "2026-01-01 10:01:00.000", null);
+
+        LocalDateTime before = LocalDateTime.now(ZoneId.of("Asia/Seoul")).minusSeconds(5);
+        stop(cameraId).andExpect(status().isOk());
+        LocalDateTime after = LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusSeconds(5);
+
+        assertThat(endedAt(openId)).isBetween(before, after);
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM recording WHERE camera_id = ? AND ended_at IS NULL", Long.class, cameraId))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT ended_at FROM recording WHERE camera_id = ? AND started_at = '2026-01-01 10:00:00'",
+                        java.sql.Timestamp.class,
+                        cameraId)
+                .toLocalDateTime())
+                .isEqualTo(LocalDateTime.of(2026, 1, 1, 10, 1, 0));
+    }
+
+    @Test
+    @DisplayName("FNC-A-021 종료 시각이 빈 녹화가 여러 개면 가장 나중에 시작한 것만 닫는다")
+    void stop_dummyCamera_closesOnlyLatestOpenRecording() throws Exception {
+        long cameraId = insertCamera("RUNNING", 0, null, true);
+        long olderOpen = insertRecording(cameraId, "2026-01-01 10:00:00.000", null);
+        long latestOpen = insertRecording(cameraId, "2026-01-01 10:05:00.000", null);
+
+        stop(cameraId).andExpect(status().isOk());
+
+        assertThat(endedAt(latestOpen)).isNotNull();
+        assertThat(endedAt(olderOpen)).isNull();
+    }
+
+    @Test
+    @DisplayName("FNC-A-021 라이브 캠을 정지해도 녹화는 닫지 않는다(분석 서버가 파일을 닫아 등록한다)")
+    void stop_liveCamera_leavesRecordings() throws Exception {
+        long cameraId = insertLiveCamera("RUNNING");
+        long openId = insertRecording(cameraId, "2026-01-01 10:00:00.000", null);
+
+        stop(cameraId).andExpect(status().isOk());
+
+        assertThat(endedAt(openId)).isNull();
+    }
+
+    @Test
+    @DisplayName("FNC-A-021 녹화가 없는 더미 캠도 정상으로 정지된다")
+    void stop_dummyCameraWithoutRecording_stopped() throws Exception {
+        long cameraId = insertCamera("RUNNING", 0, null, true);
+
+        stop(cameraId).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("STOPPED"));
+    }
+
+    @Test
+    @DisplayName("FNC-A-021 작업 기록 저장이 실패하면 녹화 닫기도 함께 취소된다(같은 트랜잭션)")
+    void stop_historyFails_recordingStaysOpen() throws Exception {
+        long cameraId = insertCamera("RUNNING", 0, null, true);
+        long openId = insertRecording(cameraId, "2026-01-01 10:00:00.000", null);
+
+        mockMvc.perform(post("/api/v1/manage/cameras/{id}/stop", cameraId).with(AdminTestLogin.admin("a".repeat(21))))
+                .andExpect(status().isInternalServerError());
+
+        assertThat(endedAt(openId)).isNull();
+        assertThat(camera(cameraId).get("STATUS")).isEqualTo("RUNNING");
+    }
+
+    private long insertRecording(long cameraId, String startedAt, String endedAt) {
+        jdbcTemplate.update(
+                "INSERT INTO recording (camera_id, started_at, ended_at, video_path, box_path) VALUES (?, ?, ?, 'v.mp4', 'b.json.gz')",
+                cameraId,
+                startedAt,
+                endedAt);
+        return jdbcTemplate.queryForObject("SELECT MAX(id) FROM recording", Long.class);
+    }
+
+    private LocalDateTime endedAt(long recordingId) {
+        java.sql.Timestamp value =
+                jdbcTemplate.queryForObject("SELECT ended_at FROM recording WHERE id = ?", java.sql.Timestamp.class, recordingId);
+        return value == null ? null : value.toLocalDateTime();
+    }
+
+    private long insertLiveCamera(String status) {
+        jdbcTemplate.update(
+                "INSERT INTO camera (zone_id, name, source_type, source_uri, run_requested, status, progress) "
+                        + "VALUES (?, '라이브 캠', 'LIVE', 'rtsp://example.test/live', 1, ?, 0)",
+                zoneId,
+                status);
+        return jdbcTemplate.queryForObject("SELECT MAX(id) FROM camera", Long.class);
     }
 
     private ResultActions stop(long cameraId) throws Exception {

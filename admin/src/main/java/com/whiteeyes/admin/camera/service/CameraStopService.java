@@ -4,11 +4,15 @@ import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStopResponse;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
+import com.whiteeyes.admin.media.repository.RecordingRepository;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -29,10 +33,12 @@ public class CameraStopService {
 
     private static final String DELIVERY_FAILED_WARNING = "분석 서버에 전달 실패";
     private static final int STOPPED_PROGRESS = 0;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final CameraRepository cameraRepository;
     private final AnalyzerClient analyzerClient;
     private final TransactionTemplate transactionTemplate;
+    private final RecordingRepository recordingRepository;
     private final AdminWorkRecorder workRecorder;
 
     public CameraStopResponse stop(Long cameraId) {
@@ -53,9 +59,8 @@ public class CameraStopService {
 
         // 처리 순서 3: status=STOPPED, progress=0 (이전 오류 내용도 지운다)
         transactionTemplate.executeWithoutResult(status -> markStopped(cameraId, actor));
-        // 처리 순서 6(작업 기록 CAMERA_RUN, op: STOP)은 위 3단계 트랜잭션 안에서 남긴다.
-        // 처리 순서 4(더미 캠: 마지막 녹화의 ended_at 채우기)와 5(열린 캠 이상 이벤트 종료)는 아직 연결하지 않았다
-        // (4는 후속 이슈 #120의 남은 일, 5는 이벤트 테이블이 들어오는 #39)
+        // 처리 순서 4(더미 캠의 마지막 녹화 닫기)와 6(작업 기록 CAMERA_RUN, op: STOP)은 위 3단계 트랜잭션 안에서 한다.
+        // 처리 순서 5(열린 캠 이상 이벤트 종료)는 이벤트 테이블이 들어오는 #39에서 연결한다
         return new CameraStopResponse(CameraStatus.STOPPED, warning);
     }
 
@@ -68,6 +73,12 @@ public class CameraStopService {
     private void markStopped(Long cameraId, LoginAccount actor) {
         cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
             camera.updateStatus(CameraStatus.STOPPED, STOPPED_PROGRESS, null);
+            // 처리 순서 4: 더미 캠은 종료 시각이 빈 마지막 녹화를 지금 시각으로 닫는다(라이브 캠은 분석 서버가 파일을 닫아 등록한다)
+            if (camera.getSourceType() == CameraSourceType.DUMMY) {
+                recordingRepository
+                        .findFirstByCameraIdAndEndedAtIsNullOrderByStartedAtDesc(cameraId)
+                        .ifPresent(recording -> recording.close(LocalDateTime.now(KST)));
+            }
             workRecorder.record(
                     actor, WorkAction.CAMERA_RUN, WorkTargetType.CAMERA, cameraId, camera.getName(), Map.of("op", "STOP"));
         });
