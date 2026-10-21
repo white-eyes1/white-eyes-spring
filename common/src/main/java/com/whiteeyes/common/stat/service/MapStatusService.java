@@ -1,16 +1,11 @@
 package com.whiteeyes.common.stat.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -26,7 +21,7 @@ import com.whiteeyes.common.stat.dto.MapStatusItem;
 import com.whiteeyes.common.stat.dto.MapStatusResponse;
 import com.whiteeyes.common.stat.dto.MapUnit;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
-import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
+import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
 
 /**
  * 지도 혼잡 단계 색 표시(FNC-C-009). 대상 지역의 하위 단위별 최근 1분 통계와 혼잡 단계를 돌려준다.
@@ -36,22 +31,18 @@ import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 public class MapStatusService {
 
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
-    // 이 시간 안에 통계가 없으면 '데이터 없음'(FNC-C-009 업무 규칙)
-    private static final Duration RECENT_WINDOW = Duration.ofMinutes(5);
-    // zone_stat_minute.density와 같은 자릿수·반올림(DECIMAL 8,4, FNC-A-028)
-    private static final int DENSITY_SCALE = 4;
     private static final String ZONE_UNIT_TYPE = "ZONE";
 
     private final RegionQueryService regionQueryService;
-    private final ZoneStatMinuteRepository zoneStatMinuteRepository;
+    private final RecentZoneStatReader recentZoneStatReader;
     private final LevelService levelService;
 
     public MapStatusService(
             RegionQueryService regionQueryService,
-            ZoneStatMinuteRepository zoneStatMinuteRepository,
+            RecentZoneStatReader recentZoneStatReader,
             LevelService levelService) {
         this.regionQueryService = regionQueryService;
-        this.zoneStatMinuteRepository = zoneStatMinuteRepository;
+        this.recentZoneStatReader = recentZoneStatReader;
         this.levelService = levelService;
     }
 
@@ -69,7 +60,7 @@ public class MapStatusService {
                 : regionQueryService.findZonesInDongs(emdCodeById.keySet()).stream()
                         .sorted(Comparator.comparing(Zone::getId))
                         .toList();
-        Map<Long, ZoneStatMinute> latestStatByZone = findLatestStats(zones, now);
+        Map<Long, ZoneStatMinute> latestStatByZone = recentZoneStatReader.findLatestStats(zones, now);
 
         if (unit == MapUnit.ZONE || region.getLevel() == RegionLevel.EMD) {
             List<MapStatusItem> items = zones.stream()
@@ -81,21 +72,6 @@ public class MapStatusService {
                 .map(child -> toRegionItem(child, zonesUnder(child, zones, emdCodeById), latestStatByZone))
                 .toList();
         return new MapStatusResponse(childLevelOf(region.getLevel()).name(), items);
-    }
-
-    // 구역별로 최근 5분 안의 가장 늦은 1분 통계
-    private Map<Long, ZoneStatMinute> findLatestStats(List<Zone> zones, LocalDateTime now) {
-        if (zones.isEmpty()) {
-            return Map.of();
-        }
-        List<Long> zoneIds = zones.stream().map(Zone::getId).toList();
-        return zoneStatMinuteRepository
-                .findByZoneIdInAndStatAtGreaterThanEqual(zoneIds, now.minus(RECENT_WINDOW))
-                .stream()
-                .collect(Collectors.toMap(
-                        ZoneStatMinute::getZoneId,
-                        Function.identity(),
-                        (left, right) -> left.getStatAt().isAfter(right.getStatAt()) ? left : right));
     }
 
     private MapStatusItem toZoneItem(Zone zone, ZoneStatMinute stat) {
@@ -118,39 +94,26 @@ public class MapStatusService {
                 false);
     }
 
-    // 소속 구역 중 가장 늦은 1분(T)의 행만 더한다. 밀집도 = count_avg 합 ÷ 그 구역들의 현재 면적 합(conventions.md '혼잡 단계 판정')
     private MapStatusItem toRegionItem(Region child, List<Zone> zones, Map<Long, ZoneStatMinute> latestStatByZone) {
-        Optional<LocalDateTime> latestMinute = zones.stream()
-                .map(zone -> latestStatByZone.get(zone.getId()))
-                .filter(Objects::nonNull)
-                .map(ZoneStatMinute::getStatAt)
-                .max(Comparator.naturalOrder());
-        if (latestMinute.isEmpty()) {
-            return noDataItem(child.getId(), child.getName(), null, null);
-        }
-        List<Zone> zonesAtLatest = zones.stream()
-                .filter(zone -> {
-                    ZoneStatMinute stat = latestStatByZone.get(zone.getId());
-                    return stat != null && stat.getStatAt().equals(latestMinute.get());
-                })
-                .toList();
-        BigDecimal countAvg = zonesAtLatest.stream()
-                .map(zone -> latestStatByZone.get(zone.getId()).getCountAvg())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal area = zonesAtLatest.stream().map(Zone::getAreaM2).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal density = countAvg.divide(area, DENSITY_SCALE, RoundingMode.HALF_UP);
+        return recentZoneStatReader
+                .sumAtLatestMinute(zones, latestStatByZone)
+                .map(sum -> toRegionItem(child, sum))
+                .orElseGet(() -> noDataItem(child.getId(), child.getName(), null, null));
+    }
+
+    private MapStatusItem toRegionItem(Region child, LatestMinuteSum sum) {
         int level = levelService
-                .judgeLevel(LevelTarget.region(child.getId()), density)
+                .judgeLevel(LevelTarget.region(child.getId()), sum.density())
                 .getLevel();
         return new MapStatusItem(
                 child.getId(),
                 child.getName(),
                 null,
                 null,
-                countAvg,
-                density,
+                sum.countAvg(),
+                sum.density(),
                 level,
-                latestMinute.get().atOffset(KST_OFFSET),
+                sum.statAt().atOffset(KST_OFFSET),
                 0,
                 false);
     }
