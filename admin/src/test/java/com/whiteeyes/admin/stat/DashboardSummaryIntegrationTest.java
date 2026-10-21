@@ -21,10 +21,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.region.exception.ZoneNotFoundException;
 import com.whiteeyes.common.stat.dto.DashboardSummaryResponse;
 import com.whiteeyes.common.stat.dto.DashboardTargetType;
@@ -33,6 +36,7 @@ import com.whiteeyes.common.stat.service.DashboardSummaryService;
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 // 값은 서비스에 고정 시각(NOW)을 넘겨 확인하고, HTTP 형식·오류는 MockMvc로 확인한다
 /** 현재 현황 요약(FNC-C-016) */
+@Import(AdminTestUserConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 class DashboardSummaryIntegrationTest {
@@ -160,7 +164,7 @@ class DashboardSummaryIntegrationTest {
     @Test
     @DisplayName("FNC-C-016 API는 명세의 필드를 모두 내보내고, 없는 지역·구역은 404, 형식 오류는 400")
     void api() throws Exception {
-        String body = mockMvc.perform(get(SUMMARY_URL).param("targetType", "REGION").param("targetId", regionId("11140")))
+        String body = mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "REGION").param("targetId", regionId("11140")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cameraCount").value(0))
                 .andExpect(jsonPath("$.todayEventCount").value(0))
@@ -171,16 +175,16 @@ class DashboardSummaryIntegrationTest {
                 "\"statAt\":null", "\"countAvg\":null", "\"density\":null", "\"level\":null", "\"inflow\":null",
                 "\"outflow\":null", "\"mainDirection\":null", "\"runningCameraCount\":0", "\"todayMaxCount\":null");
 
-        mockMvc.perform(get(SUMMARY_URL).param("targetType", "REGION").param("targetId", "999999"))
+        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "REGION").param("targetId", "999999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
-        mockMvc.perform(get(SUMMARY_URL).param("targetType", "ZONE").param("targetId", String.valueOf(deletedZone)))
+                .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"));
+        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "ZONE").param("targetId", String.valueOf(deletedZone)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
-        mockMvc.perform(get(SUMMARY_URL).param("targetType", "DONG").param("targetId", "1"))
+        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "DONG").param("targetId", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        mockMvc.perform(get(SUMMARY_URL).param("targetType", "ZONE"))
+        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "ZONE"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
     }
