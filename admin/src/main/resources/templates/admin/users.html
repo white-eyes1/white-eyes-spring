@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>사용자 관리</title>
+</head>
+<body>
+<!-- SCR-A-001 사용자 관리. 목록은 화면 JS가 GET /api/v1/users(FNC-A-002)로 받아 채운다 -->
+<main>
+    <h1>사용자 관리</h1>
+
+    <form id="user-search-form">
+        <label>검색어
+            <input type="search" name="keyword" placeholder="아이디·이름">
+        </label>
+        <label>상태
+            <select name="status">
+                <option value="">전체</option>
+                <option value="PENDING">미승인</option>
+                <option value="ACTIVE">정상</option>
+                <option value="WITHDRAWN">탈퇴</option>
+            </select>
+        </label>
+        <label>가입일
+            <input type="date" name="joinedFrom">
+        </label>
+        <label>~
+            <input type="date" name="joinedTo">
+        </label>
+        <label>활동 중
+            <select name="active">
+                <option value="">전체</option>
+                <option value="true">활동 중</option>
+                <option value="false">활동 안 함</option>
+            </select>
+        </label>
+        <label>표시 개수
+            <select name="size">
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </label>
+        <button type="submit">조회</button>
+    </form>
+
+    <!-- 활동 중 필터·최근 활동 정렬이 1,000명 상한에 걸리면(truncated) 보인다 -->
+    <p id="user-list-truncated" role="status" hidden>조건에 맞는 사용자가 많아 1,000명까지만 표시합니다.</p>
+
+    <table id="user-table">
+        <thead>
+        <tr>
+            <th scope="col"><button type="button" data-sort="loginId">아이디</button></th>
+            <th scope="col">이름</th>
+            <th scope="col">상태</th>
+            <th scope="col"><button type="button" data-sort="createdAt">가입일</button></th>
+            <th scope="col"><button type="button" data-sort="lastActiveAt">최근 활동</button></th>
+            <th scope="col">활동 중</th>
+        </tr>
+        </thead>
+        <tbody id="user-table-body"></tbody>
+    </table>
+    <p id="user-list-empty" hidden>조건에 맞는 사용자가 없습니다.</p>
+
+    <nav id="user-pagination" aria-label="페이지 이동"></nav>
+</main>
+</body>
+</html>

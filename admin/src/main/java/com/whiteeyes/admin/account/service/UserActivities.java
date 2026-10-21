@@ -21,6 +21,11 @@ public class UserActivities {
         this.activeSince = activeSince;
     }
 
+    /** DB 시각(KST)을 응답 시각으로 바꿀 때 쓰는 시간대. */
+    public ZoneId zone() {
+        return zone;
+    }
+
     /**
      * 최근 활동 시각은 세션의 마지막 접근 시각이고, 세션이 없으면 마지막 로그인 시각이다(aclst-004).
      *
