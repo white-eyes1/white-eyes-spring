@@ -1,6 +1,7 @@
 package com.whiteeyes.admin.camera.client;
 
 import com.whiteeyes.admin.camera.exception.AnalyzerUnavailableException;
+import com.whiteeyes.admin.camera.exception.CameraStoppingException;
 import com.whiteeyes.admin.camera.exception.SourceNotFoundException;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.camera.entity.CameraStatus;
@@ -32,6 +33,7 @@ public class AnalyzerClient {
     // 캠 정지: 분석 서버가 종료를 최대 10초 기다리므로 15초(api/analyzer.md)
     private static final Duration STOP_TIMEOUT = Duration.ofSeconds(15);
     private static final String SOURCE_NOT_FOUND_CODE = "SOURCE_NOT_FOUND";
+    private static final String CAMERA_STOPPING_CODE = "CAMERA_STOPPING";
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
     private final RestClient startClient;
@@ -47,6 +49,7 @@ public class AnalyzerClient {
      * 분석 서버에 캠 작업 시작을 지시하고 돌려준 상태(PREPARING 또는 RUNNING)를 반환한다(FNC-A-020 처리 순서 3).
      *
      * @throws SourceNotFoundException 분석 서버가 400 SOURCE_NOT_FOUND로 답했을 때
+     * @throws CameraStoppingException 분석 서버가 409 CAMERA_STOPPING으로 답했을 때(직전 정지가 아직 끝나지 않음)
      * @throws AnalyzerUnavailableException 연결·응답 실패, 타임아웃, 그 밖의 오류 응답, 알 수 없는 상태 값
      */
     public CameraStatus startCamera(Long cameraId, CameraSourceType sourceType, String sourceUri) {
@@ -70,6 +73,9 @@ public class AnalyzerClient {
         String errorCode = reply.body().path("code").asString("");
         if (reply.httpStatus() == 400 && SOURCE_NOT_FOUND_CODE.equals(errorCode)) {
             throw new SourceNotFoundException(cameraId);
+        }
+        if (reply.httpStatus() == 409 && CAMERA_STOPPING_CODE.equals(errorCode)) {
+            throw new CameraStoppingException();
         }
         log.warn("분석 서버가 캠 시작을 거부했습니다 cameraId={} http={} code={}", cameraId, reply.httpStatus(), errorCode);
         throw new AnalyzerUnavailableException();

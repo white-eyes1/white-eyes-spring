@@ -2,22 +2,33 @@ package com.whiteeyes.admin.config;
 
 import com.whiteeyes.admin.account.service.AdminLoginRecordService;
 import com.whiteeyes.admin.account.service.AdminUserDetailsService;
+import com.whiteeyes.common.security.ForbiddenHandler;
+import com.whiteeyes.common.security.InternalTokenFilter;
 import com.whiteeyes.common.security.LoginFailureHandler;
+import com.whiteeyes.common.security.LoginRequiredEntryPoint;
 import com.whiteeyes.common.security.LoginSuccessHandler;
+import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsChecker;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 관리자 앱 로그인(FNC-C-001): 폼 로그인으로 admin_account를 확인한다.
- * 필터 체인은 로그인 경로(/login)에만 건다. 경로별 접근 권한 검사는 FNC-C-003이 이 설정을 넓혀서 맡는다.
+ * 관리자 앱 로그인(FNC-C-001)과 접근 권한 검사(FNC-C-003).
+ * 필터 체인은 둘이다. /internal/** 은 세션 없이 내부 토큰으로만, 나머지는 로그인한 관리자의 역할로 권한 표를 검사한다.
+ * 경로는 컨텍스트 경로(/admin)를 뗀 것이다.
  */
 @Configuration
 // 웹 서버 없이 띄우는 실행(--job=… 같은 1회 작업)에는 HTTP 보안이 필요 없다
@@ -25,18 +36,57 @@ import org.springframework.security.web.SecurityFilterChain;
 public class AdminSecurityConfig {
 
     private static final String LOGIN_PATH = "/login";
+    private static final String INTERNAL_PATH = "/internal/**";
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
+    // 권한 표(관리자 앱): 공개 경로와 정적 파일, 오류 화면
+    private static final String[] PUBLIC_PATHS = {LOGIN_PATH, "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error"};
+    // 권한 표(관리자 앱): SUPER_ADMIN만
+    private static final String[] SUPER_ADMIN_PATHS = {
+        "/admins/**", "/api/v1/admins/**", "/histories/**", "/api/v1/histories/**"
+    };
 
     @Bean
-    public SecurityFilterChain adminLoginFilterChain(
-            HttpSecurity http, AuthenticationProvider adminAuthenticationProvider, AdminLoginRecordService loginRecordService)
+    @Order(1)
+    public SecurityFilterChain adminInternalFilterChain(
+            HttpSecurity http, JsonMapper jsonMapper, @Value("${internal-api.token}") String internalToken)
             throws Exception {
-        http.securityMatcher(LOGIN_PATH)
-                .authenticationProvider(adminAuthenticationProvider)
+        // 세션을 쓰지 않고 토큰 헤더로 인증하므로 CSRF와 로그인 화면 설정이 필요 없다. 토큰 확인은 InternalTokenFilter가 한다
+        http.securityMatcher(INTERNAL_PATH)
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .requestCache(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
+                .addFilterBefore(new InternalTokenFilter(internalToken, jsonMapper), AuthorizationFilter.class);
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain adminWebFilterChain(
+            HttpSecurity http,
+            AuthenticationProvider adminAuthenticationProvider,
+            AdminLoginRecordService loginRecordService,
+            JsonMapper jsonMapper)
+            throws Exception {
+        http.authenticationProvider(adminAuthenticationProvider)
+                .authorizeHttpRequests(requests -> requests.requestMatchers(PUBLIC_PATHS)
+                        .permitAll()
+                        .requestMatchers(SUPER_ADMIN_PATHS)
+                        .hasRole(ROLE_SUPER_ADMIN)
+                        .anyRequest()
+                        .hasAnyRole(ROLE_ADMIN, ROLE_SUPER_ADMIN))
                 .formLogin(form -> form.loginPage(LOGIN_PATH)
                         .loginProcessingUrl(LOGIN_PATH)
                         .successHandler(new LoginSuccessHandler(loginRecordService))
-                        .failureHandler(new LoginFailureHandler()));
+                        .failureHandler(new LoginFailureHandler()))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(new LoginRequiredEntryPoint(jsonMapper))
+                        .accessDeniedHandler(new ForbiddenHandler(jsonMapper)))
+                // 명세 처리 순서대로 권한 표(순서 3)를 통과한 요청에만 비밀번호 변경 필요 여부(순서 4)를 본다
+                .addFilterAfter(new PasswordChangeRequiredFilter(jsonMapper), AuthorizationFilter.class)
+                // 로그인 성공 뒤 이동은 LoginSuccessHandler가 정해 저장한 요청을 쓰지 않으므로, 비로그인 요청마다 세션이 생기지 않게 끈다
+                .requestCache(AbstractHttpConfigurer::disable);
         return http.build();
     }
 

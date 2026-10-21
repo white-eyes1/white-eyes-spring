@@ -4,14 +4,20 @@ import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStartResponse;
 import com.whiteeyes.admin.camera.exception.AnalyzerUnavailableException;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
+import com.whiteeyes.admin.camera.exception.CameraStoppingException;
 import com.whiteeyes.admin.camera.exception.InvalidCameraStatusException;
 import com.whiteeyes.admin.camera.exception.SourceNotFoundException;
+import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
+import com.whiteeyes.common.history.entity.WorkAction;
+import com.whiteeyes.common.history.entity.WorkTargetType;
+import com.whiteeyes.common.security.LoginAccount;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -35,8 +41,11 @@ public class CameraStartService {
     private final CameraRepository cameraRepository;
     private final AnalyzerClient analyzerClient;
     private final TransactionTemplate transactionTemplate;
+    private final AdminWorkRecorder workRecorder;
 
     public CameraStartResponse start(Long cameraId) {
+        // 로그인하지 않은 요청은 분석 서버를 부르기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
+        LoginAccount actor = workRecorder.requireActor();
         // 처리 순서 1·2: STOPPED·ERROR인지 확인하고 run_requested=1 기록
         StartTarget target = transactionTemplate.execute(status -> requestRun(cameraId));
 
@@ -50,11 +59,15 @@ public class CameraStartService {
         } catch (SourceNotFoundException e) {
             recordFailure(cameraId, SOURCE_NOT_FOUND_MESSAGE);
             throw e;
+        } catch (CameraStoppingException e) {
+            // 직전 정지가 아직 끝나지 않은 것이라 가동하지 않은 것으로 본다: ERROR로 바꾸지 않고 요청 전 값으로 되돌린다
+            revertRunRequest(cameraId, target.runRequested());
+            throw e;
         }
 
         // 처리 순서 4: 응답의 상태로 갱신, first_started_at이 비어 있으면 현재 시각
-        recordStarted(cameraId, started);
-        // 처리 순서 5(작업 기록 CAMERA_RUN, detail: {op: START})는 작업 기록 저장(FNC-C-026, #6)이 들어오면 여기서 호출한다
+        // 처리 순서 5: 작업 기록(CAMERA_RUN)은 결과를 기록하는 같은 트랜잭션 안에서 남긴다
+        recordStarted(cameraId, started, actor);
         return new CameraStartResponse(started);
     }
 
@@ -64,8 +77,9 @@ public class CameraStartService {
         if (!isStartable(camera.getStatus())) {
             throw new InvalidCameraStatusException(cameraId, camera.getStatus());
         }
+        boolean runRequestedBefore = camera.isRunRequested();
         camera.requestRun();
-        return new StartTarget(camera.getSourceType(), camera.getSourceUri());
+        return new StartTarget(camera.getSourceType(), camera.getSourceUri(), runRequestedBefore);
     }
 
     private void recordFailure(Long cameraId, String errorMessage) {
@@ -74,7 +88,17 @@ public class CameraStartService {
                         .ifPresent(camera -> camera.updateStatus(CameraStatus.ERROR, null, errorMessage)));
     }
 
-    private void recordStarted(Long cameraId, CameraStatus started) {
+    // status·error_message는 결과 기록 전이라 요청 전 그대로이므로 run_requested만 되돌린다.
+    // 요청 전에 이미 1이었다면(ERROR 캠 등) 그대로 두고, 응답을 기다리는 사이 정지가 0으로 만들었다면 되살리지 않는다
+    private void revertRunRequest(Long cameraId, boolean runRequestedBefore) {
+        if (runRequestedBefore) {
+            return;
+        }
+        transactionTemplate.executeWithoutResult(status ->
+                cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(Camera::cancelRunRequest));
+    }
+
+    private void recordStarted(Long cameraId, CameraStatus started, LoginAccount actor) {
         transactionTemplate.executeWithoutResult(status ->
                 cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
                     // 응답을 기다리는 동안 정지(FNC-A-021)가 끝났다면(run_requested=0) 아무것도 기록하지 않는다
@@ -87,6 +111,8 @@ public class CameraStartService {
                         camera.updateStatus(started, progress, null);
                     }
                     camera.markFirstStartedIfAbsent(LocalDateTime.now(KST));
+                    workRecorder.record(
+                            actor, WorkAction.CAMERA_RUN, WorkTargetType.CAMERA, cameraId, camera.getName(), Map.of("op", "START"));
                 }));
     }
 
@@ -94,5 +120,5 @@ public class CameraStartService {
         return status == CameraStatus.STOPPED || status == CameraStatus.ERROR;
     }
 
-    private record StartTarget(CameraSourceType sourceType, String sourceUri) {}
+    private record StartTarget(CameraSourceType sourceType, String sourceUri, boolean runRequested) {}
 }

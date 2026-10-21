@@ -9,6 +9,7 @@ analyzer:
 
 internal-api:
   token: test-internal-token
+  port: 8082
 
 # 테스트용 가짜 값
 super-admin:

@@ -11,6 +11,8 @@ import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -133,6 +135,14 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = ErrorCode.INTERNAL_ERROR;
         return render(
                 request, response, ex.getStatusCode(), ErrorResponse.of(errorCode.name(), errorCode.getMessage()));
+    }
+
+    /**
+     * 권한·인증 예외는 보안 필터가 401·403으로 처리해야 하므로 500으로 바꾸지 않고 그대로 다시 던진다(FNC-C-003).
+     */
+    @ExceptionHandler({AccessDeniedException.class, AuthenticationException.class})
+    public void rethrowSecurityException(Exception ex) throws Exception {
+        throw ex;
     }
 
     @ExceptionHandler(Exception.class)
