@@ -135,6 +135,23 @@ class AccessControlTest {
                 .andExpect(jsonPath("$.fieldErrors").doesNotExist());
     }
 
+    @Test
+    @DisplayName("FNC-C-003 %로 인코딩해 쓴 /api 경로도 API로 보고 401 공통 오류 응답을 준다")
+    void anonymous_encodedApiPath_unauthorizedJson() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.request(HttpMethod.GET, java.net.URI.create("/admin/%61pi/v1/me"))
+                        .contextPath(CONTEXT_PATH))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    @DisplayName("FNC-C-003 ADMIN·SUPER_ADMIN이 아닌 역할로 로그인한 세션은 모든 경로가 403이다")
+    void otherRole_forbidden() throws Exception {
+        mockMvc.perform(get("/api/v1/events").with(user("someone").roles("USER")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("adminPaths")
     @DisplayName("FNC-C-003 ADMIN은 ADMIN 이상 경로를 쓸 수 있다")
