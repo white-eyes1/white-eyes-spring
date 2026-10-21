@@ -14,6 +14,7 @@ public enum ErrorCode {
     FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 대상을 찾을 수 없습니다."),
     ZONE_NOT_FOUND(HttpStatus.NOT_FOUND, "구역을 찾을 수 없습니다."),
+    REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "지역을 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 요청 방식입니다."),
     DUPLICATE(HttpStatus.CONFLICT, "이미 존재합니다."),
     DUPLICATE_ZONE_NAME(HttpStatus.CONFLICT, "같은 동에 같은 이름의 구역이 있습니다."),
