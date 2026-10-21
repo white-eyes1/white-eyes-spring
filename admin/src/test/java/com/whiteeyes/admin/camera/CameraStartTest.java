@@ -32,7 +32,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
 /** FNC-A-020 캠 가동. 분석 서버는 같은 JVM에 띄운 가짜 HTTP 서버로 대신한다. */
-@SpringBootTest
+// 운영 설정(open-in-view: false)과 같게 맞춘다. 켜 두면 요청 하나가 영속성 컨텍스트를 공유해 단계별 커밋을 검증할 수 없다
+@SpringBootTest(properties = "spring.jpa.open-in-view=false")
 @AutoConfigureMockMvc
 class CameraStartTest {
 
@@ -206,6 +207,43 @@ class CameraStartTest {
         assertThat(elapsed).isBetween(4_500L, 6_800L);
         assertThat(camera(cameraId).get("STATUS")).isEqualTo("ERROR");
         assertThat(camera(cameraId).get("ERROR_MESSAGE")).isEqualTo("분석 서버 연결 실패");
+    }
+
+    @Test
+    @DisplayName("분석 서버 응답을 기다리는 동안 정지가 끝나면(STOPPED·run_requested=0) 응답이 와도 PREPARING으로 덮어쓰지 않고 first_started_at도 남기지 않는다")
+    void start_stoppedWhileWaiting_doesNotOverwrite() throws Exception {
+        long cameraId = insertCamera("STOPPED", 0, null, false, null);
+        ANALYZER.replyWithDelay(200, "{\"cameraId\":" + cameraId + ",\"status\":\"PREPARING\"}", 1_000);
+
+        Thread stopper = new Thread(() -> {
+            // 분석 서버가 요청을 받은 뒤(= 가동 요청 기록이 끝난 뒤)에 정지가 끼어들게 한다
+            long deadline = System.currentTimeMillis() + 10_000;
+            while (ANALYZER.callCount == 0 && System.currentTimeMillis() < deadline) {
+                Thread.onSpinWait();
+            }
+            jdbcTemplate.update("UPDATE camera SET status = 'STOPPED', run_requested = 0, progress = 0 WHERE id = ?", cameraId);
+        });
+        stopper.start();
+        start(cameraId).andExpect(status().isOk());
+        stopper.join();
+
+        assertThat(camera(cameraId).get("STATUS")).isEqualTo("STOPPED");
+        assertThat(isRunRequested(camera(cameraId))).isFalse();
+        assertThat(camera(cameraId).get("FIRST_STARTED_AT")).isNull();
+    }
+
+    @Test
+    @DisplayName("first_started_at은 한국 시각(KST)으로 기록된다")
+    void start_firstStartedAtIsKst() throws Exception {
+        long cameraId = insertCamera("STOPPED", 0, null, false, null);
+        ANALYZER.replyWith(200, "{\"cameraId\":" + cameraId + ",\"status\":\"PREPARING\"}");
+
+        java.time.LocalDateTime before = java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).minusSeconds(5);
+        start(cameraId).andExpect(status().isOk());
+        java.time.LocalDateTime after = java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).plusSeconds(5);
+
+        java.time.LocalDateTime saved = ((java.sql.Timestamp) camera(cameraId).get("FIRST_STARTED_AT")).toLocalDateTime();
+        assertThat(saved).isBetween(before, after);
     }
 
     @Test

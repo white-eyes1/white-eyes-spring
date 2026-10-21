@@ -11,6 +11,7 @@ import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -29,6 +30,7 @@ public class CameraStartService {
     private static final String UNAVAILABLE_MESSAGE = "분석 서버 연결 실패";
     private static final String SOURCE_NOT_FOUND_MESSAGE = "영상 파일·스트림 없음";
     private static final int PREPARING_START_PROGRESS = 0;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final CameraRepository cameraRepository;
     private final AnalyzerClient analyzerClient;
@@ -75,12 +77,16 @@ public class CameraStartService {
     private void recordStarted(Long cameraId, CameraStatus started) {
         transactionTemplate.executeWithoutResult(status ->
                 cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
+                    // 응답을 기다리는 동안 정지(FNC-A-021)가 끝났다면(run_requested=0) 아무것도 기록하지 않는다
+                    if (!camera.isRunRequested()) {
+                        return;
+                    }
                     // 분석 서버의 상태 보고(FNC-A-025)가 응답보다 먼저 와서 이미 상태가 바뀌었다면 덮어쓰지 않는다
                     if (isStartable(camera.getStatus())) {
                         Integer progress = started == CameraStatus.PREPARING ? PREPARING_START_PROGRESS : null;
                         camera.updateStatus(started, progress, null);
                     }
-                    camera.markFirstStartedIfAbsent(LocalDateTime.now());
+                    camera.markFirstStartedIfAbsent(LocalDateTime.now(KST));
                 }));
     }
 
