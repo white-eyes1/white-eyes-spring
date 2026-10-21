@@ -1,6 +1,10 @@
 // 화면의 API 호출은 모두 이 모듈을 거친다(code-conventions.md 5-3).
 // CSRF 헤더 추가, JSON 변환, 오류 응답({code, message, fieldErrors}) 해석, 401이면 로그인 화면 이동을 맡는다.
+// 400 fieldErrors는 호출한 쪽이 입력 아래에 보이고, 그 밖의 오류는 기본으로 토스트(toast.js)에 message를 띄운다.
+// 호출한 쪽이 직접 보여 줄 때는 세 번째 인자로 { toast: false }를 준다.
 // 템플릿은 <meta name="context-path" th:content="@{/}">와 <meta name="_csrf" th:content="${_csrf?.token}">를 둔다.
+
+import { showToast } from './toast.js';
 
 const CSRF_HEADER = 'X-CSRF-TOKEN';
 const NETWORK_ERROR_MESSAGE = '서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.';
@@ -25,15 +29,23 @@ export function url(path) {
     return contextPath + path;
 }
 
-export function get(path, params) {
-    return request('GET', path, { params });
+export function get(path, params, options) {
+    return request('GET', path, { params, ...options });
 }
 
-export function post(path, body) {
-    return request('POST', path, { body });
+export function post(path, body, options) {
+    return request('POST', path, { body, ...options });
 }
 
-async function request(method, path, { params, body } = {}) {
+export function patch(path, body, options) {
+    return request('PATCH', path, { body, ...options });
+}
+
+export function del(path, options) {
+    return request('DELETE', path, { ...options });
+}
+
+async function request(method, path, { params, body, toast = true } = {}) {
     let target = url(path);
     if (params) {
         target += '?' + new URLSearchParams(params).toString();
@@ -57,7 +69,7 @@ async function request(method, path, { params, body } = {}) {
             credentials: 'same-origin',
         });
     } catch {
-        throw new ApiError(0, null, NETWORK_ERROR_MESSAGE, []);
+        return fail(new ApiError(0, null, NETWORK_ERROR_MESSAGE, []), toast);
     }
 
     if (response.status === 401) {
@@ -66,14 +78,25 @@ async function request(method, path, { params, body } = {}) {
     }
     const data = await readJson(response);
     if (!response.ok) {
-        throw new ApiError(
-            response.status,
-            data?.code ?? null,
-            data?.message ?? DEFAULT_ERROR_MESSAGE,
-            data?.fieldErrors,
+        return fail(
+            new ApiError(
+                response.status,
+                data?.code ?? null,
+                data?.message ?? DEFAULT_ERROR_MESSAGE,
+                data?.fieldErrors,
+            ),
+            toast,
         );
     }
     return data;
+}
+
+// 입력 검증 오류(400 fieldErrors)는 입력 아래에 보이므로 토스트를 띄우지 않는다
+function fail(error, toast) {
+    if (toast && error.fieldErrors.length === 0) {
+        showToast(error.message);
+    }
+    throw error;
 }
 
 // 본문이 없거나 JSON이 아니면(프록시 오류 화면 등) null
