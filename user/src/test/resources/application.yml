@@ -3,3 +3,7 @@ spring:
     url: jdbc:h2:mem:user;MODE=MySQL;DB_CLOSE_DELAY=-1
     username: sa
     password:
+  jpa:
+    hibernate:
+      # 사용자 앱은 Flyway를 돌리지 않아(관리자 앱만 실행) 테스트 H2의 테이블은 엔티티로 만든다
+      ddl-auto: create-drop
