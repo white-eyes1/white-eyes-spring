@@ -12,7 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * V5 테이블의 칼럼(이름·타입·길이·NOT NULL)과 인덱스가 tables.md의 work_history와 같은지 DB에서 직접 확인한다.
+ * V6 테이블의 칼럼(이름·타입·길이·NOT NULL)과 인덱스가 tables.md의 work_history와 같은지 DB에서 직접 확인한다.
  * 테스트 DB(H2)에서는 JPA 칼럼 검증(ddl-auto=validate)이 돌지 않으므로, 엔티티와의 일치는 WorkHistoryServiceTest가
  * 엔티티로 저장해 DB에서 읽어 보는 것으로 확인한다. COMMENT는 확인하지 않는다.
  */
@@ -50,7 +50,7 @@ class WorkHistorySchemaTest {
     }
 
     @Test
-    @DisplayName("tables.md work_history 칼럼의 이름·타입·길이·NOT NULL이 V5와 같다")
+    @DisplayName("tables.md work_history 칼럼의 이름·타입·길이·NOT NULL이 V6와 같다")
     void columns_matchTablesSpec() {
         List<ExpectedColumn> actual = jdbcTemplate.query(
                 """
@@ -73,7 +73,7 @@ class WorkHistorySchemaTest {
     }
 
     @Test
-    @DisplayName("tables.md work_history 인덱스 4개의 칼럼 구성이 V5와 같다")
+    @DisplayName("tables.md work_history 인덱스 4개의 칼럼 구성이 V6와 같다")
     void indexes_matchTablesSpec() {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 """
