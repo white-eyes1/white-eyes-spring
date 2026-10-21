@@ -2,9 +2,11 @@ package com.whiteeyes.admin.stat.controller;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.whiteeyes.admin.security.AdminTestUserConfig;
@@ -72,5 +74,39 @@ class DashboardPageControllerTest {
         mockMvc.perform(get("/stats").with(user("super01").roles("SUPER_ADMIN")))
                 .andExpect(content().string(containsString("관리자 관리")))
                 .andExpect(content().string(containsString("작업 기록")));
+    }
+
+    @Test
+    @DisplayName("SCR-C-003 로그인한 관리자의 /stats에 지역 필터·통계 패널·지도·캠 패널·지역 등록 버튼이 있다")
+    void statsPage_admin_hasAllPanels() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"filter-sido\"")))
+                .andExpect(content().string(containsString("id=\"filter-emd\"")))
+                .andExpect(content().string(containsString("id=\"stat-panel\"")))
+                .andExpect(content().string(containsString("id=\"zone-donut\"")))
+                .andExpect(content().string(containsString("id=\"dash-map\"")))
+                .andExpect(content().string(containsString("id=\"deck-cards\"")))
+                .andExpect(content().string(containsString("혼잡도 높은 순")))
+                .andExpect(content().string(containsString("지역 등록·수정")))
+                .andExpect(content().string(containsString("/js/pages/stats-main.js")))
+                .andExpect(content().string(containsString("/css/stats-main.css")));
+    }
+
+    @Test
+    @DisplayName("SCR-C-003 실제 화면에는 시안 표시용 data-api·data-fnc 속성과 .anno 요소를 옮기지 않는다")
+    void statsPage_noDesignAnnotations() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(not(containsString("data-api"))))
+                .andExpect(content().string(not(containsString("data-fnc"))))
+                .andExpect(content().string(not(containsString("anno"))));
+    }
+
+    @Test
+    @DisplayName("SCR-C-003 로그인하지 않은 요청은 로그인 화면으로 보낸다")
+    void statsPage_anonymous_redirectsToLogin() throws Exception {
+        mockMvc.perform(get("/admin/stats").contextPath("/admin").with(anonymous()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/login"));
     }
 }
