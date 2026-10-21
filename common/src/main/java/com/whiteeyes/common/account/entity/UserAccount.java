@@ -68,4 +68,22 @@ public class UserAccount {
     @Generated(event = {EventType.INSERT, EventType.UPDATE})
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * 회원가입으로 만드는 계정. 관리자가 승인하기 전까지 PENDING이다(FNC-U-002).
+     *
+     * @param encodedPassword bcrypt로 암호화한 비밀번호
+     */
+    public static UserAccount createPending(
+            String loginId, String encodedPassword, String name, String email, String phone) {
+        UserAccount account = new UserAccount();
+        account.loginId = loginId;
+        account.password = encodedPassword;
+        account.name = name;
+        account.email = email;
+        account.phone = phone;
+        account.status = UserAccountStatus.PENDING;
+        account.mustChangePassword = false;
+        return account;
+    }
 }
