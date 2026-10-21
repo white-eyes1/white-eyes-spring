@@ -17,6 +17,11 @@ import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import jakarta.persistence.EntityManagerFactory;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.nio.file.Paths;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -30,6 +35,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
@@ -37,6 +43,7 @@ import tools.jackson.databind.json.JsonMapper;
 class CameraListTest {
 
     private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final String CAMERAS_URL = "/api/v1/manage/cameras";
     private static final String LIVE_URI = "rtsp://192.168.0.10:554/stream1";
 
@@ -86,6 +93,7 @@ class CameraListTest {
     @AfterEach
     void clearAfter() {
         AdminTestLogin.clear();
+        jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -152,14 +160,104 @@ class CameraListTest {
     }
 
     @Test
-    @DisplayName("FNC-A-022 통계·이벤트는 아직 연결 전이라 stat은 null, todayEventCount는 0, recent10m은 빈 목록")
-    void list_statAndEventsNotYetConnected() throws Exception {
+    @DisplayName("FNC-A-022 1분 통계가 없는 캠은 stat이 null, recent10m이 빈 목록이고 todayEventCount는 0(이벤트는 #38)")
+    void list_noStats_statNullAndRecentEmpty() throws Exception {
         createCamera(samcheongZoneId, "삼청동 캠");
 
         list(null)
                 .andExpect(jsonPath("$[0].stat").value(nullValue()))
                 .andExpect(jsonPath("$[0].todayEventCount").value(0))
                 .andExpect(jsonPath("$[0].recent10m", empty()));
+    }
+
+    @Test
+    @DisplayName("FNC-A-022 5분 안에 1분 통계가 있으면 stat에 가장 최근 통계와 혼잡 단계가 나온다")
+    void list_recentStat_returnsLatestWithLevel() throws Exception {
+        createCamera(samcheongZoneId, "삼청동 캠");
+        LocalDateTime thisMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(3), 10.0, 0.2);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(2), 50.5, 0.9);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(1), 120.4, 1.6);
+
+        list(null)
+                .andExpect(jsonPath("$[0].stat.statAt").value(thisMinute.minusMinutes(1).atZone(KST).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))
+                .andExpect(jsonPath("$[0].stat.countAvg").value(120.4))
+                .andExpect(jsonPath("$[0].stat.density").value(1.6))
+                .andExpect(jsonPath("$[0].stat.level").value(3));
+    }
+
+    @Test
+    @DisplayName("FNC-A-022 혼잡 단계는 밀집도 경계(주의 0.7, 위험 1.5)를 따른다")
+    void list_statLevel_followsThresholds() throws Exception {
+        createCamera(samcheongZoneId, "삼청동 캠");
+        createCamera(sogongZoneId, "소공동 캠");
+        createCamera(sajikZoneId, "사직동 캠");
+        LocalDateTime lastMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
+        insertStat(samcheongZoneId, lastMinute, 5.0, 0.6999);
+        insertStat(sogongZoneId, lastMinute, 5.0, 0.7);
+        insertStat(sajikZoneId, lastMinute, 5.0, 1.5);
+
+        list(null)
+                .andExpect(jsonPath("$[0].stat.level").value(1))
+                .andExpect(jsonPath("$[1].stat.level").value(2))
+                .andExpect(jsonPath("$[2].stat.level").value(3));
+    }
+
+    @Test
+    @DisplayName("FNC-A-022 가장 최근 통계가 5분보다 오래됐으면 stat은 null이지만 recent10m에는 남는다")
+    void list_staleStat_statNullButRecentKept() throws Exception {
+        createCamera(samcheongZoneId, "삼청동 캠");
+        LocalDateTime thisMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(7), 33.0, 0.5);
+
+        list(null)
+                .andExpect(jsonPath("$[0].stat").value(nullValue()))
+                .andExpect(jsonPath("$[0].recent10m", hasSize(1)))
+                .andExpect(jsonPath("$[0].recent10m[0].countAvg").value(33.0));
+    }
+
+    @Test
+    @DisplayName("FNC-A-022 recent10m은 최근 10분의 1분 평균 인원을 시각 순서로 최대 10개만 준다")
+    void list_recent10m_orderedAndLimited() throws Exception {
+        createCamera(samcheongZoneId, "삼청동 캠");
+        LocalDateTime thisMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES);
+        // 12분 전부터 1분 전까지 12개를 넣는다. 10분보다 오래된 것은 빠진다
+        for (int ago = 12; ago >= 1; ago--) {
+            insertStat(samcheongZoneId, thisMinute.minusMinutes(ago), 100.0 - ago, 0.5);
+        }
+
+        String body = list(null).andReturn().getResponse().getContentAsString();
+        JsonNode recent = jsonMapper.readTree(body).get(0).get("recent10m");
+
+        assertThat(recent.size()).isBetween(9, 10);
+        OffsetDateTime previous = null;
+        for (JsonNode point : recent) {
+            OffsetDateTime at = OffsetDateTime.parse(point.get("at").asString());
+            assertThat(at).isAfterOrEqualTo(OffsetDateTime.now(KST).minusMinutes(10).minusSeconds(5));
+            if (previous != null) {
+                assertThat(at).isAfter(previous);
+            }
+            previous = at;
+        }
+        assertThat(previous.toLocalDateTime()).isEqualTo(thisMinute.minusMinutes(1));
+        assertThat(previous.getOffset().getTotalSeconds()).isEqualTo(9 * 3600);
+        assertThat(recent.get(recent.size() - 1).get("countAvg").asDouble()).isEqualTo(99.0);
+    }
+
+    @Test
+    @DisplayName("FNC-A-022 통계는 캠이 속한 구역 것만 붙고 통계가 없는 구역의 캠은 null이다")
+    void list_stat_onlyOwnZone() throws Exception {
+        createCamera(samcheongZoneId, "삼청동 캠");
+        createCamera(sogongZoneId, "소공동 캠");
+        insertStat(sogongZoneId, LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1), 77.0, 0.3);
+
+        list(null)
+                .andExpect(jsonPath("$[0].name").value("삼청동 캠"))
+                .andExpect(jsonPath("$[0].stat").value(nullValue()))
+                .andExpect(jsonPath("$[0].recent10m", empty()))
+                .andExpect(jsonPath("$[1].name").value("소공동 캠"))
+                .andExpect(jsonPath("$[1].stat.countAvg").value(77.0))
+                .andExpect(jsonPath("$[1].recent10m", hasSize(1)));
     }
 
     @Test
@@ -205,11 +303,15 @@ class CameraListTest {
     @Test
     @DisplayName("FNC-A-022 캠이 늘어도 쿼리 수가 늘지 않는다(캠마다 따로 조회하지 않음)")
     void list_queryCountDoesNotGrowWithCameraCount() throws Exception {
+        LocalDateTime lastMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
         createCamera(samcheongZoneId, "삼청동 캠");
+        insertStat(samcheongZoneId, lastMinute, 10.0, 0.5);
         long withOneCamera = countStatementsOfList();
 
         createCamera(sogongZoneId, "소공동 캠");
         createCamera(sajikZoneId, "사직동 캠");
+        insertStat(sogongZoneId, lastMinute, 20.0, 0.8);
+        insertStat(sajikZoneId, lastMinute, 30.0, 1.6);
         long withThreeCameras = countStatementsOfList();
 
         // 통계가 꺼져 있어 0 == 0으로 통과하는 일이 없도록 쿼리가 실제로 세어졌는지도 본다
@@ -225,6 +327,7 @@ class CameraListTest {
     }
 
     private void clearAll() {
+        jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
@@ -235,6 +338,18 @@ class CameraListTest {
         // MockMvc 요청이 끝나면 현재 스레드의 로그인 정보가 비워지므로 부를 때마다 다시 채운다
         AdminTestLogin.loginForDirectCalls();
         return zoneRegisterService.register(name, jsonMapper.readTree(polygon)).id();
+    }
+
+    private void insertStat(long zoneId, LocalDateTime statAt, double countAvg, double density) {
+        jdbcTemplate.update(
+                "INSERT INTO zone_stat_minute (zone_id, stat_at, count_avg, count_max, count_min, density)"
+                        + " VALUES (?, ?, ?, ?, ?, ?)",
+                zoneId,
+                statAt,
+                countAvg,
+                (int) Math.ceil(countAvg),
+                (int) Math.floor(countAvg),
+                density);
     }
 
     private long createCamera(long zoneId, String name) {
