@@ -29,7 +29,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
         properties = {
             "server.servlet.context-path=/admin",
             "server.servlet.session.cookie.name=ADMIN_SESSION",
-            "spring.session.jdbc.table-name=SPRING_SESSION_ADMIN"
+            "spring.session.jdbc.table-name=SPRING_SESSION_ADMIN",
+            // 내부 포트(8082)를 다른 프로그램이 쓰고 있어도 되도록 비어 있는 포트를 잡게 한다
+            "internal-api.port=0"
         })
 class AdminLoginCookieTest {
 

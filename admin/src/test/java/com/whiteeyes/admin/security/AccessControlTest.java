@@ -155,12 +155,12 @@ class AccessControlTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"/admins", "/admins/1", "/histories", "/histories/1"})
-    @DisplayName("FNC-C-003 ADMIN이 최고 관리자 전용 화면을 열면 403 오류 화면이 나온다")
-    void admin_superScreens_forbiddenPage(String path) throws Exception {
+    @DisplayName("FNC-C-003 ADMIN이 최고 관리자 전용 화면을 열면 로그인 화면으로 보내지 않고 403이다")
+    void admin_superScreens_forbidden(String path) throws Exception {
+        // 오류 화면 본문은 서버의 오류 이동으로 그려져 MockMvc에서는 볼 수 없다(ErrorPageViewResolverTest가 문구를 확인)
         mockMvc.perform(get(path).with(asAdmin()))
                 .andExpect(status().isForbidden())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
-                        .string(org.hamcrest.Matchers.containsString("권한이 없습니다.")));
+                .andExpect(header().doesNotExist("Location"));
     }
 
     @Test

@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import java.io.IOException;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -30,6 +32,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** FNC-A-020 캠 가동. 분석 서버는 같은 JVM에 띄운 가짜 HTTP 서버로 대신한다. */
 // 운영 설정(open-in-view: false)과 같게 맞춘다. 켜 두면 요청 하나가 영속성 컨텍스트를 공유해 단계별 커밋을 검증할 수 없다
+@Import(AdminTestUserConfig.class)
 @SpringBootTest(properties = "spring.jpa.open-in-view=false")
 @AutoConfigureMockMvc
 class CameraStartTest {
