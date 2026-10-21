@@ -22,7 +22,7 @@ class LoginSuccessHandlerTest {
 
     private Authentication authentication(boolean mustChangePassword, String role) {
         AccountPrincipal principal = new AccountPrincipal(
-                "hong01", "encoded", true, mustChangePassword, List.of(new SimpleGrantedAuthority(role)));
+                1L, "hong01", "encoded", true, mustChangePassword, List.of(new SimpleGrantedAuthority(role)));
         return UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities());
     }
 
