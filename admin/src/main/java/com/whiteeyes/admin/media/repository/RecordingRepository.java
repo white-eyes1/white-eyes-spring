@@ -1,8 +1,11 @@
 package com.whiteeyes.admin.media.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -26,4 +29,17 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
             + " where r.cameraId = :cameraId and r.endedAt is null and r.startedAt < :closedAt")
     int closeOpenRecordingsStartedBefore(
             @Param("cameraId") Long cameraId, @Param("closedAt") LocalDateTime closedAt);
+
+    /**
+     * 주어진 캠들의 녹화 중 at 시각을 포함하는 것(started_at ≤ at, ended_at이 없거나 at보다 뒤)을 시작이 늦은 순으로(FNC-A-043).
+     * 첫 줄만 쓰면 started_at이 가장 늦은 녹화다.
+     */
+    @Query("select r from Recording r where r.cameraId in :cameraIds and r.startedAt <= :at"
+            + " and (r.endedAt is null or r.endedAt > :at) order by r.startedAt desc, r.id desc")
+    List<Recording> findContaining(
+            @Param("cameraIds") Collection<Long> cameraIds, @Param("at") LocalDateTime at, Limit limit);
+
+    /** 주어진 캠들의 녹화 중 since 이후에 시작한 것 가운데 가장 늦게 시작한 것(FNC-A-043 latest). */
+    Optional<Recording> findFirstByCameraIdInAndStartedAtGreaterThanEqualOrderByStartedAtDescIdDesc(
+            Collection<Long> cameraIds, LocalDateTime since);
 }
