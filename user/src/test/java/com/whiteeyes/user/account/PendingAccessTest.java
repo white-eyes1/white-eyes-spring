@@ -83,7 +83,7 @@ class PendingAccessTest {
     void pending_logout_allowed() throws Exception {
         mockMvc.perform(post("/logout").with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?logout"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test
