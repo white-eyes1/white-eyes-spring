@@ -87,6 +87,7 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(containsString("id=\"zone-donut\"")))
                 .andExpect(content().string(containsString("id=\"dash-map\"")))
                 .andExpect(content().string(containsString("id=\"deck-cards\"")))
+                .andExpect(content().string(containsString("id=\"stream-status\"")))
                 .andExpect(content().string(containsString("혼잡도 높은 순")))
                 .andExpect(content().string(containsString("지역 등록·수정")))
                 .andExpect(content().string(containsString("/js/pages/stats-main.js")))
