@@ -86,4 +86,14 @@ public class AdminAccount {
     public void recordLogin(LocalDateTime loggedInAt) {
         this.lastLoginAt = loggedInAt;
     }
+
+    /**
+     * 비밀번호를 바꾸고 변경 강제를 끈다(FNC-C-007).
+     *
+     * @param encodedPassword bcrypt로 암호화한 비밀번호
+     */
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.mustChangePassword = false;
+    }
 }
