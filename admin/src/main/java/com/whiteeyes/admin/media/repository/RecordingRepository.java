@@ -39,6 +39,17 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
     List<Recording> findContaining(
             @Param("cameraIds") Collection<Long> cameraIds, @Param("at") LocalDateTime at, Limit limit);
 
+    /**
+     * 주어진 캠들의 녹화 중 [from, to) 범위와 겹치는 것(started_at &lt; to, ended_at이 없거나 from보다 뒤)을 시작이 빠른 순으로
+     * (FNC-A-043 구간 조회).
+     */
+    @Query("select r from Recording r where r.cameraId in :cameraIds and r.startedAt < :to"
+            + " and (r.endedAt is null or r.endedAt > :from) order by r.startedAt asc, r.id asc")
+    List<Recording> findOverlapping(
+            @Param("cameraIds") Collection<Long> cameraIds,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
     /** 주어진 캠들의 녹화 중 since 이후에 시작한 것 가운데 가장 늦게 시작한 것(FNC-A-043 latest). */
     Optional<Recording> findFirstByCameraIdInAndStartedAtGreaterThanEqualOrderByStartedAtDescIdDesc(
             Collection<Long> cameraIds, LocalDateTime since);
