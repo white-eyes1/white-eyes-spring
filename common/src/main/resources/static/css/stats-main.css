@@ -75,3 +75,7 @@
 .camcard footer { display: flex; gap: 6px; padding: 0 12px 12px; }
 .camcard footer .btn { flex: 1; }
 .camcard .err-msg { padding: 0 12px 8px; color: #ff8a90; font-size: 11px; }
+
+/* 실시간 통계 갱신 연결 상태(FNC-C-022) */
+.stream-status { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 3px 9px; border-radius: 11px; background: #1d2733; color: #c3ccd8; font-size: 11px; }
+.stream-status[hidden] { display: none; }
