@@ -1,0 +1,109 @@
+package com.whiteeyes.admin.event.service;
+
+import java.math.RoundingMode;
+import java.time.Duration;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.common.event.entity.Event;
+import com.whiteeyes.common.event.entity.EventType;
+import com.whiteeyes.common.event.repository.EventRepository;
+import com.whiteeyes.common.level.service.CongestionLevel;
+import com.whiteeyes.common.level.service.LevelService;
+import com.whiteeyes.common.level.service.LevelTarget;
+import com.whiteeyes.common.level.service.LevelThresholds;
+import com.whiteeyes.common.stat.entity.ZoneStatMinute;
+
+/**
+ * 혼잡 이벤트 판정(FNC-A-033). 1분 통계를 저장한 직후 구역이 '주의' 이상이면 이벤트를 열거나 갱신하고,
+ * 내려가 일정 시간 유지되면 닫는다. 새 이벤트의 관리자 알림(SSE)은 FNC-A-048이 맡는다.
+ */
+@Service
+public class CongestionEventService {
+
+    private static final Logger log = LoggerFactory.getLogger(CongestionEventService.class);
+
+    private final LevelService levelService;
+    private final EventRepository eventRepository;
+    private final int minSampleSec;
+    private final Duration closeHold;
+
+    public CongestionEventService(
+            LevelService levelService,
+            EventRepository eventRepository,
+            // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본값 conventions.md)
+            @Value("${EVENT_MIN_SAMPLE_SEC:30}") int minSampleSec,
+            @Value("${EVENT_CLOSE_HOLD_MIN:5}") long closeHoldMin) {
+        this.levelService = levelService;
+        this.eventRepository = eventRepository;
+        this.minSampleSec = minSampleSec;
+        this.closeHold = Duration.ofMinutes(closeHoldMin);
+    }
+
+    /**
+     * 저장한 1분 통계 하나로 그 구역의 혼잡 이벤트를 만들거나 갱신하거나 닫는다.
+     */
+    @Transactional
+    public void judge(ZoneStatMinute stat) {
+        // 캠 시작 직후 같은 불완전한 1분은 검사하지 않는다. below_since도 건드리지 않는다(FNC-A-033 처리 순서 1)
+        if (stat.getSampleSec() < minSampleSec) {
+            log.debug("혼잡 이벤트 판정 건너뜀: 결과 초 수 부족 zoneId={} statAt={} sampleSec={}",
+                    stat.getZoneId(), stat.getStatAt(), stat.getSampleSec());
+            return;
+        }
+        LevelTarget target = LevelTarget.zone(stat.getZoneId());
+        CongestionLevel level = levelService.judgeLevel(target, stat.getDensity());
+        Event openEvent = eventRepository
+                .findFirstByZoneIdAndTypeAndEndedAtIsNullOrderByIdAsc(stat.getZoneId(), EventType.CONGESTION)
+                .orElse(null);
+
+        if (level.getLevel() >= CongestionLevel.CAUTION.getLevel()) {
+            raiseOrOpen(openEvent, stat, level, target);
+        } else if (openEvent != null) {
+            closeIfBelowHeld(openEvent, stat);
+        }
+    }
+
+    // 주의 이상: 열린 이벤트가 있으면 최고 값을 갱신하고, 없으면 새로 연다(FNC-A-033 처리 순서 3)
+    private void raiseOrOpen(Event openEvent, ZoneStatMinute stat, CongestionLevel level, LevelTarget target) {
+        int peakCount = stat.getCountAvg().setScale(0, RoundingMode.HALF_UP).intValueExact();
+        if (openEvent != null) {
+            openEvent.raisePeak(level.getLevel(), stat.getDensity(), peakCount);
+            openEvent.clearBelowSince();
+            log.debug("혼잡 이벤트 갱신 zoneId={} eventId={} level={}",
+                    stat.getZoneId(), openEvent.getId(), level.getLevel());
+            return;
+        }
+        Event created = eventRepository.save(Event.openCongestion(
+                stat.getZoneId(),
+                stat.getStatAt(),
+                level.getLevel(),
+                stat.getDensity(),
+                peakCount,
+                toSnapshotJson(levelService.findThresholds(target))));
+        log.info("혼잡 이벤트 생성 zoneId={} eventId={}", stat.getZoneId(), created.getId());
+    }
+
+    // 주의 미만: 처음 내려간 시각을 남기고, 그 뒤 EVENT_CLOSE_HOLD_MIN 이상 유지되면 닫는다(FNC-A-033 처리 순서 4)
+    private void closeIfBelowHeld(Event openEvent, ZoneStatMinute stat) {
+        if (openEvent.getBelowSince() == null) {
+            openEvent.markBelow(stat.getStatAt());
+            return;
+        }
+        Duration below = Duration.between(openEvent.getBelowSince(), stat.getStatAt());
+        if (below.compareTo(closeHold) >= 0) {
+            openEvent.close(stat.getStatAt());
+            log.info("혼잡 이벤트 종료 zoneId={} eventId={}", stat.getZoneId(), openEvent.getId());
+        }
+    }
+
+    // 0.7이 7E-1로 바뀌지 않게 toPlainString으로 쓴다
+    private static String toSnapshotJson(LevelThresholds thresholds) {
+        return "{\"warnDensity\":" + thresholds.warnDensity().toPlainString()
+                + ",\"dangerDensity\":" + thresholds.dangerDensity().toPlainString() + "}";
+    }
+}

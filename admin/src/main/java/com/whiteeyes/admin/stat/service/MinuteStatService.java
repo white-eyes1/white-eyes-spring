@@ -13,7 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.whiteeyes.admin.event.service.CongestionEventService;
 import com.whiteeyes.admin.region.service.ZoneService;
+import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /** 1분 통계 저장(FNC-A-028) */
@@ -25,17 +27,20 @@ public class MinuteStatService {
     private final MinuteAccumulatorStore minuteAccumulatorStore;
     private final ZoneService zoneService;
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
+    private final CongestionEventService congestionEventService;
     private final Duration closeGrace;
 
     public MinuteStatService(
             MinuteAccumulatorStore minuteAccumulatorStore,
             ZoneService zoneService,
             ZoneStatMinuteRepository zoneStatMinuteRepository,
+            CongestionEventService congestionEventService,
             // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본 5초, conventions.md)
             @Value("${MINUTE_CLOSE_GRACE_SEC:5}") long closeGraceSec) {
         this.minuteAccumulatorStore = minuteAccumulatorStore;
         this.zoneService = zoneService;
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
+        this.congestionEventService = congestionEventService;
         this.closeGrace = Duration.ofSeconds(closeGraceSec);
     }
 
@@ -67,8 +72,10 @@ public class MinuteStatService {
                     accumulator.getZoneId(), accumulator.getMinute());
             return;
         }
+        ZoneStatMinute stat;
         try {
-            zoneStatMinuteRepository.upsert(MinuteStatCalculator.calculate(accumulator, areaM2));
+            stat = MinuteStatCalculator.calculate(accumulator, areaM2);
+            zoneStatMinuteRepository.upsert(stat);
         } catch (RuntimeException e) {
             log.error("1분 통계 저장 실패 zoneId={} statAt={}", accumulator.getZoneId(), accumulator.getMinute(), e);
             return;
@@ -76,6 +83,16 @@ public class MinuteStatService {
         // 1분마다 구역 수만큼 반복되는 처리라 DEBUG로만 남김(code-conventions 7-3)
         log.debug("1분 통계 저장 zoneId={} statAt={} sampleSec={}",
                 accumulator.getZoneId(), accumulator.getMinute(), accumulator.getSampleSec());
-        // TODO(FNC-A-033·034): 2단계에서 혼잡·급증 이벤트 검사를 여기에 붙인다(FNC-A-028 처리 순서 4)
+        judgeCongestionEvent(stat);
+        // TODO(FNC-A-034): 급증 이벤트 검사를 여기에 붙인다(FNC-A-028 처리 순서 4)
+    }
+
+    // 이벤트 판정이 실패해도 이미 저장한 통계는 유지하고 다음 구역을 계속 처리한다(FNC-A-033은 FNC-A-028 저장 뒤에 도는 후속 처리)
+    private void judgeCongestionEvent(ZoneStatMinute stat) {
+        try {
+            congestionEventService.judge(stat);
+        } catch (RuntimeException e) {
+            log.error("혼잡 이벤트 판정 실패 zoneId={} statAt={}", stat.getZoneId(), stat.getStatAt(), e);
+        }
     }
 }
