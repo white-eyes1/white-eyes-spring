@@ -80,6 +80,43 @@ class HourlyDailyStatIntegrationTest {
     }
 
     @Test
+    @DisplayName("FNC-A-029 밀집도는 가중 평균, 방향별 in/out과 체류 시간은 합")
+    void hourlySumsDirectionsAndDwell() {
+        Long zoneId = saveZone("99999991");
+        zoneStatMinuteRepository.upsert(ZoneStatMinute.builder()
+                .zoneId(zoneId).statAt(HOUR).countAvg(new BigDecimal("10.00")).countMax(12).countMin(8)
+                .density(new BigDecimal("0.1000")).inE(1).inW(2).outN(3).outS(4)
+                .dwellSumSec(100).dwellCount(2).sampleSec((short) 60).build());
+        zoneStatMinuteRepository.upsert(ZoneStatMinute.builder()
+                .zoneId(zoneId).statAt(HOUR.plusMinutes(1)).countAvg(new BigDecimal("40.00")).countMax(50)
+                .countMin(30).density(new BigDecimal("0.4000")).inE(10).inW(20).outN(30).outS(40)
+                .dwellSumSec(50).dwellCount(1).sampleSec((short) 30).build());
+
+        hourlyStatService.aggregateHour(HOUR);
+
+        ZoneStatHourly hourly = zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, HOUR)).orElseThrow();
+        // (0.1×60 + 0.4×30) ÷ 90
+        assertThat(hourly.getDensity()).isEqualByComparingTo("0.2000");
+        assertThat(hourly.getInE()).isEqualTo(11);
+        assertThat(hourly.getInW()).isEqualTo(22);
+        assertThat(hourly.getOutN()).isEqualTo(33);
+        assertThat(hourly.getOutS()).isEqualTo(44);
+        assertThat(hourly.getDwellSumSec()).isEqualTo(150);
+        assertThat(hourly.getDwellCount()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("FNC-A-029 받은 초가 없는 구역(sample_sec=0)은 시간 행을 만들지 않음")
+    void hourlySkipsZoneWithoutSample() {
+        Long zoneId = saveZone("99999991");
+        zoneStatMinuteRepository.upsert(minute(zoneId, HOUR, "0.00", 0, 0, 0, 0));
+
+        hourlyStatService.aggregateHour(HOUR);
+
+        assertThat(zoneStatHourlyRepository.count()).isZero();
+    }
+
+    @Test
     @DisplayName("FNC-A-029 다른 시간의 1분 통계는 섞이지 않고, 1분 행이 없는 구역은 시간 행을 만들지 않음")
     void hourlyUsesOnlyThatHourAndSkipsZonesWithoutMinutes() {
         Long zoneId = saveZone("99999991");
