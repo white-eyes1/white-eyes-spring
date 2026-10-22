@@ -31,7 +31,7 @@ checkButton.addEventListener('click', async () => {
     formError.textContent = '';
     checkButton.disabled = true;
     try {
-        const { available } = await get('/api/v1/signup/check-id', { loginId });
+        const { available } = await get('/api/v1/signup/check-id', { loginId }, { toast: false });
         // 응답을 기다리는 동안 아이디를 바꿨으면 이 결과는 쓰지 않는다
         if (loginIdInput.value !== loginId) {
             return;
@@ -54,7 +54,7 @@ form.addEventListener('submit', async (event) => {
     clearErrors();
     submitButton.disabled = true;
     try {
-        await post('/api/v1/signup', readForm());
+        await post('/api/v1/signup', readForm(), { toast: false });
         window.alert(SIGNUP_DONE_MESSAGE);
         window.location.href = url('/login');
     } catch (error) {

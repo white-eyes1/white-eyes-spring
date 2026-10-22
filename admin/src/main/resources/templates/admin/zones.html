@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('구역 관리')}"/>
+    <th:block th:replace="~{fragments/layout :: leaflet}"/>
+    <link rel="stylesheet" th:href="@{/css/zones.css}">
+</head>
+<body class="we">
+<header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
+
+<div class="filterbar">
+    <span class="filter-title">구역 관리</span>
+    <select id="region-city" class="input region-select" aria-label="시·도"><option value="">시·도</option></select>
+    <select id="region-district" class="input region-select" aria-label="시·군·구" disabled><option value="">시·군·구</option></select>
+    <select id="region-dong" class="input region-select" aria-label="동" disabled><option value="">동</option></select>
+    <span class="muted hint-text">지도에서 다각형을 그려 구역을 등록합니다</span>
+</div>
+
+<div class="zones-body">
+    <section id="zone-map" class="map zones-map" aria-label="구역 그리기 지도"></section>
+
+    <aside class="zones-side" aria-label="구역 목록">
+        <div class="side-head">
+            <strong id="zone-list-title">동을 선택해 주세요</strong>
+            <button type="button" id="draw-start" class="btn primary sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>새 구역 그리기
+            </button>
+        </div>
+        <p id="draw-guide" class="draw-guide" hidden>지도를 눌러 꼭짓점을 찍고, 처음 꼭짓점을 다시 눌러 마칩니다.</p>
+
+        <form id="zone-draft" class="panel draft" hidden novalidate>
+            <div><p class="eyebrow">NEW ZONE</p><strong>구역 미리보기</strong></div>
+            <div class="draft-stats">
+                <div><span class="muted">면적</span><div id="draft-area">-</div></div>
+                <div><span class="muted">소속 동</span><div id="draft-dong">-</div></div>
+            </div>
+            <p id="draft-error" class="draft-error" role="alert" hidden></p>
+            <label class="field">구역 이름
+                <input id="draft-name" name="name" class="input" type="text" maxlength="50" autocomplete="off" placeholder="예) 은행선화동 1구역">
+                <span id="draft-name-error" class="hint err" role="alert" hidden></span>
+            </label>
+            <div class="draft-actions">
+                <button type="button" id="draft-redraw" class="btn secondary">다시 그리기</button>
+                <button type="submit" id="draft-submit" class="btn primary" disabled>구역 등록</button>
+            </div>
+        </form>
+
+        <div id="zone-list" class="zone-list"></div>
+    </aside>
+</div>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/admin/pages/zones.js}"></script>
+</body>
+</html>

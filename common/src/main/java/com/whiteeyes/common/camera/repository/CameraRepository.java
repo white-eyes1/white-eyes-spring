@@ -1,6 +1,7 @@
 package com.whiteeyes.common.camera.repository;
 
 import com.whiteeyes.common.camera.entity.Camera;
+import com.whiteeyes.common.camera.entity.CameraStatus;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -24,4 +25,9 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     /** 주어진 구역 중 삭제되지 않은 캠이 있는 구역 번호(FNC-C-008 hasCamera). */
     @Query("select distinct c.zoneId from Camera c where c.zoneId in :zoneIds and c.deletedAt is null")
     List<Long> findZoneIdsWithActiveCamera(@Param("zoneIds") Collection<Long> zoneIds);
+
+    /** 구역들의 삭제되지 않은 캠 수(현재 현황 요약 FNC-C-016). */
+    long countByZoneIdInAndDeletedAtIsNull(Collection<Long> zoneIds);
+
+    long countByZoneIdInAndDeletedAtIsNullAndStatus(Collection<Long> zoneIds, CameraStatus status);
 }
