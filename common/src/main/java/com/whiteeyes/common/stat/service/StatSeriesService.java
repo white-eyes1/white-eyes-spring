@@ -2,7 +2,9 @@ package com.whiteeyes.common.stat.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,14 +33,14 @@ import com.whiteeyes.common.stat.dto.StatSeriesRequest;
 import com.whiteeyes.common.stat.dto.StatSeriesResponse;
 import com.whiteeyes.common.stat.dto.StatTargetType;
 import com.whiteeyes.common.stat.entity.StatValues;
-import com.whiteeyes.common.stat.entity.ZoneStatHourly;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
+import com.whiteeyes.common.stat.repository.ZoneStatDailyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /**
  * 통계 그래프 조회(FNC-C-012). 구역 또는 지역의 통계를 단위별 시계열로 돌려준다.
- * 원본은 단위로 고른다: 1m=zone_stat_minute, 1h=zone_stat_hourly(처리 순서 2).
+ * 원본은 단위로 고른다: 1m=zone_stat_minute, 1h=zone_stat_hourly, 1d=zone_stat_daily(처리 순서 2).
  *
  * <p>지역은 소속 구역(삭제된 구역 포함)을 같은 시각끼리 더한다. 각 점에서 받은 초가 있는 구역만 인원·면적에 넣고
  * (conventions.md '혼잡 단계 판정'과 같은 규칙), 지역 안 구역끼리 주고받은 유입·유출은 뺀다(stats-008).
@@ -55,6 +57,7 @@ public class StatSeriesService {
     private final RegionQueryService regionQueryService;
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
+    private final ZoneStatDailyRepository zoneStatDailyRepository;
     private final ZoneNeighborRepository zoneNeighborRepository;
     private final LevelService levelService;
 
@@ -62,11 +65,13 @@ public class StatSeriesService {
             RegionQueryService regionQueryService,
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             ZoneStatHourlyRepository zoneStatHourlyRepository,
+            ZoneStatDailyRepository zoneStatDailyRepository,
             ZoneNeighborRepository zoneNeighborRepository,
             LevelService levelService) {
         this.regionQueryService = regionQueryService;
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.zoneStatHourlyRepository = zoneStatHourlyRepository;
+        this.zoneStatDailyRepository = zoneStatDailyRepository;
         this.zoneNeighborRepository = zoneNeighborRepository;
         this.levelService = levelService;
     }
@@ -122,7 +127,8 @@ public class StatSeriesService {
                 .collect(Collectors.groupingBy(ZoneRow::at));
     }
 
-    private List<ZoneRow> findRows(Collection<Long> zoneIds, StatInterval interval, LocalDateTime from, LocalDateTime to) {
+    private List<ZoneRow> findRows(
+            Collection<Long> zoneIds, StatInterval interval, LocalDateTime from, LocalDateTime to) {
         return switch (interval) {
             case MINUTE -> zoneStatMinuteRepository
                     .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to).stream()
@@ -131,9 +137,21 @@ public class StatSeriesService {
                     .toList();
             case HOUR -> zoneStatHourlyRepository
                     .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to).stream()
-                    .map(row -> new ZoneRow(row.getZoneId(), row.getStatAt(), valuesOf(row), row.isDemo()))
+                    .map(row -> new ZoneRow(row.getZoneId(), row.getStatAt(), row.values(), row.isDemo()))
+                    .toList();
+            case DAY -> zoneStatDailyRepository
+                    .findByZoneIdInAndStatDateGreaterThanEqualAndStatDateLessThan(
+                            zoneIds, from.toLocalDate(), lastDateExclusive(to))
+                    .stream()
+                    .map(row -> new ZoneRow(
+                            row.getZoneId(), row.getStatDate().atStartOfDay(), row.values(), row.isDemo()))
                     .toList();
         };
+    }
+
+    // to가 0시가 아니면 그날도 마지막 구간이므로 다음 날 미만까지 읽는다
+    private static LocalDate lastDateExclusive(LocalDateTime to) {
+        return to.toLocalTime().equals(LocalTime.MIDNIGHT) ? to.toLocalDate() : to.toLocalDate().plusDays(1);
     }
 
     private StatSeriesPoint toPoint(
@@ -148,7 +166,8 @@ public class StatSeriesService {
         long dwellCount = values.stream().mapToLong(StatValues::dwellCount).sum();
         BigDecimal dwellAvgSec = dwellCount == 0
                 ? null
-                : BigDecimal.valueOf(dwellSumSec).divide(BigDecimal.valueOf(dwellCount), DWELL_SCALE, RoundingMode.HALF_UP);
+                : BigDecimal.valueOf(dwellSumSec)
+                        .divide(BigDecimal.valueOf(dwellCount), DWELL_SCALE, RoundingMode.HALF_UP);
         return new StatSeriesPoint(
                 at.atOffset(KST_OFFSET),
                 countAvg,
@@ -221,13 +240,6 @@ public class StatSeriesService {
     }
 
     private static StatValues valuesOf(ZoneStatMinute row) {
-        return new StatValues(row.getCountAvg(), row.getCountMax(), row.getCountMin(), row.getDensity(),
-                row.getInN(), row.getInE(), row.getInS(), row.getInW(),
-                row.getOutN(), row.getOutE(), row.getOutS(), row.getOutW(),
-                row.getDwellSumSec(), row.getDwellCount(), row.getSampleSec());
-    }
-
-    private static StatValues valuesOf(ZoneStatHourly row) {
         return new StatValues(row.getCountAvg(), row.getCountMax(), row.getCountMin(), row.getDensity(),
                 row.getInN(), row.getInE(), row.getInS(), row.getInW(),
                 row.getOutN(), row.getOutE(), row.getOutS(), row.getOutW(),

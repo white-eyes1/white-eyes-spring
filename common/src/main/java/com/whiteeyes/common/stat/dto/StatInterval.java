@@ -2,7 +2,9 @@ package com.whiteeyes.common.stat.dto;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -15,15 +17,17 @@ public enum StatInterval {
     /** 1분 통계(zone_stat_minute). 최대 1일. */
     MINUTE("1m", "1분", ChronoUnit.MINUTES, Duration.ofDays(1), "1일"),
     /** 시간별 통계(zone_stat_hourly). 최대 31일. */
-    HOUR("1h", "1시간", ChronoUnit.HOURS, Duration.ofDays(31), "31일");
+    HOUR("1h", "1시간", ChronoUnit.HOURS, Duration.ofDays(31), "31일"),
+    /** 일별 통계(zone_stat_daily). 최대 1년(달력 기준이라 윤년은 366일). */
+    DAY("1d", "1일", ChronoUnit.DAYS, Period.ofYears(1), "1년");
 
     private final String code;
     private final String label;
     private final ChronoUnit unit;
-    private final Duration maxRange;
+    private final TemporalAmount maxRange;
     private final String maxRangeLabel;
 
-    StatInterval(String code, String label, ChronoUnit unit, Duration maxRange, String maxRangeLabel) {
+    StatInterval(String code, String label, ChronoUnit unit, TemporalAmount maxRange, String maxRangeLabel) {
         this.code = code;
         this.label = label;
         this.unit = unit;
