@@ -19,6 +19,9 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     /** 삭제되지 않은 모든 캠을 번호 순으로(FNC-A-022 캠 목록). */
     List<Camera> findByDeletedAtIsNullOrderByIdAsc();
 
+    /** 가동 요청이 있고 삭제되지 않은 캠을 번호 순으로(FNC-A-027 가동 대상 캠 목록). 상태는 보지 않아 오류 캠도 포함한다. */
+    List<Camera> findByRunRequestedTrueAndDeletedAtIsNullOrderByIdAsc();
+
     /** 주어진 구역들의 삭제되지 않은 캠을 번호 순으로(FNC-A-022 지역 필터). */
     List<Camera> findByZoneIdInAndDeletedAtIsNullOrderByIdAsc(Collection<Long> zoneIds);
 

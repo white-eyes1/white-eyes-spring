@@ -18,6 +18,9 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
     /** 구역들의 from 이후(포함) 1분 통계. 최근 현황 조회(FNC-C-009)에 쓴다. */
     List<ZoneStatMinute> findByZoneIdInAndStatAtGreaterThanEqual(Collection<Long> zoneIds, LocalDateTime from);
 
+    /** from 이상 to 미만 1분 통계(전 구역). 시간별 통계가 한 시간치를 묶을 때 쓴다(FNC-A-029). */
+    List<ZoneStatMinute> findByStatAtGreaterThanEqualAndStatAtLessThan(LocalDateTime from, LocalDateTime to);
+
     /** 구역들의 from 이후 1분 통계를 같은 시각끼리 더한 count_max 합들. 오늘 최대 인원(FNC-C-016)에 쓴다. */
     @Query("select sum(s.countMax) from ZoneStatMinute s where s.zoneId in :zoneIds and s.statAt >= :from group by s.statAt")
     List<Long> sumCountMaxByStatAt(@Param("zoneIds") Collection<Long> zoneIds, @Param("from") LocalDateTime from);
