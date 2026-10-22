@@ -2,9 +2,7 @@ package com.whiteeyes.common.stat.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,14 +31,15 @@ import com.whiteeyes.common.stat.dto.StatSeriesRequest;
 import com.whiteeyes.common.stat.dto.StatSeriesResponse;
 import com.whiteeyes.common.stat.dto.StatTargetType;
 import com.whiteeyes.common.stat.entity.StatValues;
-import com.whiteeyes.common.stat.entity.ZoneStatMinute;
+import com.whiteeyes.common.stat.entity.ZoneStatDaily;
 import com.whiteeyes.common.stat.repository.ZoneStatDailyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /**
  * 통계 그래프 조회(FNC-C-012). 구역 또는 지역의 통계를 단위별 시계열로 돌려준다.
- * 원본은 단위로 고른다: 1m=zone_stat_minute, 1h=zone_stat_hourly, 1d=zone_stat_daily(처리 순서 2).
+ * 원본은 단위로 고른다: 1m=zone_stat_minute, 1h=zone_stat_hourly, 1d 이상=zone_stat_daily(처리 순서 2).
+ * 1w·1M·1y는 구역별로 일별 통계를 먼저 sample_sec 가중 평균으로 묶은 뒤 지역을 합산한다(처리 순서 3→4, #25에서 정함).
  *
  * <p>지역은 소속 구역(삭제된 구역 포함)을 같은 시각끼리 더한다. 각 점에서 받은 초가 있는 구역만 인원·면적에 넣고
  * (conventions.md '혼잡 단계 판정'과 같은 규칙), 지역 안 구역끼리 주고받은 유입·유출은 뺀다(stats-008).
@@ -85,13 +84,18 @@ public class StatSeriesService {
         Target target = request.targetType() == StatTargetType.ZONE
                 ? zoneTarget(request.targetId())
                 : regionTarget(request.targetId());
-        // from이 구간 중간이면 그 구간의 시작부터 센다(#25에서 정함)
-        LocalDateTime start = request.interval().floor(request.from());
-        Map<LocalDateTime, List<ZoneRow>> rowsByAt = findSampledRows(target, request.interval(), start, request.to());
+        // from이 구간 중간이면 그 구간의 시작부터 세고, to 앞에서 시작한 마지막 구간까지 통째로 넣는다(#25에서 정함)
+        StatInterval interval = request.interval();
+        List<LocalDateTime> buckets = new ArrayList<>();
+        for (LocalDateTime at = interval.floor(request.from()); at.isBefore(request.to()); at = interval.next(at)) {
+            buckets.add(at);
+        }
+        LocalDateTime end = interval.next(buckets.get(buckets.size() - 1));
+        Map<LocalDateTime, List<ZoneRow>> rowsByAt = findSampledRows(target, interval, buckets.get(0), end);
         Map<Long, Map<ZoneDirection, Long>> neighborsByZone = target.isZone() ? Map.of() : findNeighbors(target);
 
         List<StatSeriesPoint> items = new ArrayList<>();
-        for (LocalDateTime at = start; at.isBefore(request.to()); at = request.interval().next(at)) {
+        for (LocalDateTime at : buckets) {
             List<ZoneRow> rows = rowsByAt.get(at);
             items.add(rows == null
                     ? StatSeriesPoint.empty(at.atOffset(KST_OFFSET))
@@ -133,7 +137,7 @@ public class StatSeriesService {
             case MINUTE -> zoneStatMinuteRepository
                     .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to).stream()
                     // 1분 통계에는 시연용 데이터가 없다(tables.md zone_stat_minute)
-                    .map(row -> new ZoneRow(row.getZoneId(), row.getStatAt(), valuesOf(row), false))
+                    .map(row -> new ZoneRow(row.getZoneId(), row.getStatAt(), StatRollupCalculator.of(row), false))
                     .toList();
             case HOUR -> zoneStatHourlyRepository
                     .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to).stream()
@@ -141,17 +145,34 @@ public class StatSeriesService {
                     .toList();
             case DAY -> zoneStatDailyRepository
                     .findByZoneIdInAndStatDateGreaterThanEqualAndStatDateLessThan(
-                            zoneIds, from.toLocalDate(), lastDateExclusive(to))
+                            zoneIds, from.toLocalDate(), to.toLocalDate())
                     .stream()
                     .map(row -> new ZoneRow(
                             row.getZoneId(), row.getStatDate().atStartOfDay(), row.values(), row.isDemo()))
                     .toList();
+            case WEEK, MONTH, YEAR -> rollUpDaily(zoneIds, interval, from, to);
         };
     }
 
-    // to가 0시가 아니면 그날도 마지막 구간이므로 다음 날 미만까지 읽는다
-    private static LocalDate lastDateExclusive(LocalDateTime to) {
-        return to.toLocalTime().equals(LocalTime.MIDNIGHT) ? to.toLocalDate() : to.toLocalDate().plusDays(1);
+    // 구역마다 같은 구간(주·월·연)의 일별 통계를 #146(FNC-A-029·030)과 같은 sample_sec 가중 평균으로 묶는다.
+    // 받은 초가 있는 날이 없으면 그 구간은 행을 만들지 않는다. 묶은 날 중 하나라도 시연용이면 시연용(FNC-C-024)
+    private List<ZoneRow> rollUpDaily(
+            Collection<Long> zoneIds, StatInterval interval, LocalDateTime from, LocalDateTime to) {
+        Map<Long, Map<LocalDateTime, List<ZoneStatDaily>>> daysByZoneAndBucket = zoneStatDailyRepository
+                .findByZoneIdInAndStatDateGreaterThanEqualAndStatDateLessThan(
+                        zoneIds, from.toLocalDate(), to.toLocalDate())
+                .stream()
+                .collect(Collectors.groupingBy(
+                        ZoneStatDaily::getZoneId,
+                        Collectors.groupingBy(row -> interval.floor(row.getStatDate().atStartOfDay()))));
+        List<ZoneRow> result = new ArrayList<>();
+        daysByZoneAndBucket.forEach((zoneId, daysByBucket) -> daysByBucket.forEach((bucket, days) -> {
+            List<StatValues> values = days.stream().map(ZoneStatDaily::values).toList();
+            boolean demo = days.stream().anyMatch(ZoneStatDaily::isDemo);
+            StatRollupCalculator.rollUp(values)
+                    .ifPresent(rolledUp -> result.add(new ZoneRow(zoneId, bucket, rolledUp, demo)));
+        }));
+        return result;
     }
 
     private StatSeriesPoint toPoint(
@@ -237,13 +258,6 @@ public class StatSeriesService {
                     .put(row.getDirection(), row.getNeighborId());
         }
         return result;
-    }
-
-    private static StatValues valuesOf(ZoneStatMinute row) {
-        return new StatValues(row.getCountAvg(), row.getCountMax(), row.getCountMin(), row.getDensity(),
-                row.getInN(), row.getInE(), row.getInS(), row.getInW(),
-                row.getOutN(), row.getOutE(), row.getOutS(), row.getOutW(),
-                row.getDwellSumSec(), row.getDwellCount(), row.getSampleSec());
     }
 
     /**

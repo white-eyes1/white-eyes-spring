@@ -330,7 +330,8 @@ function render() {
         valuesByItem[key] = items.map((point) => valueOf(point, key));
     });
     chart.update(items.map((point) => axisLabel(point.at)), items.map((point) => tooltipTitle(point.at)), valuesByItem);
-    emptyNotice.hidden = items.some((point) => point.sampleSec > 0);
+    // 오류 문구가 보이는 동안에는 '데이터 없음'을 같이 보이지 않는다
+    emptyNotice.hidden = !errorNotice.hidden || items.some((point) => point.sampleSec > 0);
 }
 
 // 유입·유출은 방향(N·E·S·W) 합. 값이 없는 점은 null(선 끊김)
@@ -397,6 +398,7 @@ function errorText(error) {
 function showError(message) {
     errorNotice.textContent = message;
     errorNotice.hidden = false;
+    emptyNotice.hidden = true;
 }
 
 function hideError() {
