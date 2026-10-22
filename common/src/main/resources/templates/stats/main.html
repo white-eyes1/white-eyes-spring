@@ -13,7 +13,7 @@
     <link rel="stylesheet" th:href="@{/css/live.css}">
 </head>
 <body class="we">
-<div class="dash" id="dash" th:attr="data-admin=${admin}">
+<div class="dash" id="dash" th:attr="data-admin=${admin}, data-snapshot-interval-sec=${cardSnapshotIntervalSec}">
     <header th:replace="${admin} ? ~{fragments/layout :: adminHeader('dashboard')} : ~{fragments/layout :: userHeader('dashboard')}"></header>
 
     <div class="filterbar">

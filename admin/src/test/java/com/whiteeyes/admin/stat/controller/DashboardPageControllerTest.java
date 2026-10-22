@@ -117,6 +117,14 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-A-042 캠 카드 미리보기 갱신 간격(기본 2초)이 화면에 data 속성으로 전달된다")
+    void statsPage_passesSnapshotInterval() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-snapshot-interval-sec=\"2\"")));
+    }
+
+    @Test
     @DisplayName("SCR-C-003 로그인하지 않은 요청은 로그인 화면으로 보낸다")
     void statsPage_anonymous_redirectsToLogin() throws Exception {
         mockMvc.perform(get("/admin/stats").contextPath("/admin").with(anonymous()))

@@ -1,5 +1,5 @@
 // 캠 카드의 영상 칸(FNC-A-042, SCR-C-003). 가동 중(RUNNING)이고 화면에 보이는 카드만 최신 화면(스냅샷)을
-// 2초마다 갱신한다. 요청 순서·개수 제한은 scheduler.js가 정한다. 실패하면 마지막 화면을 두고 '끊김'을 보인다.
+// 정해진 간격(기본 2초)마다 갱신한다. 요청 순서·개수 제한은 scheduler.js가 정한다. 실패하면 마지막 화면을 두고 '끊김'을 보인다.
 import { url } from '../common/api.js';
 import { createSnapshotScheduler } from './scheduler.js';
 
@@ -12,15 +12,17 @@ const STATUS_TEXT = {
 };
 
 /**
- * @param {{onOpen: (cameraId: number) => void}} options onOpen: 영상 칸을 눌렀을 때(실시간 보기 창 열기)
+ * @param {{onOpen: (cameraId: number) => void, intervalSec?: number}} options
+ *   onOpen: 영상 칸을 눌렀을 때(실시간 보기 창 열기), intervalSec: 카드 갱신 간격(초, CARD_SNAPSHOT_INTERVAL_SEC). 없거나 잘못되면 기본값
  */
-export function createPreviewManager({ onOpen }) {
+export function createPreviewManager({ onOpen, intervalSec }) {
     // cameraId -> { el, img, badge, objectUrl }
     const entries = new Map();
 
     const scheduler = createSnapshotScheduler({
         load: loadSnapshot,
         onResult: showResult,
+        ...(intervalSec > 0 ? { intervalMs: intervalSec * 1000 } : {}),
     });
     // 보이는 카드만 요청한다. 카드는 목록을 다시 그릴 때마다 새로 만들어지므로 보이는 상태도 그때 다시 알려 준다
     const observer = new IntersectionObserver((records) => {

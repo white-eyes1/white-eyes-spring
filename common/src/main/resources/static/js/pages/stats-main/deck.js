@@ -35,6 +35,8 @@ export function createDeck({ levels, onReload, onResize, onOpenLive }) {
     let cameras = [];
     let visibleZoneIds = new Set();
     const previews = createPreviewManager({
+        // 관리자 앱이 환경변수 CARD_SNAPSHOT_INTERVAL_SEC를 템플릿으로 내려 준다
+        intervalSec: Number(dash.dataset.snapshotIntervalSec),
         onOpen: (cameraId) => {
             const camera = cameras.find((item) => item.id === cameraId);
             if (camera) {
