@@ -52,6 +52,8 @@ function setState(field, state, hint) {
     input.classList.toggle('err', state === 'err');
     const hintElement = form.querySelector(`[data-hint-for="${field}"]`);
     hintElement.textContent = hint;
+    // 빈 안내 줄이 입력 칸 사이 간격을 벌리지 않게 숨긴다(시안과 같은 간격)
+    hintElement.hidden = hint === '';
     hintElement.classList.toggle('ok', state === 'ok');
     hintElement.classList.toggle('err', state === 'err');
 }
