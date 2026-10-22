@@ -215,7 +215,8 @@ class UserPasswordChangeTest {
         mockMvc.perform(get("/me/password").cookie(sessionCookie(false)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("임시 비밀번호로 로그인했습니다."))))
-                .andExpect(content().string(containsString("data-header=\"user\"")));
+                .andExpect(content().string(containsString("data-header=\"user\"")))
+                .andExpect(content().string(not(containsString("data-header=\"forced\""))));
     }
 
     @Test

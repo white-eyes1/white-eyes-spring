@@ -266,6 +266,7 @@ class AdminPasswordChangeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString(FORCED_NOTICE))))
                 .andExpect(content().string(containsString("data-header=\"admin\"")))
+                .andExpect(content().string(not(containsString("data-header=\"forced\""))))
                 .andExpect(content().string(containsString("비밀번호 변경")));
     }
 }
