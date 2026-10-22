@@ -49,6 +49,40 @@
     </aside>
 </div>
 
+<!-- SCR-A-005 구역 이웃 설정 창 -->
+<div class="modal-stage nbr-modal-stage" id="neighbor-modal" hidden>
+    <form class="modal nbr-modal" id="neighbor-form" role="dialog" aria-modal="true" aria-label="구역 이웃 설정" novalidate>
+        <div class="modal-head">
+            <div>
+                <h2>이웃 설정</h2>
+                <p class="muted nbr-zone-name" id="neighbor-zone-name"></p>
+            </div>
+            <button class="icon-btn" type="button" aria-label="닫기" data-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="alert" id="neighbor-error" role="alert" hidden></p>
+            <div class="nbr-grid">
+                <span></span>
+                <label class="field">북(N)<select class="input" id="neighbor-N" name="N"></select></label>
+                <span></span>
+                <label class="field">서(W)<select class="input" id="neighbor-W" name="W"></select></label>
+                <div class="nbr-center" id="neighbor-center"></div>
+                <label class="field">동(E)<select class="input" id="neighbor-E" name="E"></select></label>
+                <span></span>
+                <label class="field">남(S)<select class="input" id="neighbor-S" name="S"></select></label>
+                <span></span>
+            </div>
+            <p class="nbr-note">저장하면 상대 구역의 반대 방향도 함께 바뀝니다. 예: 동쪽 이웃이 B면 B의 서(W)가 이 구역이 됩니다.</p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-close>취소</button>
+            <button class="btn primary" type="submit" id="neighbor-save">저장</button>
+        </div>
+    </form>
+</div>
+
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/zones.js}"></script>
 </body>

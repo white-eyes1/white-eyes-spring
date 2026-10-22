@@ -37,6 +37,10 @@ export function post(path, body, options) {
     return request('POST', path, { body, ...options });
 }
 
+export function put(path, body, options) {
+    return request('PUT', path, { body, ...options });
+}
+
 export function patch(path, body, options) {
     return request('PATCH', path, { body, ...options });
 }
