@@ -19,12 +19,19 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     /** 삭제되지 않은 모든 캠을 번호 순으로(FNC-A-022 캠 목록). */
     List<Camera> findByDeletedAtIsNullOrderByIdAsc();
 
+    /** 가동 요청이 있고 삭제되지 않은 캠을 번호 순으로(FNC-A-027 가동 대상 캠 목록). 상태는 보지 않아 오류 캠도 포함한다. */
+    List<Camera> findByRunRequestedTrueAndDeletedAtIsNullOrderByIdAsc();
+
     /** 주어진 구역들의 삭제되지 않은 캠을 번호 순으로(FNC-A-022 지역 필터). */
     List<Camera> findByZoneIdInAndDeletedAtIsNullOrderByIdAsc(Collection<Long> zoneIds);
 
     /** 주어진 구역 중 삭제되지 않은 캠이 있는 구역 번호(FNC-C-008 hasCamera). */
     @Query("select distinct c.zoneId from Camera c where c.zoneId in :zoneIds and c.deletedAt is null")
     List<Long> findZoneIdsWithActiveCamera(@Param("zoneIds") Collection<Long> zoneIds);
+
+    /** 그 구역에 있었던 모든 캠 번호. 삭제된 캠도 포함한다(지난 녹화를 찾는 다시보기 FNC-A-043). */
+    @Query("select c.id from Camera c where c.zoneId = :zoneId")
+    List<Long> findIdsByZoneId(@Param("zoneId") Long zoneId);
 
     /** 구역들의 삭제되지 않은 캠 수(현재 현황 요약 FNC-C-016). */
     long countByZoneIdInAndDeletedAtIsNull(Collection<Long> zoneIds);
