@@ -2,6 +2,8 @@ package com.whiteeyes.admin.config;
 
 import com.whiteeyes.admin.account.service.AdminLoginRecordService;
 import com.whiteeyes.admin.account.service.AdminUserDetailsService;
+import com.whiteeyes.admin.media.controller.LiveAuthFilter;
+import com.whiteeyes.admin.media.service.LiveAuthService;
 import com.whiteeyes.common.security.ForbiddenHandler;
 import com.whiteeyes.common.security.InternalTokenFilter;
 import com.whiteeyes.common.security.LoginFailureHandler;
@@ -37,6 +39,7 @@ public class AdminSecurityConfig {
 
     private static final String LOGIN_PATH = "/login";
     private static final String INTERNAL_PATH = "/internal/**";
+    private static final String LIVE_AUTH_PATH = "/api/v1/live/auth";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
     // 권한 표(관리자 앱): 공개 경로와 정적 파일, 오류 화면
@@ -45,6 +48,28 @@ public class AdminSecurityConfig {
     private static final String[] SUPER_ADMIN_PATHS = {
         "/admins/**", "/api/v1/admins/**", "/histories/**", "/api/v1/histories/**"
     };
+
+    /**
+     * 실시간 화면 권한 확인(FNC-A-041)은 Spring Security가 세션을 읽거나 갱신하지 않게 별도 체인으로 뺀다.
+     * LiveAuthFilter가 쿠키의 세션을 저장소에서 직접 조회하고 401·403·204로만 답한다(nginx auth_request가 그 밖의 응답을 500으로 바꿈).
+     */
+    @Bean
+    @Order(0)
+    public SecurityFilterChain adminLiveAuthFilterChain(HttpSecurity http, LiveAuthService liveAuthService)
+            throws Exception {
+        http.securityMatcher(LIVE_AUTH_PATH)
+                .csrf(AbstractHttpConfigurer::disable)
+                .securityContext(AbstractHttpConfigurer::disable)
+                // 익명 사용자 필터와 세션 관리 필터는 request.getSession(false)·getRequestedSessionId()로 세션을 읽는다.
+                // 읽힌 세션은 응답 뒤 저장되어 마지막 접근 시각이 갱신되므로 이 경로에서는 둘 다 끈다
+                .anonymous(AbstractHttpConfigurer::disable)
+                .sessionManagement(AbstractHttpConfigurer::disable)
+                .requestCache(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
+                // 컨트롤러(MVC)까지 가면 세션이 읽혀 저장되므로 필터가 직접 답한다
+                .addFilterBefore(new LiveAuthFilter(liveAuthService), AuthorizationFilter.class);
+        return http.build();
+    }
 
     @Bean
     @Order(1)
