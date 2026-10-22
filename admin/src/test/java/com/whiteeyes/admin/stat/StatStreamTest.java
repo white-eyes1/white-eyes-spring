@@ -1,6 +1,7 @@
 package com.whiteeyes.admin.stat;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -16,12 +17,19 @@ import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
 import jakarta.persistence.EntityManagerFactory;
 import java.math.BigDecimal;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -36,6 +44,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.json.JsonMapper;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
@@ -158,7 +167,7 @@ class StatStreamTest {
         insertStat(sogongZone, minute, "160.00", "1.6000");
         broadcaster.pollOnce();
 
-        String data = dataLines(stream).get(0);
+        String data = awaitDataLines(stream, 1).get(0);
         var json = jsonMapper.readTree(data);
         assertThat(json.get("statAt").asString())
                 .isEqualTo(minute.atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
@@ -181,7 +190,7 @@ class StatStreamTest {
         insertStat(sogongZone, minute, "10.00", "1.5000");
         broadcaster.pollOnce();
 
-        var items = jsonMapper.readTree(dataLines(stream).get(0)).get("items");
+        var items = jsonMapper.readTree(awaitDataLines(stream, 1).get(0)).get("items");
         for (var item : items) {
             long zone = item.get("zoneId").asLong();
             int expected = zone == samcheongZone ? 1 : zone == sajikZone ? 2 : 3;
@@ -200,7 +209,7 @@ class StatStreamTest {
         assertThat(broadcaster.pollOnce()).isNull();
         assertThat(broadcaster.pollOnce()).isNull();
 
-        assertThat(dataLines(stream)).hasSize(1);
+        awaitDataLines(stream, 1);
         // 더 오래된 분이 나중에 들어와도(보충 집계) 새 분이 아니다
         insertStat(sajikZone, minute.minusMinutes(5), "10.00", "0.1000");
         assertThat(broadcaster.pollOnce()).isNull();
@@ -216,7 +225,7 @@ class StatStreamTest {
         insertStat(samcheongZone, nextMinute(), "20.00", "0.2000");
         broadcaster.pollOnce();
 
-        assertThat(dataLines(stream)).hasSize(2);
+        awaitDataLines(stream, 2);
     }
 
     @Test
@@ -272,7 +281,72 @@ class StatStreamTest {
 
         broadcaster.sendHeartbeatNow();
 
-        assertThat(stream.getResponse().getContentAsString()).contains(":keepalive");
+        await().atMost(Duration.ofSeconds(3))
+                .untilAsserted(() -> assertThat(stream.getResponse().getContentAsString()).contains(":keepalive"));
+    }
+
+    @Test
+    @DisplayName("FNC-C-022 한 구독자의 전송이 막혀 있어도 다른 구독자는 1초 안에 받고, 막힌 구독자에는 최신 통계만 쌓인다")
+    void blockedSubscriber_doesNotDelayOthers() throws Exception {
+        BlockableEmitter blocked = new BlockableEmitter();
+        broadcaster.subscribe(null, blocked);
+        MvcResult healthy = connect(null);
+        blocked.blockFromNowOn();
+
+        // 첫 분: 막힌 구독자는 전송 중에 멈춘다. 다른 구독자는 바로 받는다
+        insertStat(samcheongZone, nextMinute(), "10.00", "0.1000");
+        long begin = System.nanoTime();
+        broadcaster.pollOnce();
+        assertThat(Duration.ofNanos(System.nanoTime() - begin)).isLessThan(Duration.ofSeconds(1));
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(dataLines(healthy)).hasSize(1));
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(blocked.started.get()).isEqualTo(1));
+
+        // 막힌 동안 하트비트와 이어지는 두 분이 와도 다른 구독자는 늦지 않는다
+        broadcaster.sendHeartbeatNow();
+        insertStat(samcheongZone, nextMinute(), "20.00", "0.2000");
+        broadcaster.pollOnce();
+        insertStat(samcheongZone, nextMinute(), "30.00", "0.3000");
+        broadcaster.pollOnce();
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(dataLines(healthy)).hasSize(3));
+        assertThat(healthy.getResponse().getContentAsString()).contains(":keepalive");
+        // 막힌 구독자에게는 더 시작된 전송이 없다(스레드 하나만 붙들려 있다)
+        assertThat(blocked.started.get()).isEqualTo(1);
+
+        // 풀리면 쌓아 둔 것 중 가장 최근 분(셋째)만 이어 받는다. 둘째 분은 셋째가 대신했다
+        blocked.release();
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(blocked.sent).hasSize(2));
+        assertThat(blocked.sent.get(1)).contains("30.00");
+        assertThat(blocked.sent.stream().filter(sent -> sent.contains("20.00"))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FNC-C-022 전송 중 예상 못한 예외가 나도 그 구독자만 정리되고 다른 구독자와 다음 전송은 이어진다")
+    void failingSubscriber_isDroppedOthersContinue() throws Exception {
+        SseEmitter failing = new SseEmitter(0L) {
+            private boolean connected;
+
+            @Override
+            public synchronized void send(SseEventBuilder builder) throws IOException {
+                if (!connected) {
+                    connected = true;
+                    super.send(builder);
+                    return;
+                }
+                throw new IllegalArgumentException("전송 오류");
+            }
+        };
+        broadcaster.subscribe(null, failing);
+        MvcResult healthy = connect(null);
+        assertThat(broadcaster.subscriberCount()).isEqualTo(2);
+
+        insertStat(samcheongZone, nextMinute(), "10.00", "0.1000");
+        broadcaster.pollOnce();
+        awaitDataLines(healthy, 1);
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(broadcaster.subscriberCount()).isEqualTo(1));
+
+        insertStat(samcheongZone, nextMinute(), "20.00", "0.2000");
+        broadcaster.pollOnce();
+        awaitDataLines(healthy, 2);
     }
 
     @Test
@@ -312,12 +386,19 @@ class StatStreamTest {
                 .andReturn();
     }
 
+    // 전송은 보내기 스레드에서 하므로 event: stat이 올 때까지 기다린 뒤 본문을 돌려준다
     private String eventsOf(MvcResult stream) throws Exception {
+        awaitDataLines(stream, 1);
         return stream.getResponse().getContentAsString();
     }
 
+    private List<String> awaitDataLines(MvcResult stream, int count) throws Exception {
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(dataLines(stream)).hasSize(count));
+        return dataLines(stream);
+    }
+
     // 응답 본문에서 event: stat 의 data 줄만 순서대로
-    private java.util.List<String> dataLines(MvcResult stream) throws Exception {
+    private List<String> dataLines(MvcResult stream) throws Exception {
         return stream.getResponse().getContentAsString().lines()
                 .filter(line -> line.startsWith("data:"))
                 .map(line -> line.substring("data:".length()))
@@ -350,6 +431,44 @@ class StatStreamTest {
                 Timestamp.valueOf(statAt),
                 new BigDecimal(countAvg),
                 new BigDecimal(density));
+    }
+
+    // 연결 확인 줄은 보내고, blockFromNowOn() 이후의 전송은 release() 전까지 멈춘다(소켓을 읽지 않는 브라우저를 흉내)
+    private static class BlockableEmitter extends SseEmitter {
+        final AtomicBoolean blocking = new AtomicBoolean();
+        final CountDownLatch gate = new CountDownLatch(1);
+        final AtomicInteger started = new AtomicInteger();
+        final List<String> sent = new CopyOnWriteArrayList<>();
+
+        BlockableEmitter() {
+            super(0L);
+        }
+
+        void blockFromNowOn() {
+            blocking.set(true);
+        }
+
+        void release() {
+            gate.countDown();
+        }
+
+        @Override
+        public void send(SseEventBuilder builder) throws IOException {
+            if (!blocking.get()) {
+                super.send(builder);
+                return;
+            }
+            started.incrementAndGet();
+            try {
+                gate.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            }
+            StringBuilder text = new StringBuilder();
+            builder.build().forEach(part -> text.append(part.getData()));
+            sent.add(text.toString());
+        }
     }
 
     private void clearAll() {

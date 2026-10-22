@@ -219,7 +219,6 @@ async function selectChildRegion(id) {
 }
 
 async function refresh() {
-    lastRefreshAt = Date.now();
     const target = path[path.length - 1];
     const isDong = target.level === EMD;
     const [summary, zones, child, zoneShapes] = await Promise.all([
@@ -228,6 +227,8 @@ async function refresh() {
         get('/api/v1/map/status', { regionId: target.id, unit: 'CHILD' }),
         isDong ? get('/api/v1/zones', { dongId: target.id }) : Promise.resolve([]),
     ]);
+    // 읽기에 성공했을 때만 기록한다. 실패하면 다음 60초 확인이 바로 다시 읽는다
+    lastRefreshAt = Date.now();
     if (target !== path[path.length - 1]) {
         return; // 읽는 동안 지역이 바뀌었다
     }
