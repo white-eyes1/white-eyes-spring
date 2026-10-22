@@ -60,6 +60,19 @@ class StatSeriesRequestTest {
     }
 
     @Test
+    @DisplayName("FNC-C-012 1일 단위는 달력 1년(윤년 366일 포함)까지 되고, 하루라도 넘으면 RANGE_TOO_LONG")
+    void parse_dayMaxRange() throws BindException {
+        // 2096년은 윤년이라 366일
+        StatSeriesRequest leapYear =
+                StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1d", "2096-01-01", "2097-01-01");
+        assertThat(leapYear.interval()).isEqualTo(StatInterval.DAY);
+
+        assertThatThrownBy(() -> StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1d", "2099-01-01", "2100-01-02"))
+                .isInstanceOf(RangeTooLongException.class)
+                .hasMessage("1일 단위는 최대 1년까지 조회할 수 있습니다.");
+    }
+
+    @Test
     @DisplayName("FNC-C-012 끝이 시작보다 늦지 않으면 to 칸 오류")
     void parse_toNotAfterFrom() {
         assertThatThrownBy(() -> parse("2099-01-01T10:00", "2099-01-01T10:00"))
