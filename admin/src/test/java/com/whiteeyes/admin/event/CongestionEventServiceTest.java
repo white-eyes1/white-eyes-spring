@@ -135,7 +135,7 @@ class CongestionEventServiceTest {
     void createsEventWithPeakAndSnapshot() throws Exception {
         Long zoneId = saveZone("테스트 신규 구역", "100");
 
-        congestionEventService.judge(stat(zoneId, T0, "52.50", "0.7500", FULL_SAMPLE_SEC));
+        judgeStat(stat(zoneId, T0, "52.50", "0.7500", FULL_SAMPLE_SEC));
         entityManager.flush();
 
         Event event = eventRepository.findAll().get(0);
@@ -162,9 +162,9 @@ class CongestionEventServiceTest {
     void raisesPeakOfSameEvent() {
         Long zoneId = saveZone("테스트 상승 구역", "100");
 
-        congestionEventService.judge(stat(zoneId, T0, "80.00", "0.8000", FULL_SAMPLE_SEC));
-        congestionEventService.judge(stat(zoneId, T0.plusMinutes(1), "160.40", "1.6040", FULL_SAMPLE_SEC));
-        congestionEventService.judge(stat(zoneId, T0.plusMinutes(2), "90.00", "0.9000", FULL_SAMPLE_SEC));
+        judgeStat(stat(zoneId, T0, "80.00", "0.8000", FULL_SAMPLE_SEC));
+        judgeStat(stat(zoneId, T0.plusMinutes(1), "160.40", "1.6040", FULL_SAMPLE_SEC));
+        judgeStat(stat(zoneId, T0.plusMinutes(2), "90.00", "0.9000", FULL_SAMPLE_SEC));
 
         List<Event> events = eventRepository.findAll();
         assertThat(events).hasSize(1);
@@ -190,6 +190,25 @@ class CongestionEventServiceTest {
         judge(zoneId, 6, "0.50", FULL_SAMPLE_SEC);
 
         assertThat(event.getEndedAt()).isEqualTo(T0.plusMinutes(6));
+    }
+
+    @Test
+    @DisplayName("FNC-A-033 주의 미만이 4분 이어지다 다시 주의 이상이 되면 이벤트가 하나로 유지되고 below_since가 비워짐")
+    void keepsEventWhenLevelRecoversBeforeHold() {
+        Long zoneId = saveZone("테스트 복귀 구역", "1");
+
+        judge(zoneId, 0, "0.80", FULL_SAMPLE_SEC);
+        judge(zoneId, 1, "0.50", FULL_SAMPLE_SEC);
+        judge(zoneId, 5, "0.50", FULL_SAMPLE_SEC);
+        judge(zoneId, 6, "0.80", FULL_SAMPLE_SEC);
+        // 복귀한 뒤 다시 내려가면 유지 시간은 처음부터 센다
+        judge(zoneId, 7, "0.50", FULL_SAMPLE_SEC);
+        judge(zoneId, 11, "0.50", FULL_SAMPLE_SEC);
+
+        List<Event> events = eventRepository.findAll();
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0).getEndedAt()).isNull();
+        assertThat(events.get(0).getBelowSince()).isEqualTo(T0.plusMinutes(7));
     }
 
     @Test
@@ -253,7 +272,12 @@ class CongestionEventServiceTest {
 
     private void judge(Long zoneId, int minuteOffset, String density, short sampleSec) {
         // 면적 1㎡ 구역에서는 인원 = 밀집도
-        congestionEventService.judge(stat(zoneId, T0.plusMinutes(minuteOffset), density, density, sampleSec));
+        judgeStat(stat(zoneId, T0.plusMinutes(minuteOffset), density, density, sampleSec));
+    }
+
+    private void judgeStat(ZoneStatMinute stat) {
+        congestionEventService.judge(
+                stat.getZoneId(), stat.getStatAt(), stat.getCountAvg(), stat.getDensity(), stat.getSampleSec());
     }
 
     private ZoneStatMinute stat(Long zoneId, LocalDateTime statAt, String countAvg, String density, short sampleSec) {

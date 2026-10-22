@@ -3,8 +3,10 @@ package com.whiteeyes.admin.stat.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.inOrder;
@@ -132,9 +134,8 @@ class MinuteStatServiceTest {
 
         InOrder inOrder = inOrder(zoneStatMinuteRepository, congestionEventService);
         inOrder.verify(zoneStatMinuteRepository).upsert(any());
-        inOrder.verify(congestionEventService).judge(argThat(stat -> stat.getZoneId() == ZONE_ID
-                && stat.getStatAt().equals(MINUTE)
-                && stat.getDensity().compareTo(new BigDecimal("0.4000")) == 0));
+        inOrder.verify(congestionEventService).judge(
+                eq(ZONE_ID), eq(MINUTE), any(), argThat(density -> density.compareTo(new BigDecimal("0.4000")) == 0), anyInt());
     }
 
     @Test
@@ -144,13 +145,13 @@ class MinuteStatServiceTest {
         minuteAccumulatorStore.add(OTHER_ZONE_ID, MINUTE.withSecond(10), secondResult(30));
         given(zoneService.findAreasByZoneIds(anySet()))
                 .willReturn(Map.of(ZONE_ID, new BigDecimal("100.00"), OTHER_ZONE_ID, new BigDecimal("100.00")));
-        willThrow(new IllegalStateException("판정 실패")).given(congestionEventService).judge(any());
+        willThrow(new IllegalStateException("판정 실패")).given(congestionEventService).judge(any(), any(), any(), any(), anyInt());
 
         assertThatCode(() -> minuteStatService.closeEndedMinutes(MINUTE.plusMinutes(1).plusSeconds(CLOSE_GRACE_SEC)))
                 .doesNotThrowAnyException();
 
         verify(zoneStatMinuteRepository, times(2)).upsert(any());
-        verify(congestionEventService, times(2)).judge(any());
+        verify(congestionEventService, times(2)).judge(any(), any(), any(), any(), anyInt());
     }
 
     @Test
@@ -162,7 +163,7 @@ class MinuteStatServiceTest {
 
         minuteStatService.closeEndedMinutes(MINUTE.plusMinutes(1).plusSeconds(CLOSE_GRACE_SEC));
 
-        verify(congestionEventService, never()).judge(any());
+        verify(congestionEventService, never()).judge(any(), any(), any(), any(), anyInt());
     }
 
     private SecondResult secondResult(int personCount) {

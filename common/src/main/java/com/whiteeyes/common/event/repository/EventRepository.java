@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventType;
 
+/** 이벤트 저장소(tables.md 'event'). 혼잡·급증·캠 이상 판정(FNC-A-033~035)과 오늘 이벤트 수가 함께 쓴다. */
 public interface EventRepository extends JpaRepository<Event, Long> {
 
     /**

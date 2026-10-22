@@ -90,7 +90,8 @@ public class MinuteStatService {
     // 이벤트 판정이 실패해도 이미 저장한 통계는 유지하고 다음 구역을 계속 처리한다(FNC-A-033은 FNC-A-028 저장 뒤에 도는 후속 처리)
     private void judgeCongestionEvent(ZoneStatMinute stat) {
         try {
-            congestionEventService.judge(stat);
+            congestionEventService.judge(
+                    stat.getZoneId(), stat.getStatAt(), stat.getCountAvg(), stat.getDensity(), stat.getSampleSec());
         } catch (RuntimeException e) {
             log.error("혼잡 이벤트 판정 실패 zoneId={} statAt={}", stat.getZoneId(), stat.getStatAt(), e);
         }
