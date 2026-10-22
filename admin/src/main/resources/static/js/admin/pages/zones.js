@@ -1,6 +1,6 @@
-// 구역 관리 화면(SCR-A-004). 시·구·동 선택(FNC-C-008), 다각형 미리보기(FNC-A-013), 구역 등록(FNC-A-014).
-// 이웃·수정·삭제 버튼은 2·3단계에서 붙인다(자리만 비활성으로 둔다).
-import { ApiError, get, post } from '../../common/api.js';
+// 구역 관리 화면(SCR-A-004). 시·구·동 선택(FNC-C-008), 다각형 미리보기(FNC-A-013), 구역 등록(FNC-A-014),
+// 이웃 설정 창(SCR-A-005, FNC-A-016). 수정·삭제 버튼은 3단계에서 붙인다(자리만 비활성으로 둔다).
+import { ApiError, get, post, put } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
 import { showToast } from '../../common/toast.js';
 import { createZoneMap } from '../../map/zone-draw.js';
@@ -26,6 +26,15 @@ const draftName = document.getElementById('draft-name');
 const draftNameError = document.getElementById('draft-name-error');
 const draftSubmit = document.getElementById('draft-submit');
 const redrawButton = document.getElementById('draft-redraw');
+
+const DIRECTIONS = ['N', 'E', 'S', 'W'];
+const neighborModal = document.getElementById('neighbor-modal');
+const neighborForm = document.getElementById('neighbor-form');
+const neighborError = document.getElementById('neighbor-error');
+const neighborSave = document.getElementById('neighbor-save');
+const neighborSelects = Object.fromEntries(DIRECTIONS.map((direction) => [direction, document.getElementById(`neighbor-${direction}`)]));
+// 이웃 설정 창이 열려 있는 구역
+let neighborZone = null;
 
 // 선택한 지역 id별 지역 정보(경계 포함)와 지금 보이는 구역 목록
 const regions = new Map();
@@ -144,12 +153,24 @@ function zoneRow(zone) {
     const actions = document.createElement('div');
     actions.className = 'row-actions';
     actions.append(
-        disabledButton('이웃', 'secondary', '2단계에서 만듭니다'),
+        neighborButton(zone),
         disabledButton('수정', 'secondary', '3단계에서 만듭니다'),
         disabledButton('삭제', 'danger', '3단계에서 만듭니다'),
     );
     row.append(info, actions);
     return row;
+}
+
+function neighborButton(zone) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn secondary sm';
+    button.textContent = '이웃';
+    button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openNeighborModal(zone);
+    });
+    return button;
 }
 
 function disabledButton(text, kind, title) {
@@ -268,3 +289,98 @@ function setNameError(message) {
 function updateSubmit() {
     draftSubmit.disabled = draft === null || draftName.value.trim() === '';
 }
+
+// ---- 이웃 설정 창(SCR-A-005, FNC-A-016) ----
+
+async function openNeighborModal(zone) {
+    neighborZone = zone;
+    document.getElementById('neighbor-zone-name').textContent = zone.name;
+    document.getElementById('neighbor-center').textContent = zone.name;
+    showNeighborError('');
+    neighborModal.hidden = false;
+    neighborSave.disabled = true;
+    DIRECTIONS.forEach((direction) => neighborSelects[direction].replaceChildren(new Option('불러오는 중…', '')));
+    try {
+        // 후보: 삭제되지 않은 모든 구역(다른 동 포함)을 이 구역 중심점에서 가까운 순으로
+        const [all, current] = await Promise.all([get('/api/v1/zones'), get(`/api/v1/manage/zones/${zone.id}/neighbors`)]);
+        const candidates = all
+            .filter((other) => other.id !== zone.id)
+            .map((other) => ({ ...other, distance: distanceMeters(zone, other) }))
+            .sort((first, second) => first.distance - second.distance);
+        DIRECTIONS.forEach((direction) => {
+            const select = neighborSelects[direction];
+            select.replaceChildren(
+                new Option('없음(관측 범위 밖)', ''),
+                ...candidates.map((other) => new Option(`${other.name} (${formatDistance(other.distance)})`, other.id)),
+            );
+            select.value = current[direction] ? String(current[direction].id) : '';
+        });
+        neighborSave.disabled = false;
+    } catch {
+        // 조회 실패는 api.js가 토스트로 알렸다. 저장은 막아 두고 창은 닫을 수 있게 둔다
+        DIRECTIONS.forEach((direction) => neighborSelects[direction].replaceChildren(new Option('불러오지 못했습니다', '')));
+    }
+}
+
+function closeNeighborModal() {
+    neighborModal.hidden = true;
+    neighborZone = null;
+    zoneMap.select(selectedZoneId);
+}
+
+async function saveNeighbors(event) {
+    event.preventDefault();
+    if (!neighborZone) {
+        return;
+    }
+    const body = Object.fromEntries(DIRECTIONS.map((direction) => [direction, neighborSelects[direction].value ? Number(neighborSelects[direction].value) : null]));
+    neighborSave.disabled = true;
+    showNeighborError('');
+    try {
+        await put(`/api/v1/manage/zones/${neighborZone.id}/neighbors`, body, { toast: false });
+        closeNeighborModal();
+        showToast('이웃을 저장했습니다. 상대 구역의 반대 방향도 함께 바뀌었습니다.');
+    } catch (error) {
+        if (error instanceof ApiError && error.status !== 401) {
+            showNeighborError(error.status === 404 ? '구역을 찾을 수 없습니다. 목록을 새로 불러온 뒤 다시 시도해 주세요.' : error.message);
+        }
+        neighborSave.disabled = false;
+    }
+}
+
+function showNeighborError(message) {
+    neighborError.textContent = message;
+    neighborError.hidden = !message;
+}
+
+// 두 구역 중심점 사이 거리(m). 가까운 순 정렬과 목록 표시에만 쓰므로 근사식(등장방형)으로 충분하다
+function distanceMeters(from, to) {
+    const metersPerDegree = 111_320;
+    const dy = (Number(to.centerLat) - Number(from.centerLat)) * metersPerDegree;
+    const dx = (Number(to.centerLng) - Number(from.centerLng)) * metersPerDegree * Math.cos((Number(from.centerLat) * Math.PI) / 180);
+    return Math.hypot(dx, dy);
+}
+
+function formatDistance(meters) {
+    return meters >= 1000 ? `${(meters / 1000).toFixed(1)}km` : `${Math.round(meters)}m`;
+}
+
+DIRECTIONS.forEach((direction) => {
+    // 고른 구역을 지도에서 강조한다(지금 보는 동에 없는 구역이면 그대로)
+    neighborSelects[direction].addEventListener('change', () => {
+        const id = Number(neighborSelects[direction].value);
+        zoneMap.select(id || neighborZone?.id || null);
+    });
+});
+neighborForm.addEventListener('submit', saveNeighbors);
+neighborModal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeNeighborModal));
+neighborModal.addEventListener('mousedown', (event) => {
+    if (event.target === neighborModal) {
+        closeNeighborModal();
+    }
+});
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !neighborModal.hidden) {
+        closeNeighborModal();
+    }
+});

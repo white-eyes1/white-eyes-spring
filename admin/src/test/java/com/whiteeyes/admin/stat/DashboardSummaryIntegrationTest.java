@@ -189,7 +189,35 @@ class DashboardSummaryIntegrationTest {
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
     }
 
+    @Test
+    @DisplayName("FNC-C-016 지역은 지역 안 구역끼리 주고받은 이동을 빼고(stats-008) 구역은 그대로 센다")
+    void regionSummary_excludesMovesBetweenZonesInRegion() {
+        // 사직 1구역의 동쪽 = 삼청 1구역(삼청의 서쪽 = 사직). 둘 다 종로구 안
+        jdbcTemplate.update("INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'E', ?)", sajik, samcheong);
+        jdbcTemplate.update("INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'W', ?)", samcheong, sajik);
+
+        DashboardSummaryResponse jongno =
+                dashboardSummaryService.findSummary(DashboardTargetType.REGION, regionIdLong("11110"), NOW);
+        // 유입: 사직 N1·E2(빠짐)·S0·W0 = 1, 삼청 S4 = 4 → 5. 유출: 사직 E3(빠짐)·S3 = 3, 삼청 N1·W2(빠짐) = 1 → 4
+        assertThat(jongno.inflow()).isEqualTo(5);
+        assertThat(jongno.outflow()).isEqualTo(4);
+        // 남은 유출 N1·S3 → S
+        assertThat(jongno.mainDirection()).isEqualTo("S");
+
+        // 이웃이 지역 밖(삼청동)인 사직동만 보면 그 방향은 지역 밖으로 나간 이동이라 그대로 센다
+        DashboardSummaryResponse sajikDong =
+                dashboardSummaryService.findSummary(DashboardTargetType.REGION, regionIdLong("11110530"), NOW);
+        assertThat(sajikDong.inflow()).isEqualTo(3);
+        assertThat(sajikDong.outflow()).isEqualTo(6);
+
+        // 구역 하나는 이웃이 있어도 그대로 센다
+        DashboardSummaryResponse zone = dashboardSummaryService.findSummary(DashboardTargetType.ZONE, sajik, NOW);
+        assertThat(zone.inflow()).isEqualTo(3);
+        assertThat(zone.outflow()).isEqualTo(6);
+    }
+
     private void deleteRows() {
+        jdbcTemplate.update("DELETE FROM zone_neighbor");
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");

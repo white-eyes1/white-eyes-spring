@@ -1,6 +1,7 @@
 package com.whiteeyes.admin.stat.service;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,10 +38,21 @@ public class DailyStatService {
      * @param date 묶을 날짜(KST)
      */
     public void aggregateDay(LocalDate date) {
+        aggregateDay(date, null);
+    }
+
+    /**
+     * 정해진 구역만 묶는다. 빠진 집계 보충(FNC-A-031)이 빠진 구역만 다시 계산할 때 쓴다.
+     * 정시 작업과 보충이 같은 행을 동시에 저장하다 키가 충돌하지 않게 메서드를 직렬로 실행한다(관리자 앱은 한 프로세스).
+     *
+     * @param zoneIds 묶을 구역 번호. null이면 그날의 전 구역
+     */
+    public synchronized void aggregateDay(LocalDate date, Collection<Long> zoneIds) {
         List<ZoneStatHourly> hours = zoneStatHourlyRepository.findByStatAtGreaterThanEqualAndStatAtLessThan(
                 date.atStartOfDay(), date.plusDays(1).atStartOfDay());
-        Map<Long, List<ZoneStatHourly>> hoursByZone =
-                hours.stream().collect(Collectors.groupingBy(ZoneStatHourly::getZoneId));
+        Map<Long, List<ZoneStatHourly>> hoursByZone = hours.stream()
+                .filter(hour -> zoneIds == null || zoneIds.contains(hour.getZoneId()))
+                .collect(Collectors.groupingBy(ZoneStatHourly::getZoneId));
 
         hoursByZone.forEach((zoneId, zoneHours) -> {
             try {

@@ -12,7 +12,8 @@ spring:
   session:
     jdbc:
       table-name: SPRING_SESSION_USER
-      cleanup-cron: 0 * * * * *
+      # 만료 세션 정리는 10분마다(FNC-C-004)
+      cleanup-cron: 0 */10 * * * *
   flyway:
     enabled: false
 
@@ -20,6 +21,8 @@ server:
   port: 8080
   servlet:
     session:
+      # 마지막 요청 후 이 시간이 지나면 세션 만료(FNC-C-004, conventions.md 세션 만료)
+      timeout: ${SESSION_TIMEOUT:30m}
       cookie:
         name: USER_SESSION
 
