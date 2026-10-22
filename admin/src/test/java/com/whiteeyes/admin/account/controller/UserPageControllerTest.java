@@ -51,10 +51,27 @@ class UserPageControllerTest {
                 .andExpect(content().string(containsString("<meta name=\"_csrf\" content=\"")));
     }
 
-    // users.js는 admin 모듈, api.js는 common 모듈에 있어 두 곳 모두 관리자 앱에서 내려가는지 본다
+    @Test
+    @DisplayName("SCR-A-001 사용자 관리 화면은 공통 화면 틀(head·관리자 헤더·scripts) 위에 붙는다")
+    void users_usesCommonLayout() throws Exception {
+        mockMvc.perform(get("/users"))
+                .andExpect(content().string(containsString("<title>사용자 관리 - White Eyes</title>")))
+                .andExpect(content().string(containsString("href=\"/css/we.css\"")))
+                .andExpect(content().string(containsString("href=\"/css/admin/users.css\"")))
+                .andExpect(content().string(containsString("data-header=\"admin\"")))
+                .andExpect(content().string(containsString("src=\"/js/common/header.js\"")));
+    }
+
+    // users.js·users.css는 admin 모듈, 나머지는 common 모듈에 있어 모두 관리자 앱에서 내려가는지 본다
     @ParameterizedTest
-    @ValueSource(strings = {"/js/admin/pages/users.js", "/js/common/api.js"})
-    @DisplayName("SCR-A-001 화면이 쓰는 JS 파일을 관리자 앱이 내려준다")
+    @ValueSource(strings = {
+        "/js/admin/pages/users.js",
+        "/js/common/api.js",
+        "/js/common/format.js",
+        "/js/common/toast.js",
+        "/css/admin/users.css"
+    })
+    @DisplayName("SCR-A-001 화면이 쓰는 JS·CSS 파일을 관리자 앱이 내려준다")
     void users_scriptsServed(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isOk());
     }
