@@ -43,6 +43,17 @@ class CameraPageControllerTest {
     }
 
     @Test
+    @DisplayName("SCR-A-008 캠 관리에도 실시간 보기 창(영상, 현재 인원·밀집도, 다시보기)이 있다")
+    void camerasPage_rendersLiveViewModal() throws Exception {
+        mockMvc.perform(get("/cameras"))
+                .andExpect(content().string(containsString("id=\"live-modal\"")))
+                .andExpect(content().string(containsString("id=\"live-img\"")))
+                .andExpect(content().string(containsString("id=\"live-retry\"")))
+                .andExpect(content().string(containsString("id=\"live-playback\"")))
+                .andExpect(content().string(containsString("/css/live.css")));
+    }
+
+    @Test
     @DisplayName("SCR-A-007 캠 등록 창에 구역·이름·입력 방식(더미/라이브)·영상 주소 입력이 있다")
     void camerasPage_rendersRegisterModal() throws Exception {
         mockMvc.perform(get("/cameras"))
@@ -55,10 +66,9 @@ class CameraPageControllerTest {
     }
 
     @Test
-    @DisplayName("1단계 범위 밖인 실시간 보기·수정·삭제 버튼과 시안용 data-api·anno 속성은 없다")
-    void camerasPage_noOutOfScopeParts() throws Exception {
+    @DisplayName("시안용 data-api·data-fnc·anno 속성은 옮기지 않는다")
+    void camerasPage_noDesignAttributes() throws Exception {
         mockMvc.perform(get("/cameras"))
-                .andExpect(content().string(not(containsString("실시간 보기"))))
                 .andExpect(content().string(not(containsString("data-api"))))
                 .andExpect(content().string(not(containsString("data-fnc"))))
                 .andExpect(content().string(not(containsString("anno"))));

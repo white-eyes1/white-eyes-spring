@@ -1,9 +1,10 @@
 // 캠 관리 화면 SCR-A-006과 캠 등록 창 SCR-A-007(FNC-A-018·020·021·022).
 // 1단계: 준비 중인 캠이 있으면 목록을 몇 초마다 다시 받아 진행률을 갱신한다(SSE는 2단계).
-// 실시간 보기(2단계)·수정·삭제(3단계)는 만들지 않는다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
+// 실시간 보기 창(SCR-A-008)은 RUNNING인 캠의 '실시간 보기'에서 연다. 수정·삭제(3단계)는 만들지 않는다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
 import { get, post, ApiError } from '../../common/api.js';
 import { showToast } from '../../common/toast.js';
+import { initLiveView, openLiveView, updateLiveView } from '../../live/live-view.js';
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -45,6 +46,7 @@ async function loadCameras() {
     try {
         const cameras = await get('/api/v1/manage/cameras', undefined, { toast: false });
         render(cameras);
+        updateLiveView(cameras);
         schedulePoll(cameras.some((camera) => camera.status === 'PREPARING'));
     } catch (error) {
         // 폴링 중 한 번 실패해도 표는 그대로 두고, 첫 조회 실패만 알린다
@@ -119,6 +121,7 @@ function errorCell(message) {
 // STOPPED → 가동 / PREPARING·RUNNING → 정지 / ERROR → 다시 시작 + 정지
 function actions(camera) {
     const wrap = el('div', 'row-actions');
+    wrap.append(liveButton(camera));
     if (camera.status === 'STOPPED') {
         wrap.append(actionButton('가동', 'primary', camera, 'start'));
     }
@@ -129,6 +132,15 @@ function actions(camera) {
         wrap.append(actionButton('정지', 'secondary', camera, 'stop'));
     }
     return wrap;
+}
+
+// RUNNING일 때만 켜진다(FNC-A-041이 가동 중이 아니면 영상을 열어 주지 않는다)
+function liveButton(camera) {
+    const button = el('button', 'btn secondary sm', '실시간 보기');
+    button.type = 'button';
+    button.disabled = camera.status !== 'RUNNING';
+    button.addEventListener('click', () => openLiveView(camera));
+    return button;
 }
 
 function actionButton(label, variant, camera, action) {
@@ -274,6 +286,7 @@ function option(value, label) {
     return node;
 }
 
+initLiveView();
 document.getElementById('camera-add').addEventListener('click', openModal);
 modal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeModal));
 modal.addEventListener('mousedown', (event) => {

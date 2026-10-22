@@ -94,6 +94,19 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("SCR-A-008 관리자 앱 /stats에 실시간 보기 창(영상, 연결 실패 시 다시 시도, 현재 통계, 다시보기)이 있다")
+    void statsPage_admin_hasLiveViewModal() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("id=\"live-modal\"")))
+                .andExpect(content().string(containsString("id=\"live-img\"")))
+                .andExpect(content().string(containsString("id=\"live-retry\"")))
+                .andExpect(content().string(containsString("id=\"live-count\"")))
+                .andExpect(content().string(containsString("id=\"live-density\"")))
+                .andExpect(content().string(containsString("id=\"live-playback\"")))
+                .andExpect(content().string(containsString("/css/live.css")));
+    }
+
+    @Test
     @DisplayName("SCR-C-003 실제 화면에는 시안 표시용 data-api·data-fnc 속성과 .anno 요소를 옮기지 않는다")
     void statsPage_noDesignAnnotations() throws Exception {
         mockMvc.perform(get("/stats"))

@@ -1,8 +1,9 @@
 // 통계 메인 아래 캠 패널(관리자 앱만, SCR-C-003, FNC-A-022·020·021).
 // 지도 화면 안 구역의 캠 카드, 정렬, 접기(가로 한 줄)/펼치기(세로 여러 줄) 전환, 분석 시작·중단을 맡는다.
-// 카드 영상 스냅샷은 2단계(FNC-S-011)라 빈 칸만 둔다. 새 통계는 60초마다 다시 읽는다(SSE는 2단계).
+// 영상 칸은 가동 중이고 화면에 보이는 카드만 최신 화면을 2초마다 갱신하고(FNC-A-042, live/preview.js), 누르면 실시간 보기 창을 연다.
 import { post } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
+import { createPreviewManager } from '../../live/preview.js';
 import { levelChip } from './panel.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -22,16 +23,25 @@ const STATUS_CHIPS = {
 const byId = (id) => document.getElementById(id);
 
 /**
- * @param {{levels: object[], onReload: () => Promise<void>, onResize: () => void}} options
- *   onReload: 시작·중단 뒤 캠 목록을 다시 읽는 함수, onResize: 패널 높이가 바뀌어 지도 칸이 달라졌을 때
+ * @param {{levels: object[], onReload: () => Promise<void>, onResize: () => void, onOpenLive: (camera: object) => void}} options
+ *   onReload: 시작·중단 뒤 캠 목록을 다시 읽는 함수, onResize: 패널 높이가 바뀌어 지도 칸이 달라졌을 때,
+ *   onOpenLive: 영상 칸을 눌렀을 때(실시간 보기 창 열기)
  */
-export function createDeck({ levels, onReload, onResize }) {
+export function createDeck({ levels, onReload, onResize, onOpenLive }) {
     const dash = byId('dash');
     const body = byId('dash-body');
     const cardsBox = byId('deck-cards');
     const sortSelect = byId('deck-sort');
     let cameras = [];
     let visibleZoneIds = new Set();
+    const previews = createPreviewManager({
+        onOpen: (cameraId) => {
+            const camera = cameras.find((item) => item.id === cameraId);
+            if (camera) {
+                onOpenLive(camera);
+            }
+        },
+    });
 
     sortSelect.addEventListener('change', render);
     byId('deck-toggle').addEventListener('click', () => setExpanded(!dash.classList.contains('expanded')));
@@ -43,7 +53,11 @@ export function createDeck({ levels, onReload, onResize }) {
             sortSelect.value,
         );
         byId('deck-count').textContent = String(shown.length);
-        cardsBox.replaceChildren(...shown.map((camera) => card(camera, levels, onReload)));
+        const built = shown.map((camera) => card(camera, levels, onReload));
+        cardsBox.replaceChildren(...built.map((item) => item.article));
+        // 영상 칸은 카드를 다시 그릴 때마다 새로 만들어지므로 받아 둔 마지막 화면과 요청 대상을 다시 이어 준다
+        built.forEach((item) => previews.bind(item.snapshot, item.camera));
+        previews.prune(new Set(shown.map((camera) => camera.id)));
     }
 
     // 접기: 지도와 같이 보기(카드 한 줄 가로 스크롤) / 펼치기: 지도를 줄이고 여러 줄 세로 스크롤
@@ -92,6 +106,10 @@ export function createDeck({ levels, onReload, onResize }) {
             cameras = list;
             render();
         },
+        /** 그 구역의 캠(구역당 1대). 없으면 undefined */
+        cameraByZone(zoneId) {
+            return cameras.find((camera) => camera.zoneId === zoneId);
+        },
         /** 지도 화면 안 구역 id가 바뀌었을 때 */
         setVisibleZones(zoneIds) {
             // 펼친 동안 지도가 얇은 띠로 줄어 시야 계산이 무의미하므로, 펼치기 직전의 구역 집합을 그대로 쓴다.
@@ -139,7 +157,6 @@ function card(camera, levels, onReload) {
 
     const snapshot = document.createElement('div');
     snapshot.className = 'snap';
-    snapshot.setAttribute('aria-hidden', 'true');
 
     const meta = document.createElement('div');
     meta.className = 'meta';
@@ -157,7 +174,7 @@ function card(camera, levels, onReload) {
         article.append(error);
     }
     article.append(actions(camera, onReload));
-    return article;
+    return { article, snapshot, camera };
 }
 
 function statusPart(camera) {
