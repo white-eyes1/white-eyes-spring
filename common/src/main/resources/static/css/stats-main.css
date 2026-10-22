@@ -75,3 +75,8 @@
 .camcard footer { display: flex; gap: 6px; padding: 0 12px 12px; }
 .camcard footer .btn { flex: 1; }
 .camcard .err-msg { padding: 0 12px 8px; color: #ff8a90; font-size: 11px; }
+
+/* 카드 안쪽 칸은 줄어들지 않게 한다. 캠 패널을 펼치면 카드 높이가 제한돼 영상 칸이 4px로 쪼그라들었다(FNC-A-042) */
+.camcard > * { flex-shrink: 0; }
+/* 펼친 모양에서는 시안대로 미리보기를 크게 보인다 */
+.dash.expanded .camcard .snap { height: 140px; }
