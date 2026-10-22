@@ -1,0 +1,77 @@
+/* 통계 메인(SCR-C-003) 전용 스타일. 공통 색·버튼·칩은 we.css를 쓴다(white-eyes-docs design/screens/SCR-C-003-*.html에서 옮김) */
+.dash { min-height: 100vh; display: flex; flex-direction: column; }
+.dash.expanded { height: 100vh; }
+.small { font-size: 11px; }
+.row-between { display: flex; justify-content: space-between; align-items: baseline; }
+.filter-select { width: 150px; height: 34px; }
+
+.dash-body { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 560px; }
+.dash.expanded .dash-body { flex: none; min-height: 0; height: 64px; flex-wrap: nowrap; overflow: hidden; }
+.dash-map { flex: 999 1 560px; min-width: 0; min-height: 0; }
+.map-canvas { position: absolute; inset: 0; }
+.panel-open { position: absolute; left: 14px; bottom: 14px; z-index: 500; }
+.map-legend { position: absolute; top: 14px; left: 14px; z-index: 500; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(13,19,27,.9); }
+
+/* 통계 패널 */
+.stat-panel { flex: 0 1 360px; min-width: 300px; border-right: 1px solid var(--line); background: #0d131b; display: flex; flex-direction: column; }
+.stat-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.stat-head .target { color: var(--blue-light); }
+.stat-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.acc { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.acc-h { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; font-size: 13px; font-weight: 700; }
+.acc-h .small { font-weight: 400; }
+.zone-box { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.tabrow { display: flex; gap: 6px; }
+.donut-row { display: flex; align-items: center; gap: 16px; }
+.donut { width: 116px; height: 116px; flex: none; border-radius: 50%; background: #1f2a37; display: grid; place-items: center; }
+.donut-hole { width: 74px; height: 74px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; text-align: center; align-content: center; }
+.donut-hole small { font-size: 10px; }
+.donut-hole div { font-size: 17px; font-weight: 700; }
+.zone-list { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; font-size: 11px; }
+.zone-list .row-between > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zone-list .bar { height: 4px; margin-top: 4px; border-radius: 2px; background: #1f2a37; }
+.zone-list .bar i { display: block; height: 4px; border-radius: 2px; }
+.zone-list .dot { margin-right: 5px; }
+.empty { color: var(--muted); font-size: 12px; text-align: center; padding: 8px 0; }
+.cells { padding: 0 12px 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cell { padding: 12px 8px; border-radius: 8px; background: var(--surface-2); text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.cell strong { font-size: 18px; }
+.cell span { font-size: 11px; color: var(--muted); }
+.cells.flow .in { color: #6ee0b9; }
+.cells.flow .out { color: #ffb3b7; }
+.level-rules { list-style: none; margin: 0; padding: 0 14px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.level-rules li { display: flex; align-items: center; gap: 8px; }
+.level-rules .dot { width: 10px; height: 10px; }
+
+/* 지도 위 구역 핀 */
+.zone-pin { background: none; border: 0; }
+.pin { position: absolute; left: -15px; top: -15px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 2px solid rgba(255,255,255,.85); color: #0b1118; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+.pin.l3 { color: #fff; }
+.pin.off { color: #dfe6ee; }
+.pin b { position: absolute; top: -7px; right: -7px; min-width: 16px; height: 16px; padding: 0 3px; display: grid; place-items: center; border-radius: 8px; background: #fff; color: #0b1118; font-size: 9px; }
+
+/* 캠 패널 */
+.deck { border-top: 1px solid var(--line); background: #0d131b; display: flex; flex-direction: column; min-height: 0; }
+.dash.expanded .deck { flex: 1 1 auto; box-shadow: 0 -12px 30px rgba(0,0,0,.45); }
+.deck-grip { display: flex; justify-content: center; padding: 6px 0 2px; cursor: row-resize; touch-action: none; }
+.deck-grip span { width: 56px; height: 4px; border-radius: 2px; background: #3a4757; }
+.dash.expanded .deck-grip span { width: 72px; height: 5px; background: var(--blue-light); }
+.deck-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px 18px 12px; }
+.deck-head .muted { font-size: 12px; }
+.deck-head b { color: var(--text); }
+.deck-tools { display: flex; align-items: center; gap: 8px; }
+.deck-sort { width: 140px; height: 28px; font-size: 11px; }
+.deck-cards { display: flex; gap: 12px; padding: 0 18px 18px; overflow-x: auto; }
+.dash.expanded .deck-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); align-content: start; overflow-x: hidden; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+.camcard { flex: 0 0 280px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+.dash.expanded .camcard { flex: none; }
+.camcard header { padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.camcard header .row-between { align-items: center; }
+.camcard header strong { font-size: 13px; }
+.camcard .snap { height: 90px; margin: 0 12px; border-radius: 8px; background: linear-gradient(160deg, #18222e, #0b1016); display: grid; place-items: center; color: #6c7888; font-size: 11px; }
+.camcard .spark { height: 24px; margin: 8px 12px 0; }
+.camcard .meta { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 11px; color: var(--muted); }
+.camcard .meta b { color: var(--text); }
+.camcard footer { display: flex; gap: 6px; padding: 0 12px 12px; }
+.camcard footer .btn { flex: 1; }
+.camcard .err-msg { padding: 0 12px 8px; color: #ff8a90; font-size: 11px; }
