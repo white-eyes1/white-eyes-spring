@@ -15,6 +15,11 @@ spring:
       cleanup-cron: 0 * * * * *
   flyway:
     enabled: true
+  task:
+    scheduling:
+      # 시간별·일별 집계와 빠진 집계 보충이 길어져도 1분 마감(1초마다)이 밀리지 않게 스레드를 나눈다(FNC-A-028~031)
+      pool:
+        size: 3
 
 server:
   port: 8081

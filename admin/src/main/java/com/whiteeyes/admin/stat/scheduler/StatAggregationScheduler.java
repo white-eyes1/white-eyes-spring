@@ -5,37 +5,63 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.whiteeyes.admin.stat.service.DailyStatService;
 import com.whiteeyes.admin.stat.service.HourlyStatService;
 import com.whiteeyes.admin.stat.service.MinuteStatService;
+import com.whiteeyes.admin.stat.service.MissingStatFillService;
 
-/** 1분(FNC-A-028)·시간별(FNC-A-029)·일별(FNC-A-030) 통계 저장 */
+/** 1분(FNC-A-028)·시간별(FNC-A-029)·일별(FNC-A-030) 통계 저장과 빠진 집계 보충(FNC-A-031) */
 @Component
 public class StatAggregationScheduler {
 
+    private static final Logger log = LoggerFactory.getLogger(StatAggregationScheduler.class);
     private static final String KST_ID = "Asia/Seoul";
     private static final ZoneId KST = ZoneId.of(KST_ID);
 
     private final MinuteStatService minuteStatService;
     private final HourlyStatService hourlyStatService;
     private final DailyStatService dailyStatService;
+    private final MissingStatFillService missingStatFillService;
 
     public StatAggregationScheduler(
             MinuteStatService minuteStatService,
             HourlyStatService hourlyStatService,
-            DailyStatService dailyStatService) {
+            DailyStatService dailyStatService,
+            MissingStatFillService missingStatFillService) {
         this.minuteStatService = minuteStatService;
         this.hourlyStatService = hourlyStatService;
         this.dailyStatService = dailyStatService;
+        this.missingStatFillService = missingStatFillService;
     }
 
     // 매시 01분 30초(FNC-A-029). 직전 정시 시작 시각부터 지난 1시간을 묶는다
     @Scheduled(cron = "30 1 * * * *", zone = KST_ID)
     public void aggregateLastHour() {
         hourlyStatService.aggregateHour(LocalDateTime.now(KST).truncatedTo(ChronoUnit.HOURS).minusHours(1));
+        // 매시 집계 뒤에 놓친 시간·날짜가 있으면 채운다(FNC-A-031). 같은 스레드에서 이어 돌아 정시 집계와 겹치지 않는다
+        fillMissing();
+    }
+
+    // 앱이 켜질 때 한 번(FNC-A-031). 꺼져 있던 동안 놓친 집계를 채운다
+    @EventListener(ApplicationReadyEvent.class)
+    public void fillMissingOnStartup() {
+        fillMissing();
+    }
+
+    // 보충이 실패해도 앱 시작이나 다음 예약 실행을 막지 않는다
+    private void fillMissing() {
+        try {
+            missingStatFillService.fillMissing(LocalDateTime.now(KST));
+        } catch (RuntimeException e) {
+            log.error("빠진 집계 보충 실패", e);
+        }
     }
 
     // 매일 00:05(FNC-A-030). 어제 하루를 묶는다
