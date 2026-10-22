@@ -4,6 +4,7 @@ import { get } from '../common/api.js';
 import { createRegionMap, createStatusLayer } from '../map/status-map.js';
 import { createDeck } from './stats-main/deck.js';
 import {
+    renderGraphLink,
     renderLevelRules,
     renderMapLegend,
     renderSummary,
@@ -149,6 +150,7 @@ async function onFilterChange(depth, value) {
 
 async function loadRegion() {
     const target = path[path.length - 1];
+    renderGraphLink(target.id);
     const resetView = renderedRegionId !== target.id;
     if (resetView) {
         map = createRegionMap(document.getElementById('dash-map'), target, map);

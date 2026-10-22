@@ -3,7 +3,7 @@
 <!--
   통계 메인(대시보드) SCR-C-003, 두 앱이 함께 쓰는 화면(FNC-C-008·009·016·025, 캠 패널 FNC-A-022).
   admin 모델 값이 true일 때만 지역 등록·수정 버튼과 캠 패널이 그려진다(관리자 앱).
-  2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감, 비정상 변동, 보조 지표)과 그래프·엑셀 버튼은 아직 없다.
+  2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감, 비정상 변동, 보조 지표)과 엑셀 버튼은 아직 없다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
@@ -66,6 +66,8 @@
                     <div class="acc-h">혼잡 기준<span class="muted small" id="level-rule"></span></div>
                     <ul class="level-rules" id="level-rules"></ul>
                 </section>
+                <!-- 그래프 보기(FNC-C-012): 현재 지역을 넘긴다(panel.js renderGraphLink) -->
+                <a class="btn secondary" id="graph-link" th:href="@{/stats/graph}">그래프 보기</a>
             </div>
         </aside>
 
