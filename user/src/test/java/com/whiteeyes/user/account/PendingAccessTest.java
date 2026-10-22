@@ -63,7 +63,18 @@ class PendingAccessTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("관리자 승인을 기다리고 있습니다")))
                 .andExpect(content().string(containsString("action=\"/logout\"")))
-                .andExpect(content().string(containsString("name=\"_csrf\"")));
+                .andExpect(content().string(containsString("type=\"hidden\" name=\"_csrf\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "PENDING")
+    @DisplayName("FNC-U-003 승인 대기 화면은 공통 화면 틀(head·scripts)을 쓴다")
+    void pending_pendingPage_usesCommonLayout() throws Exception {
+        mockMvc.perform(get("/pending"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<title>승인 대기 - White Eyes</title>")))
+                .andExpect(content().string(containsString("/css/we.css")))
+                .andExpect(content().string(containsString("/js/common/header.js")));
     }
 
     @Test
