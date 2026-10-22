@@ -97,7 +97,7 @@ class AdminRoleSessionTest {
         mockMvc.perform(get("/admin/api/v1/events").contextPath(CONTEXT_PATH).cookie(session))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/admin/me/password").contextPath(CONTEXT_PATH).cookie(session))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
     }
 
     @Test
