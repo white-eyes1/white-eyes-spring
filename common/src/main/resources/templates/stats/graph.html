@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--
+  통계 그래프 SCR-C-004(FNC-C-012), 두 앱이 함께 쓰는 화면. 대상·단위·기간은 주소 쿼리로 유지한다.
+  이동 경로·점 클릭 메뉴(FNC-C-013), 하위 비교(FNC-C-014), 시연용 점선(FNC-C-024), 기간 비교·엑셀 버튼(SCR-C-005·006)은 각 기능의 이슈 몫이라 두지 않는다.
+-->
+<head>
+    <th:block th:replace="~{fragments/layout :: head('통계 그래프')}"/>
+    <!-- 그래프가 필요한 화면만 Chart.js를 더한다. Chart.js 코드는 js/chart/ 안에서만 쓴다 -->
+    <script src="https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js"></script>
+    <link rel="stylesheet" th:href="@{/css/stats-graph.css}">
+</head>
+<body class="we">
+<header th:replace="${admin} ? ~{fragments/layout :: adminHeader('stats')} : ~{fragments/layout :: userHeader('stats')}"></header>
+<main class="page">
+    <div class="page-heading">
+        <div><p class="eyebrow">STATISTICS</p><h1>통계 그래프</h1></div>
+    </div>
+
+    <section class="panel graph-conditions" aria-label="조회 조건">
+        <div class="graph-target">
+            <select class="input" id="target-sido" aria-label="시·도"></select>
+            <select class="input" id="target-sigungu" aria-label="시·군·구"></select>
+            <select class="input" id="target-emd" aria-label="읍·면·동"></select>
+            <select class="input" id="target-zone" aria-label="구역"></select>
+        </div>
+        <div class="seg" role="tablist" aria-label="단위" id="interval-tabs">
+            <button type="button" role="tab" data-interval="1m">1분</button>
+            <button type="button" role="tab" data-interval="1h">1시간</button>
+            <button type="button" role="tab" data-interval="1d">1일</button>
+            <button type="button" role="tab" data-interval="1w">1주</button>
+            <button type="button" role="tab" data-interval="1M">1월</button>
+            <button type="button" role="tab" data-interval="1y">1년</button>
+        </div>
+        <div class="graph-period">
+            <input class="input" type="datetime-local" id="period-from" aria-label="시작 시각">
+            <span class="muted">~</span>
+            <input class="input" type="datetime-local" id="period-end" aria-label="끝 시각">
+            <button type="button" class="btn primary sm" id="period-apply">조회</button>
+        </div>
+        <div class="graph-items" id="graph-items" aria-label="항목">
+            <label class="ck"><input type="checkbox" value="countAvg" checked><i></i>인원 평균</label>
+            <label class="ck"><input type="checkbox" value="countMax"><i></i>인원 최대</label>
+            <label class="ck"><input type="checkbox" value="countMin"><i></i>인원 최소</label>
+            <label class="ck"><input type="checkbox" value="density" checked><i></i>밀집도</label>
+            <label class="ck"><input type="checkbox" value="inflow"><i></i>유입</label>
+            <label class="ck"><input type="checkbox" value="outflow"><i></i>유출</label>
+            <label class="ck"><input type="checkbox" value="dwellAvgSec"><i></i>평균 체류</label>
+        </div>
+    </section>
+
+    <section class="panel graph-panel" aria-label="통계 그래프">
+        <p class="alert graph-error" id="graph-error" role="alert" hidden></p>
+        <div class="graph-canvas">
+            <canvas id="series-chart" role="img" aria-label="통계 그래프"></canvas>
+            <p class="muted graph-empty" id="graph-empty" hidden>데이터 없음</p>
+        </div>
+    </section>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/pages/stats-graph.js}"></script>
+</body>
+</html>
