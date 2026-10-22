@@ -13,16 +13,20 @@ import java.util.Optional;
 public enum StatInterval {
 
     /** 1분 통계(zone_stat_minute). 최대 1일. */
-    MINUTE("1m", "1분", Duration.ofDays(1), "1일");
+    MINUTE("1m", "1분", ChronoUnit.MINUTES, Duration.ofDays(1), "1일"),
+    /** 시간별 통계(zone_stat_hourly). 최대 31일. */
+    HOUR("1h", "1시간", ChronoUnit.HOURS, Duration.ofDays(31), "31일");
 
     private final String code;
     private final String label;
+    private final ChronoUnit unit;
     private final Duration maxRange;
     private final String maxRangeLabel;
 
-    StatInterval(String code, String label, Duration maxRange, String maxRangeLabel) {
+    StatInterval(String code, String label, ChronoUnit unit, Duration maxRange, String maxRangeLabel) {
         this.code = code;
         this.label = label;
+        this.unit = unit;
         this.maxRange = maxRange;
         this.maxRangeLabel = maxRangeLabel;
     }
@@ -34,12 +38,12 @@ public enum StatInterval {
 
     /** 시각이 속한 구간의 시작 시각. */
     public LocalDateTime floor(LocalDateTime time) {
-        return time.truncatedTo(ChronoUnit.MINUTES);
+        return time.truncatedTo(unit);
     }
 
     /** 다음 구간의 시작 시각. */
     public LocalDateTime next(LocalDateTime bucketStart) {
-        return bucketStart.plusMinutes(1);
+        return bucketStart.plus(1, unit);
     }
 
     /** from 이상 to 미만이 최대 조회 기간을 넘는지. 최대 기간과 같으면 넘지 않는다. */

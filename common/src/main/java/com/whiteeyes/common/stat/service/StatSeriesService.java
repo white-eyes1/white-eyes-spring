@@ -5,11 +5,13 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -23,15 +25,20 @@ import com.whiteeyes.common.region.entity.ZoneDirection;
 import com.whiteeyes.common.region.entity.ZoneNeighbor;
 import com.whiteeyes.common.region.repository.ZoneNeighborRepository;
 import com.whiteeyes.common.region.service.RegionQueryService;
+import com.whiteeyes.common.stat.dto.StatInterval;
 import com.whiteeyes.common.stat.dto.StatSeriesPoint;
 import com.whiteeyes.common.stat.dto.StatSeriesRequest;
 import com.whiteeyes.common.stat.dto.StatSeriesResponse;
 import com.whiteeyes.common.stat.dto.StatTargetType;
+import com.whiteeyes.common.stat.entity.StatValues;
+import com.whiteeyes.common.stat.entity.ZoneStatHourly;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
+import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /**
  * 통계 그래프 조회(FNC-C-012). 구역 또는 지역의 통계를 단위별 시계열로 돌려준다.
+ * 원본은 단위로 고른다: 1m=zone_stat_minute, 1h=zone_stat_hourly(처리 순서 2).
  *
  * <p>지역은 소속 구역(삭제된 구역 포함)을 같은 시각끼리 더한다. 각 점에서 받은 초가 있는 구역만 인원·면적에 넣고
  * (conventions.md '혼잡 단계 판정'과 같은 규칙), 지역 안 구역끼리 주고받은 유입·유출은 뺀다(stats-008).
@@ -40,23 +47,26 @@ import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 public class StatSeriesService {
 
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
-    // zone_stat_minute.density와 같은 자릿수·반올림(DECIMAL 8,4)
+    // zone_stat_*.density와 같은 자릿수·반올림(DECIMAL 8,4)
     private static final int DENSITY_SCALE = 4;
     // 평균 체류 시간은 소수 첫째 자리까지(api/public.md 예시 312.5)
     private static final int DWELL_SCALE = 1;
 
     private final RegionQueryService regionQueryService;
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
+    private final ZoneStatHourlyRepository zoneStatHourlyRepository;
     private final ZoneNeighborRepository zoneNeighborRepository;
     private final LevelService levelService;
 
     public StatSeriesService(
             RegionQueryService regionQueryService,
             ZoneStatMinuteRepository zoneStatMinuteRepository,
+            ZoneStatHourlyRepository zoneStatHourlyRepository,
             ZoneNeighborRepository zoneNeighborRepository,
             LevelService levelService) {
         this.regionQueryService = regionQueryService;
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
+        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
         this.zoneNeighborRepository = zoneNeighborRepository;
         this.levelService = levelService;
     }
@@ -72,12 +82,12 @@ public class StatSeriesService {
                 : regionTarget(request.targetId());
         // from이 구간 중간이면 그 구간의 시작부터 센다(#25에서 정함)
         LocalDateTime start = request.interval().floor(request.from());
-        Map<LocalDateTime, List<ZoneStatMinute>> rowsByAt = findSampledRows(target, start, request.to());
+        Map<LocalDateTime, List<ZoneRow>> rowsByAt = findSampledRows(target, request.interval(), start, request.to());
         Map<Long, Map<ZoneDirection, Long>> neighborsByZone = target.isZone() ? Map.of() : findNeighbors(target);
 
         List<StatSeriesPoint> items = new ArrayList<>();
         for (LocalDateTime at = start; at.isBefore(request.to()); at = request.interval().next(at)) {
-            List<ZoneStatMinute> rows = rowsByAt.get(at);
+            List<ZoneRow> rows = rowsByAt.get(at);
             items.add(rows == null
                     ? StatSeriesPoint.empty(at.atOffset(KST_OFFSET))
                     : toPoint(target, at, rows, neighborsByZone));
@@ -102,62 +112,76 @@ public class StatSeriesService {
     }
 
     // 받은 초가 0인 행은 점을 비우므로 처음부터 뺀다(FNC-C-012 업무 규칙)
-    private Map<LocalDateTime, List<ZoneStatMinute>> findSampledRows(
-            Target target, LocalDateTime from, LocalDateTime to) {
+    private Map<LocalDateTime, List<ZoneRow>> findSampledRows(
+            Target target, StatInterval interval, LocalDateTime from, LocalDateTime to) {
         if (target.areaByZone().isEmpty()) {
             return Map.of();
         }
-        return zoneStatMinuteRepository
-                .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(target.areaByZone().keySet(), from, to)
-                .stream()
-                .filter(row -> row.getSampleSec() > 0)
-                .collect(Collectors.groupingBy(ZoneStatMinute::getStatAt));
+        return findRows(target.areaByZone().keySet(), interval, from, to).stream()
+                .filter(row -> row.values().sampleSec() > 0)
+                .collect(Collectors.groupingBy(ZoneRow::at));
+    }
+
+    private List<ZoneRow> findRows(Collection<Long> zoneIds, StatInterval interval, LocalDateTime from, LocalDateTime to) {
+        return switch (interval) {
+            case MINUTE -> zoneStatMinuteRepository
+                    .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to).stream()
+                    // 1분 통계에는 시연용 데이터가 없다(tables.md zone_stat_minute)
+                    .map(row -> new ZoneRow(row.getZoneId(), row.getStatAt(), valuesOf(row), false))
+                    .toList();
+            case HOUR -> zoneStatHourlyRepository
+                    .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to).stream()
+                    .map(row -> new ZoneRow(row.getZoneId(), row.getStatAt(), valuesOf(row), row.isDemo()))
+                    .toList();
+        };
     }
 
     private StatSeriesPoint toPoint(
-            Target target, LocalDateTime at, List<ZoneStatMinute> rows, Map<Long, Map<ZoneDirection, Long>> neighbors) {
-        BigDecimal countAvg = rows.stream().map(ZoneStatMinute::getCountAvg).reduce(BigDecimal.ZERO, BigDecimal::add);
+            Target target, LocalDateTime at, List<ZoneRow> rows, Map<Long, Map<ZoneDirection, Long>> neighbors) {
+        List<StatValues> values = rows.stream().map(ZoneRow::values).toList();
+        BigDecimal countAvg = values.stream().map(StatValues::countAvg).reduce(BigDecimal.ZERO, BigDecimal::add);
         // 구역 하나면 저장된 밀집도(당시 면적 기준)를 그대로 쓴다. 지역은 합산한 구역의 현재 면적 합으로 나눈다
         BigDecimal density = target.isZone()
-                ? rows.get(0).getDensity()
+                ? values.get(0).density()
                 : countAvg.divide(sumArea(target, rows), DENSITY_SCALE, RoundingMode.HALF_UP);
-        long dwellSumSec = rows.stream().mapToLong(ZoneStatMinute::getDwellSumSec).sum();
-        long dwellCount = rows.stream().mapToLong(ZoneStatMinute::getDwellCount).sum();
+        long dwellSumSec = values.stream().mapToLong(StatValues::dwellSumSec).sum();
+        long dwellCount = values.stream().mapToLong(StatValues::dwellCount).sum();
         BigDecimal dwellAvgSec = dwellCount == 0
                 ? null
                 : BigDecimal.valueOf(dwellSumSec).divide(BigDecimal.valueOf(dwellCount), DWELL_SCALE, RoundingMode.HALF_UP);
         return new StatSeriesPoint(
                 at.atOffset(KST_OFFSET),
                 countAvg,
-                rows.stream().mapToInt(ZoneStatMinute::getCountMax).sum(),
-                rows.stream().mapToInt(ZoneStatMinute::getCountMin).sum(),
+                values.stream().mapToInt(StatValues::countMax).sum(),
+                values.stream().mapToInt(StatValues::countMin).sum(),
                 density,
                 levelService.judgeLevel(target.levelTarget(), density).getLevel(),
                 sumFlow(target, rows, neighbors, true),
                 sumFlow(target, rows, neighbors, false),
                 dwellAvgSec,
-                rows.stream().mapToInt(ZoneStatMinute::getSampleSec).max().orElse(0),
-                // 1분 통계에는 시연용 데이터가 없다(tables.md zone_stat_minute)
-                false);
+                values.stream().mapToInt(StatValues::sampleSec).max().orElse(0),
+                // 묶은 점에 시연용 행이 하나라도 있으면 시연용(FNC-C-024 처리 순서 2)
+                rows.stream().anyMatch(ZoneRow::demo));
     }
 
-    private BigDecimal sumArea(Target target, List<ZoneStatMinute> rows) {
+    private BigDecimal sumArea(Target target, List<ZoneRow> rows) {
         return rows.stream()
-                .map(row -> target.areaByZone().get(row.getZoneId()))
+                .map(row -> target.areaByZone().get(row.zoneId()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // 방향 d의 이웃이 지역 안 구역이면 그 방향의 유입·유출은 지역 안 이동이라 세지 않는다(FNC-C-012 업무 규칙)
     private Map<String, Integer> sumFlow(
-            Target target, List<ZoneStatMinute> rows, Map<Long, Map<ZoneDirection, Long>> neighbors, boolean inflow) {
+            Target target, List<ZoneRow> rows, Map<Long, Map<ZoneDirection, Long>> neighbors, boolean inflow) {
         Set<Long> targetZoneIds = target.areaByZone().keySet();
         Map<String, Integer> result = new LinkedHashMap<>();
         for (ZoneDirection direction : ZoneDirection.values()) {
+            ToIntFunction<StatValues> column = inflow ? inflowColumn(direction) : outflowColumn(direction);
             int sum = 0;
-            for (ZoneStatMinute row : rows) {
-                Long neighborId = neighbors.getOrDefault(row.getZoneId(), Map.of()).get(direction);
+            for (ZoneRow row : rows) {
+                Long neighborId = neighbors.getOrDefault(row.zoneId(), Map.of()).get(direction);
                 if (neighborId == null || !targetZoneIds.contains(neighborId)) {
-                    sum += inflow ? inflowOf(row, direction) : outflowOf(row, direction);
+                    sum += column.applyAsInt(row.values());
                 }
             }
             result.put(direction.name(), sum);
@@ -165,21 +189,21 @@ public class StatSeriesService {
         return result;
     }
 
-    private static int inflowOf(ZoneStatMinute row, ZoneDirection direction) {
+    private static ToIntFunction<StatValues> inflowColumn(ZoneDirection direction) {
         return switch (direction) {
-            case N -> row.getInN();
-            case E -> row.getInE();
-            case S -> row.getInS();
-            case W -> row.getInW();
+            case N -> StatValues::inN;
+            case E -> StatValues::inE;
+            case S -> StatValues::inS;
+            case W -> StatValues::inW;
         };
     }
 
-    private static int outflowOf(ZoneStatMinute row, ZoneDirection direction) {
+    private static ToIntFunction<StatValues> outflowColumn(ZoneDirection direction) {
         return switch (direction) {
-            case N -> row.getOutN();
-            case E -> row.getOutE();
-            case S -> row.getOutS();
-            case W -> row.getOutW();
+            case N -> StatValues::outN;
+            case E -> StatValues::outE;
+            case S -> StatValues::outS;
+            case W -> StatValues::outW;
         };
     }
 
@@ -196,9 +220,27 @@ public class StatSeriesService {
         return result;
     }
 
+    private static StatValues valuesOf(ZoneStatMinute row) {
+        return new StatValues(row.getCountAvg(), row.getCountMax(), row.getCountMin(), row.getDensity(),
+                row.getInN(), row.getInE(), row.getInS(), row.getInW(),
+                row.getOutN(), row.getOutE(), row.getOutS(), row.getOutW(),
+                row.getDwellSumSec(), row.getDwellCount(), row.getSampleSec());
+    }
+
+    private static StatValues valuesOf(ZoneStatHourly row) {
+        return new StatValues(row.getCountAvg(), row.getCountMax(), row.getCountMin(), row.getDensity(),
+                row.getInN(), row.getInE(), row.getInS(), row.getInW(),
+                row.getOutN(), row.getOutE(), row.getOutS(), row.getOutW(),
+                row.getDwellSumSec(), row.getDwellCount(), row.getSampleSec());
+    }
+
     /**
      * @param areaByZone 합산 대상 구역 번호 → 현재 면적(㎡). 구역 대상이면 그 구역 하나
      */
     private record Target(LevelTarget levelTarget, Map<Long, BigDecimal> areaByZone, boolean isZone) {
+    }
+
+    /** 원본 표와 관계없이 계산에 쓰는 한 구역·한 구간의 통계. */
+    private record ZoneRow(Long zoneId, LocalDateTime at, StatValues values, boolean demo) {
     }
 }
