@@ -47,6 +47,19 @@ class StatSeriesRequestTest {
     }
 
     @Test
+    @DisplayName("FNC-C-012 1시간 단위는 31일까지 되고, 31일을 넘으면 RANGE_TOO_LONG")
+    void parse_hourMaxRange() throws BindException {
+        StatSeriesRequest request =
+                StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1h", "2099-01-01", "2099-02-01");
+        assertThat(request.interval()).isEqualTo(StatInterval.HOUR);
+
+        assertThatThrownBy(() -> StatSeriesRequest.parse(
+                        StatTargetType.ZONE, 1L, "1h", "2099-01-01T00:00", "2099-02-01T01:00"))
+                .isInstanceOf(RangeTooLongException.class)
+                .hasMessage("1시간 단위는 최대 31일까지 조회할 수 있습니다.");
+    }
+
+    @Test
     @DisplayName("FNC-C-012 끝이 시작보다 늦지 않으면 to 칸 오류")
     void parse_toNotAfterFrom() {
         assertThatThrownBy(() -> parse("2099-01-01T10:00", "2099-01-01T10:00"))
