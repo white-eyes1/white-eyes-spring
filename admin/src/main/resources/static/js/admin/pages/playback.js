@@ -32,7 +32,9 @@ const CHART_HEIGHT = 220;
 
 const params = new URLSearchParams(location.search);
 const zoneId = Number(params.get('zoneId'));
-const initialAt = params.get('at') ? Date.parse(params.get('at')) : null;
+const requestedAt = params.get('at') ? Date.parse(params.get('at')) : null;
+// 주소의 at이 시각이 아니면(NaN) 없는 것으로 보고 가장 최근 녹화를 연다
+const initialAt = Number.isFinite(requestedAt) ? requestedAt : null;
 
 const video = document.getElementById('pb-video');
 const notice = document.getElementById('pb-notice');
@@ -61,6 +63,8 @@ let shownMinute = null;
 let zoneArea = null;
 let levelStarts = {};
 let timelineRequest = 0;
+// 녹화 찾기 요청 번호. 늦게 온 응답이 나중에 한 이동을 덮지 않게 한다
+let recordingRequest = 0;
 
 const PLAY_PATH = 'M8 5v14l11-7z';
 const PAUSE_PATH = 'M6 5h4v14H6zM14 5h4v14h-4z';
@@ -72,6 +76,9 @@ async function init() {
         showNotice('구역이 지정되지 않았습니다. 그래프나 이벤트에서 다시보기를 열어 주세요.');
         document.getElementById('pb-subtitle').textContent = '-';
         return;
+    }
+    if (requestedAt !== null && initialAt === null) {
+        showToast('주소의 시각을 읽을 수 없어 가장 최근 녹화를 엽니다.');
     }
     loadZoneInfo();
     loadLevelStarts();
@@ -121,11 +128,16 @@ function thresholds() {
 
 // ---- 녹화 찾기·재생 (FNC-A-043) ----
 
+// 더 최근에 시작한 요청이 있어 이 응답을 버렸으면 null, 영상이 있으면 true, 없으면 false
 async function loadRecording({ at, latest }) {
+    const request = ++recordingRequest;
     showNotice('불러오는 중…');
     try {
         const query = latest ? { zoneId, latest: true } : { zoneId, at: toKstIso(at) };
         const found = await get('/api/v1/playback', query, { toast: false });
+        if (request !== recordingRequest) {
+            return null;
+        }
         recording = {
             id: found.recordingId,
             videoUrl: found.videoUrl,
@@ -137,6 +149,9 @@ async function loadRecording({ at, latest }) {
         syncAddress(recording.startedAt + found.seekSec * 1000);
         return true;
     } catch (error) {
+        if (request !== recordingRequest) {
+            return null;
+        }
         recording = null;
         manualMs = at ?? manualMs;
         video.pause();
@@ -195,6 +210,8 @@ function playheadMs() {
 /** 시각으로 이동한다. 지금 녹화 안이면 currentTime만 바꾸고, 아니면 FNC-A-043을 다시 호출한다. */
 async function seekToTime(ms) {
     if (recordingCovers(recording, ms)) {
+        // 앞서 보낸 녹화 찾기의 응답이 이 이동을 덮지 않게 한다
+        recordingRequest++;
         video.currentTime = (ms - recording.startedAt) / 1000;
         if (video.paused) {
             video.play().catch(() => {});
@@ -205,7 +222,7 @@ async function seekToTime(ms) {
     }
     manualMs = ms;
     const found = await loadRecording({ at: ms });
-    if (!found) {
+    if (found === false) {
         syncAddress(ms);
         showToast(`${formatClock(ms)} 에는 재생할 영상이 없습니다.`);
     }
@@ -306,8 +323,8 @@ async function loadTimeline(center) {
     if (request !== timelineRequest) {
         return;
     }
-    series = seriesResult.status === 'fulfilled' ? normalizeSeries(seriesResult.value.items ?? []) : [];
-    events = eventsResult.status === 'fulfilled' ? normalizeEvents(eventsResult.value.items ?? []) : [];
+    series = seriesResult.status === 'fulfilled' ? normalizeSeries(seriesResult.value?.items ?? []) : [];
+    events = eventsResult.status === 'fulfilled' ? normalizeEvents(eventsResult.value?.items ?? []) : [];
     shownMinute = null;
     renderTimeline();
     updatePlayhead();
@@ -441,6 +458,7 @@ video.addEventListener('pause', () => togglePlayIcon(false));
 video.addEventListener('error', () => {
     showNotice('영상을 불러올 수 없습니다.');
     video.hidden = true;
+    toggleButton.disabled = true;
 });
 
 function togglePlayIcon(playing) {
