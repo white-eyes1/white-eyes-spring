@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 
@@ -70,6 +72,23 @@ class StatSeriesRequestTest {
         assertThatThrownBy(() -> StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1d", "2099-01-01", "2100-01-02"))
                 .isInstanceOf(RangeTooLongException.class)
                 .hasMessage("1일 단위는 최대 1년까지 조회할 수 있습니다.");
+    }
+
+    @ParameterizedTest(name = "{0}: {1} ~ {2}까지 되고, {3}이면 초과")
+    @CsvSource({
+        "1w, 2099-01-05, 2102-01-05, 2102-01-06, 1주 단위는 최대 3년까지 조회할 수 있습니다.",
+        "1M, 2099-01-01, 2104-01-01, 2104-01-02, 1월 단위는 최대 5년까지 조회할 수 있습니다.",
+        "1y, 2099-01-01, 2109-01-01, 2109-01-02, 1년 단위는 최대 10년까지 조회할 수 있습니다."
+    })
+    @DisplayName("FNC-C-012 1주는 3년, 1월은 5년, 1년은 10년까지 되고, 넘으면 RANGE_TOO_LONG")
+    void parse_rollupMaxRange(String interval, String from, String maxTo, String overTo, String message)
+            throws BindException {
+        assertThat(StatSeriesRequest.parse(StatTargetType.ZONE, 1L, interval, from, maxTo).interval().getCode())
+                .isEqualTo(interval);
+
+        assertThatThrownBy(() -> StatSeriesRequest.parse(StatTargetType.ZONE, 1L, interval, from, overTo))
+                .isInstanceOf(RangeTooLongException.class)
+                .hasMessage(message);
     }
 
     @Test
