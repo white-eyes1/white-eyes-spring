@@ -79,9 +79,11 @@
             <div class="pb-chart" id="pb-chart">
                 <div id="pb-events-layer" class="pb-events-layer"></div>
                 <svg id="pb-svg" viewBox="0 0 1000 220" preserveAspectRatio="none" role="img" aria-label="1분 평균 인원과 최대·최소 범위">
+                    <g id="pb-guides"></g>
                     <path id="pb-band" class="pb-band" d=""></path>
                     <g id="pb-lines"></g>
                 </svg>
+                <div id="pb-guide-labels" class="pb-guide-labels"></div>
                 <div class="pb-playhead" id="pb-playhead" hidden>
                     <span class="pb-playhead-handle" id="pb-playhead-handle" aria-hidden="true"></span>
                     <span class="pb-playhead-tip" id="pb-playhead-tip"></span>

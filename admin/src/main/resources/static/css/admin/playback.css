@@ -54,3 +54,8 @@
 .pb-legend { display: flex; gap: 16px; font-size: 11px; flex-wrap: wrap; }
 .pb-dot-line { background: #76a7ff; }
 .pb-legend-event { color: #ff8a90; }
+.pb-guide { fill: none; stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.pb-guide.warn { stroke: #f59e0b; }
+.pb-guide.danger { stroke: #ef4d55; }
+.pb-guide-labels { position: absolute; inset: 0; pointer-events: none; }
+.pb-guide-label { position: absolute; left: -44px; transform: translateY(-50%); font-size: 10px; color: var(--muted); }

@@ -38,6 +38,7 @@ class PlaybackPageControllerTest {
                 .andExpect(content().string(containsString("id=\"pb-next-event\"")))
                 .andExpect(content().string(containsString("이 시점의 1분 통계")))
                 .andExpect(content().string(containsString("id=\"pb-chart\"")))
+                .andExpect(content().string(containsString("id=\"pb-guides\"")))
                 .andExpect(content().string(containsString("data-range=\"today\"")))
                 .andExpect(content().string(containsString("data-metric=\"flow\"")))
                 .andExpect(content().string(containsString("/css/admin/playback.css")))

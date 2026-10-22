@@ -133,6 +133,9 @@ export function nextEvent(events, ms) {
     return events.find((event) => event.startedAt > ms + 1000) ?? null;
 }
 
+// 세로 범위를 데이터 최댓값보다 이만큼 크게 잡아 선이 위 테두리에 붙지 않게 한다
+const CHART_HEADROOM = 1.1;
+
 const METRICS = {
     count: { line: 'countAvg', low: 'countMin', high: 'countMax' },
     density: { line: 'density' },
@@ -141,18 +144,16 @@ const METRICS = {
 
 /**
  * 그래프에 그릴 선·띠 좌표를 SVG 좌표계(가로 0~width, 세로 0~height, 위가 큰 값)로 만든다.
- * 통계가 이어지지 않은 곳(2분 넘게 빈 구간)에서는 선을 끊는다.
- * @returns {{lines: {key: string, segments: number[][][]}[], band: number[][] | null, max: number}}
+ * 통계가 이어지지 않은 곳(2분 넘게 빈 구간)에서는 선을 끊는다. 세로 범위는 데이터 최댓값보다 조금 위까지 잡는다.
+ * @param {{key: string, value: number}[]} [thresholds] 주의·위험 경계 값(그 항목의 단위). 그래프 범위 안에 드는 것만 guides로 돌려준다
+ * @returns {{lines: {key: string, segments: number[][][]}[], band: number[][] | null, guides: {key: string, y: number}[], max: number}}
  */
-export function buildChart(items, metricKey, from, to, width, height) {
+export function buildChart(items, metricKey, from, to, width, height, thresholds = []) {
     const metric = METRICS[metricKey] ?? METRICS.count;
     const visible = items.filter((item) => item.at >= from && item.at <= to);
     const keys = [metric.line, metric.second, metric.high].filter(Boolean);
-    const max =
-        Math.max(
-            0,
-            ...visible.flatMap((item) => keys.map((key) => Number(item[key]) || 0)),
-        ) || 1;
+    const dataMax = Math.max(0, ...visible.flatMap((item) => keys.map((key) => Number(item[key]) || 0)));
+    const max = (dataMax || 1) * CHART_HEADROOM;
     const x = (ms) => fraction(ms, from, to) * width;
     const y = (value) => height - (Math.max(0, Number(value) || 0) / max) * height;
 
@@ -165,7 +166,12 @@ export function buildChart(items, metricKey, from, to, width, height) {
         const lower = visible.map((item) => [x(item.at), y(item[metric.low])]).reverse();
         band = [...upper, ...lower];
     }
-    return { lines, band, max };
+    // 데이터가 있고 경계가 그래프 범위 안일 때만 경계선을 그린다(경계가 한참 위면 평평한 선만 남아 보기 어렵다)
+    const guides =
+        visible.length === 0
+            ? []
+            : thresholds.filter((t) => Number(t.value) > 0 && Number(t.value) <= max).map((t) => ({ key: t.key, y: y(t.value) }));
+    return { lines, band, guides, max };
 }
 
 // 이어진 항목끼리 한 선분으로 묶는다(항목 사이가 2분을 넘으면 끊김)

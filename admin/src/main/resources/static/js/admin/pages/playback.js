@@ -57,6 +57,9 @@ let timeWindow = null;
 let series = [];
 let events = [];
 let shownMinute = null;
+// 시간축 경계선(주의·위험)에 쓰는 값: 구역 면적(㎡)과 단계가 시작되는 밀집도(명/㎡)
+let zoneArea = null;
+let levelStarts = {};
 let timelineRequest = 0;
 
 const PLAY_PATH = 'M8 5v14l11-7z';
@@ -71,6 +74,7 @@ async function init() {
         return;
     }
     loadZoneInfo();
+    loadLevelStarts();
     await loadRecording(initialAt === null ? { latest: true } : { at: initialAt });
     // 시간축은 처음 요청한 시각(없으면 찾은 녹화의 시작)을 가운데로 연다
     await loadTimeline(initialAt ?? playheadMs() ?? Date.now());
@@ -81,12 +85,38 @@ async function loadZoneInfo() {
     try {
         const zones = await get('/api/v1/zones', undefined, { toast: false });
         const zone = zones.find((item) => item.id === zoneId);
+        zoneArea = zone ? Number(zone.areaM2) : null;
         document.getElementById('pb-title').textContent = zone ? `다시보기 · ${zone.name}` : `다시보기 · 구역 ${zoneId}`;
         document.getElementById('pb-subtitle').textContent = zone ? `${formatNumber(Math.round(zone.areaM2))}㎡` : '삭제되었거나 찾을 수 없는 구역';
     } catch {
         document.getElementById('pb-title').textContent = `다시보기 · 구역 ${zoneId}`;
         document.getElementById('pb-subtitle').textContent = '-';
     }
+}
+
+// 주의·위험 경계선용. 못 읽으면 경계선만 그리지 않는다
+async function loadLevelStarts() {
+    try {
+        const levels = await get('/api/v1/meta/levels', undefined, { toast: false });
+        levelStarts = Object.fromEntries(levels.map((level) => [level.level, Number(level.minDensity)]));
+        if (timeWindow) {
+            renderTimeline();
+        }
+    } catch {
+        levelStarts = {};
+    }
+}
+
+// 항목별 경계 값: 인원 = 밀집도 × 구역 면적, 밀집도 = 밀집도 그대로, 유입·유출에는 경계가 없다
+function thresholds() {
+    const factor = metric === 'count' ? zoneArea : metric === 'density' ? 1 : null;
+    if (!factor || levelStarts[2] === undefined) {
+        return [];
+    }
+    return [
+        { key: 'warn', value: levelStarts[2] * factor },
+        { key: 'danger', value: levelStarts[3] * factor },
+    ];
 }
 
 // ---- 녹화 찾기·재생 (FNC-A-043) ----
@@ -176,6 +206,7 @@ async function seekToTime(ms) {
     manualMs = ms;
     const found = await loadRecording({ at: ms });
     if (!found) {
+        syncAddress(ms);
         showToast(`${formatClock(ms)} 에는 재생할 영상이 없습니다.`);
     }
 }
@@ -233,7 +264,7 @@ function renderStat(ms) {
     document.getElementById('pb-stat-empty').hidden = item !== null;
     document.getElementById('pb-stat-count').textContent = item ? `${formatNumber(Math.round(item.countAvg))}명` : '-';
     document.getElementById('pb-stat-density').textContent = item ? formatDecimal(item.density, 2) : '-';
-    document.getElementById('pb-stat-range').textContent = item ? `${formatNumber(item.countMax)} · ${formatNumber(item.countMin)}` : '-';
+    document.getElementById('pb-stat-range').textContent = item ? `${formatNumber(Math.round(item.countMax))} · ${formatNumber(Math.round(item.countMin))}` : '-';
     const levelCell = document.getElementById('pb-stat-level');
     levelCell.replaceChildren();
     if (item && LEVEL_LABELS[item.level]) {
@@ -284,7 +315,7 @@ async function loadTimeline(center) {
 
 function renderTimeline() {
     const { from, to } = timeWindow;
-    const shape = buildChart(series, metric, from, to, CHART_WIDTH, CHART_HEIGHT);
+    const shape = buildChart(series, metric, from, to, CHART_WIDTH, CHART_HEIGHT, thresholds());
     document.getElementById('pb-band').setAttribute('d', shape.band ? `${toPath(shape.band)} Z` : '');
     const linesGroup = document.getElementById('pb-lines');
     linesGroup.replaceChildren();
@@ -297,6 +328,7 @@ function renderTimeline() {
         });
     });
     chartEmpty.hidden = series.length > 0;
+    renderGuides(shape.guides);
 
     const layer = document.getElementById('pb-events-layer');
     layer.replaceChildren();
@@ -329,6 +361,25 @@ function renderTimeline() {
             return label;
         }),
     );
+}
+
+// 주의·위험 경계선과 왼쪽 이름
+function renderGuides(guides) {
+    const group = document.getElementById('pb-guides');
+    const labels = document.getElementById('pb-guide-labels');
+    group.replaceChildren();
+    labels.replaceChildren();
+    guides.forEach((guide) => {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        line.setAttribute('d', `M0 ${guide.y.toFixed(1)}H${CHART_WIDTH}`);
+        line.setAttribute('class', `pb-guide ${guide.key}`);
+        group.append(line);
+        const label = document.createElement('span');
+        label.className = 'pb-guide-label';
+        label.style.top = `${(guide.y / CHART_HEIGHT) * 100}%`;
+        label.textContent = guide.key === 'danger' ? '위험' : '주의';
+        labels.append(label);
+    });
 }
 
 // 분마다 혼잡 단계 색 띠. 통계가 없는 분은 비워 둔다
