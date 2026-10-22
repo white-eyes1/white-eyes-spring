@@ -3,8 +3,12 @@ package com.whiteeyes.common.stat.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +18,9 @@ import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.level.service.LevelTarget;
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.Zone;
+import com.whiteeyes.common.region.entity.ZoneDirection;
+import com.whiteeyes.common.region.entity.ZoneNeighbor;
+import com.whiteeyes.common.region.repository.ZoneNeighborRepository;
 import com.whiteeyes.common.region.service.RegionQueryService;
 import com.whiteeyes.common.stat.dto.DashboardSummaryResponse;
 import com.whiteeyes.common.stat.dto.DashboardTargetType;
@@ -37,18 +44,21 @@ public class DashboardSummaryService {
     private final RecentZoneStatReader recentZoneStatReader;
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final LevelService levelService;
+    private final ZoneNeighborRepository zoneNeighborRepository;
 
     public DashboardSummaryService(
             RegionQueryService regionQueryService,
             CameraCountService cameraCountService,
             RecentZoneStatReader recentZoneStatReader,
             ZoneStatMinuteRepository zoneStatMinuteRepository,
-            LevelService levelService) {
+            LevelService levelService,
+            ZoneNeighborRepository zoneNeighborRepository) {
         this.regionQueryService = regionQueryService;
         this.cameraCountService = cameraCountService;
         this.recentZoneStatReader = recentZoneStatReader;
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.levelService = levelService;
+        this.zoneNeighborRepository = zoneNeighborRepository;
     }
 
     /**
@@ -108,10 +118,24 @@ public class DashboardSummaryService {
         BigDecimal density = target.isZone() ? sum.stats().get(0).getDensity() : sum.density();
         int[] inByDirection = new int[DIRECTIONS.size()];
         int[] outByDirection = new int[DIRECTIONS.size()];
-        // TODO(#35): 구역 이웃이 생기면 지역 안 구역끼리의 이동을 빼고 계산한다(stats-008). 지금은 소속 구역 값을 그대로 더한다
+        // 지역은 지역 안 구역끼리 주고받은 이동을 뺀다(stats-008): 이웃이 같은 지역 구역인 방향의 유입·유출은 세지 않는다.
+        // 구역 하나는 이웃이 자기 밖이므로 그대로 센다
+        Map<Long, Map<ZoneDirection, Long>> neighborsByZone =
+                target.isZone() ? Map.of() : findNeighbors(sum.stats());
+        Set<Long> targetZoneIds = new HashSet<>();
+        target.activeZones().forEach(zone -> targetZoneIds.add(zone.getId()));
         for (ZoneStatMinute stat : sum.stats()) {
-            add(inByDirection, stat.getInN(), stat.getInE(), stat.getInS(), stat.getInW());
-            add(outByDirection, stat.getOutN(), stat.getOutE(), stat.getOutS(), stat.getOutW());
+            Map<ZoneDirection, Long> neighbors = neighborsByZone.getOrDefault(stat.getZoneId(), Map.of());
+            int[] in = {stat.getInN(), stat.getInE(), stat.getInS(), stat.getInW()};
+            int[] out = {stat.getOutN(), stat.getOutE(), stat.getOutS(), stat.getOutW()};
+            for (ZoneDirection direction : ZoneDirection.values()) {
+                if (targetZoneIds.contains(neighbors.get(direction))) {
+                    in[direction.ordinal()] = 0;
+                    out[direction.ordinal()] = 0;
+                }
+            }
+            add(inByDirection, in[0], in[1], in[2], in[3]);
+            add(outByDirection, out[0], out[1], out[2], out[3]);
         }
         int level = levelService.judgeLevel(target.levelTarget(), density).getLevel();
         return new DashboardSummaryResponse(
@@ -126,6 +150,17 @@ public class DashboardSummaryService {
                 cameraCount,
                 runningCameraCount,
                 todayMaxCount);
+    }
+
+    // 합산에 들어간 구역들의 방향별 이웃(구역 번호 → 방향 → 이웃 구역 번호)
+    private Map<Long, Map<ZoneDirection, Long>> findNeighbors(List<ZoneStatMinute> stats) {
+        List<Long> zoneIds = stats.stream().map(ZoneStatMinute::getZoneId).toList();
+        Map<Long, Map<ZoneDirection, Long>> result = new HashMap<>();
+        for (ZoneNeighbor row : zoneNeighborRepository.findByZoneIdIn(zoneIds)) {
+            result.computeIfAbsent(row.getZoneId(), id -> new EnumMap<>(ZoneDirection.class))
+                    .put(row.getDirection(), row.getNeighborId());
+        }
+        return result;
     }
 
     private void add(int[] byDirection, int north, int east, int south, int west) {
