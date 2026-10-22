@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
  */
 public enum ErrorCode {
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값을 확인해 주세요."),
+    WRONG_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
     INVALID_POLYGON(HttpStatus.BAD_REQUEST, "구역 모양이 올바르지 않습니다."),
     OUT_OF_SERVICE_AREA(HttpStatus.BAD_REQUEST, "서비스 지역 밖입니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
@@ -15,6 +16,8 @@ public enum ErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 대상을 찾을 수 없습니다."),
     ZONE_NOT_FOUND(HttpStatus.NOT_FOUND, "구역을 찾을 수 없습니다."),
     REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "지역을 찾을 수 없습니다."),
+    RECORDING_NOT_FOUND(HttpStatus.NOT_FOUND, "영상 없음"),
+    RECORDING_EXPIRED(HttpStatus.NOT_FOUND, "보관 기간 지남"),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 요청 방식입니다."),
     DUPLICATE(HttpStatus.CONFLICT, "이미 존재합니다."),
     DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),

@@ -1,5 +1,6 @@
 package com.whiteeyes.user.config;
 
+import com.whiteeyes.common.security.LogoutSupport;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,13 +13,12 @@ import org.springframework.security.web.access.intercept.RequestAuthorizationCon
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 사용자 앱 보안 설정. 지금은 승인 대기 계정을 승인 대기 화면 안에 가두는 일만 한다(FNC-U-003).
+ * 사용자 앱 보안 설정. 지금은 승인 대기 계정을 승인 대기 화면 안에 가두는 일(FNC-U-003)과 로그아웃(FNC-C-002)을 한다.
  * 아직 없는 부분은 각 이슈가 이 설정을 넓힌다.
  * <ul>
  *   <li>#3 로그인(FNC-C-001): formLogin과 common의 LoginSuccessHandler·LoginFailureHandler 연결</li>
  *   <li>#4 접근 권한 검사(FNC-C-003): '그 외' 규칙을 권한 표(ROLE_USER)로 바꾸고,
  *       세션 없음은 화면 /login·API 401</li>
- *   <li>#22 로그아웃(FNC-C-002): 지금은 Spring 기본 로그아웃(POST /logout → /login?logout)</li>
  * </ul>
  */
 @Configuration
@@ -41,7 +41,9 @@ public class UserSecurityConfig {
                         // #4: 권한 표가 생기면 hasRole(UserRoles.USER)로 바꾼다. 그 전까지는 승인 대기 계정만 막는다
                         .anyRequest().access(notPending()))
                 .exceptionHandling(exceptions ->
-                        exceptions.accessDeniedHandler(new PendingAccessDeniedHandler(jsonMapper)));
+                        exceptions.accessDeniedHandler(new PendingAccessDeniedHandler(jsonMapper)))
+                .logout(logout -> logout.logoutSuccessHandler(LogoutSupport.successHandler()))
+                .csrf(csrf -> csrf.ignoringRequestMatchers(LogoutSupport.logoutWithoutSession()));
         return http.build();
     }
 

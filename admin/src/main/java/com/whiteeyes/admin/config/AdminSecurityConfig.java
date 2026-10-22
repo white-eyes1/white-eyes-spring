@@ -9,6 +9,7 @@ import com.whiteeyes.common.security.InternalTokenFilter;
 import com.whiteeyes.common.security.LoginFailureHandler;
 import com.whiteeyes.common.security.LoginRequiredEntryPoint;
 import com.whiteeyes.common.security.LoginSuccessHandler;
+import com.whiteeyes.common.security.LogoutSupport;
 import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -28,7 +29,7 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 관리자 앱 로그인(FNC-C-001)과 접근 권한 검사(FNC-C-003).
+ * 관리자 앱 로그인(FNC-C-001), 로그아웃(FNC-C-002), 접근 권한 검사(FNC-C-003).
  * 필터 체인은 둘이다. /internal/** 은 세션 없이 내부 토큰으로만, 나머지는 로그인한 관리자의 역할로 권한 표를 검사한다.
  * 경로는 컨텍스트 경로(/admin)를 뗀 것이다.
  */
@@ -111,7 +112,9 @@ public class AdminSecurityConfig {
                 // 명세 처리 순서대로 권한 표(순서 3)를 통과한 요청에만 비밀번호 변경 필요 여부(순서 4)를 본다
                 .addFilterAfter(new PasswordChangeRequiredFilter(jsonMapper), AuthorizationFilter.class)
                 // 로그인 성공 뒤 이동은 LoginSuccessHandler가 정해 저장한 요청을 쓰지 않으므로, 비로그인 요청마다 세션이 생기지 않게 끈다
-                .requestCache(AbstractHttpConfigurer::disable);
+                .requestCache(AbstractHttpConfigurer::disable)
+                .logout(logout -> logout.logoutSuccessHandler(LogoutSupport.successHandler()))
+                .csrf(csrf -> csrf.ignoringRequestMatchers(LogoutSupport.logoutWithoutSession()));
         return http.build();
     }
 

@@ -223,7 +223,7 @@ class AccessControlTest {
                 .andReturn());
         mockMvc.perform(request(HttpMethod.POST, "/logout").with(asMustChangePassword()).with(csrf()))
                 .andExpect(status().isFound())
-                .andExpect(header().string("Location", LOGIN_REDIRECT + "?logout"));
+                .andExpect(header().string("Location", LOGIN_REDIRECT));
     }
 
     @ParameterizedTest(name = "{0}")

@@ -24,3 +24,11 @@
 .draft-error { margin: 0; padding: 8px 10px; border: 1px solid #5a2a31; border-radius: 8px; background: #1f141a; color: #ff8c91; font-size: 12px; }
 .draft-actions { display: flex; gap: 8px; }
 .draft-actions .btn { flex: 1; }
+
+/* 구역 이웃 설정 창(SCR-A-005) */
+.nbr-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
+.nbr-modal { max-width: 640px; }
+.nbr-zone-name { margin-top: 2px; font-size: 12px; }
+.nbr-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center; }
+.nbr-center { height: 92px; display: grid; place-items: center; padding: 0 8px; border: 2px solid #3bc99b; border-radius: 10px; background: rgba(59, 201, 155, .12); font-size: 12px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+.nbr-note { margin: 0; padding: 10px 12px; border: 1px solid #23476f; border-radius: 8px; background: #0f1d2e; color: #9cc0ff; font-size: 12px; }
