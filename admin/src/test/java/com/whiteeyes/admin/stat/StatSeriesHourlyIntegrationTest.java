@@ -90,8 +90,8 @@ class StatSeriesHourlyIntegrationTest {
         jdbcTemplate.update("UPDATE zone SET deleted_at = '2099-01-02 00:00:00' WHERE id = ?", deletedZone);
 
         // 사직 1구역의 동쪽 = 삼청 1구역(삼청의 서쪽 = 사직). 둘 다 종로구 안
-        jdbcTemplate.update("INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'E', ?)", sajik, samcheong);
-        jdbcTemplate.update("INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'W', ?)", samcheong, sajik);
+        insertNeighbor(sajik, "E", samcheong);
+        insertNeighbor(samcheong, "W", sajik);
     }
 
     // 같은 H2를 쓰는 다른 테스트가 zone·region을 지울 수 있게 넣은 통계·이웃·구역을 지우고 끝낸다(FK)
@@ -234,7 +234,8 @@ class StatSeriesHourlyIntegrationTest {
         insertHourly(sajik, END, "999.00", "9.9900", 999, 999, NONE, NONE, 0, 0, 3600, false);
     }
 
-    private List<StatSeriesPoint> series(StatTargetType targetType, long targetId, LocalDateTime from, LocalDateTime to) {
+    private List<StatSeriesPoint> series(
+            StatTargetType targetType, long targetId, LocalDateTime from, LocalDateTime to) {
         return statSeriesService
                 .findSeries(new StatSeriesRequest(targetType, targetId, StatInterval.HOUR, from, to))
                 .items();
@@ -250,6 +251,14 @@ class StatSeriesHourlyIntegrationTest {
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
+    }
+
+    private void insertNeighbor(long zoneId, String direction, long neighborId) {
+        jdbcTemplate.update(
+                "INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, ?, ?)",
+                zoneId,
+                direction,
+                neighborId);
     }
 
     private long regionId(String code) {

@@ -85,12 +85,13 @@ class StatSeriesIntegrationTest {
         jdbcTemplate.update("UPDATE zone SET deleted_at = '2099-01-01 12:00:00' WHERE id = ?", deletedZone);
 
         // 사직 1구역의 동쪽 = 삼청 1구역(삼청의 서쪽 = 사직). 둘 다 종로구 안, 서로 다른 동
-        jdbcTemplate.update("INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'E', ?)", sajik, samcheong);
-        jdbcTemplate.update("INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'W', ?)", samcheong, sajik);
+        insertNeighbor(sajik, "E", samcheong);
+        insertNeighbor(samcheong, "W", sajik);
 
         // 10:00 사직 50명(유입 N1·E2, 유출 E3·S3, 체류 600초/4명), 삼청 30명(유입 S4, 유출 N1·W2, 체류 300초/2명, 30초만 받음)
         insertStat(sajik, T0, "50.00", "0.5000", 60, 40, new int[] {1, 2, 0, 0}, new int[] {0, 3, 3, 0}, 600, 4, 60);
-        insertStat(samcheong, T0, "30.00", "0.1000", 40, 20, new int[] {0, 0, 4, 0}, new int[] {1, 0, 0, 2}, 300, 2, 30);
+        insertStat(samcheong, T0, "30.00", "0.1000", 40, 20,
+                new int[] {0, 0, 4, 0}, new int[] {1, 0, 0, 2}, 300, 2, 30);
         // 10:01 사직은 캠이 끊겨 받은 초 0, 삼청 45명
         insertStat(sajik, T1, "0.00", "0.0000", 0, 0, NONE, NONE, 0, 0, 0);
         insertStat(samcheong, T1, "45.00", "0.1500", 50, 40, NONE, NONE, 0, 0, 60);
@@ -267,7 +268,9 @@ class StatSeriesIntegrationTest {
         mockMvc.perform(request("DONG", "1", "1m", "2099-01-01T10:00", "2099-01-01T10:01"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        mockMvc.perform(get(SERIES_URL).with(AdminTestLogin.admin()).param("targetType", "ZONE").param("interval", "1m"))
+        mockMvc.perform(get(SERIES_URL).with(AdminTestLogin.admin())
+                        .param("targetType", "ZONE")
+                        .param("interval", "1m"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
 
@@ -279,7 +282,8 @@ class StatSeriesIntegrationTest {
                 .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
     }
 
-    private List<StatSeriesPoint> series(StatTargetType targetType, long targetId, LocalDateTime from, LocalDateTime to) {
+    private List<StatSeriesPoint> series(
+            StatTargetType targetType, long targetId, LocalDateTime from, LocalDateTime to) {
         return statSeriesService
                 .findSeries(new StatSeriesRequest(targetType, targetId, StatInterval.MINUTE, from, to))
                 .items();
@@ -305,6 +309,14 @@ class StatSeriesIntegrationTest {
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
+    }
+
+    private void insertNeighbor(long zoneId, String direction, long neighborId) {
+        jdbcTemplate.update(
+                "INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, ?, ?)",
+                zoneId,
+                direction,
+                neighborId);
     }
 
     private long regionId(String code) {
