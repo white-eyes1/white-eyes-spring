@@ -42,3 +42,8 @@ internal-api:
   token: ${INTERNAL_API_TOKEN}
   # 내부 통신 포트. 이 포트에는 /internal/** 만 연결한다(FNC-C-003, conventions.md '모듈·포트')
   port: 8082
+
+# 실시간 통계 갱신(FNC-C-022): 앱마다 5초에 한 번 최신 1분 통계 시각을 확인해 SSE로 보낸다
+stats:
+  stream:
+    auto-poll: true
