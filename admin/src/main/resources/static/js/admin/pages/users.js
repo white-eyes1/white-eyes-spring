@@ -1,15 +1,17 @@
 // 사용자 관리 화면(SCR-A-001). 사용자 목록(FNC-A-002)을 검색·정렬·페이지 이동하며 GET /api/v1/users로 불러온다.
 import { ApiError, get } from '../../common/api.js';
+import { formatDateTime, formatNumber } from '../../common/format.js';
 
 const USERS_API = '/api/v1/users';
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 const EMPTY_VALUE = '-';
-const ACTIVE_MARK = '●';
 const ACTIVE_LABEL = '활동 중';
 // 현재 페이지 앞뒤로 보여 줄 페이지 번호 수
 const PAGE_WINDOW = 2;
-// 코드 값의 화면 표시 이름(conventions.md 'user_account.status')
+// 코드 값의 화면 표시 이름(conventions.md 'user_account.status'). 칩 색은 시안(SCR-A-001)을 따른다
 const STATUS_LABELS = { PENDING: '미승인', ACTIVE: '정상', WITHDRAWN: '탈퇴' };
+const STATUS_CHIPS = { PENDING: 'prep', ACTIVE: 'done', WITHDRAWN: 'off' };
+const SORT_MARKS = { asc: '↑', desc: '↓', none: '↕' };
 // 다른 칸으로 정렬을 바꿀 때의 처음 방향: 시각은 최근 먼저, 아이디는 가나다순(#32에서 정함)
 const FIRST_DIRECTIONS = { createdAt: 'desc', lastActiveAt: 'desc', loginId: 'asc' };
 const FIELD_LABELS = {
@@ -31,6 +33,7 @@ const truncatedNotice = document.getElementById('user-list-truncated');
 const emptyNotice = document.getElementById('user-list-empty');
 const errorNotice = document.getElementById('user-list-error');
 const pagination = document.getElementById('user-pagination');
+const totalText = document.getElementById('user-total');
 
 const state = { filters: {}, size: 20, sortField: 'createdAt', sortDirection: 'desc', page: 0 };
 // 조회를 빠르게 여러 번 누르면 마지막 요청의 결과만 그린다
@@ -79,12 +82,17 @@ async function loadUsers() {
     errorNotice.hidden = true;
     errorNotice.textContent = '';
     try {
-        const page = await get(USERS_API, {
-            ...state.filters,
-            sort: `${state.sortField},${state.sortDirection}`,
-            page: state.page,
-            size: state.size,
-        });
+        // 오류는 표 위 문구로 보이므로 api.js의 토스트는 끈다
+        const page = await get(
+            USERS_API,
+            {
+                ...state.filters,
+                sort: `${state.sortField},${state.sortDirection}`,
+                page: state.page,
+                size: state.size,
+            },
+            { toast: false },
+        );
         if (requestId === latestRequestId) {
             render(page);
         }
@@ -103,6 +111,7 @@ function render(page) {
     tableBody.replaceChildren(...page.items.map(toRow));
     emptyNotice.hidden = page.items.length > 0;
     truncatedNotice.hidden = !page.truncated;
+    totalText.textContent = `총 ${formatNumber(page.totalElements)}명`;
     renderSortState();
     renderPagination(page);
 }
@@ -113,7 +122,7 @@ function toRow(user) {
     row.append(
         cell(user.loginId),
         cell(user.name),
-        cell(STATUS_LABELS[user.status] ?? user.status),
+        statusCell(user.status),
         cell(formatDateTime(user.createdAt)),
         cell(formatDateTime(user.lastActiveAt)),
         activeCell(user.active),
@@ -127,27 +136,27 @@ function cell(text) {
     return td;
 }
 
-// 색은 공통 CSS(common/static/css)가 생기면 active-dot class에 준다(#32에서 정함)
+function statusCell(status) {
+    const td = document.createElement('td');
+    const chip = document.createElement('span');
+    chip.className = `chip ${STATUS_CHIPS[status] ?? 'off'}`;
+    chip.textContent = STATUS_LABELS[status] ?? status;
+    td.append(chip);
+    return td;
+}
+
+// 활동 중이면 초록 점(screens.md SCR-A-001)
 function activeCell(active) {
     const td = document.createElement('td');
     if (active) {
-        const dot = document.createElement('span');
-        dot.className = 'active-dot';
-        dot.textContent = ACTIVE_MARK;
+        const dot = document.createElement('i');
+        dot.className = 'dot l1';
+        dot.setAttribute('role', 'img');
         dot.setAttribute('aria-label', ACTIVE_LABEL);
         dot.title = ACTIVE_LABEL;
         td.append(dot);
     }
     return td;
-}
-
-// 서버가 +09:00 시각을 주므로 브라우저 시간대로 바꾸지 않고 글자를 잘라 yyyy-MM-dd HH:mm로 보인다.
-// common/format.js가 생기면 그쪽으로 옮긴다(code-conventions.md 5-3)
-function formatDateTime(isoText) {
-    if (!isoText) {
-        return EMPTY_VALUE;
-    }
-    return isoText.slice(0, 16).replace('T', ' ');
 }
 
 function renderSortState() {
@@ -159,10 +168,10 @@ function renderSortState() {
         if (field === state.sortField) {
             const ascending = state.sortDirection === 'asc';
             header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
-            button.textContent = `${label} ${ascending ? '▲' : '▼'}`;
+            button.textContent = `${label} ${SORT_MARKS[state.sortDirection]}`;
         } else {
             header.setAttribute('aria-sort', 'none');
-            button.textContent = label;
+            button.textContent = `${label} ${SORT_MARKS.none}`;
         }
     });
 }
