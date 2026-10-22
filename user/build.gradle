@@ -4,7 +4,11 @@ plugins {
 
 dependencies {
     implementation project(':common')
+    // 승인 대기 안내(FNC-U-003)의 접근 차단. 로그인(FNC-C-001)·접근 권한 검사(FNC-C-003)도 이 의존성을 쓴다
+    implementation 'org.springframework.boot:spring-boot-starter-security'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    // MockMvc에 보안 필터와 @WithMockUser를 연결한다(Boot 4는 이 연결이 별도 모듈)
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testRuntimeOnly 'com.h2database:h2'
 }
