@@ -29,6 +29,10 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     @Query("select distinct c.zoneId from Camera c where c.zoneId in :zoneIds and c.deletedAt is null")
     List<Long> findZoneIdsWithActiveCamera(@Param("zoneIds") Collection<Long> zoneIds);
 
+    /** 그 구역에 있었던 모든 캠 번호. 삭제된 캠도 포함한다(지난 녹화를 찾는 다시보기 FNC-A-043). */
+    @Query("select c.id from Camera c where c.zoneId = :zoneId")
+    List<Long> findIdsByZoneId(@Param("zoneId") Long zoneId);
+
     /** 구역들의 삭제되지 않은 캠 수(현재 현황 요약 FNC-C-016). */
     long countByZoneIdInAndDeletedAtIsNull(Collection<Long> zoneIds);
 
