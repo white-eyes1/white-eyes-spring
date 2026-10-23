@@ -87,10 +87,24 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(containsString("id=\"zone-donut\"")))
                 .andExpect(content().string(containsString("id=\"dash-map\"")))
                 .andExpect(content().string(containsString("id=\"deck-cards\"")))
+                .andExpect(content().string(containsString("id=\"stream-status\"")))
                 .andExpect(content().string(containsString("혼잡도 높은 순")))
                 .andExpect(content().string(containsString("지역 등록·수정")))
                 .andExpect(content().string(containsString("/js/pages/stats-main.js")))
                 .andExpect(content().string(containsString("/css/stats-main.css")));
+    }
+
+    @Test
+    @DisplayName("SCR-A-008 관리자 앱 /stats에 실시간 보기 창(영상, 연결 실패 시 다시 시도, 현재 통계, 다시보기)이 있다")
+    void statsPage_admin_hasLiveViewModal() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("id=\"live-modal\"")))
+                .andExpect(content().string(containsString("id=\"live-img\"")))
+                .andExpect(content().string(containsString("id=\"live-retry\"")))
+                .andExpect(content().string(containsString("id=\"live-count\"")))
+                .andExpect(content().string(containsString("id=\"live-density\"")))
+                .andExpect(content().string(containsString("id=\"live-playback\"")))
+                .andExpect(content().string(containsString("/css/live.css")));
     }
 
     @Test
@@ -100,6 +114,14 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(not(containsString("data-api"))))
                 .andExpect(content().string(not(containsString("data-fnc"))))
                 .andExpect(content().string(not(containsString("anno"))));
+    }
+
+    @Test
+    @DisplayName("FNC-A-042 캠 카드 미리보기 갱신 간격(기본 2초)이 화면에 data 속성으로 전달된다")
+    void statsPage_passesSnapshotInterval() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-snapshot-interval-sec=\"2\"")));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.whiteeyes.admin.stat.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,9 +13,17 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class DashboardPageController {
 
+    // 캠 카드 미리보기 갱신 간격(초, conventions.md CARD_SNAPSHOT_INTERVAL_SEC). 화면 JS가 data 속성으로 받는다
+    private final long cardSnapshotIntervalSec;
+
+    public DashboardPageController(@Value("${CARD_SNAPSHOT_INTERVAL_SEC:2}") long cardSnapshotIntervalSec) {
+        this.cardSnapshotIntervalSec = cardSnapshotIntervalSec;
+    }
+
     @GetMapping("/stats")
     public String dashboardPage(Model model) {
         model.addAttribute("admin", true);
+        model.addAttribute("cardSnapshotIntervalSec", cardSnapshotIntervalSec);
         return "stats/main";
     }
 }

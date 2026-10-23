@@ -35,4 +35,12 @@ public class AccountPrincipal extends User {
     public boolean isMustChangePassword() {
         return mustChangePassword;
     }
+
+    /**
+     * 비밀번호를 바꾼 뒤 세션에 다시 넣을 로그인 정보(FNC-C-007). must_change_password만 끄고 나머지는 그대로다.
+     * 새 비밀번호 해시는 세션에 남기지 않으려고 비워 둔다.
+     */
+    public AccountPrincipal passwordChanged() {
+        return new AccountPrincipal(accountId, getUsername(), "", isEnabled(), false, getAuthorities());
+    }
 }

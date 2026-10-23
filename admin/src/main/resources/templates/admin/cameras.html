@@ -3,6 +3,7 @@
 <head>
     <th:block th:replace="~{fragments/layout :: head('캠 관리')}"/>
     <link rel="stylesheet" th:href="@{/css/admin/cameras.css}">
+    <link rel="stylesheet" th:href="@{/css/live.css}">
 </head>
 <body class="we">
 <header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
@@ -83,6 +84,9 @@
         </div>
     </form>
 </div>
+
+<!-- SCR-A-008 실시간 보기 창 -->
+<th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
 
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/cameras.js}"></script>

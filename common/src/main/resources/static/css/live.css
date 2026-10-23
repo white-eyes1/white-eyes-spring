@@ -1,0 +1,31 @@
+/* 실시간 보기 창(SCR-A-008)과 캠 카드 영상 칸(FNC-A-042). 공통 스타일은 we.css */
+.live-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
+.live-modal-stage[hidden] { display: none; }
+.live-modal { max-width: 1040px; }
+.live-modal .modal-head h2 { margin-top: 4px; }
+.live-place { font-size: 12px; font-weight: 400; }
+.live-body { padding: 18px 20px; }
+.live-feed { position: relative; height: 460px; max-height: 60vh; border-radius: 10px; background: #05080c; overflow: hidden; display: grid; place-items: center; }
+.live-feed img { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.live-feed img[hidden] { display: none; }
+.live-notice { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; color: #c3ccd8; font-size: 14px; background: rgba(5, 8, 12, .6); }
+.live-notice[hidden] { display: none; }
+.live-badge { position: absolute; left: 12px; top: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; background: rgba(5, 8, 12, .7); font-size: 11px; font-weight: 700; }
+.live-badge .rec { width: 8px; height: 8px; border-radius: 50%; background: #ef4d55; }
+.live-count-badge { position: absolute; right: 12px; top: 10px; padding: 4px 8px; border-radius: 6px; background: rgba(0, 0, 0, .55); font-size: 12px; font-weight: 700; }
+.live-foot { display: flex; align-items: center; gap: 24px; padding: 0 20px 18px; flex-wrap: wrap; }
+.live-foot .muted { font-size: 11px; }
+.live-foot .value { font-size: 26px; font-weight: 700; }
+.live-foot .value small { font-size: 12px; font-weight: 400; }
+.live-foot .chip { height: 28px; font-size: 13px; }
+.live-foot .chip[hidden] { display: none; }
+.live-foot .live-playback { margin-left: auto; }
+
+/* 캠 카드 영상 칸 */
+.camcard .snap.snap-live { position: relative; overflow: hidden; cursor: pointer; }
+.camcard .snap.snap-live img { width: 100%; height: 100%; object-fit: cover; }
+.camcard .snap.snap-live img[hidden] { display: none; }
+.camcard .snap .snap-text { padding: 0 8px; text-align: center; }
+.camcard .snap .snap-text[hidden] { display: none; }
+.camcard .snap .snap-lost { position: absolute; right: 6px; top: 6px; padding: 2px 6px; border-radius: 6px; background: rgba(239, 77, 85, .85); color: #fff; font-size: 10px; font-weight: 700; }
+.camcard .snap .snap-lost[hidden] { display: none; }
