@@ -89,12 +89,14 @@ class CameraStatusReportTest {
     void cleanUp() {
         AdminTestLogin.clear();
         jdbcTemplate.update("DELETE FROM work_history");
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
 
     private void clearAll() {
         jdbcTemplate.update("DELETE FROM work_history");
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
@@ -145,6 +147,7 @@ class CameraStatusReportTest {
             Map<String, Object> row = camera(cameraId);
             assertThat(row.get("STATUS")).isEqualTo("ERROR");
             assertThat(row.get("ERROR_MESSAGE")).isEqualTo(message);
+            jdbcTemplate.update("DELETE FROM event");
             jdbcTemplate.update("DELETE FROM camera");
         }
     }
@@ -196,6 +199,58 @@ class CameraStatusReportTest {
 
         assertThat(camera(cameraId).get("STATUS")).isEqualTo("ERROR");
         assertThat(ANALYZER.callCount).isZero();
+    }
+
+    @Test
+    @DisplayName("FNC-A-035 run_requested=1 캠의 ERROR 보고는 캠 이상 이벤트를 열고, 같은 보고가 또 와도 하나만 둔다")
+    void report_error_opensCamFaultEventOnce() throws Exception {
+        long cameraId = insertCamera("RUNNING", 100, null, true);
+
+        report(cameraId, "{\"status\":\"ERROR\",\"errorMessage\":\"분석 중 오류가 발생함\"}")
+                .andExpect(status().isNoContent());
+        report(cameraId, "{\"status\":\"ERROR\",\"errorMessage\":\"분석 중 오류가 발생함\"}")
+                .andExpect(status().isNoContent());
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM event WHERE type = 'CAM_FAULT' AND camera_id = ? AND zone_id = ?"
+                                + " AND ended_at IS NULL",
+                        Integer.class,
+                        cameraId,
+                        zoneId))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-035 RUNNING 보고를 받으면 열린 캠 이상 이벤트가 닫힌다")
+    void report_running_closesCamFaultEvent() throws Exception {
+        long cameraId = insertCamera("ERROR", 30, "분석 중 오류가 발생함", true);
+        jdbcTemplate.update(
+                "INSERT INTO event (type, zone_id, camera_id, started_at, threshold_snapshot) "
+                        + "VALUES ('CAM_FAULT', ?, ?, CURRENT_TIMESTAMP, '{\"timeoutSec\":60}')",
+                zoneId,
+                cameraId);
+
+        report(cameraId, "{\"status\":\"RUNNING\",\"progress\":100}").andExpect(status().isNoContent());
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NULL", Integer.class, cameraId))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NOT NULL", Integer.class, cameraId))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-035 run_requested=0 캠의 ERROR 보고는 상태만 반영하고 캠 이상 이벤트를 열지 않는다")
+    void report_errorForStoppedCamera_doesNotOpenCamFaultEvent() throws Exception {
+        long cameraId = insertCamera("STOPPED", 0, null, false);
+
+        report(cameraId, "{\"status\":\"ERROR\",\"errorMessage\":\"분석 중 오류가 발생함\"}")
+                .andExpect(status().isNoContent());
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM event WHERE camera_id = ?", Integer.class, cameraId))
+                .isZero();
     }
 
     @Test

@@ -50,6 +50,8 @@ class DesiredCameraTest {
 
     @AfterEach
     void cleanUp() {
+        jdbcTemplate.update("DELETE FROM event WHERE zone_id IN"
+                + " (SELECT id FROM zone WHERE dong_id IN (SELECT id FROM region WHERE code = ?))", REGION_CODE);
         jdbcTemplate.update("DELETE FROM camera WHERE zone_id IN"
                 + " (SELECT id FROM zone WHERE dong_id IN (SELECT id FROM region WHERE code = ?))", REGION_CODE);
         jdbcTemplate.update(

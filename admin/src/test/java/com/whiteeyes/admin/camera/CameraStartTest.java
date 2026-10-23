@@ -76,6 +76,7 @@ class CameraStartTest {
     void prepareZone() {
         AdminTestLogin.loginForDirectCalls();
         ANALYZER.reset();
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
@@ -90,6 +91,7 @@ class CameraStartTest {
     @AfterEach
     void clearCamerasAndZones() {
         AdminTestLogin.clear();
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -176,6 +178,7 @@ class CameraStartTest {
             assertThat(ANALYZER.callCount).as(state).isZero();
             assertThat(camera(cameraId).get("STATUS")).isEqualTo(state);
             assertThat(isRunRequested(camera(cameraId))).as(state + " run_requested 유지").isFalse();
+            jdbcTemplate.update("DELETE FROM event");
             jdbcTemplate.update("DELETE FROM camera");
         }
     }
@@ -340,6 +343,7 @@ class CameraStartTest {
                     .andExpect(jsonPath("$.code").value("ANALYZER_UNAVAILABLE"));
 
             assertThat(camera(cameraId).get("STATUS")).as(c.toString()).isEqualTo("ERROR");
+            jdbcTemplate.update("DELETE FROM event");
             jdbcTemplate.update("DELETE FROM camera");
         }
     }
@@ -354,6 +358,7 @@ class CameraStartTest {
             start(cameraId).andExpect(status().isBadGateway());
 
             assertThat(camera(cameraId).get("STATUS")).as(body).isEqualTo("ERROR");
+            jdbcTemplate.update("DELETE FROM event");
             jdbcTemplate.update("DELETE FROM camera");
         }
     }
