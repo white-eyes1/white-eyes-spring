@@ -95,6 +95,16 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("SCR-C-003 통계 패널에 비정상 인원 변동 접기 영역(처음엔 접힘)과 기간 비교로 가는 '자세히'가 있다")
+    void statsPage_hasAbnormalFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"abnormal-box\">")))
+                .andExpect(content().string(containsString("비정상 인원 변동")))
+                .andExpect(content().string(containsString("id=\"abnormal-list\"")))
+                .andExpect(content().string(containsString("id=\"abnormal-detail\" href=\"/stats/compare\"")));
+    }
+
+    @Test
     @DisplayName("SCR-C-003 실제 화면에는 시안 표시용 data-api·data-fnc 속성과 .anno 요소를 옮기지 않는다")
     void statsPage_noDesignAnnotations() throws Exception {
         mockMvc.perform(get("/stats"))
