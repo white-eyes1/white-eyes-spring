@@ -74,6 +74,10 @@ class ZoneDeleteTest {
 
     private void clearAll() {
         jdbcTemplate.update("DELETE FROM work_history");
+        jdbcTemplate.update("DELETE FROM event");
+        jdbcTemplate.update("DELETE FROM zone_stat_minute");
+        jdbcTemplate.update("DELETE FROM zone_stat_hourly");
+        jdbcTemplate.update("DELETE FROM zone_stat_daily");
         jdbcTemplate.update("DELETE FROM zone_neighbor");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
@@ -128,6 +132,28 @@ class ZoneDeleteTest {
         assertThat(count("zone_neighbor")).isEqualTo(1);
         assertThat(count("zone_neighbor WHERE zone_id = " + third + " AND direction = 'S'")).isEqualTo(1);
         assertThat(count("zone WHERE id = " + otherZoneId + " AND deleted_at IS NULL")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-017 캠을 가동한 적이 없어도 통계나 이벤트 행이 있으면 이력 있음으로 보고 삭제 표시만 한다(외래키 500 방지)")
+    void statOrEventRows_softDeleteEvenWithoutCameraHistory() throws Exception {
+        insertCamera(zoneId, "STOPPED", null, null);
+        String[] inserts = {
+            "INSERT INTO zone_stat_minute (zone_id, stat_at, count_avg, count_max, count_min, density) VALUES (?, '2026-10-20 09:00:00', 1, 1, 1, 0.1)",
+            "INSERT INTO zone_stat_hourly (zone_id, stat_at, count_avg, count_max, count_min, density) VALUES (?, '2026-10-20 09:00:00', 1, 1, 1, 0.1)",
+            "INSERT INTO zone_stat_daily (zone_id, stat_date, count_avg, count_max, count_min, density) VALUES (?, '2026-10-20', 1, 1, 1, 0.1)",
+            "INSERT INTO event (type, zone_id, started_at, threshold_snapshot) VALUES ('CONGESTION', ?, '2026-10-20 09:00:00', '{}')",
+        };
+        for (String insert : inserts) {
+            jdbcTemplate.update(insert, zoneId);
+            removeZone(zoneId).andExpect(status().isOk()).andExpect(jsonPath("$.mode").value("SOFT"));
+            assertThat(count("zone WHERE id = " + zoneId + " AND deleted_at IS NOT NULL")).isEqualTo(1);
+
+            // 다음 종류를 시험하기 위해 처음 상태로 되돌린다
+            clearAll();
+            prepare();
+            insertCamera(zoneId, "STOPPED", null, null);
+        }
     }
 
     @Test

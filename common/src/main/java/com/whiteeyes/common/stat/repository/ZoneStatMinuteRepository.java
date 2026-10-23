@@ -15,6 +15,9 @@ import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 
 public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, ZoneStatMinuteId> {
 
+    /** 그 구역의 행이 하나라도 있는지(구역 삭제 FNC-A-017 처리 순서 2의 이력 확인). */
+    boolean existsByZoneId(Long zoneId);
+
     /** 저장된 가장 최근 1분 통계 시각. 통계가 하나도 없으면 null(실시간 통계 갱신 FNC-C-022가 5초마다 본다). */
     @Query("select max(s.statAt) from ZoneStatMinute s")
     LocalDateTime findLatestStatAt();

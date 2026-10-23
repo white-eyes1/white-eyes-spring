@@ -5,12 +5,16 @@ import com.whiteeyes.admin.region.dto.ZoneDeleteResponse;
 import com.whiteeyes.admin.region.exception.CameraRunningException;
 import com.whiteeyes.admin.region.exception.ZoneNotFoundException;
 import com.whiteeyes.common.camera.service.ZoneCameraService;
+import com.whiteeyes.common.event.repository.EventRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.repository.ZoneNeighborRepository;
 import com.whiteeyes.common.region.repository.ZoneRepository;
 import com.whiteeyes.common.security.LoginAccount;
+import com.whiteeyes.common.stat.repository.ZoneStatDailyRepository;
+import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
+import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
@@ -29,6 +33,10 @@ public class ZoneDeleteService {
     private final ZoneRepository zoneRepository;
     private final ZoneNeighborRepository zoneNeighborRepository;
     private final ZoneCameraService zoneCameraService;
+    private final ZoneStatMinuteRepository zoneStatMinuteRepository;
+    private final ZoneStatHourlyRepository zoneStatHourlyRepository;
+    private final ZoneStatDailyRepository zoneStatDailyRepository;
+    private final EventRepository eventRepository;
     private final AdminWorkRecorder workRecorder;
 
     /**
@@ -45,8 +53,9 @@ public class ZoneDeleteService {
         if (zoneCameraService.hasStartingOrRunningCamera(zoneId)) {
             throw new CameraRunningException(zoneId);
         }
-        // 처리 순서 2: 이력 확인. 소속 캠(삭제된 캠 포함)이 모두 한 번도 가동한 적이 없으면 이력 없음
-        boolean hasHistory = zoneCameraService.hasStartHistory(zoneId);
+        // 처리 순서 2: 이력 확인. 소속 캠(삭제된 캠 포함)이 모두 한 번도 가동한 적이 없고, 이 구역의 통계·이벤트 행도 없어야 이력 없음.
+        // 시연용 통계는 캠을 가동하지 않은 구역에도 만들어지고, 통계·이벤트는 구역을 외래키로 가리켜 실제 삭제하면 500이 난다
+        boolean hasHistory = zoneCameraService.hasStartHistory(zoneId) || hasStatOrEvent(zoneId);
         int cameraCount;
         if (hasHistory) {
             // 처리 순서 4: 구역·소속 캠에 삭제 표시를 하고, 이 구역이 들어간 이웃 행은 모두 지운다
@@ -71,5 +80,12 @@ public class ZoneDeleteService {
         detail.put("cameraCount", cameraCount);
         workRecorder.record(actor, WorkAction.ZONE_CHANGE, WorkTargetType.ZONE, zoneId, zone.getName(), detail);
         return new ZoneDeleteResponse(mode);
+    }
+
+    private boolean hasStatOrEvent(Long zoneId) {
+        return zoneStatMinuteRepository.existsByZoneId(zoneId)
+                || zoneStatHourlyRepository.existsByZoneId(zoneId)
+                || zoneStatDailyRepository.existsByZoneId(zoneId)
+                || eventRepository.existsByZoneId(zoneId);
     }
 }
