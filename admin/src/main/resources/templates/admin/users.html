@@ -6,7 +6,7 @@
 </head>
 <body class="we">
 <header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
-<!-- SCR-A-001 사용자 관리. 목록은 화면 JS(js/admin/pages/users.js)가 GET /api/v1/users(FNC-A-002)로 받아 채운다 -->
+<!-- SCR-A-001 사용자 관리. 목록은 화면 JS(js/admin/pages/users.js)가 GET /api/v1/users(FNC-A-002)로 받아 채우고, 행의 승인(FNC-A-006)도 맡는다 -->
 <main class="page">
     <div class="page-heading">
         <div>
@@ -57,6 +57,7 @@
                     <th scope="col" aria-sort="descending"><button type="button" class="sort-btn" data-sort="createdAt">가입일</button></th>
                     <th scope="col" aria-sort="none"><button type="button" class="sort-btn" data-sort="lastActiveAt">최근 활동</button></th>
                     <th scope="col">활동 중</th>
+                    <th scope="col" class="user-actions">동작</th>
                 </tr>
                 </thead>
                 <tbody id="user-table-body"></tbody>
