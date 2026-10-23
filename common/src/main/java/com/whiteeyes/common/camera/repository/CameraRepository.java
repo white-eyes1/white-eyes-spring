@@ -2,11 +2,13 @@ package com.whiteeyes.common.camera.repository;
 
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraStatus;
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +16,10 @@ import org.springframework.data.repository.query.Param;
 public interface CameraRepository extends JpaRepository<Camera, Long> {
 
     Optional<Camera> findByIdAndDeletedAtIsNull(Long id);
+
+    /** 행을 잠그고 읽는다(FNC-A-023 캠 삭제). 같은 시각에 가동·정지가 상태를 바꾸는 경합을 막는다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Camera> findWithLockByIdAndDeletedAtIsNull(Long id);
 
     /** 그 구역에 삭제되지 않은 캠이 있는지 본다(구역당 1대, FNC-A-018 처리 순서 2). */
     boolean existsByZoneIdAndDeletedAtIsNull(Long zoneId);

@@ -29,6 +29,7 @@ public enum ErrorCode {
     ZONE_HAS_CAMERA(HttpStatus.CONFLICT, "이 구역에는 이미 캠이 있습니다."),
     STATUS_CONFLICT(HttpStatus.CONFLICT, "현재 상태에서는 처리할 수 없습니다."),
     INVALID_STATUS(HttpStatus.CONFLICT, "현재 캠 상태에서는 처리할 수 없습니다."),
+    CAMERA_NOT_STOPPED(HttpStatus.CONFLICT, "정지 상태에서만 처리할 수 있습니다. 먼저 캠을 정지해 주세요."),
     CAMERA_RUNNING(HttpStatus.CONFLICT, "가동 중인 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요."),
     CAMERA_STOPPING(HttpStatus.CONFLICT, "이전 정지가 아직 끝나지 않았습니다. 잠시 뒤 다시 시작해 주세요."),
     SOURCE_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "영상 파일·스트림을 찾을 수 없습니다."),

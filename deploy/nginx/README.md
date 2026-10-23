@@ -33,4 +33,4 @@ sh deploy/nginx/verify/run.sh deploy/nginx
 
 확인하는 것: 문법(`nginx -t`), 경로 분배와 프록시 헤더, 내부 경로 404, 라이브 권한(쿠키 없음 401·권한 없음 403·통과 200, 분석 서버가 받은 토큰, 비튼 주소 차단), 스트림·SSE가 모이지 않고 바로 나오는지, `X-Accel-Redirect`·Range 206·직접 접근 404, 좌표 파일 헤더(`Content-Encoding` 1개). 가짜 앱의 응답 규칙은 `fakes.py` 위쪽을 본다(실제 앱 규칙은 FNC-A-041·044 명세).
 
-실제 앱·분석 서버와 함께 영상이 나오는지(더미 캠 가동 → 캠 카드 미리보기·실시간 보기 창)는 이 폴더로는 확인하지 못한다. 분석 서버(flask)와 함께 띄운 환경에서 확인해야 한다(이슈 #159 마지막 완료 기준).
+실제 분석 서버(flask `dev` a575d49)와 함께 영상이 나오는지는 2026-10-23에 확인했다. 분석 서버를 Docker(python:3.12-slim, CPU torch, VisDrone 가중치)로 띄우고 합성 시험 영상(`dummy/videos/a.mp4`)으로 더미 캠을 가동한 뒤, 이 설정의 nginx를 거쳐 `/admin/live/1/snapshot`(JPEG, `Cache-Control: no-store` 한 번)과 `/admin/live/1`(MJPEG, 3초에 프레임 15장)을 받았고, 실제 Chrome에서 두 주소를 `img`로 열어 둘 다 그려지고 화면이 움직이는 것을 확인했다. 분석 서버를 nginx 없이 토큰 없이 부르면 401이고, 클라이언트가 보낸 `X-Internal-Token`은 nginx가 덮어쓴다. 확인하지 못한 것: 실제 관리자 앱(권한 확인과 분석 서버의 상태·결과 보고는 가짜 앱으로 대신했다), 실제 녹화 영상과 사람이 찍힌 영상(합성 영상이라 탐지 수는 0), 운영 환경의 nginx.
