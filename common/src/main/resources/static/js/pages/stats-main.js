@@ -1,6 +1,7 @@
 // 통계 메인(대시보드) 진입 파일 SCR-C-003: 지역 필터(FNC-C-008), 통계 패널(FNC-C-009·016·025), 지도, 캠 패널(관리자 앱).
-// 지역은 주소 쿼리 regionId로 유지한다. 값은 60초마다 다시 읽는다(통계 SSE는 2단계).
-import { get } from '../common/api.js';
+// 지역은 주소 쿼리 regionId로 유지한다. 새 1분 통계는 통계 SSE(FNC-C-022)가 알려 주면 화면 값을 새로 읽고,
+// 연결이 끊겨 있거나 한참 소식이 없으면 60초마다 읽는다.
+import { get, url } from '../common/api.js';
 import { createRegionMap, createStatusLayer } from '../map/status-map.js';
 import { createDeck } from './stats-main/deck.js';
 import {
@@ -13,6 +14,10 @@ import {
 } from './stats-main/panel.js';
 
 const REFRESH_MS = 60_000;
+// 연결돼 있어도 이 시간 동안 새로 읽은 적이 없으면 스트림이 멈춘 것으로 보고 직접 읽는다
+const STALE_MS = 150_000;
+// 새 분 소식이 연달아 와도(여러 구역 저장) 한 번만 읽는다
+const STREAM_DEBOUNCE_MS = 300;
 const LEVEL_LABELS = ['시·도', '시·군·구', '읍·면·동'];
 const EMD = 'EMD';
 
@@ -27,6 +32,10 @@ let deck = null;
 let zoneItems = [];
 let zoneTab = 'count';
 let renderedRegionId = null;
+let stream = null;
+let streamConnected = false;
+let streamTimer = null;
+let lastRefreshAt = 0;
 const childrenCache = new Map(); // parentId(없으면 'root') -> 하위 지역 목록
 
 start();
@@ -49,7 +58,46 @@ async function start() {
         });
     }
     await selectFromUrl();
-    window.setInterval(refresh, REFRESH_MS);
+    window.setInterval(pollIfNeeded, REFRESH_MS);
+}
+
+// ---- 실시간 통계 갱신 (FNC-C-022) -------------------------------------------------------------
+
+// 지역이 바뀌면 그 지역으로 다시 연결한다. 끊기면 EventSource가 retry(5초)로 알아서 다시 연결한다
+function connectStream(regionId) {
+    stream?.close();
+    streamConnected = false;
+    const source = new EventSource(url(`/api/v1/stats/stream?regionId=${regionId}`));
+    stream = source;
+    source.addEventListener('open', () => setStreamConnected(true));
+    source.addEventListener('error', () => setStreamConnected(false));
+    source.addEventListener('stat', () => {
+        // 이미 다른 지역으로 옮겨 닫힌 연결의 늦은 소식은 무시한다
+        if (stream !== source) {
+            return;
+        }
+        window.clearTimeout(streamTimer);
+        streamTimer = window.setTimeout(refreshSafely, STREAM_DEBOUNCE_MS);
+    });
+}
+
+function setStreamConnected(connected) {
+    streamConnected = connected;
+    document.getElementById('stream-status').hidden = connected;
+}
+
+function pollIfNeeded() {
+    if (!streamConnected || Date.now() - lastRefreshAt > STALE_MS) {
+        refreshSafely();
+    }
+}
+
+async function refreshSafely() {
+    try {
+        await refresh();
+    } catch {
+        // 읽기에 실패해도 다음 소식이나 60초 확인에 다시 읽는다. 오류 토스트는 api.js가 띄운다
+    }
 }
 
 // ---- 지역 필터 -------------------------------------------------------------------------------
@@ -159,6 +207,7 @@ async function loadRegion() {
             onViewChange: updateVisibleZones,
         });
         renderedRegionId = target.id;
+        connectStream(target.id);
     }
     await refresh();
 }
@@ -180,6 +229,8 @@ async function refresh() {
         get('/api/v1/map/status', { regionId: target.id, unit: 'CHILD' }),
         isDong ? get('/api/v1/zones', { dongId: target.id }) : Promise.resolve([]),
     ]);
+    // 읽기에 성공했을 때만 기록한다. 실패하면 다음 60초 확인이 바로 다시 읽는다
+    lastRefreshAt = Date.now();
     if (target !== path[path.length - 1]) {
         return; // 읽는 동안 지역이 바뀌었다
     }

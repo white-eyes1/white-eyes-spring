@@ -3,6 +3,7 @@
 <!--
   통계 메인(대시보드) SCR-C-003, 두 앱이 함께 쓰는 화면(FNC-C-008·009·016·025, 캠 패널 FNC-A-022).
   admin 모델 값이 true일 때만 지역 등록·수정 버튼과 캠 패널이 그려진다(관리자 앱).
+  새 1분 통계는 통계 SSE(FNC-C-022)로 받아 화면을 새로 읽는다.
   2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감, 비정상 변동, 보조 지표)과 엑셀 버튼은 아직 없다.
 -->
 <head>
@@ -19,6 +20,10 @@
         <select class="input filter-select" id="filter-sido" aria-label="시·도"></select>
         <select class="input filter-select" id="filter-sigungu" aria-label="시·군·구"></select>
         <select class="input filter-select" id="filter-emd" aria-label="읍·면·동"></select>
+        <!-- 실시간 통계 갱신(FNC-C-022) 연결이 끊기면 보인다. 브라우저가 5초 뒤 자동으로 다시 연결한다 -->
+        <span class="stream-status" id="stream-status" role="status" hidden>
+            <i class="dot off"></i>연결 끊김 · 다시 연결하는 중
+        </span>
         <a class="btn secondary" th:if="${admin}" th:href="@{/zones}" style="margin-left: auto">지역 등록·수정</a>
     </div>
 

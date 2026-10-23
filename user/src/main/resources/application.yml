@@ -31,3 +31,8 @@ management:
     web:
       exposure:
         include: health
+
+# 실시간 통계 갱신(FNC-C-022): 앱마다 5초에 한 번 최신 1분 통계 시각을 확인해 SSE로 보낸다
+stats:
+  stream:
+    auto-poll: true

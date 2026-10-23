@@ -1,0 +1,18 @@
+/* 사용자 관리 화면(SCR-A-001) 전용 스타일. 공통 스타일은 we.css */
+.user-panel { overflow: hidden; }
+.user-panel .filterbar { border-radius: 12px 12px 0 0; }
+.user-panel .filterbar .input { height: 34px; font-size: 12px; }
+.user-keyword { min-width: 220px; }
+.user-dates { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.user-search { margin-left: auto; }
+.user-notice { margin: 12px 16px 0; }
+.user-empty { padding: 28px 16px; text-align: center; font-size: 12px; }
+
+/* 정렬 머리글: 버튼 모양을 지우고 머리글 글자처럼 보인다 */
+.sort-btn { padding: 0; border: 0; background: none; color: inherit; font-weight: inherit; cursor: pointer; }
+.sort-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* 페이지 번호: we.css .pager .pages span과 같은 모양을 버튼에 준다 */
+.pager .pages button { min-width: 28px; height: 28px; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; background: none; color: inherit; font-size: 12px; cursor: pointer; }
+.pager .pages button[aria-current="page"] { background: var(--blue-btn); border-color: #5d95ef; color: #fff; }
+.pager .pages button:disabled:not([aria-current]) { opacity: .4; cursor: default; }

@@ -15,6 +15,13 @@ import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 
 public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, ZoneStatMinuteId> {
 
+    /** 저장된 가장 최근 1분 통계 시각. 통계가 하나도 없으면 null(실시간 통계 갱신 FNC-C-022가 5초마다 본다). */
+    @Query("select max(s.statAt) from ZoneStatMinute s")
+    LocalDateTime findLatestStatAt();
+
+    /** 그 분의 모든 구역 통계(FNC-C-022). */
+    List<ZoneStatMinute> findByStatAt(LocalDateTime statAt);
+
     /** 구역들의 from 이후(포함) 1분 통계. 최근 현황 조회(FNC-C-009)에 쓴다. */
     List<ZoneStatMinute> findByZoneIdInAndStatAtGreaterThanEqual(Collection<Long> zoneIds, LocalDateTime from);
 
