@@ -171,7 +171,12 @@ async function onRegionChange(depth, value) {
 }
 
 async function onZoneChange(zones, value) {
+    const previous = zone;
     zone = zones.find((candidate) => String(candidate.id) === value) ?? null;
+    if (previous?.deleted && zone?.id !== previous.id) {
+        // 삭제된 구역을 떠나면 선택 칸에서 '(삭제됨)' 항목을 뺀다
+        await renderTargetSelects();
+    }
     await load();
 }
 

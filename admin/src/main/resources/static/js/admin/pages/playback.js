@@ -256,7 +256,12 @@ async function loadBoxes(target) {
     clearBoxes();
     boxesFor = target.id;
     try {
-        const frames = parseFrames(await get(target.boxesUrl, undefined, { toast: false }));
+        // boxesUrl은 서버가 컨텍스트 경로(/admin)까지 붙여 준 주소다. 영상 주소처럼 그대로 쓴다(공통 get()은 경로를 한 번 더 붙인다)
+        const response = await fetch(target.boxesUrl, { credentials: 'same-origin' });
+        if (!response.ok) {
+            throw new Error(`좌표 파일 요청 실패 ${response.status}`);
+        }
+        const frames = parseFrames(await response.json());
         if (boxesFor !== target.id) {
             return; // 그 사이 다른 녹화로 바뀌었다
         }
@@ -269,6 +274,7 @@ async function loadBoxes(target) {
     }
     setBoxNote(boxFrames === null);
     drawBoxes();
+    armBoxLoop();
 }
 
 function clearBoxes() {
@@ -309,21 +315,29 @@ function drawBoxes() {
     toPixels(frame.boxes, area).forEach((box) => context.strokeRect(box.x, box.y, box.w, box.h));
 }
 
-// 그릴 시점: 영상 프레임이 화면에 올라갈 때마다(requestVideoFrameCallback, 없으면 requestAnimationFrame)
-function startBoxLoop() {
-    if ('requestVideoFrameCallback' in video) {
-        const tick = () => {
-            drawBoxes();
-            video.requestVideoFrameCallback(tick);
-        };
-        video.requestVideoFrameCallback(tick);
+// 그릴 시점: 영상 프레임이 화면에 올라갈 때마다(requestVideoFrameCallback, 없으면 requestAnimationFrame).
+// 그릴 것이 없을 때(좌표 파일 없음·스위치 끔·녹화 없음)는 반복을 멈추고, 좌표 파일을 받거나 스위치를 켤 때 다시 건다
+let boxLoopArmed = false;
+
+function wantsBoxLoop() {
+    return showBoxes && boxFrames !== null && recording !== null;
+}
+
+function armBoxLoop() {
+    if (boxLoopArmed || !wantsBoxLoop()) {
         return;
     }
+    boxLoopArmed = true;
     const tick = () => {
+        boxLoopArmed = false;
         drawBoxes();
-        window.requestAnimationFrame(tick);
+        armBoxLoop();
     };
-    window.requestAnimationFrame(tick);
+    if ('requestVideoFrameCallback' in video) {
+        video.requestVideoFrameCallback(tick);
+    } else {
+        window.requestAnimationFrame(tick);
+    }
 }
 
 boxSwitch.addEventListener('click', () => {
@@ -331,11 +345,11 @@ boxSwitch.addEventListener('click', () => {
     boxSwitch.setAttribute('aria-checked', String(showBoxes));
     setBoxNote(boxFrames === null && recording !== null);
     drawBoxes();
+    armBoxLoop();
 });
 // 일시 정지·구간 이동·창 크기 변경에도 위치가 맞도록 다시 그린다
 ['seeked', 'loadedmetadata', 'pause', 'play'].forEach((name) => video.addEventListener(name, drawBoxes));
 new ResizeObserver(drawBoxes).observe(document.getElementById('pb-feed'));
-startBoxLoop();
 
 // ---- 이어 재생(FNC-A-045) ----
 
