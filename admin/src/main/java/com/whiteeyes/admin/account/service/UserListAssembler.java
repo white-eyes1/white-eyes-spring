@@ -28,7 +28,7 @@ public final class UserListAssembler {
      * @param totalElements 조건에 맞는 전체 계정 수
      */
     public static PageResponse<UserListItem> assemblePage(
-            List<UserRow> pageRows, long totalElements, UserActivities activities, UserSearchRequest request) {
+            List<UserRow> pageRows, long totalElements, AccountActivities activities, UserSearchRequest request) {
         List<UserListItem> items = pageRows.stream()
                 .map(row -> toItem(row, activities))
                 .toList();
@@ -42,7 +42,7 @@ public final class UserListAssembler {
      * @param candidates DB 조건(검색어·상태·가입일)에 맞는 계정, 상한 + 1개까지
      */
     public static PageResponse<UserListItem> assembleInMemory(
-            List<UserRow> candidates, UserActivities activities, UserSearchRequest request) {
+            List<UserRow> candidates, AccountActivities activities, UserSearchRequest request) {
         boolean truncated = candidates.size() > SESSION_DEPENDENT_LIMIT;
         List<UserRow> limited = truncated ? candidates.subList(0, SESSION_DEPENDENT_LIMIT) : candidates;
 
@@ -58,8 +58,8 @@ public final class UserListAssembler {
         return PageResponse.of(matched.subList(from, to), request.page(), request.size(), matched.size(), truncated);
     }
 
-    private static UserListItem toItem(UserRow row, UserActivities activities) {
-        UserActivity activity = activities.activityOf(row.loginId(), row.lastLoginAt());
+    private static UserListItem toItem(UserRow row, AccountActivities activities) {
+        AccountActivity activity = activities.activityOf(row.loginId(), row.lastLoginAt());
         ZoneId zone = activities.zone();
         return new UserListItem(
                 row.id(),
