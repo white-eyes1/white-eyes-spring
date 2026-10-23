@@ -202,6 +202,19 @@ class ZoneDeleteTest {
     }
 
     @Test
+    @DisplayName("FNC-A-017 STOPPED여도 가동 요청(run_requested=1)인 캠이 있으면 409 CAMERA_RUNNING이고, 이미 삭제된 캠의 요청은 무시한다")
+    void runRequestedCamera_conflict() throws Exception {
+        long requested = insertCamera(zoneId, "STOPPED", null, null);
+        jdbcTemplate.update("UPDATE camera SET run_requested = 1 WHERE id = ?", requested);
+
+        removeZone(zoneId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CAMERA_RUNNING"));
+        assertThat(count("zone WHERE id = " + zoneId + " AND deleted_at IS NULL")).isEqualTo(1);
+
+        jdbcTemplate.update("UPDATE camera SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", requested);
+        removeZone(zoneId).andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("FNC-A-017 정지(STOPPED)·오류(ERROR) 캠이거나, 이미 삭제된 캠이 가동 중 상태로 남아 있어도 삭제할 수 있다")
     void stoppedErrorOrDeletedRunning_allowed() throws Exception {
         insertCamera(zoneId, "ERROR", LocalDateTime.now().minusDays(1), null);

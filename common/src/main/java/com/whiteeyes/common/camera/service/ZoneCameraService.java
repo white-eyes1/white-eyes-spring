@@ -33,11 +33,10 @@ public class ZoneCameraService {
         return cameraRepository.findIdsByZoneId(zoneId);
     }
 
-    /** 그 구역에 준비 중(PREPARING)이거나 가동 중(RUNNING)인 삭제되지 않은 캠이 있는지(구역 삭제 FNC-A-017 처리 순서 1). */
+    /** 그 구역에 준비 중(PREPARING)·가동 중(RUNNING)이거나 가동 요청(run_requested=1) 상태인 삭제되지 않은 캠이 있는지(구역 삭제 FNC-A-017 처리 순서 1). */
     @Transactional(readOnly = true)
     public boolean hasStartingOrRunningCamera(Long zoneId) {
-        return cameraRepository.existsByZoneIdAndDeletedAtIsNullAndStatusIn(
-                zoneId, List.of(CameraStatus.PREPARING, CameraStatus.RUNNING));
+        return cameraRepository.existsActiveOrRunRequested(zoneId, List.of(CameraStatus.PREPARING, CameraStatus.RUNNING));
     }
 
     /** 그 구역의 캠 중 한 번이라도 가동한 것이 있는지. 삭제된 캠도 본다(구역 삭제 FNC-A-017 처리 순서 2). */

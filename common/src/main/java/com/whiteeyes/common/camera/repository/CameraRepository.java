@@ -38,6 +38,13 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     /** 그 구역의 삭제되지 않은 캠 중 주어진 상태인 것이 있는지 본다(구역 삭제 FNC-A-017 처리 순서 1). */
     boolean existsByZoneIdAndDeletedAtIsNullAndStatusIn(Long zoneId, Collection<CameraStatus> statuses);
 
+    /** 그 구역의 삭제되지 않은 캠 중 주어진 상태이거나 가동 요청(run_requested=1) 상태인 것이 있는지 본다(구역 삭제 FNC-A-017 처리 순서 1). */
+    @Query("""
+            select count(c) > 0 from Camera c
+            where c.zoneId = :zoneId and c.deletedAt is null and (c.status in :statuses or c.runRequested = true)
+            """)
+    boolean existsActiveOrRunRequested(@Param("zoneId") Long zoneId, @Param("statuses") Collection<CameraStatus> statuses);
+
     /** 그 구역에 처음 가동한 적이 있는 캠이 있는지 본다. 삭제된 캠도 포함한다(구역 삭제 FNC-A-017 처리 순서 2). */
     boolean existsByZoneIdAndFirstStartedAtIsNotNull(Long zoneId);
 

@@ -9,7 +9,7 @@ const ERROR_MESSAGES = {
     INVALID_POLYGON: '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
     OUT_OF_SERVICE_AREA: '서비스 지역 밖입니다. 서비스 지역 안에서 다시 그려 주세요.',
     DUPLICATE_ZONE_NAME: '이미 사용 중인 구역 이름입니다.',
-    CAMERA_RUNNING: '가동 중이거나 준비 중인 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.',
+    CAMERA_RUNNING: '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.',
     DONG_CHANGE_NOT_ALLOWED: '다른 동으로 바뀌어 저장할 수 없습니다. 같은 동 안에서만 모양을 바꿀 수 있습니다.',
 };
 
