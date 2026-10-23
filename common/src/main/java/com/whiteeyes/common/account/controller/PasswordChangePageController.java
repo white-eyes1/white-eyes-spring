@@ -26,7 +26,7 @@ public class PasswordChangePageController {
 
     @GetMapping("/me/password")
     public String passwordPage(Model model) {
-        // 사용자 앱은 로그인 화면 연결(#126) 전이라 로그인하지 않은 요청도 여기까지 올 수 있다. 그때는 401로 거부한다
+        // 로그인하지 않은 요청은 보안 설정이 로그인 화면으로 보내 여기까지 오지 않는다. 계정 번호가 없는 옛 세션만 401로 거부한다
         loginAccountResolver.require();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         model.addAttribute("forced", mustChangePassword(authentication));
