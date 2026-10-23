@@ -97,6 +97,11 @@ public class UserAccount {
         this.mustChangePassword = false;
     }
 
+    /** 로그인에 성공한 시각을 남긴다(FNC-C-001). */
+    public void recordLogin(LocalDateTime loggedInAt) {
+        this.lastLoginAt = loggedInAt;
+    }
+
     /** 승인해 ACTIVE로 바꾼다(FNC-A-006). PENDING인지는 부르는 쪽이 먼저 확인한다. */
     public void approve() {
         this.status = UserAccountStatus.ACTIVE;
