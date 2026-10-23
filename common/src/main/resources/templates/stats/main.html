@@ -5,13 +5,15 @@
   admin 모델 값이 true일 때만 지역 등록·수정 버튼과 캠 패널이 그려진다(관리자 앱).
   새 1분 통계는 통계 SSE(FNC-C-022)로 받아 화면을 새로 읽는다.
   비정상 인원 변동(FNC-C-020)은 펼칠 때 기간 비교 API로 읽는다.
-  다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감, 보조 지표)과 엑셀 버튼은 아직 없다.
+  엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
+  다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감, 보조 지표)은 아직 없다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
     <th:block th:replace="~{fragments/layout :: leaflet}"/>
     <link rel="stylesheet" th:href="@{/css/stats-main.css}">
     <link rel="stylesheet" th:href="@{/css/live.css}">
+    <link rel="stylesheet" th:href="@{/css/stats-export.css}">
 </head>
 <body class="we">
 <div class="dash" id="dash" th:attr="data-admin=${admin}, data-snapshot-interval-sec=${cardSnapshotIntervalSec}">
@@ -82,8 +84,11 @@
                         <a class="btn secondary sm" id="abnormal-detail" th:href="@{/stats/compare}">자세히</a>
                     </div>
                 </details>
-                <!-- 그래프 보기(FNC-C-012): 현재 지역을 넘긴다(panel.js renderGraphLink) -->
-                <a class="btn secondary" id="graph-link" th:href="@{/stats/graph}">그래프 보기</a>
+                <!-- 그래프 보기(FNC-C-012)·엑셀 다운로드(FNC-C-023): 현재 지역을 넘긴다(panel.js renderGraphLink, stats-main.js openExport) -->
+                <div class="panel-actions">
+                    <a class="btn secondary" id="graph-link" th:href="@{/stats/graph}">그래프 보기</a>
+                    <button type="button" class="btn secondary" id="export-open">엑셀 다운로드</button>
+                </div>
             </div>
         </aside>
 
@@ -115,6 +120,8 @@
 <th:block th:if="${admin}">
     <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
 </th:block>
+<!-- SCR-C-006 엑셀 다운로드 창(두 앱) -->
+<th:block th:replace="~{fragments/layout :: statExportModal}"/>
 
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/stats-main.js}"></script>

@@ -4,6 +4,7 @@
 import { ApiError, get } from '../common/api.js';
 import { formatDateTime } from '../common/format.js';
 import { SERIES_ITEMS, createSeriesChart } from '../chart/series-chart.js';
+import { initExportModal, openExportModal } from '../export/export-modal.js';
 
 const SERIES_API = '/api/v1/stats/series';
 const LEVEL_LABELS = ['시·도', '시·군·구', '읍·면·동'];
@@ -60,6 +61,8 @@ async function start() {
     initTabs();
     initItems();
     byId('period-apply').addEventListener('click', applyPeriod);
+    initExportModal();
+    byId('export-open').addEventListener('click', openExport);
     renderTabs();
     renderPeriod();
     await load();
@@ -180,6 +183,21 @@ function currentTarget() {
         return { targetType: 'ZONE', targetId: zone.id };
     }
     return { targetType: 'REGION', targetId: path[path.length - 1].id };
+}
+
+// 엑셀 다운로드 창(SCR-C-006)에 현재 대상·단위·기간을 넘긴다. 구역이면 소속 동도 범위로 고를 수 있게 함께 넘긴다
+function openExport() {
+    if (path.length === 0) {
+        return;
+    }
+    const region = path[path.length - 1];
+    openExportModal({
+        zone: zone ? { id: zone.id, name: zone.name } : null,
+        region: { id: region.id, name: region.name },
+        interval,
+        from,
+        to,
+    });
 }
 
 // ---- 단위·기간·항목 ----------------------------------------------------------------------------
