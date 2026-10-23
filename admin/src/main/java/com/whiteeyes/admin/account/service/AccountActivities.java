@@ -9,13 +9,13 @@ import java.util.Map;
  * 계정 여러 개의 세션 마지막 접근 시각을 한 번에 읽어 둔 것. 같은 기준 시각으로 활동 중 여부를 판정한다
  * (conventions.md '활동 중 판단').
  */
-public class UserActivities {
+public class AccountActivities {
 
     private final Map<String, Instant> sessionLastAccessTimes;
     private final ZoneId zone;
     private final LocalDateTime activeSince;
 
-    UserActivities(Map<String, Instant> sessionLastAccessTimes, ZoneId zone, LocalDateTime activeSince) {
+    AccountActivities(Map<String, Instant> sessionLastAccessTimes, ZoneId zone, LocalDateTime activeSince) {
         this.sessionLastAccessTimes = sessionLastAccessTimes;
         this.zone = zone;
         this.activeSince = activeSince;
@@ -31,11 +31,11 @@ public class UserActivities {
      *
      * @param lastLoginAt user_account.last_login_at(없으면 null)
      */
-    public UserActivity activityOf(String loginId, LocalDateTime lastLoginAt) {
+    public AccountActivity activityOf(String loginId, LocalDateTime lastLoginAt) {
         Instant sessionLastAccess = sessionLastAccessTimes.get(loginId);
         LocalDateTime lastActiveAt =
                 sessionLastAccess == null ? lastLoginAt : LocalDateTime.ofInstant(sessionLastAccess, zone);
         boolean active = lastActiveAt != null && !lastActiveAt.isBefore(activeSince);
-        return new UserActivity(lastActiveAt, active);
+        return new AccountActivity(lastActiveAt, active);
     }
 }
