@@ -1,8 +1,8 @@
-// 캠 관리 화면 SCR-A-006과 캠 등록 창 SCR-A-007(FNC-A-018·020·021·022).
+// 캠 관리 화면 SCR-A-006과 캠 등록·수정 창 SCR-A-007(FNC-A-018·019·020·021·022).
 // 1단계: 준비 중인 캠이 있으면 목록을 몇 초마다 다시 받아 진행률을 갱신한다(SSE는 2단계).
-// 실시간 보기 창(SCR-A-008)은 RUNNING인 캠의 '실시간 보기'에서 연다. 수정·삭제(3단계)는 만들지 않는다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
+// 실시간 보기 창(SCR-A-008)은 RUNNING인 캠의 '실시간 보기'에서 연다. 삭제(3단계)는 만들지 않는다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
-import { get, post, ApiError } from '../../common/api.js';
+import { get, patch, post, ApiError } from '../../common/api.js';
 import { showToast } from '../../common/toast.js';
 import { initLiveView, openLiveView, updateLiveView } from '../../live/live-view.js';
 
@@ -21,6 +21,7 @@ const URI_HINT = {
 };
 // 등록 창에서 서버 메시지를 입력 아래에 보이는 오류 코드와 위치
 const FORM_ERROR_TARGET = { ZONE_NOT_FOUND: 'zoneId', ZONE_HAS_CAMERA: 'zoneId' };
+const NOT_STOPPED_HINT = '정지 상태에서만 고칠 수 있습니다. 먼저 정지해 주세요.';
 
 const rowsEl = document.getElementById('camera-rows');
 const emptyEl = document.getElementById('camera-empty');
@@ -35,6 +36,8 @@ const saveButton = document.getElementById('camera-save');
 
 let pollTimer = null;
 let loading = false;
+// 수정 창이 열려 있는 캠(등록 창이면 null)
+let editing = null;
 
 // ---- 목록 ----
 
@@ -121,7 +124,7 @@ function errorCell(message) {
 // STOPPED → 가동 / PREPARING·RUNNING → 정지 / ERROR → 다시 시작 + 정지
 function actions(camera) {
     const wrap = el('div', 'row-actions');
-    wrap.append(liveButton(camera));
+    wrap.append(liveButton(camera), editButton(camera));
     if (camera.status === 'STOPPED') {
         wrap.append(actionButton('가동', 'primary', camera, 'start'));
     }
@@ -140,6 +143,19 @@ function liveButton(camera) {
     button.type = 'button';
     button.disabled = camera.status !== 'RUNNING';
     button.addEventListener('click', () => openLiveView(camera));
+    return button;
+}
+
+// 정지 상태(STOPPED)이고 가동 요청이 없을 때만 켜진다(FNC-A-019가 그 밖의 상태는 409로 막는다)
+function editButton(camera) {
+    const button = el('button', 'btn secondary sm', '수정');
+    button.type = 'button';
+    const editable = camera.status === 'STOPPED' && !camera.runRequested;
+    button.disabled = !editable;
+    if (!editable) {
+        button.title = NOT_STOPPED_HINT;
+    }
+    button.addEventListener('click', () => openModal(camera));
     return button;
 }
 
@@ -165,13 +181,32 @@ async function runAction(button, camera, action) {
     await loadCameras();
 }
 
-// ---- 캠 등록 창 ----
+// ---- 캠 등록·수정 창 ----
 
-async function openModal() {
+// camera가 있으면 수정 창(구역은 읽기 전용, 값을 채워 연다), 없으면 등록 창
+async function openModal(camera = null) {
+    editing = camera;
     form.reset();
     clearErrors();
+    document.getElementById('camera-modal-title').textContent = camera ? '캠 수정' : '캠 등록';
+    document.getElementById('camera-zone-hint').textContent = camera
+        ? '구역은 바꿀 수 없습니다'
+        : '캠이 없는 구역만 고를 수 있습니다(구역당 1대)';
+    if (camera) {
+        form.elements.name.value = camera.name;
+        form.elements.sourceType.value = camera.sourceType;
+        uriInput.value = camera.sourceUri;
+    }
     updateUriHint();
     modal.hidden = false;
+    if (camera) {
+        zoneSelect.replaceChildren(option(camera.zoneId, camera.zoneName));
+        zoneSelect.disabled = true;
+        saveButton.disabled = false;
+        form.elements.name.focus();
+        return;
+    }
+    zoneSelect.disabled = false;
     zoneSelect.replaceChildren(option('', '구역을 불러오는 중…'));
     saveButton.disabled = true;
     try {
@@ -191,6 +226,7 @@ async function openModal() {
 
 function closeModal() {
     modal.hidden = true;
+    editing = null;
 }
 
 function updateUriHint() {
@@ -223,17 +259,20 @@ function showFieldError(field, message) {
 async function submitForm(event) {
     event.preventDefault();
     clearErrors();
-    const body = {
-        zoneId: zoneSelect.value ? Number(zoneSelect.value) : null,
+    const values = {
         name: form.elements.name.value.trim(),
         sourceType: form.elements.sourceType.value,
         sourceUri: uriInput.value.trim(),
     };
     saveButton.disabled = true;
     try {
-        await post('/api/v1/manage/cameras', body, { toast: false });
-        closeModal();
-        await loadCameras();
+        if (editing) {
+            await saveEdit(values);
+        } else {
+            await post('/api/v1/manage/cameras', { zoneId: zoneSelect.value ? Number(zoneSelect.value) : null, ...values }, { toast: false });
+            closeModal();
+            await loadCameras();
+        }
     } catch (error) {
         if (!(error instanceof ApiError)) {
             throw error;
@@ -242,12 +281,34 @@ async function submitForm(event) {
             error.fieldErrors.forEach(({ field, message }) => showFieldError(field, message));
         } else if (error.code === 'INVALID_INPUT') {
             showFieldError('sourceUri', error.message);
+        } else if (error.code === 'CAMERA_NOT_STOPPED') {
+            // 그 사이 가동됐다. 오류를 보이고 목록을 다시 받아 수정 버튼을 끈다
+            showFieldError('', error.message);
+            await loadCameras();
         } else {
             showFieldError(FORM_ERROR_TARGET[error.code] ?? '', error.message);
         }
     } finally {
         saveButton.disabled = false;
     }
+}
+
+// 수정: 바뀐 필드만 PATCH로 보낸다. 바뀐 것이 없으면 창만 닫는다
+async function saveEdit(values) {
+    const body = {};
+    Object.keys(values).forEach((key) => {
+        if (values[key] !== editing[key]) {
+            body[key] = values[key];
+        }
+    });
+    if (Object.keys(body).length === 0) {
+        closeModal();
+        return;
+    }
+    const updated = await patch(`/api/v1/manage/cameras/${editing.id}`, body, { toast: false });
+    closeModal();
+    showToast(`'${updated.name}' 캠 정보를 수정했습니다.`);
+    await loadCameras();
 }
 
 // ---- 도우미 ----
@@ -287,7 +348,7 @@ function option(value, label) {
 }
 
 initLiveView();
-document.getElementById('camera-add').addEventListener('click', openModal);
+document.getElementById('camera-add').addEventListener('click', () => openModal());
 modal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeModal));
 modal.addEventListener('mousedown', (event) => {
     if (event.target === modal) {
