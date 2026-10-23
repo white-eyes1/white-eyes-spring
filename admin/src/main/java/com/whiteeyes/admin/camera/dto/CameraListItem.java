@@ -9,7 +9,7 @@ import java.util.List;
  * 캠 목록 한 줄(GET /api/v1/manage/cameras, FNC-A-022). progress는 준비 중일 때만 값이 있다.
  *
  * <p>stat은 5분 안에 1분 통계가 없으면 null, recent10m은 최근 10분의 1분 평균 인원(시각 순서, 최대 10개)이다.
- * todayEventCount는 이벤트(#38)가 들어오면 채운다. 지금은 0이다.
+ * todayEventCount는 오늘(KST 00:00 이후) 시작한 그 구역의 혼잡·급증 이벤트 수이고, 캠 이상은 세지 않는다.
  */
 public record CameraListItem(
         Long id,

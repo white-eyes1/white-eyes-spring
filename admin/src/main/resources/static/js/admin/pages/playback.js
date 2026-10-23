@@ -13,6 +13,7 @@ import {
     minuteStart,
     nextEvent,
     normalizeEvents,
+    normalizeRanges,
     normalizeSeries,
     previousEvent,
     recordingCovers,
@@ -58,6 +59,8 @@ let metric = 'count';
 let timeWindow = null;
 let series = [];
 let events = [];
+// 시간축 범위의 녹화 구간. 못 읽었으면 null(띠를 숨긴다)
+let recordingRanges = null;
 let shownMinute = null;
 // 시간축 경계선(주의·위험)에 쓰는 값: 구역 면적(㎡)과 단계가 시작되는 밀집도(명/㎡)
 let zoneArea = null;
@@ -316,15 +319,17 @@ async function loadTimeline(center) {
     const request = ++timelineRequest;
     timeWindow = windowFor(range, center);
     const query = { from: toKstIso(timeWindow.from), to: toKstIso(timeWindow.to) };
-    const [seriesResult, eventsResult] = await Promise.allSettled([
+    const [seriesResult, eventsResult, rangesResult] = await Promise.allSettled([
         get('/api/v1/stats/series', { targetType: 'ZONE', targetId: zoneId, interval: '1m', ...query }, { toast: false }),
         get('/api/v1/events', { zoneId, ...query, size: 100 }, { toast: false }),
+        get('/api/v1/playback/ranges', { zoneId, ...query }, { toast: false }),
     ]);
     if (request !== timelineRequest) {
         return;
     }
     series = seriesResult.status === 'fulfilled' ? normalizeSeries(seriesResult.value?.items ?? []) : [];
     events = eventsResult.status === 'fulfilled' ? normalizeEvents(eventsResult.value?.items ?? []) : [];
+    recordingRanges = rangesResult.status === 'fulfilled' ? normalizeRanges(rangesResult.value?.ranges ?? []) : null;
     shownMinute = null;
     renderTimeline();
     updatePlayhead();
@@ -370,6 +375,7 @@ function renderTimeline() {
     });
 
     renderLevelStrip(from, to);
+    renderRecordingStrip(from, to);
     const axis = document.getElementById('pb-axis');
     axis.replaceChildren(
         ...[0, 0.25, 0.5, 0.75, 1].map((position) => {
@@ -412,6 +418,21 @@ function renderLevelStrip(from, to) {
         cells.push(cell);
     }
     document.getElementById('pb-level-strip').replaceChildren(...cells);
+}
+
+// 녹화가 있는 구간 띠(FNC-A-043 구간 조회). 못 읽었으면 없음/있음을 알 수 없으므로 띠를 숨긴다
+function renderRecordingStrip(from, to) {
+    const strip = document.getElementById('pb-rec-strip');
+    strip.hidden = recordingRanges === null;
+    document.getElementById('pb-legend-rec').hidden = recordingRanges === null;
+    const spans = (recordingRanges ?? []).map((item) => {
+        const start = fraction(item.from, from, to);
+        const span = document.createElement('span');
+        span.style.left = `${start * 100}%`;
+        span.style.width = `${(fraction(item.to, from, to) - start) * 100}%`;
+        return span;
+    });
+    strip.replaceChildren(...spans);
 }
 
 // ---- 조작 ----
