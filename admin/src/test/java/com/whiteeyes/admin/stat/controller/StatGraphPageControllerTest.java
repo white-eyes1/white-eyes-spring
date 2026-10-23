@@ -46,14 +46,14 @@ class StatGraphPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-C-004 대상(시·구·동·구역)·단위 탭 6개·기간·항목 체크박스 7개(인원 평균·최대·최소)가 있다")
+    @DisplayName("SCR-C-004 대상(시·구·동·구역)·단위 탭 6개·기간·항목 체크박스 5개(인원은 하나)가 있다")
     void graphPage_hasConditions() throws Exception {
         String[] expected = {
             "id=\"target-sido\"", "id=\"target-sigungu\"", "id=\"target-emd\"", "id=\"target-zone\"",
             "data-interval=\"1m\"", "data-interval=\"1h\"", "data-interval=\"1d\"",
             "data-interval=\"1w\"", "data-interval=\"1M\"", "data-interval=\"1y\"",
             "id=\"period-from\"", "id=\"period-end\"",
-            "value=\"countAvg\"", "value=\"countMax\"", "value=\"countMin\"", "value=\"density\"",
+            "value=\"count\"", "value=\"density\"",
             "value=\"inflow\"", "value=\"outflow\"", "value=\"dwellAvgSec\"",
             "id=\"series-chart\"", "id=\"graph-empty\"", "id=\"graph-error\""
         };
@@ -61,6 +61,10 @@ class StatGraphPageControllerTest {
         for (String fragment : expected) {
             result.andExpect(content().string(containsString(fragment)));
         }
+        // 인원 평균·최대·최소를 따로 고르는 체크박스는 없다(인원 하나로 평균 선 + 최대·최소 띠)
+        result.andExpect(content().string(not(containsString("value=\"countAvg\""))))
+                .andExpect(content().string(not(containsString("value=\"countMax\""))))
+                .andExpect(content().string(not(containsString("value=\"countMin\""))));
     }
 
     @Test

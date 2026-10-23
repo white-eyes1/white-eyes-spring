@@ -325,11 +325,18 @@ async function load() {
 
 function render() {
     const keys = selectedItems();
-    const valuesByItem = {};
+    const seriesByItem = {};
     keys.forEach((key) => {
-        valuesByItem[key] = items.map((point) => valueOf(point, key));
+        // 인원은 평균 선과 최대~최소 띠
+        seriesByItem[key] = key === 'count'
+            ? {
+                values: items.map((point) => valueOf(point, 'countAvg')),
+                high: items.map((point) => valueOf(point, 'countMax')),
+                low: items.map((point) => valueOf(point, 'countMin')),
+            }
+            : { values: items.map((point) => valueOf(point, key)) };
     });
-    chart.update(items.map((point) => axisLabel(point.at)), items.map((point) => tooltipTitle(point.at)), valuesByItem);
+    chart.update(items.map((point) => axisLabel(point.at)), items.map((point) => tooltipTitle(point.at)), seriesByItem);
     // 오류 문구가 보이는 동안에는 '데이터 없음'을 같이 보이지 않는다
     emptyNotice.hidden = !errorNotice.hidden || items.some((point) => point.sampleSec > 0);
 }
