@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.stat.service;
+package com.whiteeyes.common.stat.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

@@ -15,6 +15,10 @@ import com.whiteeyes.common.stat.entity.ZoneStatHourlyId;
 
 public interface ZoneStatHourlyRepository extends JpaRepository<ZoneStatHourly, ZoneStatHourlyId> {
 
+    /** 구역들의 from 이상 to 미만 시간별 통계. 통계 시계열 1h(FNC-C-012)가 구역 수와 관계없이 한 번에 읽는다. */
+    List<ZoneStatHourly> findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(
+            Collection<Long> zoneIds, LocalDateTime from, LocalDateTime to);
+
     /** 그 구역의 행이 하나라도 있는지(구역 삭제 FNC-A-017 처리 순서 2의 이력 확인). */
     boolean existsByZoneId(Long zoneId);
 

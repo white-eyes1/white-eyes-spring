@@ -66,6 +66,12 @@ public class RegionQueryService {
                 .orElseThrow(ZoneNotFoundException::new);
     }
 
+    /** 읍·면·동들에 속한 구역. 삭제된 구역도 포함한다(지난 통계의 지역 합산, FNC-C-012). */
+    @Transactional(readOnly = true)
+    public List<Zone> findAllZonesInDongs(Collection<Long> dongIds) {
+        return zoneRepository.findByDongIdIn(dongIds);
+    }
+
     /** 읍·면·동들에 속한 구역 id. 삭제된 구역도 포함한다(오늘 기록 등 지난 값, FNC-C-016). */
     @Transactional(readOnly = true)
     public List<Long> findAllZoneIdsInDongs(Collection<Long> dongIds) {
