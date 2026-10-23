@@ -21,6 +21,7 @@
 .draft-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .draft-stats > div { padding: 10px; border-radius: 8px; background: #151e29; font-size: 11px; }
 .draft-stats > div > div { margin-top: 2px; font-size: 18px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+.draft .draw-guide { padding: 0; border: 0; }
 .draft-error { margin: 0; padding: 8px 10px; border: 1px solid #5a2a31; border-radius: 8px; background: #1f141a; color: #ff8c91; font-size: 12px; }
 .draft-actions { display: flex; gap: 8px; }
 .draft-actions .btn { flex: 1; }

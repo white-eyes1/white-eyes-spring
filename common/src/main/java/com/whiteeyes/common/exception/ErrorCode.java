@@ -11,6 +11,7 @@ public enum ErrorCode {
     WRONG_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
     INVALID_POLYGON(HttpStatus.BAD_REQUEST, "구역 모양이 올바르지 않습니다."),
     OUT_OF_SERVICE_AREA(HttpStatus.BAD_REQUEST, "서비스 지역 밖입니다."),
+    DONG_CHANGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "구역 모양은 같은 동 안에서만 바꿀 수 있습니다."),
     INVALID_RANGE(HttpStatus.BAD_REQUEST, "조회 기간이 올바르지 않습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),

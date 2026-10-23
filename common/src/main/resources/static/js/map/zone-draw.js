@@ -1,4 +1,4 @@
-// 구역 관리 지도(SCR-A-004): 동 경계·구역 다각형 표시와 Leaflet-Geoman 다각형 그리기.
+// 구역 관리 지도(SCR-A-004): 동 경계·구역 다각형 표시와 Leaflet-Geoman 다각형 그리기·꼭짓점 편집.
 // Leaflet·Geoman은 템플릿의 fragments/layout :: leaflet 이 전역 L로 불러온다. 이 코드는 map/ 밖에 두지 않는다(code-conventions 5-3).
 import { createMap } from './map-view.js';
 
@@ -22,6 +22,8 @@ export function createZoneMap(element, { onZoneClick, onDrawn }) {
     const zoneLayers = new Map();
     let draft = null;
     let selectedId = null;
+    // 꼭짓점을 고치는 중인 구역의 다각형 { polygon, handler }
+    let editing = null;
 
     map.on('pm:create', (event) => {
         removeDraft();
@@ -78,6 +80,35 @@ export function createZoneMap(element, { onZoneClick, onDrawn }) {
                 layer.bringToFront();
                 map.fitBounds(layer.getBounds(), { padding: [60, 60], maxZoom: 18 });
             }
+        },
+
+        /**
+         * 구역 하나의 꼭짓점 편집을 시작한다(FNC-A-015). 꼭짓점을 끌거나 더하거나 지울 때마다 onChange가 새 GeoJSON Polygon으로 불린다.
+         * 선이 서로 겹치게 옮기는 것은 막는다.
+         */
+        startEdit(zoneId, onChange) {
+            this.stopEdit();
+            const layer = zoneLayers.get(zoneId);
+            const polygon = layer ? layer.getLayers()[0] : null;
+            if (!polygon) {
+                return;
+            }
+            polygon.setStyle(DRAFT_STYLE);
+            polygon.bringToFront();
+            polygon.pm.enable({ allowSelfIntersection: false });
+            const handler = () => onChange(polygon.toGeoJSON().geometry);
+            polygon.on('pm:edit', handler);
+            editing = { polygon, handler };
+        },
+
+        /** 꼭짓점 편집을 끝낸다. 고친 모양을 버리려면 호출한 쪽이 showZones로 다시 그린다. */
+        stopEdit() {
+            if (!editing) {
+                return;
+            }
+            editing.polygon.off('pm:edit', editing.handler);
+            editing.polygon.pm.disable();
+            editing = null;
         },
 
         /** 다각형 그리기를 시작한다. 이미 그린 초안은 지운다. */
