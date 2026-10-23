@@ -61,6 +61,12 @@ public class EventListService {
         return PageResponse.of(items, request.page(), request.size(), events.getTotalElements());
     }
 
+    /** 이벤트 1건을 목록의 한 행 모양으로 만든다. 상세(FNC-A-037)가 목록과 같은 필드를 재사용한다. */
+    @Transactional(readOnly = true)
+    public EventListItem toListItem(Event event) {
+        return toItems(List.of(event)).get(0);
+    }
+
     private List<EventListItem> toItems(List<Event> events) {
         if (events.isEmpty()) {
             return List.of();

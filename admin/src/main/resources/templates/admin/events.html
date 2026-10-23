@@ -70,6 +70,32 @@
     </section>
 </main>
 
+<!-- SCR-A-011 이벤트 상세 창 중 이벤트 정보·처리 이력(FNC-A-037). 발생 시점 영상·다시보기 이동은 FNC-A-040, 조치 창은 FNC-A-038 -->
+<div class="modal-stage ev-modal-stage" id="detail-modal" hidden>
+    <div class="modal ev-modal" role="dialog" aria-modal="true" aria-label="이벤트 상세">
+        <div class="modal-head">
+            <div class="ev-modal-title">
+                <span id="detail-type-chip"></span>
+                <h2 id="detail-title"></h2>
+                <span id="detail-status-chip"></span>
+            </div>
+            <button class="icon-btn" type="button" aria-label="닫기" data-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body ev-modal-body">
+            <dl class="kv" id="detail-info"></dl>
+            <div class="ev-history">
+                <strong>처리 이력</strong>
+                <div id="detail-histories"></div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn primary" type="button" data-close>닫기</button>
+        </div>
+    </div>
+</div>
+
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/events.js}"></script>
 </body>
