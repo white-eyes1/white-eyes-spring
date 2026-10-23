@@ -19,6 +19,9 @@ public interface ZoneStatHourlyRepository extends JpaRepository<ZoneStatHourly, 
     List<ZoneStatHourly> findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(
             Collection<Long> zoneIds, LocalDateTime from, LocalDateTime to);
 
+    /** 그 구역의 행이 하나라도 있는지(구역 삭제 FNC-A-017 처리 순서 2의 이력 확인). */
+    boolean existsByZoneId(Long zoneId);
+
     /** from 이상 to 미만 시간별 통계(전 구역). 일별 통계가 하루치를 묶을 때 쓴다(FNC-A-030). */
     List<ZoneStatHourly> findByStatAtGreaterThanEqualAndStatAtLessThan(LocalDateTime from, LocalDateTime to);
 

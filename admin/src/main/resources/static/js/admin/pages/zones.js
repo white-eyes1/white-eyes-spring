@@ -1,6 +1,6 @@
 // 구역 관리 화면(SCR-A-004). 시·구·동 선택(FNC-C-008), 다각형 미리보기(FNC-A-013), 구역 등록(FNC-A-014),
-// 구역 수정(FNC-A-015), 이웃 설정 창(SCR-A-005, FNC-A-016). 삭제 버튼은 자리만 비활성으로 둔다.
-import { ApiError, get, patch, post, put } from '../../common/api.js';
+// 구역 수정(FNC-A-015), 구역 삭제(FNC-A-017), 이웃 설정 창(SCR-A-005, FNC-A-016).
+import { ApiError, del, get, patch, post, put } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
 import { showToast } from '../../common/toast.js';
 import { createZoneMap } from '../../map/zone-draw.js';
@@ -9,6 +9,7 @@ const ERROR_MESSAGES = {
     INVALID_POLYGON: '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
     OUT_OF_SERVICE_AREA: '서비스 지역 밖입니다. 서비스 지역 안에서 다시 그려 주세요.',
     DUPLICATE_ZONE_NAME: '이미 사용 중인 구역 이름입니다.',
+    CAMERA_RUNNING: '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.',
     DONG_CHANGE_NOT_ALLOWED: '다른 동으로 바뀌어 저장할 수 없습니다. 같은 동 안에서만 모양을 바꿀 수 있습니다.',
 };
 
@@ -35,6 +36,13 @@ const editError = document.getElementById('edit-error');
 const editName = document.getElementById('edit-name');
 const editNameError = document.getElementById('edit-name-error');
 const editSubmit = document.getElementById('edit-submit');
+
+const deleteModal = document.getElementById('delete-modal');
+const deleteForm = document.getElementById('delete-form');
+const deleteError = document.getElementById('delete-error');
+const deleteConfirm = document.getElementById('delete-confirm');
+// 삭제 확인 창이 열려 있는 구역
+let deleteZoneTarget = null;
 
 const DIRECTIONS = ['N', 'E', 'S', 'W'];
 const neighborModal = document.getElementById('neighbor-modal');
@@ -177,7 +185,7 @@ function zoneRow(zone) {
     actions.append(
         neighborButton(zone),
         editButton(zone),
-        disabledButton('삭제', 'danger', '3단계에서 만듭니다'),
+        deleteButton(zone),
     );
     row.append(info, actions);
     return row;
@@ -207,13 +215,15 @@ function editButton(zone) {
     return button;
 }
 
-function disabledButton(text, kind, title) {
+function deleteButton(zone) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `btn ${kind} sm`;
-    button.textContent = text;
-    button.title = title;
-    button.disabled = true;
+    button.className = 'btn danger sm';
+    button.textContent = '삭제';
+    button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openDeleteModal(zone);
+    });
     return button;
 }
 
@@ -448,6 +458,65 @@ function updateEditSubmit() {
     const nameChanged = editName.value.trim() !== edit.zone.name && editName.value.trim() !== '';
     editSubmit.disabled = !edit.shapeOk || !(nameChanged || edit.boundary !== null);
 }
+
+// ---- 구역 삭제(FNC-A-017) ----
+
+function openDeleteModal(zone) {
+    deleteZoneTarget = zone;
+    document.getElementById('delete-message').textContent = `'${zone.name}' 구역을 삭제할까요?`;
+    showDeleteError('');
+    deleteConfirm.disabled = false;
+    deleteModal.hidden = false;
+}
+
+function closeDeleteModal() {
+    deleteModal.hidden = true;
+    deleteZoneTarget = null;
+}
+
+async function confirmDelete(event) {
+    event.preventDefault();
+    if (!deleteZoneTarget) {
+        return;
+    }
+    const zone = deleteZoneTarget;
+    deleteConfirm.disabled = true;
+    try {
+        const result = await del(`/api/v1/manage/zones/${zone.id}`, { toast: false });
+        // 지운 구역을 수정하던 중이었다면 수정도 끝낸다
+        if (edit && edit.zone.id === zone.id) {
+            cancelEdit(false);
+        }
+        closeDeleteModal();
+        showToast(
+            result.mode === 'SOFT'
+                ? `'${zone.name}' 구역을 삭제했습니다. 가동 기록은 남아 있습니다.`
+                : `'${zone.name}' 구역을 삭제했습니다.`,
+        );
+        await loadZones();
+    } catch (error) {
+        showError(error, showDeleteError);
+        deleteConfirm.disabled = false;
+    }
+}
+
+function showDeleteError(message) {
+    deleteError.textContent = message;
+    deleteError.hidden = !message;
+}
+
+deleteForm.addEventListener('submit', confirmDelete);
+deleteModal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeDeleteModal));
+deleteModal.addEventListener('mousedown', (event) => {
+    if (event.target === deleteModal) {
+        closeDeleteModal();
+    }
+});
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !deleteModal.hidden) {
+        closeDeleteModal();
+    }
+});
 
 // ---- 이웃 설정 창(SCR-A-005, FNC-A-016) ----
 
