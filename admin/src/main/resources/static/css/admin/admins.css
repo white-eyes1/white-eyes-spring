@@ -3,6 +3,13 @@
 .admin-notice { margin: 12px 16px 0; }
 .admin-empty { padding: 28px 16px; text-align: center; font-size: 12px; }
 
+/* 관리자 추가 창: 캠 등록 창(cameras.css .cam-modal)과 같은 크기·위치 */
+.admin-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
+.admin-modal { max-width: 480px; }
+.admin-created p { font-size: 13px; }
+.admin-temp-password { display: flex; align-items: center; gap: 8px; }
+.admin-temp-password code { flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: #0f1720; font-size: 16px; letter-spacing: .08em; user-select: all; }
+
 .sort-btn { padding: 0; border: 0; background: none; color: inherit; font-weight: inherit; cursor: pointer; }
 .sort-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 

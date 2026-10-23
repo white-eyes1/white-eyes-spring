@@ -85,10 +85,10 @@ class AdminPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-A-003 다른 기능의 버튼과 시안 표시용 속성은 옮기지 않는다")
+    @DisplayName("SCR-A-003 다른 기능의 행 버튼과 시안 표시용 속성은 옮기지 않는다")
     void noOtherFeaturesOrAnnotations() throws Exception {
         mockMvc.perform(get(PAGE_URL).contextPath(CONTEXT_PATH).cookie(login("super01")))
-                .andExpect(content().string(not(containsString("관리자 추가"))))
+                .andExpect(content().string(not(containsString("비밀번호 재설정"))))
                 .andExpect(content().string(not(containsString("강제 로그아웃"))))
                 .andExpect(content().string(not(containsString("data-api"))))
                 .andExpect(content().string(not(containsString("data-fnc"))))
