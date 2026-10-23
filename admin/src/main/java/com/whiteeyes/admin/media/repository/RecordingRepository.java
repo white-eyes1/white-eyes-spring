@@ -62,6 +62,18 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
 
+    /**
+     * 같은 캠에서 started_at이 from 이상인 녹화(자기 자신 제외) 중 가장 이른 것(FNC-A-045 처리 순서 1).
+     * 첫 줄만 쓰면 이어서 틀 후보다.
+     */
+    @Query("select r from Recording r where r.cameraId = :cameraId and r.id <> :recordingId"
+            + " and r.startedAt >= :from order by r.startedAt asc, r.id asc")
+    List<Recording> findFollowing(
+            @Param("cameraId") Long cameraId,
+            @Param("recordingId") Long recordingId,
+            @Param("from") LocalDateTime from,
+            Limit limit);
+
     /** 주어진 캠들의 녹화 중 since 이후에 시작한 것 가운데 가장 늦게 시작한 것(FNC-A-043 latest). */
     Optional<Recording> findFirstByCameraIdInAndStartedAtGreaterThanEqualOrderByStartedAtDescIdDesc(
             Collection<Long> cameraIds, LocalDateTime since);
