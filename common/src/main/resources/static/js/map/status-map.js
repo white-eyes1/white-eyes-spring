@@ -31,9 +31,10 @@ export function createRegionMap(element, region, previous) {
 /**
  * 지도 위에 올리는 경계·핀 층.
  * @param map createRegionMap의 지도
- * @param {{onSelectRegion: (id: number) => void, onViewChange: () => void}} handlers
+ * @param {{onSelectRegion: (id: number) => void, onViewChange: () => void, onPinClick?: (zoneId: number) => void}} handlers
+ *   onPinClick: 구역 핀을 눌렀을 때(관리자 앱은 실시간 보기 창). 없으면 눌러도 아무 일도 하지 않는다
  */
-export function createStatusLayer(map, { onSelectRegion, onViewChange }) {
+export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClick }) {
     const boundaries = L.layerGroup().addTo(map);
     const pins = L.layerGroup().addTo(map);
     let zonePoints = [];
@@ -73,6 +74,9 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange }) {
             zonePoints.forEach(({ item, latLng }) => {
                 const marker = L.marker(latLng, { icon: pinIcon(item) });
                 marker.bindTooltip(tooltip(item.name, item));
+                if (onPinClick) {
+                    marker.on('click', () => onPinClick(item.id));
+                }
                 pins.addLayer(marker);
             });
         },

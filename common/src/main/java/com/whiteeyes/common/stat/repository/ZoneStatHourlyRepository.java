@@ -1,5 +1,6 @@
 package com.whiteeyes.common.stat.repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -32,4 +33,24 @@ public interface ZoneStatHourlyRepository extends JpaRepository<ZoneStatHourly, 
             """)
     List<Long> findZoneIdsMissingDaily(
             @Param("date") LocalDate date, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /**
+     * 구역들의 from 이상 to 미만 시간별 count_avg를 같은 시각끼리 더한 값(FNC-C-020 처리 순서 1, 지역 합산).
+     * 받은 초가 없는 행(sample_sec=0)은 빼므로, 모든 구역이 끊긴 시각은 결과에 없다.
+     */
+    @Query("""
+            select h.statAt as statAt, sum(h.countAvg) as countSum from ZoneStatHourly h
+            where h.zoneId in :zoneIds and h.statAt >= :from and h.statAt < :to and h.sampleSec > 0
+            group by h.statAt
+            """)
+    List<HourlyCountSum> sumCountAvgByStatAt(
+            @Param("zoneIds") Collection<Long> zoneIds, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /** 한 시각의 구역 count_avg 합 */
+    interface HourlyCountSum {
+
+        LocalDateTime getStatAt();
+
+        BigDecimal getCountSum();
+    }
 }
