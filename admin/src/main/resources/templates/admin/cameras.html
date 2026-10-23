@@ -85,6 +85,26 @@
     </form>
 </div>
 
+<!-- FNC-A-023 캠 삭제 확인 창 -->
+<div class="modal-stage cam-modal-stage" id="camera-delete-modal" hidden>
+    <div class="modal cam-modal cam-confirm" role="alertdialog" aria-modal="true" aria-labelledby="camera-delete-title">
+        <div class="modal-head">
+            <h2 id="camera-delete-title">캠 삭제</h2>
+            <button class="icon-btn" type="button" aria-label="닫기" data-delete-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="camera-delete-message"></p>
+            <p class="muted cam-note">가동한 적이 있는 캠은 목록에서만 사라지고 지난 녹화는 남습니다.</p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-delete-close>취소</button>
+            <button class="btn danger" type="button" id="camera-delete-confirm">삭제</button>
+        </div>
+    </div>
+</div>
+
 <!-- SCR-A-008 실시간 보기 창 -->
 <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
 

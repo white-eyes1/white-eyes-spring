@@ -1,8 +1,8 @@
-// 캠 관리 화면 SCR-A-006과 캠 등록 창 SCR-A-007(FNC-A-018·020·021·022).
+// 캠 관리 화면 SCR-A-006과 캠 등록 창 SCR-A-007(FNC-A-018·020·021·022·023).
 // 1단계: 준비 중인 캠이 있으면 목록을 몇 초마다 다시 받아 진행률을 갱신한다(SSE는 2단계).
-// 실시간 보기 창(SCR-A-008)은 RUNNING인 캠의 '실시간 보기'에서 연다. 수정·삭제(3단계)는 만들지 않는다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
+// 실시간 보기 창(SCR-A-008)은 RUNNING인 캠의 '실시간 보기'에서 연다. 수정(3단계)은 만들지 않는다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
-import { get, post, ApiError } from '../../common/api.js';
+import { get, post, del, ApiError } from '../../common/api.js';
 import { showToast } from '../../common/toast.js';
 import { initLiveView, openLiveView, updateLiveView } from '../../live/live-view.js';
 
@@ -32,9 +32,14 @@ const zoneSelect = document.getElementById('camera-zone');
 const uriInput = document.getElementById('camera-uri');
 const uriHint = document.getElementById('camera-uri-hint');
 const saveButton = document.getElementById('camera-save');
+const deleteModal = document.getElementById('camera-delete-modal');
+const deleteMessage = document.getElementById('camera-delete-message');
+const deleteConfirm = document.getElementById('camera-delete-confirm');
 
 let pollTimer = null;
 let loading = false;
+let deleteTarget = null;
+let deleting = false;
 
 // ---- 목록 ----
 
@@ -131,7 +136,17 @@ function actions(camera) {
     if (camera.status !== 'STOPPED') {
         wrap.append(actionButton('정지', 'secondary', camera, 'stop'));
     }
+    wrap.append(deleteButton(camera));
     return wrap;
+}
+
+// STOPPED일 때만 켜진다(FNC-A-023은 정지가 아니면 409). 누르면 확인 창을 연다
+function deleteButton(camera) {
+    const button = el('button', 'btn danger sm', '삭제');
+    button.type = 'button';
+    button.disabled = camera.status !== 'STOPPED';
+    button.addEventListener('click', () => openDeleteModal(camera));
+    return button;
 }
 
 // RUNNING일 때만 켜진다(FNC-A-041이 가동 중이 아니면 영상을 열어 주지 않는다)
@@ -250,6 +265,43 @@ async function submitForm(event) {
     }
 }
 
+// ---- 캠 삭제 확인 창 ----
+
+function openDeleteModal(camera) {
+    deleteTarget = camera;
+    deleteMessage.textContent = `'${camera.name}' 캠을 삭제할까요?`;
+    deleteConfirm.disabled = false;
+    deleteModal.hidden = false;
+    deleteConfirm.focus();
+}
+
+function closeDeleteModal() {
+    if (deleting) {
+        return; // 요청이 끝나기 전에는 닫지 않는다(끝난 뒤 새로 연 창을 닫는 일을 막는다)
+    }
+    deleteModal.hidden = true;
+    deleteTarget = null;
+}
+
+async function confirmDelete() {
+    if (!deleteTarget || deleting) {
+        return;
+    }
+    const camera = deleteTarget;
+    deleting = true;
+    deleteConfirm.disabled = true;
+    try {
+        await del(`/api/v1/manage/cameras/${camera.id}`);
+        showToast('캠을 삭제했습니다.');
+    } catch {
+        // 409(정지 상태가 아님)·404 등은 api.js가 서버 메시지를 토스트로 띄웠다
+    }
+    deleting = false;
+    closeDeleteModal();
+    // 성공이든 실패든 서버 상태가 기준이므로 목록을 다시 받는다
+    await loadCameras();
+}
+
 // ---- 도우미 ----
 
 function el(tag, className, text) {
@@ -294,9 +346,19 @@ modal.addEventListener('mousedown', (event) => {
         closeModal();
     }
 });
+deleteModal.querySelectorAll('[data-delete-close]').forEach((button) => button.addEventListener('click', closeDeleteModal));
+deleteModal.addEventListener('mousedown', (event) => {
+    if (event.target === deleteModal) {
+        closeDeleteModal();
+    }
+});
+deleteConfirm.addEventListener('click', confirmDelete);
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !modal.hidden) {
         closeModal();
+    }
+    if (event.key === 'Escape' && !deleteModal.hidden) {
+        closeDeleteModal();
     }
 });
 form.addEventListener('submit', submitForm);

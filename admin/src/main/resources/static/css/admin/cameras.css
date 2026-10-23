@@ -14,6 +14,7 @@
 /* 캠 등록 창: 화면 전체를 덮는다 */
 .cam-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
 .cam-modal { max-width: 560px; }
+.cam-confirm { max-width: 420px; }
 
 /* 입력 방식 선택(라디오를 위로 겹쳐 숨기고 글자만 보인다) */
 .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
