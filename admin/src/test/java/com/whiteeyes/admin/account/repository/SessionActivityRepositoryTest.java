@@ -73,4 +73,23 @@ class SessionActivityRepositoryTest {
         assertThat(sessionActivityRepository.findLastAccessTimes(SessionTable.USER, List.of())).isEmpty();
         verifyNoInteractions(jdbcTemplate);
     }
+
+    @Test
+    @DisplayName("FNC-A-003 ADMIN을 고르면 관리자 앱 세션 표(SPRING_SESSION_ADMIN)만 읽는다")
+    void findLastAccessTimes_adminTable() {
+        // 사용자 앱 세션 표에는 hong01·kim02가 있다(@Sql). 관리자 세션 표에는 kim02만 넣는다
+        jdbcTemplate.getJdbcTemplate().update(
+                "INSERT INTO SPRING_SESSION_ADMIN (PRIMARY_ID, SESSION_ID, CREATION_TIME, LAST_ACCESS_TIME,"
+                        + " MAX_INACTIVE_INTERVAL, EXPIRY_TIME, PRINCIPAL_NAME)"
+                        + " VALUES ('20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001',"
+                        + " 1792000000000, 1792000900000, 1800, 4102444800000, 'kim02')");
+        try {
+            Map<String, Instant> result =
+                    sessionActivityRepository.findLastAccessTimes(SessionTable.ADMIN, List.of("hong01", "kim02"));
+
+            assertThat(result).containsOnly(Map.entry("kim02", Instant.ofEpochMilli(1792000900000L)));
+        } finally {
+            jdbcTemplate.getJdbcTemplate().update("DELETE FROM SPRING_SESSION_ADMIN WHERE PRINCIPAL_NAME = 'kim02'");
+        }
+    }
 }
