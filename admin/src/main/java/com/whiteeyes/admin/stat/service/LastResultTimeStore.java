@@ -21,6 +21,14 @@ public class LastResultTimeStore {
                 cameraId, resultAt, (current, received) -> received.isAfter(current) ? received : current);
     }
 
+    /**
+     * 기준 시각이 아직 없을 때만 넣는다. 결과를 한 번도 못 받은 캠(앱 재시작 직후 등)이 바로 '결과 끊김'으로
+     * 판정되지 않게 감시 시작 시각을 기준으로 삼는다(FNC-A-035).
+     */
+    public void seedIfAbsent(long cameraId, LocalDateTime at) {
+        lastResultAtByCamera.putIfAbsent(cameraId, at);
+    }
+
     public Optional<LocalDateTime> findLastResultAt(long cameraId) {
         return Optional.ofNullable(lastResultAtByCamera.get(cameraId));
     }
