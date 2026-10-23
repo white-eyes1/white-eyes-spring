@@ -3,6 +3,7 @@
 .graph-conditions .input { height: 34px; font-size: 12px; }
 .graph-target, .graph-period, .graph-items { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .graph-target select { max-width: 150px; }
+.graph-target #target-zone { max-width: 210px; } /* '구역 이름 (삭제됨)'이 잘리지 않게 */
 .graph-items { gap: 14px; }
 
 /* 단위 탭 */

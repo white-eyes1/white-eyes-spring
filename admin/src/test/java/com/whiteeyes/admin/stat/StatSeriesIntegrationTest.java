@@ -210,9 +210,16 @@ class StatSeriesIntegrationTest {
     }
 
     @Test
-    @DisplayName("FNC-C-012 삭제된 구역을 대상으로 고르면 없는 구역으로 본다")
-    void deletedZone_notFound() {
-        assertThatThrownBy(() -> series(StatTargetType.ZONE, deletedZone, T0, END))
+    @DisplayName("FNC-C-012 삭제된 구역도 대상으로 고르면 그 구역의 지난 통계를 준다(#183), 없는 구역은 404")
+    void deletedZone_returnsPastStats_unknownZone_notFound() {
+        List<StatSeriesPoint> items = series(StatTargetType.ZONE, deletedZone, T0, END);
+
+        // 삭제된 구역은 10:03에만 통계가 있다(20명, 받은 초 60)
+        assertThat(items).hasSize(4);
+        assertThat(items.get(3).countAvg()).isEqualByComparingTo("20.00");
+        assertThat(items.get(0)).isEqualTo(StatSeriesPoint.empty(kst(T0)));
+
+        assertThatThrownBy(() -> series(StatTargetType.ZONE, Long.MAX_VALUE, T0, END))
                 .isInstanceOf(ZoneNotFoundException.class);
     }
 
@@ -277,7 +284,7 @@ class StatSeriesIntegrationTest {
         mockMvc.perform(request("REGION", "999999", "1m", "2099-01-01T10:00", "2099-01-01T10:01"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"));
-        mockMvc.perform(request("ZONE", String.valueOf(deletedZone), "1m", "2099-01-01T10:00", "2099-01-01T10:01"))
+        mockMvc.perform(request("ZONE", "999999", "1m", "2099-01-01T10:00", "2099-01-01T10:01"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
     }
