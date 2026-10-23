@@ -2,11 +2,13 @@ package com.whiteeyes.admin.region.controller;
 
 import com.whiteeyes.admin.region.dto.ZoneCreateRequest;
 import com.whiteeyes.admin.region.dto.ZoneCreateResponse;
+import com.whiteeyes.admin.region.dto.ZoneDeleteResponse;
 import com.whiteeyes.admin.region.dto.ZoneNeighborRef;
 import com.whiteeyes.admin.region.dto.ZoneUpdateRequest;
 import com.whiteeyes.admin.region.dto.ZoneUpdateResponse;
 import com.whiteeyes.admin.region.exception.InvalidZoneNeighborException;
 import com.whiteeyes.admin.region.service.ZoneNeighborService;
+import com.whiteeyes.admin.region.service.ZoneDeleteService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.region.service.ZoneUpdateService;
 import com.whiteeyes.common.region.entity.ZoneDirection;
@@ -15,6 +17,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +35,7 @@ public class ZoneController {
 
     private final ZoneRegisterService zoneRegisterService;
     private final ZoneUpdateService zoneUpdateService;
+    private final ZoneDeleteService zoneDeleteService;
     private final ZoneNeighborService zoneNeighborService;
 
     @PostMapping
@@ -44,6 +48,12 @@ public class ZoneController {
     @PatchMapping("/{id}")
     public ZoneUpdateResponse update(@PathVariable("id") Long id, @Valid @RequestBody ZoneUpdateRequest request) {
         return zoneUpdateService.update(id, request.name(), request.boundary());
+    }
+
+    /** FNC-A-017 구역 삭제: 가동 이력이 없으면 실제로 지우고(HARD), 있으면 삭제 표시만 한다(SOFT). */
+    @DeleteMapping("/{id}")
+    public ZoneDeleteResponse delete(@PathVariable("id") Long id) {
+        return zoneDeleteService.delete(id);
     }
 
     /** FNC-A-016 구역 이웃 조회: 4방향 이웃(없는 방향은 null). */

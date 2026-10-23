@@ -36,6 +36,8 @@ class ZonePageControllerTest {
                 .andExpect(content().string(containsString("id=\"region-dong\"")))
                 .andExpect(content().string(containsString("id=\"zone-map\"")))
                 .andExpect(content().string(containsString("id=\"zone-list\"")))
+                .andExpect(content().string(containsString("id=\"zone-edit\"")))
+                .andExpect(content().string(containsString("id=\"delete-modal\"")))
                 .andExpect(content().string(containsString("새 구역 그리기")))
                 .andExpect(content().string(containsString("leaflet-geoman")))
                 .andExpect(content().string(containsString("/js/admin/pages/zones.js")));
