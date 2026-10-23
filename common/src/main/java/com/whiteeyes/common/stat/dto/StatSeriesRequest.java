@@ -63,7 +63,8 @@ public record StatSeriesRequest(
         return new StatSeriesRequest(targetType, targetId, interval.get(), from.get(), to.get());
     }
 
-    private static Optional<LocalDateTime> parseTime(String text) {
+    // 엑셀 다운로드 조건(StatExportRequest)도 같은 형식으로 읽는다
+    static Optional<LocalDateTime> parseTime(String text) {
         try {
             return Optional.of(OffsetDateTime.parse(text).atZoneSameInstant(KST).toLocalDateTime());
         } catch (DateTimeParseException ignored) {
