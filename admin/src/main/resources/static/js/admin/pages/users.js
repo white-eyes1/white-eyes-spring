@@ -1,9 +1,13 @@
-// 사용자 관리 화면(SCR-A-001). 사용자 목록(FNC-A-002)을 검색·정렬·페이지 이동하며 GET /api/v1/users로 불러온다.
-import { ApiError, get } from '../../common/api.js';
+// 사용자 관리 화면(SCR-A-001). 사용자 목록(FNC-A-002)을 검색·정렬·페이지 이동하며 GET /api/v1/users로 불러오고,
+// 미승인 행의 '승인'(FNC-A-006)은 POST /api/v1/users/{id}/approve로 보낸다.
+import { ApiError, get, post } from '../../common/api.js';
 import { formatDateTime, formatNumber } from '../../common/format.js';
+import { showToast } from '../../common/toast.js';
 
 const USERS_API = '/api/v1/users';
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+// 승인하려는 사이 다른 관리자가 상태를 바꾼 경우(409)의 문구(screens.md SCR-A-001)
+const STATUS_CHANGED_MESSAGE = '상태가 바뀌었습니다';
 const EMPTY_VALUE = '-';
 const ACTIVE_LABEL = '활동 중';
 // 현재 페이지 앞뒤로 보여 줄 페이지 번호 수
@@ -126,8 +130,49 @@ function toRow(user) {
         cell(formatDateTime(user.createdAt)),
         cell(formatDateTime(user.lastActiveAt)),
         activeCell(user.active),
+        actionsCell(user),
     );
     return row;
+}
+
+// 승인 취소(FNC-A-007)·강제 로그아웃(FNC-A-008) 버튼은 각 기능의 이슈에서 이 칸에 더한다
+function actionsCell(user) {
+    const td = document.createElement('td');
+    td.className = 'user-actions';
+    const wrap = document.createElement('div');
+    wrap.className = 'row-actions';
+    if (user.status === 'PENDING') {
+        wrap.append(approveButton(user));
+    }
+    td.append(wrap);
+    return td;
+}
+
+// 확인 창 없이 바로 요청한다(#33에서 정함)
+function approveButton(user) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn primary sm';
+    button.textContent = '승인';
+    button.addEventListener('click', () => approve(button, user));
+    return button;
+}
+
+async function approve(button, user) {
+    button.disabled = true;
+    try {
+        await post(`${USERS_API}/${user.id}/approve`, undefined, { toast: false });
+        // 성공하면 그 행만 승인된 상태로 다시 그린다
+        button.closest('tr').replaceWith(toRow({ ...user, status: 'ACTIVE' }));
+    } catch (error) {
+        if (error instanceof ApiError && error.code === 'INVALID_STATUS') {
+            showToast(STATUS_CHANGED_MESSAGE);
+            loadUsers();
+            return;
+        }
+        showToast(error instanceof ApiError ? error.message : DEFAULT_ERROR_MESSAGE);
+        button.disabled = false;
+    }
 }
 
 function cell(text) {

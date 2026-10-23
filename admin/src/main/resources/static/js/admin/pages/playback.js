@@ -1,5 +1,5 @@
 // 다시보기 화면(SCR-A-009, FNC-A-047). 구역·시각으로 녹화를 찾아(FNC-A-043) 재생하고,
-// 같은 구역의 1분 통계 시간축과 재생 위치를 맞춘다. 탐지 박스(FNC-A-046)와 이어 재생(FNC-A-045)은 3단계다.
+// 같은 구역의 1분 통계 시간축과 재생 위치를 맞춘다. 영상이 끝나면 같은 캠의 다음 녹화를 이어 튼다(FNC-A-045). 탐지 박스(FNC-A-046)는 3단계다.
 import { ApiError, get, url } from '../../common/api.js';
 import { formatDecimal, formatNumber } from '../../common/format.js';
 import { showToast } from '../../common/toast.js';
@@ -13,6 +13,7 @@ import {
     minuteStart,
     nextEvent,
     normalizeEvents,
+    normalizeRanges,
     normalizeSeries,
     previousEvent,
     recordingCovers,
@@ -58,6 +59,8 @@ let metric = 'count';
 let timeWindow = null;
 let series = [];
 let events = [];
+// 시간축 범위의 녹화 구간. 못 읽었으면 null(띠를 숨긴다)
+let recordingRanges = null;
 let shownMinute = null;
 // 시간축 경계선(주의·위험)에 쓰는 값: 구역 면적(㎡)과 단계가 시작되는 밀집도(명/㎡)
 let zoneArea = null;
@@ -65,6 +68,11 @@ let levelStarts = {};
 let timelineRequest = 0;
 // 녹화 찾기 요청 번호. 늦게 온 응답이 나중에 한 이동을 덮지 않게 한다
 let recordingRequest = 0;
+// 이어 재생(FNC-A-045): 끝나기 직전에 미리 받아 둔 다음 녹화 { recordingId, promise }. 같은 녹화에서는 한 번만 받는다
+let upcoming = null;
+// 시간축을 다시 읽는 중이면 true(재생이 시간창 밖으로 나가 다시 맞추는 동안 중복 요청을 막는다)
+let recentering = false;
+const PREFETCH_BEFORE_END_SEC = 3;
 
 const PLAY_PATH = 'M8 5v14l11-7z';
 const PAUSE_PATH = 'M6 5h4v14H6zM14 5h4v14h-4z';
@@ -145,6 +153,7 @@ async function loadRecording({ at, latest }) {
             endedAt: found.endedAt ? Date.parse(found.endedAt) : null,
         };
         manualMs = null;
+        upcoming = null;
         playRecording(found.videoUrl, found.seekSec);
         syncAddress(recording.startedAt + found.seekSec * 1000);
         return true;
@@ -228,6 +237,54 @@ async function seekToTime(ms) {
     }
 }
 
+// ---- 이어 재생(FNC-A-045) ----
+
+// 끝나기 직전에 같은 캠의 다음 녹화를 미리 물어 둬서, 영상이 끝나면 바로 다음 영상으로 넘어가게 한다
+function prefetchNext() {
+    if (!recording || recording.endedAt === null || upcoming?.recordingId === recording.id) {
+        return;
+    }
+    if (!(video.duration - video.currentTime <= PREFETCH_BEFORE_END_SEC)) {
+        return;
+    }
+    upcoming = { recordingId: recording.id, promise: get(`/api/v1/recordings/${recording.id}/next`, undefined, { toast: false }) };
+    // 실패는 영상이 끝났을 때 처리한다(여기서는 미처리 거부로 남지 않게만 한다)
+    upcoming.promise.catch(() => {});
+}
+
+// 영상이 끝났을 때: 다음 녹화가 있으면 0초부터 이어 틀고, 없으면 '이후 영상 없음'을 알린다
+async function continuePlayback() {
+    if (!recording) {
+        return;
+    }
+    const finished = recording;
+    const request = ++recordingRequest;
+    const pending = upcoming?.recordingId === finished.id
+        ? upcoming.promise
+        : get(`/api/v1/recordings/${finished.id}/next`, undefined, { toast: false });
+    try {
+        const found = await pending;
+        if (request !== recordingRequest) {
+            return;
+        }
+        recording = {
+            id: found.recordingId,
+            videoUrl: found.videoUrl,
+            startedAt: Date.parse(found.startedAt),
+            endedAt: found.endedAt ? Date.parse(found.endedAt) : null,
+        };
+        upcoming = null;
+        playRecording(found.videoUrl, found.seekSec);
+        syncAddress(recording.startedAt);
+    } catch (error) {
+        if (request !== recordingRequest) {
+            return;
+        }
+        upcoming = null;
+        showNotice(error instanceof ApiError && error.status === 404 ? '이후 영상 없음' : '다음 영상을 불러올 수 없습니다.');
+    }
+}
+
 // ---- 재생 위치 표시 ----
 
 function updatePlayhead() {
@@ -238,9 +295,21 @@ function updatePlayhead() {
         return;
     }
     clock.textContent = formatClock(ms);
+    recenterIfLeftWindow(ms);
     renderStat(ms);
     placePlayhead(ms);
     updateEventButtons(ms);
+}
+
+// 재생이 시간축 창 밖으로 나가면(창 끝·자정을 넘겨 이어 재생할 때) 재생 위치를 가운데로 해서 통계 시간축·1분 통계를 다시 읽는다
+function recenterIfLeftWindow(ms) {
+    if (!recording || !timeWindow || recentering || dragging || (ms >= timeWindow.from && ms <= timeWindow.to)) {
+        return;
+    }
+    recentering = true;
+    loadTimeline(ms).finally(() => {
+        recentering = false;
+    });
 }
 
 // 주소의 at을 지금 찾은 시각으로 맞춰 새로고침해도 같은 자리에서 열리게 한다(재생 중 매번 바꾸지는 않는다)
@@ -316,15 +385,17 @@ async function loadTimeline(center) {
     const request = ++timelineRequest;
     timeWindow = windowFor(range, center);
     const query = { from: toKstIso(timeWindow.from), to: toKstIso(timeWindow.to) };
-    const [seriesResult, eventsResult] = await Promise.allSettled([
+    const [seriesResult, eventsResult, rangesResult] = await Promise.allSettled([
         get('/api/v1/stats/series', { targetType: 'ZONE', targetId: zoneId, interval: '1m', ...query }, { toast: false }),
         get('/api/v1/events', { zoneId, ...query, size: 100 }, { toast: false }),
+        get('/api/v1/playback/ranges', { zoneId, ...query }, { toast: false }),
     ]);
     if (request !== timelineRequest) {
         return;
     }
     series = seriesResult.status === 'fulfilled' ? normalizeSeries(seriesResult.value?.items ?? []) : [];
     events = eventsResult.status === 'fulfilled' ? normalizeEvents(eventsResult.value?.items ?? []) : [];
+    recordingRanges = rangesResult.status === 'fulfilled' ? normalizeRanges(rangesResult.value?.ranges ?? []) : null;
     shownMinute = null;
     renderTimeline();
     updatePlayhead();
@@ -370,6 +441,7 @@ function renderTimeline() {
     });
 
     renderLevelStrip(from, to);
+    renderRecordingStrip(from, to);
     const axis = document.getElementById('pb-axis');
     axis.replaceChildren(
         ...[0, 0.25, 0.5, 0.75, 1].map((position) => {
@@ -414,6 +486,21 @@ function renderLevelStrip(from, to) {
     document.getElementById('pb-level-strip').replaceChildren(...cells);
 }
 
+// 녹화가 있는 구간 띠(FNC-A-043 구간 조회). 못 읽었으면 없음/있음을 알 수 없으므로 띠를 숨긴다
+function renderRecordingStrip(from, to) {
+    const strip = document.getElementById('pb-rec-strip');
+    strip.hidden = recordingRanges === null;
+    document.getElementById('pb-legend-rec').hidden = recordingRanges === null;
+    const spans = (recordingRanges ?? []).map((item) => {
+        const start = fraction(item.from, from, to);
+        const span = document.createElement('span');
+        span.style.left = `${start * 100}%`;
+        span.style.width = `${(fraction(item.to, from, to) - start) * 100}%`;
+        return span;
+    });
+    strip.replaceChildren(...spans);
+}
+
 // ---- 조작 ----
 
 let dragging = false;
@@ -449,11 +536,19 @@ chart.addEventListener('pointercancel', () => {
 });
 
 video.addEventListener('timeupdate', () => {
+    prefetchNext();
     if (!dragging) {
         updatePlayhead();
     }
 });
-video.addEventListener('play', () => togglePlayIcon(true));
+video.addEventListener('ended', continuePlayback);
+video.addEventListener('play', () => {
+    togglePlayIcon(true);
+    // 끝 뒤에 다시 재생하면 '이후 영상 없음' 안내를 걷는다
+    if (recording) {
+        hideNotice();
+    }
+});
 video.addEventListener('pause', () => togglePlayIcon(false));
 video.addEventListener('error', () => {
     showNotice('영상을 불러올 수 없습니다.');

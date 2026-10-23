@@ -53,8 +53,8 @@ public record UserSearchRequest(
     }
 
     /** 검증을 통과한 뒤에만 부른다. */
-    public UserSortField sortField() {
-        return UserSortField.fromParamName(sort.split(",")[0]);
+    public AccountSortField sortField() {
+        return AccountSortField.fromParamName(sort.split(",")[0]);
     }
 
     public boolean isAscending() {
@@ -67,7 +67,7 @@ public record UserSearchRequest(
      * (FNC-A-002 업무 규칙).
      */
     public boolean isSessionDependent() {
-        return active != null || sortField() == UserSortField.LAST_ACTIVE_AT;
+        return active != null || sortField() == AccountSortField.LAST_ACTIVE_AT;
     }
 
     /** 가입 시각 하한(포함). 없으면 null. */

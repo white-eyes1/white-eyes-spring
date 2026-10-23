@@ -1,10 +1,11 @@
-// 통계 메인(대시보드) 진입 파일 SCR-C-003: 지역 필터(FNC-C-008), 통계 패널(FNC-C-009·016·025), 지도, 캠 패널(관리자 앱).
+// 통계 메인(대시보드) 진입 파일 SCR-C-003: 지역 필터(FNC-C-008), 통계 패널(FNC-C-009·016·020·025), 지도, 캠 패널(관리자 앱).
 // 지역은 주소 쿼리 regionId로 유지한다. 새 1분 통계는 통계 SSE(FNC-C-022)가 알려 주면 화면 값을 새로 읽고,
 // 연결이 끊겨 있거나 한참 소식이 없으면 60초마다 읽는다.
 import { get, url } from '../common/api.js';
 import { initLiveView, openLiveView, updateLiveView } from '../live/live-view.js';
 import { showToast } from '../common/toast.js';
 import { createRegionMap, createStatusLayer } from '../map/status-map.js';
+import { createAbnormalPanel } from './stats-main/abnormal.js';
 import { createDeck } from './stats-main/deck.js';
 import {
     renderLevelRules,
@@ -30,6 +31,7 @@ let path = []; // 시·도부터 고른 지역 목록. 마지막이 통계 대�
 let map = null;
 let layer = null;
 let deck = null;
+const abnormalPanel = createAbnormalPanel();
 let zoneItems = [];
 let zoneTab = 'count';
 let renderedRegionId = null;
@@ -212,6 +214,7 @@ async function loadRegion() {
         });
         renderedRegionId = target.id;
         connectStream(target.id);
+        abnormalPanel.setRegion(target.id);
     }
     await refresh();
 }

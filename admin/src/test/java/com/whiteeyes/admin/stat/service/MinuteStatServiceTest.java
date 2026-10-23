@@ -1,11 +1,15 @@
 package com.whiteeyes.admin.stat.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,10 +24,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 
+import com.whiteeyes.admin.event.service.CongestionEventService;
 import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
@@ -43,6 +49,9 @@ class MinuteStatServiceTest {
     @Mock
     private ZoneStatMinuteRepository zoneStatMinuteRepository;
 
+    @Mock
+    private CongestionEventService congestionEventService;
+
     private MinuteAccumulatorStore minuteAccumulatorStore;
     private MinuteStatService minuteStatService;
 
@@ -50,7 +59,7 @@ class MinuteStatServiceTest {
     void setUp() {
         minuteAccumulatorStore = new MinuteAccumulatorStore();
         minuteStatService = new MinuteStatService(
-                minuteAccumulatorStore, zoneService, zoneStatMinuteRepository, CLOSE_GRACE_SEC);
+                minuteAccumulatorStore, zoneService, zoneStatMinuteRepository, congestionEventService, CLOSE_GRACE_SEC);
     }
 
     @Test
@@ -113,6 +122,48 @@ class MinuteStatServiceTest {
 
         verify(zoneService, never()).findAreasByZoneIds(anySet());
         verify(zoneStatMinuteRepository, never()).upsert(any());
+    }
+
+    @Test
+    @DisplayName("FNC-A-033 1분 통계를 저장한 직후 저장한 값으로 혼잡 이벤트를 판정")
+    void judgesCongestionEventAfterSave() {
+        minuteAccumulatorStore.add(ZONE_ID, MINUTE.withSecond(10), secondResult(40));
+        given(zoneService.findAreasByZoneIds(anySet())).willReturn(Map.of(ZONE_ID, new BigDecimal("100.00")));
+
+        minuteStatService.closeEndedMinutes(MINUTE.plusMinutes(1).plusSeconds(CLOSE_GRACE_SEC));
+
+        InOrder inOrder = inOrder(zoneStatMinuteRepository, congestionEventService);
+        inOrder.verify(zoneStatMinuteRepository).upsert(any());
+        inOrder.verify(congestionEventService).judge(
+                eq(ZONE_ID), eq(MINUTE), any(), argThat(density -> density.compareTo(new BigDecimal("0.4000")) == 0), anyInt());
+    }
+
+    @Test
+    @DisplayName("FNC-A-033 이벤트 판정이 예외로 실패해도 통계는 저장된 채로 두고 다른 구역도 계속 처리")
+    void keepsSavedStatWhenEventJudgementFails() {
+        minuteAccumulatorStore.add(ZONE_ID, MINUTE.withSecond(10), secondResult(40));
+        minuteAccumulatorStore.add(OTHER_ZONE_ID, MINUTE.withSecond(10), secondResult(30));
+        given(zoneService.findAreasByZoneIds(anySet()))
+                .willReturn(Map.of(ZONE_ID, new BigDecimal("100.00"), OTHER_ZONE_ID, new BigDecimal("100.00")));
+        willThrow(new IllegalStateException("판정 실패")).given(congestionEventService).judge(any(), any(), any(), any(), anyInt());
+
+        assertThatCode(() -> minuteStatService.closeEndedMinutes(MINUTE.plusMinutes(1).plusSeconds(CLOSE_GRACE_SEC)))
+                .doesNotThrowAnyException();
+
+        verify(zoneStatMinuteRepository, times(2)).upsert(any());
+        verify(congestionEventService, times(2)).judge(any(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    @DisplayName("FNC-A-033 통계 저장이 실패하면 이벤트를 판정하지 않음")
+    void doesNotJudgeWhenSaveFails() {
+        minuteAccumulatorStore.add(ZONE_ID, MINUTE.withSecond(10), secondResult(40));
+        given(zoneService.findAreasByZoneIds(anySet())).willReturn(Map.of(ZONE_ID, new BigDecimal("100.00")));
+        willThrow(new DataAccessResourceFailureException("DB 연결 끊김")).given(zoneStatMinuteRepository).upsert(any());
+
+        minuteStatService.closeEndedMinutes(MINUTE.plusMinutes(1).plusSeconds(CLOSE_GRACE_SEC));
+
+        verify(congestionEventService, never()).judge(any(), any(), any(), any(), anyInt());
     }
 
     private SecondResult secondResult(int personCount) {

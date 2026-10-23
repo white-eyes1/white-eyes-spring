@@ -47,3 +47,6 @@ CLAUDE.local.md
 *.pt
 *.pth
 *.mp4
+
+# nginx 내부 토큰 값이 든 파일(견본은 deploy/nginx/internal-token.conf.example)
+deploy/nginx/internal-token.conf
