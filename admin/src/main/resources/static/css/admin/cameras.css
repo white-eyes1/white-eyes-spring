@@ -7,6 +7,7 @@
 .cam-right { text-align: right; }
 .cam-table .row-actions { justify-content: flex-end; }
 .cam-error { color: #ff8c91; }
+.cam-pending { display: block; white-space: normal; font-size: 11px; line-height: 1.4; }
 .cam-progress { display: flex; align-items: center; gap: 8px; }
 .cam-empty { padding: 28px 16px; text-align: center; font-size: 12px; }
 .cam-note { font-size: 11px; }

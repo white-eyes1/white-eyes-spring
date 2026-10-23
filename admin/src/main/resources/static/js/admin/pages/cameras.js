@@ -89,7 +89,7 @@ function buildRow(camera) {
         cell(SOURCE_TYPE[camera.sourceType] ?? camera.sourceType),
         cell(statusChip(camera.status)),
         cell(progressCell(camera)),
-        cell(errorCell(camera.errorMessage)),
+        cell(errorCell(camera)),
         cell(actions(camera)),
     );
     return row;
@@ -118,11 +118,15 @@ function progressCell(camera) {
     return wrap;
 }
 
-function errorCell(message) {
-    return message ? el('span', 'cam-error', message) : '';
-}
-
 const RUN_PENDING_HINT = '가동 요청 처리 중입니다. 잠시 뒤 다시 시도하거나 정지해 주세요';
+
+// 오류 메시지가 먼저, 없고 가동 요청 처리 중이면 그 안내를 보인다(삭제 버튼이 꺼진 까닭)
+function errorCell(camera) {
+    if (camera.errorMessage) {
+        return el('span', 'cam-error', camera.errorMessage);
+    }
+    return isRunPending(camera) ? el('span', 'muted cam-pending', RUN_PENDING_HINT) : '';
+}
 
 // STOPPED이면서 가동 요청 상태(가동 도중)
 function isRunPending(camera) {

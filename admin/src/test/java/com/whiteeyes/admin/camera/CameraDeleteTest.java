@@ -159,6 +159,10 @@ class CameraDeleteTest {
         Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM camera WHERE id = ?", cameraId);
         assertThat(row.get("DELETED_AT")).isNull();
         assertThat(row.get("STATUS")).isEqualTo("STOPPED");
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM camera WHERE id = ? AND run_requested = 1", Long.class, cameraId))
+                .isEqualTo(1L);
+        assertThat(row.get("FIRST_STARTED_AT")).isNotNull();
         assertThat(count("camera")).isEqualTo(1);
         assertThat(count("work_history")).isZero();
     }
