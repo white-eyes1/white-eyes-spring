@@ -44,6 +44,17 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
     List<Long> sumCountMaxByStatAt(@Param("zoneIds") Collection<Long> zoneIds, @Param("from") LocalDateTime from);
 
     /**
+     * stat_at이 cutoff보다 앞선 1분 통계를 최대 limit건 지운다(FNC-A-032).
+     *
+     * @return 지운 건수
+     */
+    // 건수 제한이 있는 삭제는 JPQL로 쓸 수 없어 네이티브로 쓴다(MySQL·H2 모두 DELETE ... LIMIT 지원)
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM zone_stat_minute WHERE stat_at < :cutoff LIMIT :limit", nativeQuery = true)
+    int deleteOlderThan(@Param("cutoff") LocalDateTime cutoff, @Param("limit") int limit);
+
+    /**
      * (zone_id, stat_at) 기준으로 넣거나 덮어쓴다(FNC-A-028 처리 순서 3).
      * 갱신 부분은 VALUES() 대신 값을 다시 써서 MySQL 8(VALUES() 사용 중단 예정)과 H2 모두에서 동작하게 한다.
      */
