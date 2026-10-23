@@ -22,6 +22,7 @@ import {
     toPath,
     windowFor,
 } from '../playback/model.js';
+import { containRect, findFrame, parseFrames, toPixels } from '../playback/boxes.js';
 
 const NOTICE_MESSAGES = {
     RECORDING_NOT_FOUND: '영상 없음',
@@ -49,6 +50,9 @@ const chart = document.getElementById('pb-chart');
 const playhead = document.getElementById('pb-playhead');
 const playheadTip = document.getElementById('pb-playhead-tip');
 const chartEmpty = document.getElementById('pb-chart-empty');
+const boxCanvas = document.getElementById('pb-boxes');
+const boxNoteEl = document.getElementById('pb-box-note');
+const boxSwitch = document.getElementById('pb-box-switch');
 
 // 재생 중인 녹화: {id, videoUrl, startedAt(ms), endedAt(ms|null)}. 영상이 없는 시각으로 옮기면 null
 let recording = null;
@@ -68,6 +72,11 @@ let levelStarts = {};
 let timelineRequest = 0;
 // 녹화 찾기 요청 번호. 늦게 온 응답이 나중에 한 이동을 덮지 않게 한다
 let recordingRequest = 0;
+// 탐지 박스(FNC-A-046): 지금 녹화의 좌표 파일 프레임(t 순서). 못 받았거나 없으면 null. 박스 표시 스위치(기본 켬)
+let boxFrames = null;
+let boxesFor = null;
+let showBoxes = true;
+const BOX_COLOR = '#5ee0b5';
 // 이어 재생(FNC-A-045): 끝나기 직전에 미리 받아 둔 다음 녹화 { recordingId, promise }. 같은 녹화에서는 한 번만 받는다
 let upcoming = null;
 // 시간축을 다시 읽는 중이면 true(재생이 시간창 밖으로 나가 다시 맞추는 동안 중복 요청을 막는다)
@@ -154,7 +163,9 @@ async function loadRecording({ at, latest }) {
         };
         manualMs = null;
         upcoming = null;
+        recording.boxesUrl = found.boxesUrl;
         playRecording(found.videoUrl, found.seekSec);
+        loadBoxes(recording);
         syncAddress(recording.startedAt + found.seekSec * 1000);
         return true;
     } catch (error) {
@@ -162,6 +173,7 @@ async function loadRecording({ at, latest }) {
             return null;
         }
         recording = null;
+        clearBoxes();
         manualMs = at ?? manualMs;
         video.pause();
         video.hidden = true;
@@ -237,6 +249,108 @@ async function seekToTime(ms) {
     }
 }
 
+// ---- 탐지 박스(FNC-A-046) ----
+
+// 녹화가 바뀌면 좌표 파일을 받아 프레임을 t 순서로 보관한다. 못 받으면(404 등) 영상만 재생하고 '박스 정보 없음'을 보인다
+async function loadBoxes(target) {
+    clearBoxes();
+    boxesFor = target.id;
+    try {
+        // boxesUrl은 서버가 컨텍스트 경로(/admin)까지 붙여 준 주소다. 영상 주소처럼 그대로 쓴다(공통 get()은 경로를 한 번 더 붙인다)
+        const response = await fetch(target.boxesUrl, { credentials: 'same-origin' });
+        if (!response.ok) {
+            throw new Error(`좌표 파일 요청 실패 ${response.status}`);
+        }
+        const frames = parseFrames(await response.json());
+        if (boxesFor !== target.id) {
+            return; // 그 사이 다른 녹화로 바뀌었다
+        }
+        boxFrames = frames;
+    } catch {
+        if (boxesFor !== target.id) {
+            return;
+        }
+        boxFrames = null;
+    }
+    setBoxNote(boxFrames === null);
+    drawBoxes();
+    armBoxLoop();
+}
+
+function clearBoxes() {
+    boxesFor = null;
+    boxFrames = null;
+    setBoxNote(false);
+    drawBoxes();
+}
+
+function setBoxNote(missing) {
+    boxNoteEl.hidden = !(missing && showBoxes);
+}
+
+// 재생 위치(video.currentTime)에서 t ≤ 위치인 마지막 프레임의 박스를 캔버스에 그린다. 영상은 칸 안에 비율을 지켜 그려지므로
+// 영상 크기 기준 영역(containRect)에 맞춘다. 구간 이동 직후(seeked)에도 같은 계산이라 위치가 맞는다
+function drawBoxes() {
+    const context = boxCanvas.getContext('2d');
+    const ratio = window.devicePixelRatio || 1;
+    const width = boxCanvas.clientWidth;
+    const height = boxCanvas.clientHeight;
+    if (boxCanvas.width !== Math.round(width * ratio) || boxCanvas.height !== Math.round(height * ratio)) {
+        boxCanvas.width = Math.round(width * ratio);
+        boxCanvas.height = Math.round(height * ratio);
+    }
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, width, height);
+    boxCanvas.hidden = !(showBoxes && boxFrames !== null && recording !== null && !video.hidden);
+    if (boxCanvas.hidden) {
+        return;
+    }
+    const area = containRect(width, height, video.videoWidth, video.videoHeight);
+    const frame = findFrame(boxFrames, video.currentTime);
+    if (!area || !frame) {
+        return;
+    }
+    context.strokeStyle = BOX_COLOR;
+    context.lineWidth = 1.5;
+    toPixels(frame.boxes, area).forEach((box) => context.strokeRect(box.x, box.y, box.w, box.h));
+}
+
+// 그릴 시점: 영상 프레임이 화면에 올라갈 때마다(requestVideoFrameCallback, 없으면 requestAnimationFrame).
+// 그릴 것이 없을 때(좌표 파일 없음·스위치 끔·녹화 없음)는 반복을 멈추고, 좌표 파일을 받거나 스위치를 켤 때 다시 건다
+let boxLoopArmed = false;
+
+function wantsBoxLoop() {
+    return showBoxes && boxFrames !== null && recording !== null;
+}
+
+function armBoxLoop() {
+    if (boxLoopArmed || !wantsBoxLoop()) {
+        return;
+    }
+    boxLoopArmed = true;
+    const tick = () => {
+        boxLoopArmed = false;
+        drawBoxes();
+        armBoxLoop();
+    };
+    if ('requestVideoFrameCallback' in video) {
+        video.requestVideoFrameCallback(tick);
+    } else {
+        window.requestAnimationFrame(tick);
+    }
+}
+
+boxSwitch.addEventListener('click', () => {
+    showBoxes = !showBoxes;
+    boxSwitch.setAttribute('aria-checked', String(showBoxes));
+    setBoxNote(boxFrames === null && recording !== null);
+    drawBoxes();
+    armBoxLoop();
+});
+// 일시 정지·구간 이동·창 크기 변경에도 위치가 맞도록 다시 그린다
+['seeked', 'loadedmetadata', 'pause', 'play'].forEach((name) => video.addEventListener(name, drawBoxes));
+new ResizeObserver(drawBoxes).observe(document.getElementById('pb-feed'));
+
 // ---- 이어 재생(FNC-A-045) ----
 
 // 끝나기 직전에 같은 캠의 다음 녹화를 미리 물어 둬서, 영상이 끝나면 바로 다음 영상으로 넘어가게 한다
@@ -274,7 +388,9 @@ async function continuePlayback() {
             endedAt: found.endedAt ? Date.parse(found.endedAt) : null,
         };
         upcoming = null;
+        recording.boxesUrl = found.boxesUrl;
         playRecording(found.videoUrl, found.seekSec);
+        loadBoxes(recording);
         syncAddress(recording.startedAt);
     } catch (error) {
         if (request !== recordingRequest) {
