@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('이벤트 로그')}"/>
+    <link rel="stylesheet" th:href="@{/css/admin/events.css}">
+</head>
+<body class="we">
+<header th:replace="~{fragments/layout :: adminHeader('events')}"></header>
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">EVENT CENTER</p>
+            <h1>이벤트 로그</h1>
+            <p>혼잡·급증·캠 이상 이벤트를 확인하고 조치를 기록합니다.</p>
+        </div>
+    </div>
+
+    <!-- 요약 카드: 현재 필터의 기간·지역·종류·검색어 기준 처리 상태별 건수(상태 필터는 받지 않음) -->
+    <div class="ev-summary" aria-label="이벤트 요약">
+        <div class="panel sum"><span class="muted" id="summary-total-label">전체</span><strong id="summary-total">-</strong></div>
+        <div class="panel sum"><span class="muted">미확인</span><strong class="ev-unchecked" id="summary-unchecked">-</strong></div>
+        <div class="panel sum"><span class="muted">확인 중</span><strong class="ev-checked" id="summary-checked">-</strong></div>
+        <div class="panel sum"><span class="muted">조치완료</span><strong class="ev-resolved" id="summary-resolved">-</strong></div>
+    </div>
+
+    <section class="panel ev-panel">
+        <form class="filterbar" id="event-filter" role="search" novalidate>
+            <label class="ev-field">
+                <span class="muted">기간</span>
+                <input class="control ev-date" type="date" id="filter-from" aria-label="시작일">
+                <span class="muted">~</span>
+                <input class="control ev-date" type="date" id="filter-to" aria-label="종료일">
+            </label>
+            <select class="control ev-select" id="filter-status" aria-label="처리 상태">
+                <option value="">전체 상태</option>
+                <option value="UNCHECKED">미확인</option>
+                <option value="CHECKED">확인 중</option>
+                <option value="RESOLVED">조치완료</option>
+            </select>
+            <select class="control ev-select" id="filter-type" aria-label="종류">
+                <option value="">전체 종류</option>
+                <option value="CONGESTION">혼잡</option>
+                <option value="SURGE">급증</option>
+                <option value="CAM_FAULT">캠 이상</option>
+            </select>
+            <input class="control ev-keyword" type="search" id="filter-keyword" maxlength="50"
+                   placeholder="구역·지역·캠 검색" aria-label="구역·지역·캠 검색" autocomplete="off">
+        </form>
+        <div class="table-wrap">
+            <div class="dtable ev-table" role="table" aria-label="이벤트 목록">
+                <div class="tr th" role="row">
+                    <span role="columnheader">발생 시각</span>
+                    <span role="columnheader">종류</span>
+                    <span role="columnheader">구역 · 지역</span>
+                    <span role="columnheader">최고 단계 · 값</span>
+                    <span role="columnheader">지속</span>
+                    <span role="columnheader">처리 상태</span>
+                </div>
+                <div id="event-rows" role="rowgroup"></div>
+                <div class="ev-empty" id="event-empty" hidden>
+                    <strong>검색 결과가 없습니다</strong>
+                    <p class="muted">필터나 검색어를 변경해 보세요</p>
+                </div>
+            </div>
+        </div>
+        <div class="pager">
+            <span id="event-total">불러오는 중…</span>
+            <div class="pages" id="event-pages"></div>
+        </div>
+    </section>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/admin/pages/events.js}"></script>
+</body>
+</html>

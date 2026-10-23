@@ -6,14 +6,18 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventType;
 
-/** 이벤트 저장소(tables.md 'event'). 혼잡·급증·캠 이상 판정(FNC-A-033~035)과 오늘 이벤트 수가 함께 쓴다. */
-public interface EventRepository extends JpaRepository<Event, Long> {
+/**
+ * 이벤트 저장소(tables.md 'event'). 혼잡·급증·캠 이상 판정(FNC-A-033~035)과 오늘 이벤트 수가 함께 쓰고,
+ * 이벤트 목록·요약(FNC-A-036)은 {@link EventSpecifications}로 조건을 조합해 조회한다.
+ */
+public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
 
     /**
      * 구역·종류의 열린(종료 시각 없는) 이벤트. 열린 이벤트는 하나만 두는 것이 규칙이지만(evtdet-004),

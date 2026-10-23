@@ -28,6 +28,10 @@ public interface ZoneRepository extends JpaRepository<Zone, Long> {
     @Query("select z.id from Zone z where z.dongId in :dongIds and z.deletedAt is null")
     List<Long> findActiveIdsByDongIdIn(@Param("dongIds") Collection<Long> dongIds);
 
+    /** 이름에 검색어가 들어 있는 구역 번호. 삭제된 구역도 포함한다(이벤트 목록 검색, FNC-A-036). */
+    @Query("select z.id from Zone z where locate(lower(:keyword), lower(z.name)) > 0")
+    List<Long> findIdsByNameContaining(@Param("keyword") String keyword);
+
     /** 삭제된 구역도 포함한다. 오늘 기록처럼 지난 값을 셀 때 쓴다(FNC-C-016). */
     List<Zone> findByDongIdIn(Collection<Long> dongIds);
 }
