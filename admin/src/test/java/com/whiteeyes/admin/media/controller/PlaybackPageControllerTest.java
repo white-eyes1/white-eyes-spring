@@ -32,6 +32,8 @@ class PlaybackPageControllerTest {
         mockMvc.perform(get("/playback").param("zoneId", "1").param("at", "2026-10-22T10:00:00+09:00"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"pb-video\"")))
+                .andExpect(content().string(containsString("id=\"pb-boxes\"")))
+                .andExpect(content().string(containsString("id=\"pb-box-switch\"")))
                 .andExpect(content().string(containsString("id=\"pb-speed\"")))
                 .andExpect(content().string(containsString("data-rate=\"4\"")))
                 .andExpect(content().string(containsString("id=\"pb-prev-event\"")))

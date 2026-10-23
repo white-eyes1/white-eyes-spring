@@ -23,6 +23,8 @@
         <section class="panel pb-player-panel">
             <div class="pb-feed" id="pb-feed">
                 <video id="pb-video" class="pb-video" playsinline preload="auto" hidden></video>
+                <canvas id="pb-boxes" class="pb-boxes" aria-hidden="true" hidden></canvas>
+                <span class="pb-box-note" id="pb-box-note" role="status" hidden>박스 정보 없음</span>
                 <div class="pb-notice" id="pb-notice" role="status">불러오는 중…</div>
                 <span class="pb-feed-label" id="pb-feed-label" hidden></span>
             </div>
@@ -37,6 +39,9 @@
                     <button type="button" data-rate="2">2×</button>
                     <button type="button" data-rate="4">4×</button>
                 </span>
+                <label class="pb-box-toggle" for="pb-box-switch">박스 표시
+                    <button type="button" class="pb-switch" id="pb-box-switch" role="switch" aria-checked="true"><i></i></button>
+                </label>
             </div>
         </section>
 
