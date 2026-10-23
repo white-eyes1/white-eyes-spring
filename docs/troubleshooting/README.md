@@ -40,3 +40,4 @@
 - [0015 팀원 브랜치의 임시 코드와 정식 코드가 같은 파일 경로라 합칠 때 충돌](0015-teammate-temp-code-same-path.md)
 - [0016 세션을 읽기만 하려 했는데 확인 요청마다 세션 마지막 접근 시각이 갱신됨](0016-live-auth-session-refreshed.md)
 - [0017 한글 Windows에서 `@Sql`로 넣은 한글 데이터가 깨짐](0017-sql-script-encoding-ms949.md)
+- [0018 nginx auth_request 주소에 변수를 썼더니 권한 확인이 항상 통과함](0018-nginx-auth-request-variable-uri.md)

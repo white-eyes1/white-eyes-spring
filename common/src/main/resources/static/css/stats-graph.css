@@ -1,0 +1,26 @@
+/* 통계 그래프(SCR-C-004) 전용 스타일. 공통 색·버튼·입력은 we.css를 쓴다(white-eyes-docs design/screens/SCR-C-004-graph.html에서 옮김) */
+.graph-conditions { padding: 14px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.graph-conditions .input { height: 34px; font-size: 12px; }
+.graph-target, .graph-period, .graph-items { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.graph-target select { max-width: 150px; }
+.graph-items { gap: 14px; }
+
+/* 단위 탭 */
+.seg { display: inline-flex; border: 1px solid #253242; border-radius: 8px; overflow: hidden; }
+.seg button { padding: 7px 12px; border: 0; border-right: 1px solid #253242; background: none; color: #9aa7b8; font-size: 12px; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: #1b2a3d; color: #edf2f8; }
+.seg button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* 항목 체크박스: 진짜 체크박스는 숨기고 시안의 네모 표시를 그린다 */
+.ck { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #c3cdd9; cursor: pointer; }
+.ck input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ck i { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid #4a5768; display: inline-block; }
+.ck input:checked + i { background: #356fc9; border-color: #5d95ef; }
+.ck input:focus-visible + i { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.graph-panel { overflow: hidden; }
+.graph-error { margin: 14px 16px 0; }
+.graph-canvas { position: relative; height: 420px; padding: 20px 24px 18px; }
+.graph-empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; }
+.graph-empty[hidden] { display: none; }

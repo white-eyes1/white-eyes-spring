@@ -107,6 +107,11 @@ public class Camera {
         }
     }
 
+    /** 삭제 표시만 한다. 가동 이력이 있는 캠은 지난 녹화·통계가 이 캠을 가리키므로 행을 남긴다(FNC-A-023 처리 순서 2). */
+    public void markDeleted(LocalDateTime now) {
+        this.deletedAt = now;
+    }
+
     /**
      * 분석 서버가 보고한 상태로 바꾼다(FNC-A-025). progress가 null이면 기존 진행률을 유지한다.
      */

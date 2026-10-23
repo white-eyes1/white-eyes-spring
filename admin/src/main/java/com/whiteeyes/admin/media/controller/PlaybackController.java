@@ -13,6 +13,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,6 +45,12 @@ public class PlaybackController {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "at 또는 latest=true가 필요합니다.");
         }
         return playbackFindService.findAt(zoneId, parseAt(at), now, basePath);
+    }
+
+    /** 이어 재생(FNC-A-045): 영상이 끝나면 같은 캠의 다음 녹화를 돌려준다(seekSec=0). */
+    @GetMapping("/api/v1/recordings/{id}/next")
+    public PlaybackResponse findNext(@PathVariable("id") Long id, HttpServletRequest request) {
+        return playbackFindService.findNext(id, request.getContextPath());
     }
 
     @GetMapping("/api/v1/playback/ranges")

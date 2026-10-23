@@ -1,5 +1,6 @@
 package com.whiteeyes.admin.media.service;
 
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
 import com.whiteeyes.admin.media.dto.PlaybackRangesResponse;
 import com.whiteeyes.admin.media.dto.PlaybackRangesResponse.Range;
 import com.whiteeyes.admin.media.entity.Recording;
@@ -14,22 +15,24 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 구역의 시간 범위 안에서 녹화가 있는 구간을 구한다(FNC-A-043 구간 조회, 다시보기 시간축의 '녹화 있음/없음' 띠). */
 @Service
+@EnableConfigurationProperties(RetentionProperties.class)
 @RequiredArgsConstructor
 public class PlaybackRangesService {
 
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
-    private static final int RETENTION_DAYS = 30;
     private static final Duration MAX_SPAN = Duration.ofHours(24);
     // 이 시간 이하로 떨어진 구간은 하나로 잇는다(파일이 이어 붙는 사이 틈)
     private static final Duration JOIN_GAP = Duration.ofSeconds(2);
 
     private final ZoneCameraService zoneCameraService;
     private final RecordingRepository recordingRepository;
+    private final RetentionProperties retentionProperties;
 
     /**
      * @param from 범위 시작(KST, DB와 같은 기준)
@@ -45,8 +48,8 @@ public class PlaybackRangesService {
         if (Duration.between(from, to).compareTo(MAX_SPAN) > 0) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "범위는 24시간 이내여야 합니다.");
         }
-        // 보관 기간 30일을 넘은 부분은 구간에 넣지 않는다
-        LocalDateTime start = max(from, now.minusDays(RETENTION_DAYS));
+        // 보관 기간(RECORDING_RETENTION_DAYS)을 넘은 부분은 구간에 넣지 않는다
+        LocalDateTime start = max(from, now.minusDays(retentionProperties.recordingDays()));
         if (!start.isBefore(to)) {
             return new PlaybackRangesResponse(List.of());
         }

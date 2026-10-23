@@ -95,6 +95,16 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("SCR-C-003 통계 패널에 비정상 인원 변동 접기 영역(처음엔 접힘)과 기간 비교로 가는 '자세히'가 있다")
+    void statsPage_hasAbnormalFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"abnormal-box\">")))
+                .andExpect(content().string(containsString("비정상 인원 변동")))
+                .andExpect(content().string(containsString("id=\"abnormal-list\"")))
+                .andExpect(content().string(containsString("id=\"abnormal-detail\" href=\"/stats/compare\"")));
+    }
+
+    @Test
     @DisplayName("SCR-A-008 관리자 앱 /stats에 실시간 보기 창(영상, 연결 실패 시 다시 시도, 현재 통계, 다시보기)이 있다")
     void statsPage_admin_hasLiveViewModal() throws Exception {
         mockMvc.perform(get("/stats"))

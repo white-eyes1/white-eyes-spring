@@ -40,11 +40,12 @@ public class CameraUpdateService {
         if (request.name() == null && request.sourceType() == null && request.sourceUri() == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "name, sourceType, sourceUri 중 하나는 보내야 합니다.");
         }
-        Camera camera = cameraRepository.findByIdAndDeletedAtIsNull(cameraId)
+        // 행을 잠가서 읽는다: 상태 확인과 저장 사이에 가동 요청이 끼어드는 것을 막는다(캠 삭제와 같은 방식)
+        Camera camera = cameraRepository.findWithLockByIdAndDeletedAtIsNull(cameraId)
                 .orElseThrow(() -> new CameraNotFoundException(cameraId));
         // 처리 순서 1: 정지 상태(STOPPED)이고 가동 요청이 없을 때만 고칠 수 있다(가동 중·준비 중·오류는 먼저 정지)
         if (camera.getStatus() != CameraStatus.STOPPED || camera.isRunRequested()) {
-            throw new CameraNotStoppedException(cameraId, camera.getStatus());
+            throw new CameraNotStoppedException(cameraId, camera.getStatus(), camera.isRunRequested());
         }
         // 처리 순서 2: 바뀐 뒤의 입력 방식과 영상 주소로 규칙 검사 후 저장
         String name = request.name() == null ? camera.getName() : request.name().trim();

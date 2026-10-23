@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('관리자 관리')}"/>
+    <link rel="stylesheet" th:href="@{/css/admin/admins.css}">
+</head>
+<body class="we">
+<header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
+<!--
+  SCR-A-003 관리자 관리(최고 관리자 전용). 목록은 화면 JS(js/admin/pages/admins.js)가 GET /api/v1/admins(FNC-A-003)로 받아 채운다.
+  계정 만들기 버튼(FNC-A-009)과 행 동작 버튼(FNC-A-010·011·008)은 각 기능의 이슈에서 붙인다.
+-->
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">ADMINS · 최고 관리자 전용</p>
+            <h1>관리자 관리</h1>
+            <p>관리자 계정을 만들면 임시 비밀번호를 한 번만 보여 줍니다.</p>
+        </div>
+    </div>
+
+    <section class="panel admin-panel">
+        <p id="admin-list-error" class="alert admin-notice" role="alert" hidden></p>
+
+        <div class="table-wrap">
+            <table id="admin-table" class="table">
+                <thead>
+                <tr>
+                    <th scope="col" aria-sort="none"><button type="button" class="sort-btn" data-sort="loginId">아이디</button></th>
+                    <th scope="col">이름</th>
+                    <th scope="col">역할</th>
+                    <th scope="col">상태</th>
+                    <th scope="col">최근 활동</th>
+                    <th scope="col">활동 중</th>
+                </tr>
+                </thead>
+                <tbody id="admin-table-body"></tbody>
+            </table>
+        </div>
+        <p id="admin-list-empty" class="muted admin-empty" hidden>관리자 계정이 없습니다.</p>
+
+        <div class="pager">
+            <span id="admin-total"></span>
+            <nav id="admin-pagination" class="pages" aria-label="페이지 이동"></nav>
+        </div>
+    </section>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/admin/pages/admins.js}"></script>
+</body>
+</html>

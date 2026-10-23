@@ -29,7 +29,7 @@ class UserSearchRequestTest {
         assertThat(request.status()).isNull();
         assertThat(request.page()).isZero();
         assertThat(request.size()).isEqualTo(20);
-        assertThat(request.sortField()).isEqualTo(UserSortField.CREATED_AT);
+        assertThat(request.sortField()).isEqualTo(AccountSortField.CREATED_AT);
         assertThat(request.isAscending()).isFalse();
         assertThat(request.isSessionDependent()).isFalse();
     }

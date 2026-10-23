@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.whiteeyes.admin.media.entity.Recording;
 
@@ -40,6 +41,17 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
             @Param("cameraIds") Collection<Long> cameraIds, @Param("at") LocalDateTime at, Limit limit);
 
     /**
+     * started_at이 cutoff보다 앞선 녹화 기록을 최대 limit건 지운다(FNC-A-032). 파일은 지우지 않는다.
+     *
+     * @return 지운 건수
+     */
+    // 건수 제한이 있는 삭제는 JPQL로 쓸 수 없어 네이티브로 쓴다(MySQL·H2 모두 DELETE ... LIMIT 지원)
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM recording WHERE started_at < :cutoff LIMIT :limit", nativeQuery = true)
+    int deleteStartedBefore(@Param("cutoff") LocalDateTime cutoff, @Param("limit") int limit);
+
+    /**
      * 주어진 캠들의 녹화 중 [from, to) 범위와 겹치는 것(started_at &lt; to, ended_at이 없거나 from보다 뒤)을 시작이 빠른 순으로
      * (FNC-A-043 구간 조회).
      */
@@ -49,6 +61,18 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
             @Param("cameraIds") Collection<Long> cameraIds,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
+
+    /**
+     * 같은 캠에서 started_at이 from 이상인 녹화(자기 자신 제외) 중 가장 이른 것(FNC-A-045 처리 순서 1).
+     * 첫 줄만 쓰면 이어서 틀 후보다.
+     */
+    @Query("select r from Recording r where r.cameraId = :cameraId and r.id <> :recordingId"
+            + " and r.startedAt >= :from order by r.startedAt asc, r.id asc")
+    List<Recording> findFollowing(
+            @Param("cameraId") Long cameraId,
+            @Param("recordingId") Long recordingId,
+            @Param("from") LocalDateTime from,
+            Limit limit);
 
     /** 주어진 캠들의 녹화 중 since 이후에 시작한 것 가운데 가장 늦게 시작한 것(FNC-A-043 latest). */
     Optional<Recording> findFirstByCameraIdInAndStartedAtGreaterThanEqualOrderByStartedAtDescIdDesc(

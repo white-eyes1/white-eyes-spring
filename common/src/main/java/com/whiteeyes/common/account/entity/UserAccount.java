@@ -96,4 +96,9 @@ public class UserAccount {
         this.password = encodedPassword;
         this.mustChangePassword = false;
     }
+
+    /** 승인해 ACTIVE로 바꾼다(FNC-A-006). PENDING인지는 부르는 쪽이 먼저 확인한다. */
+    public void approve() {
+        this.status = UserAccountStatus.ACTIVE;
+    }
 }

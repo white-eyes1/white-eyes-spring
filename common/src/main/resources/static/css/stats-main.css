@@ -43,6 +43,17 @@
 .level-rules li { display: flex; align-items: center; gap: 8px; }
 .level-rules .dot { width: 10px; height: 10px; }
 
+/* 접기 영역: 머리를 누르면 펼친다(시안 SCR-C-003-stats-panel-all) */
+.acc.fold > summary { cursor: pointer; list-style: none; justify-content: flex-start; }
+.acc.fold > summary::-webkit-details-marker { display: none; }
+.acc.fold > summary::after { content: ""; width: 7px; height: 7px; margin: -3px 2px 0 8px; border-right: 1.5px solid #8b98a9; border-bottom: 1.5px solid #8b98a9; transform: rotate(45deg); }
+.acc.fold[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.acc.fold > summary .small { margin-left: auto; }
+.acc-b { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 11px; }
+.acc-b .btn { align-self: flex-end; }
+.abnormal-list { display: flex; flex-direction: column; gap: 8px; }
+.abnormal-list .row { display: flex; align-items: center; gap: 8px; }
+
 /* 지도 위 구역 핀 */
 .zone-pin { background: none; border: 0; }
 .pin { position: absolute; left: -15px; top: -15px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 2px solid rgba(255,255,255,.85); color: #0b1118; box-shadow: 0 4px 14px rgba(0,0,0,.45); }

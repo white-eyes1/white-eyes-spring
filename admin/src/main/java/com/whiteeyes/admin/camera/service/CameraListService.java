@@ -7,10 +7,12 @@ import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
+import com.whiteeyes.common.event.service.TodayEventCountService;
 import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.level.service.LevelTarget;
 import com.whiteeyes.common.stat.dto.ZoneMinuteStat;
 import com.whiteeyes.common.stat.service.ZoneStatQueryService;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -36,6 +38,7 @@ public class CameraListService {
     private final RegionLookupService regionLookupService;
     private final ZoneStatQueryService zoneStatQueryService;
     private final LevelService levelService;
+    private final TodayEventCountService todayEventCountService;
 
     /**
      * 삭제되지 않은 캠 목록을 번호 순으로 돌려준다. regionId가 있으면 그 지역 아래 구역의 캠만 돌려준다.
@@ -55,9 +58,18 @@ public class CameraListService {
         // 최근 10분의 1분 통계를 한 번에 가져와 stat(5분 안의 가장 최근 것)과 recent10m 둘 다에 쓴다
         LocalDateTime now = LocalDateTime.now(KST);
         Map<Long, List<ZoneMinuteStat>> stats = zoneStatQueryService.findRecentByZone(zoneIds, now.minusMinutes(RECENT_MINUTES));
+        // 오늘 혼잡·급증 이벤트 수도 구역 전체를 한 번에 센다(FNC-C-017). 오늘은 KST 00:00부터
+        Map<Long, Integer> eventCounts =
+                todayEventCountService.countByZone(zoneIds, LocalDate.now(KST).atStartOfDay());
 
         return cameras.stream()
-                .map(camera -> toItem(camera, zones.get(camera.getZoneId()), regionPaths, stats.getOrDefault(camera.getZoneId(), List.of()), now))
+                .map(camera -> toItem(
+                        camera,
+                        zones.get(camera.getZoneId()),
+                        regionPaths,
+                        stats.getOrDefault(camera.getZoneId(), List.of()),
+                        eventCounts.getOrDefault(camera.getZoneId(), 0),
+                        now))
                 .toList();
     }
 
@@ -74,8 +86,12 @@ public class CameraListService {
     }
 
     private CameraListItem toItem(
-            Camera camera, ZoneSummary zone, Map<Long, String> regionPaths, List<ZoneMinuteStat> recent, LocalDateTime now) {
-        // todayEventCount는 이벤트(#38)가 들어오면 채운다(지금은 0)
+            Camera camera,
+            ZoneSummary zone,
+            Map<Long, String> regionPaths,
+            List<ZoneMinuteStat> recent,
+            int todayEventCount,
+            LocalDateTime now) {
         return new CameraListItem(
                 camera.getId(),
                 camera.getZoneId(),
@@ -90,7 +106,7 @@ public class CameraListService {
                 camera.getErrorMessage(),
                 camera.isRunRequested(),
                 toStat(camera.getZoneId(), recent, now),
-                0,
+                todayEventCount,
                 toRecent10m(recent));
     }
 

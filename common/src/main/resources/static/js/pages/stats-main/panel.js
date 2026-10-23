@@ -15,6 +15,14 @@ function timeOf(statAt) {
     return statAt ? formatDateTime(statAt).slice(11) : '';
 }
 
+/** '그래프 보기'(FNC-C-012)에 현재 지역을 넘긴다. 단위·기간은 그래프 화면의 기본값(1h, 오늘)을 쓴다 */
+export function renderGraphLink(regionId) {
+    const link = byId('graph-link');
+    const url = new URL(link.href);
+    url.search = new URLSearchParams({ targetType: 'REGION', targetId: String(regionId) }).toString();
+    link.href = url.toString();
+}
+
 /** 패널 머리의 '은행선화동 · 캠 3대' */
 export function renderTarget(name, cameraCount) {
     byId('stat-target').textContent = cameraCount === null ? name : `${name} · 캠 ${cameraCount}대`;

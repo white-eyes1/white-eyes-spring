@@ -1,11 +1,13 @@
 package com.whiteeyes.admin.camera.controller;
 
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
+import com.whiteeyes.admin.camera.dto.CameraDeleteResponse;
 import com.whiteeyes.admin.camera.dto.CameraListItem;
 import com.whiteeyes.admin.camera.dto.CameraResponse;
 import com.whiteeyes.admin.camera.dto.CameraStartResponse;
 import com.whiteeyes.admin.camera.dto.CameraStopResponse;
 import com.whiteeyes.admin.camera.dto.CameraUpdateRequest;
+import com.whiteeyes.admin.camera.service.CameraDeleteService;
 import com.whiteeyes.admin.camera.service.CameraListService;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
 import com.whiteeyes.admin.camera.service.CameraStartService;
@@ -15,6 +17,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +38,7 @@ public class CameraController {
     private final CameraStartService cameraStartService;
     private final CameraStopService cameraStopService;
     private final CameraUpdateService cameraUpdateService;
+    private final CameraDeleteService cameraDeleteService;
 
     @GetMapping
     public List<CameraListItem> list(@RequestParam(required = false) Long regionId) {
@@ -56,6 +60,12 @@ public class CameraController {
     @PatchMapping("/{id}")
     public CameraResponse update(@PathVariable Long id, @Valid @RequestBody CameraUpdateRequest request) {
         return cameraUpdateService.update(id, request);
+    }
+
+    /** 캠 삭제(FNC-A-023) */
+    @DeleteMapping("/{id}")
+    public CameraDeleteResponse delete(@PathVariable Long id) {
+        return cameraDeleteService.delete(id);
     }
 
     @PostMapping

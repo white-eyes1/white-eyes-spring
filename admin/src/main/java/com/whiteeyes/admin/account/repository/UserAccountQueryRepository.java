@@ -1,7 +1,7 @@
 package com.whiteeyes.admin.account.repository;
 
 import com.whiteeyes.admin.account.dto.UserSearchRequest;
-import com.whiteeyes.admin.account.dto.UserSortField;
+import com.whiteeyes.admin.account.dto.AccountSortField;
 import com.whiteeyes.common.account.entity.UserAccount;
 import com.whiteeyes.common.account.entity.UserAccountStatus;
 import jakarta.persistence.EntityManager;
@@ -32,7 +32,7 @@ public class UserAccountQueryRepository {
 
     /** 조건·정렬을 적용한 한 페이지. 최근 활동 정렬은 세션 정보가 있어야 하므로 여기서 다루지 않는다. */
     public List<UserRow> findPage(UserSearchRequest request) {
-        if (request.sortField() == UserSortField.LAST_ACTIVE_AT) {
+        if (request.sortField() == AccountSortField.LAST_ACTIVE_AT) {
             throw new IllegalArgumentException("최근 활동 정렬은 메모리에서 처리한다");
         }
         long offset = (long) request.page() * request.size();
@@ -60,7 +60,7 @@ public class UserAccountQueryRepository {
      * 최근 활동 정렬이면 그와 가장 가까운 마지막 로그인 최근 순, 아니면 요청한 정렬 순이다.
      */
     public List<UserRow> findCandidates(UserSearchRequest request, int limit) {
-        List<SortKey> sortKeys = request.sortField() == UserSortField.LAST_ACTIVE_AT
+        List<SortKey> sortKeys = request.sortField() == AccountSortField.LAST_ACTIVE_AT
                 ? lastLoginRecentFirst()
                 : sortOrder(request.sortField(), request.isAscending());
         return select(request, sortKeys).setMaxResults(limit).getResultList();
@@ -111,7 +111,7 @@ public class UserAccountQueryRepository {
     }
 
     // 같은 값이면 번호로 한 번 더 정렬해 페이지를 넘겨도 순서가 흔들리지 않게 한다(UserListAssembler와 같은 규칙)
-    private static List<SortKey> sortOrder(UserSortField field, boolean ascending) {
+    private static List<SortKey> sortOrder(AccountSortField field, boolean ascending) {
         String attribute = switch (field) {
             case CREATED_AT -> "createdAt";
             case LOGIN_ID -> "loginId";
