@@ -132,7 +132,7 @@ async function refresh() {
     try {
         const [list, summary] = await Promise.all([
             get('/api/v1/events', Object.fromEntries(listQuery)),
-            get('/api/v1/events/summary', Object.fromEntries(commonQuery())),
+            get('/api/v1/events/summary', Object.fromEntries(commonQuery()), { toast: false }),
         ]);
         // 그 사이 필터가 바뀌어 더 새로운 요청이 나갔으면 이 응답은 버린다
         if (seq !== requestSeq) {
@@ -141,9 +141,20 @@ async function refresh() {
         renderSummary(summary);
         renderList(list);
     } catch {
+        // 새 필터와 어긋난 이전 결과가 남지 않게 표와 카드를 비운다. 오류 알림은 목록 호출이 토스트로 한 번만 띄운다
         if (seq === requestSeq) {
+            clearResult();
             totalEl.textContent = '목록을 불러오지 못했습니다.';
         }
+    }
+}
+
+function clearResult() {
+    rowsEl.replaceChildren();
+    emptyEl.hidden = true;
+    pagesEl.replaceChildren();
+    for (const id of ['summary-total', 'summary-unchecked', 'summary-checked', 'summary-resolved']) {
+        document.getElementById(id).textContent = '-';
     }
 }
 
