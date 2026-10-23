@@ -54,6 +54,23 @@
 .abnormal-list { display: flex; flex-direction: column; gap: 8px; }
 .abnormal-list .row { display: flex; align-items: center; gap: 8px; }
 
+/* 보조 지표(FNC-C-030) 접기 영역. 모양은 시안 SCR-C-003-stats-panel-all */
+.acc-b .row { display: flex; align-items: center; gap: 8px; }
+.acc-b .grow { flex: 1; min-width: 0; }
+.acc-b .bar { height: 8px; flex: 1; border-radius: 4px; background: #1f2a37; overflow: hidden; }
+.acc-b .bar i { display: block; height: 100%; border-radius: 4px; }
+.aux-flow .dir { width: 36px; flex: none; }
+.aux-flow .flow-bar { background: none; }
+.aux-flow .flow-bar.end { display: flex; justify-content: flex-end; }
+.aux-flow .num { width: 76px; flex: none; text-align: right; white-space: nowrap; }
+.acc-b .big { font-size: 20px; }
+.aux-graph { display: block; width: 100%; }
+.level-stack { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: #1f2a37; }
+.level-time { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.aux-rank .rank { width: 16px; flex: none; }
+.aux-rank .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aux-rate { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
 /* 지도 위 구역 핀 */
 .zone-pin { background: none; border: 0; }
 .pin { position: absolute; left: -15px; top: -15px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 2px solid rgba(255,255,255,.85); color: #0b1118; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
