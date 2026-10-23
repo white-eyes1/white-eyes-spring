@@ -2,6 +2,8 @@
 // 지역은 주소 쿼리 regionId로 유지한다. 새 1분 통계는 통계 SSE(FNC-C-022)가 알려 주면 화면 값을 새로 읽고,
 // 연결이 끊겨 있거나 한참 소식이 없으면 60초마다 읽는다.
 import { get, url } from '../common/api.js';
+import { initLiveView, openLiveView, updateLiveView } from '../live/live-view.js';
+import { showToast } from '../common/toast.js';
 import { createRegionMap, createStatusLayer } from '../map/status-map.js';
 import { createDeck } from './stats-main/deck.js';
 import {
@@ -47,9 +49,11 @@ async function start() {
     initZoneTabs();
     window.addEventListener('popstate', () => selectFromUrl());
     if (isAdmin) {
+        initLiveView();
         deck = createDeck({
             levels,
             onReload: loadCameras,
+            onOpenLive: openLiveView,
             onResize: () => {
                 layer?.refreshSize();
                 updateVisibleZones();
@@ -203,6 +207,8 @@ async function loadRegion() {
         layer = createStatusLayer(map, {
             onSelectRegion: selectChildRegion,
             onViewChange: updateVisibleZones,
+            // 관리자 앱: 구역 핀을 누르면 그 구역 캠의 실시간 보기 창(SCR-A-008)
+            onPinClick: isAdmin ? openLiveForZone : undefined,
         });
         renderedRegionId = target.id;
         connectStream(target.id);
@@ -260,8 +266,23 @@ async function refresh() {
 
 async function loadCameras() {
     const target = path[path.length - 1];
-    deck.setCameras(await get('/api/v1/manage/cameras', { regionId: target.id }));
+    const cameras = await get('/api/v1/manage/cameras', { regionId: target.id });
+    deck.setCameras(cameras);
+    // 열려 있는 실시간 보기 창의 '현재 통계'도 새 분 통계로 바꾼다
+    updateLiveView(cameras);
     updateVisibleZones();
+}
+
+// 구역 핀: 그 구역의 캠이 가동 중이면 실시간 보기 창을 연다
+function openLiveForZone(zoneId) {
+    const camera = deck?.cameraByZone(zoneId);
+    if (!camera) {
+        showToast('이 구역에는 캠이 없습니다.');
+    } else if (camera.status !== 'RUNNING') {
+        showToast('가동 중인 캠이 아니라 실시간 영상을 볼 수 없습니다.');
+    } else {
+        openLiveView(camera);
+    }
 }
 
 function updateVisibleZones() {

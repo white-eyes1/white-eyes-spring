@@ -10,9 +10,10 @@
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
     <th:block th:replace="~{fragments/layout :: leaflet}"/>
     <link rel="stylesheet" th:href="@{/css/stats-main.css}">
+    <link rel="stylesheet" th:href="@{/css/live.css}">
 </head>
 <body class="we">
-<div class="dash" id="dash" th:attr="data-admin=${admin}">
+<div class="dash" id="dash" th:attr="data-admin=${admin}, data-snapshot-interval-sec=${cardSnapshotIntervalSec}">
     <header th:replace="${admin} ? ~{fragments/layout :: adminHeader('dashboard')} : ~{fragments/layout :: userHeader('dashboard')}"></header>
 
     <div class="filterbar">
@@ -98,6 +99,11 @@
         <div class="deck-cards" id="deck-cards"></div>
     </section>
 </div>
+<!-- SCR-A-008 실시간 보기 창(관리자 앱만) -->
+<th:block th:if="${admin}">
+    <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
+</th:block>
+
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/stats-main.js}"></script>
 </body>

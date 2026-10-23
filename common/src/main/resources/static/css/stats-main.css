@@ -76,6 +76,13 @@
 .camcard footer .btn { flex: 1; }
 .camcard .err-msg { padding: 0 12px 8px; color: #ff8a90; font-size: 11px; }
 
+/* 카드 안쪽 칸은 줄어들지 않게 한다. 캠 패널을 펼치면 카드 높이가 제한돼 영상 칸이 4px로 쪼그라들었다(FNC-A-042) */
+.camcard > * { flex-shrink: 0; }
+/* 펼친 모양에서는 시안대로 미리보기를 크게 보인다 */
+.dash.expanded .camcard .snap { height: 140px; }
+/* 펼친 목록(격자)이 높이를 다 채우려고 행 높이를 똑같이 나눠 카드 내용이 잘렸다. 행은 내용 높이로 두고 넘치면 세로 스크롤 */
+.dash.expanded .deck-cards { grid-auto-rows: max-content; }
+
 /* 실시간 통계 갱신 연결 상태(FNC-C-022) */
 .stream-status { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 3px 9px; border-radius: 11px; background: #1d2733; color: #c3ccd8; font-size: 11px; }
 .stream-status[hidden] { display: none; }

@@ -68,6 +68,38 @@
     </div>
 </header>
 
+<!-- SCR-A-008 실시간 보기 창(관리자 앱). 대시보드 지도 핀·캠 카드와 캠 관리의 '실시간 보기'에서 연다. 동작은 js/live/live-view.js -->
+<div th:fragment="adminLiveModal" class="modal-stage live-modal-stage" id="live-modal" hidden>
+    <div class="modal live-modal" role="dialog" aria-modal="true" aria-label="실시간 보기">
+        <div class="modal-head">
+            <div>
+                <p class="eyebrow">LIVE VIEW · <span id="live-cam"></span></p>
+                <h2><span id="live-name"></span> <span class="muted live-place" id="live-place"></span></h2>
+            </div>
+            <button class="icon-btn" type="button" aria-label="닫기" data-live-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="live-body">
+            <div class="live-feed">
+                <img id="live-img" alt="실시간 영상" hidden>
+                <div class="live-notice" id="live-notice" role="status" hidden>
+                    <span id="live-notice-text"></span>
+                    <button type="button" class="btn secondary sm" id="live-retry" hidden>다시 시도</button>
+                </div>
+                <span class="live-badge"><i class="rec"></i>LIVE · MJPEG</span>
+                <span class="live-count-badge" id="live-count-badge"></span>
+            </div>
+        </div>
+        <div class="live-foot">
+            <div><span class="muted">현재 인원</span><div class="value" id="live-count">-</div></div>
+            <div><span class="muted">밀집도</span><div class="value"><span id="live-density">-</span> <small class="muted">명/㎡</small></div></div>
+            <span class="chip" id="live-level" hidden></span>
+            <button type="button" class="btn secondary live-playback" id="live-playback">다시보기</button>
+        </div>
+    </div>
+</div>
+
 <!-- SCR-U-004 사용자 공통 헤더(틀만). active: dashboard | stats -->
 <header th:fragment="userHeader(active)" class="we topbar" data-header="user">
     <a class="brand" th:href="@{/stats}">White Eyes<small>혼잡 현황</small></a>
