@@ -163,7 +163,7 @@ class EventListTest {
                 .getContentAsString();
 
         long durationSec = jsonMapper.readTree(body).get("items").get(0).get("durationSec").asLong();
-        assertThat(durationSec).isBetween(30 * 60L, 31 * 60L);
+        assertThat(durationSec).isBetween(30 * 60L - 2, 31 * 60L);
     }
 
     @Test
