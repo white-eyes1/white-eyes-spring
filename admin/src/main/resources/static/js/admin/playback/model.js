@@ -104,6 +104,16 @@ export function normalizeSeries(items) {
 }
 
 /** 이벤트 응답을 밀리초 시각으로. 진행 중이면 endedAt은 null. */
+/**
+ * 녹화 구간 조회 응답의 ranges를 {from, to}(ms)로 바꾼다. 시각이 읽히지 않는 항목은 버린다.
+ * @param {{from: string, to: string}[]} items
+ */
+export function normalizeRanges(items) {
+    return items
+        .map((item) => ({ from: Date.parse(item.from), to: Date.parse(item.to) }))
+        .filter((item) => Number.isFinite(item.from) && Number.isFinite(item.to) && item.from < item.to);
+}
+
 export function normalizeEvents(items) {
     return items
         .map((event) => ({
