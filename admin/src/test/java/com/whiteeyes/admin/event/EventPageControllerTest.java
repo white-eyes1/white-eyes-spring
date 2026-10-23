@@ -44,4 +44,16 @@ class EventPageControllerTest {
                 .andExpect(content().string(containsString("<meta name=\"_csrf\"")))
                 .andExpect(content().string(containsString("class=\"tab on\"")));
     }
+
+    @Test
+    @DisplayName("SCR-A-011 /events에 이벤트 상세 창(정보·처리 이력·닫기)이 들어 있다")
+    void eventsPage_rendersDetailModal() throws Exception {
+        mockMvc.perform(get("/events"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"detail-modal\"")))
+                .andExpect(content().string(containsString("id=\"detail-info\"")))
+                .andExpect(content().string(containsString("id=\"detail-histories\"")))
+                .andExpect(content().string(containsString("처리 이력")))
+                .andExpect(content().string(containsString("data-close")));
+    }
 }
