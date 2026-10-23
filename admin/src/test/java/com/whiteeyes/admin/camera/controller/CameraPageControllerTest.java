@@ -58,6 +58,7 @@ class CameraPageControllerTest {
     void camerasPage_rendersRegisterModal() throws Exception {
         mockMvc.perform(get("/cameras"))
                 .andExpect(content().string(containsString("id=\"camera-modal\"")))
+                .andExpect(content().string(containsString("id=\"camera-modal-title\"")))
                 .andExpect(content().string(containsString("name=\"zoneId\"")))
                 .andExpect(content().string(containsString("name=\"name\"")))
                 .andExpect(content().string(containsString("value=\"DUMMY\"")))
