@@ -83,8 +83,9 @@ class AdminRoleSessionTest {
     void loggedInSuperAdmin_allOpen() throws Exception {
         Cookie session = loginAs("super01", "SUPER_ADMIN", false);
 
+        // 관리자 목록(FNC-A-003, #47)이 생겨 권한을 통과하면 200이다
         mockMvc.perform(get("/admin/api/v1/admins").contextPath(CONTEXT_PATH).cookie(session))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
         mockMvc.perform(get("/admin/api/v1/events").contextPath(CONTEXT_PATH).cookie(session))
                 .andExpect(status().isNotFound());
     }

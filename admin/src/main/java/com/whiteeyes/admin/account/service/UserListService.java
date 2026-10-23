@@ -2,6 +2,7 @@ package com.whiteeyes.admin.account.service;
 
 import com.whiteeyes.admin.account.dto.UserListItem;
 import com.whiteeyes.admin.account.dto.UserSearchRequest;
+import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
 import com.whiteeyes.admin.account.repository.UserAccountQueryRepository;
 import com.whiteeyes.admin.account.repository.UserRow;
 import com.whiteeyes.common.web.PageResponse;
@@ -16,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserListService {
 
     private final UserAccountQueryRepository userAccountQueryRepository;
-    private final UserActivityService userActivityService;
+    private final AccountActivityService accountActivityService;
 
     /**
      * 세션 정보가 필요 없는 조건이면 DB에서 페이지까지 자르고 그 페이지 계정들의 세션만 읽는다.
@@ -30,7 +31,7 @@ public class UserListService {
         }
         List<UserRow> rows = userAccountQueryRepository.findPage(request);
         long totalElements = userAccountQueryRepository.count(request);
-        UserActivities activities = userActivityService.loadActivities(loginIdsOf(rows));
+        AccountActivities activities = accountActivityService.loadActivities(SessionTable.USER, loginIdsOf(rows));
         return UserListAssembler.assemblePage(rows, totalElements, activities, request);
     }
 
@@ -40,7 +41,7 @@ public class UserListService {
                 userAccountQueryRepository.findCandidates(request, UserListAssembler.SESSION_DEPENDENT_LIMIT + 1);
         List<UserRow> considered =
                 candidates.subList(0, Math.min(candidates.size(), UserListAssembler.SESSION_DEPENDENT_LIMIT));
-        UserActivities activities = userActivityService.loadActivities(loginIdsOf(considered));
+        AccountActivities activities = accountActivityService.loadActivities(SessionTable.USER, loginIdsOf(considered));
         return UserListAssembler.assembleInMemory(candidates, activities, request);
     }
 

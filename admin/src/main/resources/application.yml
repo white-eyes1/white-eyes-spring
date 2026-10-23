@@ -41,6 +41,11 @@ super-admin:
 account:
   active-window: ${ACTIVE_WINDOW:30m}
 
+# 오래된 데이터 보관 일수(conventions.md, FNC-A-032)
+retention:
+  stat-minute-days: ${STAT_MINUTE_RETENTION_DAYS:90}
+  recording-days: ${RECORDING_RETENTION_DAYS:30}
+
 management:
   endpoints:
     web:

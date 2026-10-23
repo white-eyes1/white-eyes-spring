@@ -84,10 +84,14 @@ export function findMinute(items, ms) {
     return items.find((item) => item.at === key) ?? null;
 }
 
-/** API 응답의 항목을 계산하기 쉬운 형태로. 시각은 밀리초로 바꾸고 유입·유출은 방향 합으로 만든다. */
+/**
+ * API 응답의 항목을 계산하기 쉬운 형태로. 시각은 밀리초로 바꾸고 유입·유출은 방향 합으로 만든다.
+ * 통계가 없는 분(sampleSec=0, 값은 null)은 버린다. 그 자리가 비어 시간축 선이 끊기고 '-'로 보인다(SCR-C-004 끊김 규칙).
+ */
 export function normalizeSeries(items) {
     const sum = (flow) => (flow ? Object.values(flow).reduce((total, value) => total + (Number(value) || 0), 0) : 0);
     return items
+        .filter((item) => item.sampleSec !== 0)
         .map((item) => ({
             at: minuteStart(Date.parse(item.at)),
             countAvg: item.countAvg,

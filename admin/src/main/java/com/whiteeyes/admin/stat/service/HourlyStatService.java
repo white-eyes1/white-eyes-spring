@@ -15,6 +15,7 @@ import com.whiteeyes.common.stat.entity.ZoneStatHourly;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
+import com.whiteeyes.common.stat.service.StatRollupCalculator;
 
 /** 시간별 통계 저장(FNC-A-029) */
 @Service
