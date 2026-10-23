@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
@@ -143,7 +144,7 @@ class CompareIntegrationTest {
     @Test
     @DisplayName("FNC-C-020 API는 명세의 응답 모양을 내보내고, 기간 오류는 400 INVALID_RANGE")
     void api() throws Exception {
-        mockMvc.perform(get(COMPARE_URL).with(AdminTestLogin.admin())
+        String body = mockMvc.perform(get(COMPARE_URL).with(AdminTestLogin.admin())
                         .param("targetType", "REGION")
                         .param("targetId", String.valueOf(regionId("11110")))
                         .param("from", "2099-01-05")
@@ -157,8 +158,13 @@ class CompareIntegrationTest {
                 .andExpect(jsonPath("$.cells[9].baseAvg").value(80.0))
                 .andExpect(jsonPath("$.cells[9].rate").value(50.0))
                 .andExpect(jsonPath("$.cells[9].abnormal").value(true))
-                .andExpect(jsonPath("$.cells[0].rate").isEmpty())
-                .andExpect(jsonPath("$.totalRate").value(23.1));
+                .andExpect(jsonPath("$.totalRate").value(23.1))
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        // 비교 불가 칸도 필드를 빼지 않고 null로 내보낸다(화면 JS가 rate === null로 회색 칸을 고른다)
+        assertThat(body).contains(
+                "{\"weekday\":1,\"hour\":0,\"targetAvg\":null,\"baseAvg\":null,\"rate\":null,\"abnormal\":false}");
 
         mockMvc.perform(get(COMPARE_URL).with(AdminTestLogin.admin())
                         .param("targetType", "REGION")
