@@ -50,6 +50,11 @@
 .pb-level-strip { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #1a2430; }
 .pb-level-strip span { flex: 1; }
 .pb-level-strip .l1 { background: var(--lv1); } .pb-level-strip .l2 { background: var(--lv2); } .pb-level-strip .l3 { background: var(--lv3); }
+.pb-rec-strip { position: relative; height: 8px; border-radius: 4px; overflow: hidden; background: #2a1d22; }
+.pb-rec-strip[hidden] { display: none; }
+.pb-rec-strip span { position: absolute; top: 0; bottom: 0; background: #2b4a3f; }
+.pb-dot-rec { background: #2b4a3f; }
+.pb-dot-norec { background: #2a1d22; margin-left: 8px; }
 .pb-axis { display: flex; justify-content: space-between; font-size: 10px; }
 .pb-legend { display: flex; gap: 16px; font-size: 11px; flex-wrap: wrap; }
 .pb-dot-line { background: #76a7ff; }
