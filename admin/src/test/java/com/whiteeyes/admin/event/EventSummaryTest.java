@@ -146,6 +146,30 @@ class EventSummaryTest {
     }
 
     @Test
+    @DisplayName("FNC-A-036 종류를 여러 개 줘도 요약과 목록 건수가 같다")
+    void summary_multipleTypes_sameAsList() throws Exception {
+        insertEvent("CONGESTION", samcheongZoneId, 0, "UNCHECKED");
+        insertEvent("SURGE", samcheongZoneId, 1, "CHECKED");
+        insertEvent("CAM_FAULT", sogongZoneId, 2, "RESOLVED");
+
+        mockMvc.perform(get(SUMMARY_URL).param("types", "CONGESTION").param("types", "SURGE"))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.unchecked").value(1))
+                .andExpect(jsonPath("$.checked").value(1))
+                .andExpect(jsonPath("$.resolved").value(0));
+        mockMvc.perform(get("/api/v1/events").param("types", "CONGESTION").param("types", "SURGE"))
+                .andExpect(jsonPath("$.totalElements").value(2));
+    }
+
+    @Test
+    @DisplayName("FNC-A-036 없는 지역으로 거르면 404 REGION_NOT_FOUND")
+    void summary_unknownRegion_404() throws Exception {
+        mockMvc.perform(get(SUMMARY_URL).param("regionId", "999999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"));
+    }
+
+    @Test
     @DisplayName("FNC-A-036 regionId와 zoneId를 함께 주면 400")
     void summary_conflictingScope_400() throws Exception {
         mockMvc.perform(get(SUMMARY_URL).param("regionId", "1").param("zoneId", "2"))

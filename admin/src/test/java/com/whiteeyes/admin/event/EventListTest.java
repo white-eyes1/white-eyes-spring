@@ -21,6 +21,7 @@ import jakarta.persistence.EntityManagerFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
@@ -153,7 +154,7 @@ class EventListTest {
     @Test
     @DisplayName("FNC-A-036 진행 중인 이벤트는 ongoing=true이고 지속 시간이 현재 시각까지 계산된다")
     void list_ongoingEvent_durationUntilNow() throws Exception {
-        LocalDateTime startedAt = LocalDateTime.now().minusMinutes(30);
+        LocalDateTime startedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul")).minusMinutes(30);
         insertEvent("CONGESTION", samcheongZoneId, null, startedAt, null, 2, "0.8000", 10, "UNCHECKED");
 
         String body = list().andExpect(jsonPath("$.items[0].ongoing").value(true))
@@ -289,6 +290,59 @@ class EventListTest {
         jdbcTemplate.update("UPDATE zone SET deleted_at = NOW() WHERE id = ?", sajikZoneId);
 
         list(param("keyword", "사직동 1구역")).andExpect(jsonPath("$.items[*].id").value(contains((int) sajik)));
+    }
+
+    @Test
+    @DisplayName("FNC-A-036 다른 오프셋(Z)으로 준 기간도 한국 시간으로 바꿔 거른다")
+    void list_period_otherOffsetConvertedToKst() throws Exception {
+        // 2026-10-12T00:00Z = 한국 09:00
+        insertEvent("CONGESTION", samcheongZoneId, null, T0.minusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
+        long hit = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
+
+        list(param("from", "2026-10-12T00:00:00Z"), param("to", "2026-10-12T01:00:00Z"))
+                .andExpect(jsonPath("$.items[*].id").value(contains((int) hit)));
+    }
+
+    @Test
+    @DisplayName("FNC-A-036 keyword와 지역·구역을 함께 주면 둘 다 맞는 구역만 본다")
+    void list_keywordWithRegionOrZone_intersection() throws Exception {
+        long samcheong = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
+        insertEvent("CONGESTION", sajikZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
+        insertEvent("CONGESTION", sogongZoneId, null, T0.plusMinutes(2), null, 2, "0.8000", 10, "UNCHECKED");
+
+        // 종로구 안에서 이름에 '삼청'
+        list(param("regionId", String.valueOf(regionId("종로구"))), param("keyword", "삼청"))
+                .andExpect(jsonPath("$.items[*].id").value(contains((int) samcheong)));
+        // 중구 안에는 '삼청'이 없다
+        list(param("regionId", String.valueOf(regionId("중구"))), param("keyword", "삼청"))
+                .andExpect(jsonPath("$.items", empty()));
+        list(param("zoneId", String.valueOf(sogongZoneId)), param("keyword", "삼청"))
+                .andExpect(jsonPath("$.items", empty()));
+    }
+
+    @Test
+    @DisplayName("FNC-A-036 구역에 캠이 여럿이면 가장 최근 캠 이름, 캠 이상인데 캠 번호가 없으면 구역의 캠 이름")
+    void list_cameraName_latestOfZone_andFaultWithoutCamera() throws Exception {
+        long oldCamera = createCamera(samcheongZoneId, "옛 캠");
+        jdbcTemplate.update("UPDATE camera SET deleted_at = NOW() WHERE id = ?", oldCamera);
+        createCamera(samcheongZoneId, "새 캠");
+        insertEvent("CAM_FAULT", samcheongZoneId, null, T0, null, null, null, null, "UNCHECKED");
+
+        list().andExpect(jsonPath("$.items[0].cameraName").value("새 캠"));
+    }
+
+    @Test
+    @DisplayName("FNC-A-036 캠 이상 이벤트가 섞여 있어도 SQL 수는 이벤트 수와 무관하다")
+    void list_statementCount_withCamFault() throws Exception {
+        long camera = createCamera(samcheongZoneId, "삼청동 캠");
+        insertEvent("CAM_FAULT", samcheongZoneId, camera, T0, null, null, null, null, "UNCHECKED");
+        long withOne = countStatementsOfList();
+
+        long other = createCamera(sogongZoneId, "소공동 캠");
+        for (int i = 1; i <= 5; i++) {
+            insertEvent("CAM_FAULT", sogongZoneId, other, T0.plusMinutes(i), null, null, null, null, "UNCHECKED");
+        }
+        assertThat(countStatementsOfList()).isEqualTo(withOne);
     }
 
     @Test
