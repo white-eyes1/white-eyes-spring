@@ -85,6 +85,20 @@ class AdminPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-A-009 '관리자 추가' 버튼과 창(아이디·이름·메일·연락처, 임시 비밀번호 표시 자리)이 있다")
+    void addAdminModal() throws Exception {
+        mockMvc.perform(get(PAGE_URL).contextPath(CONTEXT_PATH).cookie(login("super01")))
+                .andExpect(content().string(containsString("id=\"admin-add\"")))
+                .andExpect(content().string(containsString("id=\"admin-modal\" hidden")))
+                .andExpect(content().string(containsString("name=\"loginId\"")))
+                .andExpect(content().string(containsString("name=\"name\"")))
+                .andExpect(content().string(containsString("name=\"email\"")))
+                .andExpect(content().string(containsString("name=\"phone\"")))
+                .andExpect(content().string(containsString("id=\"admin-temp-password\"")))
+                .andExpect(content().string(containsString("이 창을 닫으면 임시 비밀번호를 다시 볼 수 없습니다.")));
+    }
+
+    @Test
     @DisplayName("SCR-A-003 다른 기능의 행 버튼과 시안 표시용 속성은 옮기지 않는다")
     void noOtherFeaturesOrAnnotations() throws Exception {
         mockMvc.perform(get(PAGE_URL).contextPath(CONTEXT_PATH).cookie(login("super01")))
