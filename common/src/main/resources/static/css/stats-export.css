@@ -3,12 +3,14 @@
 .export-modal-stage[hidden] { display: none; }
 .export-modal { max-width: 560px; }
 .export-period { display: flex; gap: 10px; }
-.export-period-range { flex: 1; }
+/* datetime 입력칸의 기본 최소 폭 때문에 단위 칸이 창 밖으로 밀리지 않게 줄어들 수 있게 한다 */
+.export-period-range { flex: 1; min-width: 0; }
 .export-period-inputs { display: flex; align-items: center; gap: 6px; }
 .export-period-inputs .input { flex: 1; min-width: 0; font-size: 12px; }
 .export-interval { flex: 0 0 120px; }
 .export-items { display: flex; gap: 14px; flex-wrap: wrap; }
-.export-reason { margin: 0; font-size: 12px; }
+/* we.css의 .field .hint.err와 같은 색. 이 문구는 .field 밖에 있어 직접 준다 */
+.export-reason { margin: 0; font-size: 12px; color: #ff8c91; }
 .export-modal .alert { margin: 0; }
 
 /* 체크 모양(시안 .ck). 통계 그래프 화면의 stats-graph.css와 같은 모양 */
