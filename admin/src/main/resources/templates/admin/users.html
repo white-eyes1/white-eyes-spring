@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('사용자 관리')}"/>
+    <link rel="stylesheet" th:href="@{/css/admin/users.css}">
+</head>
+<body class="we">
+<header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
+<!-- SCR-A-001 사용자 관리. 목록은 화면 JS(js/admin/pages/users.js)가 GET /api/v1/users(FNC-A-002)로 받아 채운다 -->
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">USERS</p>
+            <h1>사용자 관리</h1>
+            <p>가입 신청을 승인하고 사용자 계정을 관리합니다.</p>
+        </div>
+    </div>
+
+    <section class="panel user-panel">
+        <form id="user-search-form" class="filterbar">
+            <input class="input user-keyword" type="search" name="keyword" placeholder="아이디·이름 검색" aria-label="검색어">
+            <select class="input" name="status" aria-label="상태">
+                <option value="">상태 전체</option>
+                <option value="PENDING">미승인</option>
+                <option value="ACTIVE">정상</option>
+                <option value="WITHDRAWN">탈퇴</option>
+            </select>
+            <label class="user-dates">가입일
+                <input class="input" type="date" name="joinedFrom" aria-label="가입일 시작">
+                ~
+                <input class="input" type="date" name="joinedTo" aria-label="가입일 끝">
+            </label>
+            <select class="input" name="active" aria-label="활동 중">
+                <option value="">활동 중 전체</option>
+                <option value="true">활동 중</option>
+                <option value="false">활동 안 함</option>
+            </select>
+            <select class="input" name="size" aria-label="표시 개수">
+                <option value="20" selected>20개씩</option>
+                <option value="50">50개씩</option>
+                <option value="100">100개씩</option>
+            </select>
+            <button class="btn primary user-search" type="submit">조회</button>
+        </form>
+
+        <p id="user-list-error" class="alert user-notice" role="alert" hidden></p>
+        <!-- 활동 중 필터·최근 활동 정렬이 1,000명 상한에 걸리면(truncated) 보인다 -->
+        <p id="user-list-truncated" class="muted user-notice" role="status" hidden>조건에 맞는 사용자가 많아 1,000명까지만 표시합니다.</p>
+
+        <div class="table-wrap">
+            <table id="user-table" class="table">
+                <thead>
+                <tr>
+                    <th scope="col" aria-sort="none"><button type="button" class="sort-btn" data-sort="loginId">아이디</button></th>
+                    <th scope="col">이름</th>
+                    <th scope="col">상태</th>
+                    <th scope="col" aria-sort="descending"><button type="button" class="sort-btn" data-sort="createdAt">가입일</button></th>
+                    <th scope="col" aria-sort="none"><button type="button" class="sort-btn" data-sort="lastActiveAt">최근 활동</button></th>
+                    <th scope="col">활동 중</th>
+                </tr>
+                </thead>
+                <tbody id="user-table-body"></tbody>
+            </table>
+        </div>
+        <p id="user-list-empty" class="muted user-empty" hidden>조건에 맞는 사용자가 없습니다.</p>
+
+        <div class="pager">
+            <span id="user-total"></span>
+            <nav id="user-pagination" class="pages" aria-label="페이지 이동"></nav>
+        </div>
+    </section>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/admin/pages/users.js}"></script>
+</body>
+</html>

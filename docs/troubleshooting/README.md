@@ -39,3 +39,4 @@
 - [0014 최신 dev를 합치자 `.env.example`에서 충돌](0014-env-example-merge-conflict.md)
 - [0015 팀원 브랜치의 임시 코드와 정식 코드가 같은 파일 경로라 합칠 때 충돌](0015-teammate-temp-code-same-path.md)
 - [0016 세션을 읽기만 하려 했는데 확인 요청마다 세션 마지막 접근 시각이 갱신됨](0016-live-auth-session-refreshed.md)
+- [0017 한글 Windows에서 `@Sql`로 넣은 한글 데이터가 깨짐](0017-sql-script-encoding-ms949.md)

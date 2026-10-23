@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('다시보기')}"/>
+    <link rel="stylesheet" th:href="@{/css/admin/playback.css}">
+</head>
+<body class="we">
+<header th:replace="~{fragments/layout :: adminHeader('stats')}"></header>
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">PLAYBACK · 영상과 통계를 함께</p>
+            <h1 id="pb-title">다시보기</h1>
+            <p id="pb-subtitle">구역·시각을 불러오는 중…</p>
+        </div>
+        <div class="pb-clock">
+            <span class="muted">재생 중인 시각</span>
+            <div id="pb-clock" class="pb-clock-value">-</div>
+        </div>
+    </div>
+
+    <div class="pb-top">
+        <section class="panel pb-player-panel">
+            <div class="pb-feed" id="pb-feed">
+                <video id="pb-video" class="pb-video" playsinline preload="auto" hidden></video>
+                <div class="pb-notice" id="pb-notice" role="status">불러오는 중…</div>
+                <span class="pb-feed-label" id="pb-feed-label" hidden></span>
+            </div>
+            <div class="pb-controls">
+                <button type="button" class="icon-btn" id="pb-toggle" aria-label="재생" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path id="pb-toggle-icon" d="M8 5v14l11-7z"></path></svg>
+                </button>
+                <button type="button" class="btn secondary sm" id="pb-prev-event" disabled>◀ 이벤트</button>
+                <button type="button" class="btn secondary sm" id="pb-next-event" disabled>이벤트 ▶</button>
+                <span class="seg" id="pb-speed" role="group" aria-label="재생 속도">
+                    <button type="button" class="on" data-rate="1">1×</button>
+                    <button type="button" data-rate="2">2×</button>
+                    <button type="button" data-rate="4">4×</button>
+                </span>
+            </div>
+        </section>
+
+        <aside class="panel pb-stat-panel" aria-label="이 시점의 1분 통계">
+            <div class="pb-stat-head"><strong>이 시점의 1분 통계</strong><span class="muted" id="pb-stat-minute">-</span></div>
+            <div class="pb-stat-grid">
+                <div class="pb-stat"><span>평균 인원</span><strong id="pb-stat-count">-</strong></div>
+                <div class="pb-stat"><span>밀집도</span><strong id="pb-stat-density">-</strong></div>
+                <div class="pb-stat"><span>최대 · 최소</span><strong class="pb-stat-small" id="pb-stat-range">-</strong></div>
+                <div class="pb-stat"><span>혼잡 단계</span><strong id="pb-stat-level">-</strong></div>
+                <div class="pb-stat"><span>유입</span><strong class="pb-in" id="pb-stat-in">-</strong></div>
+                <div class="pb-stat"><span>유출</span><strong class="pb-out" id="pb-stat-out">-</strong></div>
+            </div>
+            <p class="muted pb-stat-empty" id="pb-stat-empty" hidden>통계 없음</p>
+            <div class="pb-event-box" id="pb-event-box" hidden>
+                <span><span class="chip l3" id="pb-event-chip">혼잡</span> <span id="pb-event-text"></span></span>
+                <a id="pb-event-link" href="#">이벤트 상세 보기 →</a>
+            </div>
+        </aside>
+    </div>
+
+    <section class="panel pb-timeline" aria-label="통계 시간축">
+        <div class="pb-timeline-head">
+            <strong>통계 타임라인</strong>
+            <span class="seg" id="pb-range" role="group" aria-label="보이는 범위">
+                <button type="button" data-range="30m">30분</button>
+                <button type="button" class="on" data-range="1h">1시간</button>
+                <button type="button" data-range="3h">3시간</button>
+                <button type="button" data-range="today">오늘</button>
+            </span>
+            <span class="seg" id="pb-metric" role="group" aria-label="항목">
+                <button type="button" class="on" data-metric="count">인원</button>
+                <button type="button" data-metric="density">밀집도</button>
+                <button type="button" data-metric="flow">유입·유출</button>
+            </span>
+            <span class="muted pb-hint">세로 막대를 끌거나 그래프를 누르면 그 시각으로 영상이 이동합니다</span>
+        </div>
+
+        <div class="pb-chart-wrap">
+            <div class="pb-chart" id="pb-chart">
+                <div id="pb-events-layer" class="pb-events-layer"></div>
+                <svg id="pb-svg" viewBox="0 0 1000 220" preserveAspectRatio="none" role="img" aria-label="1분 평균 인원과 최대·최소 범위">
+                    <g id="pb-guides"></g>
+                    <path id="pb-band" class="pb-band" d=""></path>
+                    <g id="pb-lines"></g>
+                </svg>
+                <div id="pb-guide-labels" class="pb-guide-labels"></div>
+                <div class="pb-playhead" id="pb-playhead" hidden>
+                    <span class="pb-playhead-handle" id="pb-playhead-handle" aria-hidden="true"></span>
+                    <span class="pb-playhead-tip" id="pb-playhead-tip"></span>
+                </div>
+                <p class="pb-chart-empty muted" id="pb-chart-empty" hidden>통계 없음</p>
+            </div>
+            <div class="pb-level-strip" id="pb-level-strip" aria-label="분마다 혼잡 단계"></div>
+            <div class="pb-rec-strip" id="pb-rec-strip" aria-label="녹화가 있는 구간" hidden></div>
+            <div class="pb-axis muted" id="pb-axis"></div>
+        </div>
+        <div class="pb-legend muted">
+            <span><i class="dot pb-dot-line"></i> 1분 평균 값 (옅은 띠: 최대·최소)</span>
+            <span>가운데 띠: 분마다 혼잡 단계</span>
+            <span id="pb-legend-rec" hidden><i class="dot pb-dot-rec"></i> 녹화 있음 <i class="dot pb-dot-norec"></i> 녹화 없음</span>
+            <span class="pb-legend-event">▼ 이벤트 시작 · 붉은 영역 = 이벤트 진행</span>
+        </div>
+    </section>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/admin/pages/playback.js}"></script>
+</body>
+</html>
