@@ -36,9 +36,10 @@ public class CameraDeleteService {
         Camera camera = cameraRepository
                 .findWithLockByIdAndDeletedAtIsNull(cameraId)
                 .orElseThrow(() -> new CameraNotFoundException(cameraId));
-        // 처리 순서 1: status=STOPPED 확인
-        if (camera.getStatus() != CameraStatus.STOPPED) {
-            throw new CameraNotStoppedException(cameraId, camera.getStatus());
+        // 처리 순서 1: status=STOPPED 확인. 가동 요청 상태(run_requested=1)도 거부한다:
+        // 가동은 요청 기록 -> 분석 서버 호출 -> 결과 기록으로 나뉘어, 그 사이에 지우면 분석 서버만 캠을 돌리게 된다
+        if (camera.getStatus() != CameraStatus.STOPPED || camera.isRunRequested()) {
+            throw new CameraNotStoppedException(cameraId, camera.getStatus(), camera.isRunRequested());
         }
         // 처리 순서 2: 가동한 적이 없으면 실제 삭제, 있으면 deleted_at 설정
         CameraDeleteResponse.Mode mode;

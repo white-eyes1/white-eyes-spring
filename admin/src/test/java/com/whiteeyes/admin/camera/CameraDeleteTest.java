@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -31,6 +33,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** FNC-A-023 캠 삭제. 삭제는 분석 서버를 부르지 않으므로 가짜 분석 서버가 필요 없다. */
+@Import(AdminTestUserConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 class CameraDeleteTest {
@@ -145,6 +148,22 @@ class CameraDeleteTest {
     }
 
     @Test
+    @DisplayName("FNC-A-023 STOPPED여도 가동 요청 상태(run_requested=1)이면 409 CAMERA_NOT_STOPPED이고 캠도 작업 기록도 그대로다")
+    void delete_runRequested_conflict() throws Exception {
+        long cameraId = insertCamera("STOPPED", "2026-10-01 09:00:00", true);
+
+        callDelete(cameraId, AdminTestLogin.admin())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CAMERA_NOT_STOPPED"));
+
+        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM camera WHERE id = ?", cameraId);
+        assertThat(row.get("DELETED_AT")).isNull();
+        assertThat(row.get("STATUS")).isEqualTo("STOPPED");
+        assertThat(count("camera")).isEqualTo(1);
+        assertThat(count("work_history")).isZero();
+    }
+
+    @Test
     @DisplayName("FNC-A-023 없는 캠이나 이미 삭제 표시된 캠이면 404다")
     void delete_unknownOrAlreadyDeleted_notFound() throws Exception {
         callDelete(999_999L, AdminTestLogin.admin()).andExpect(status().isNotFound());
@@ -242,11 +261,16 @@ class CameraDeleteTest {
 
     // 구역당 캠 1대 규칙 때문에 한 번에 한 대만 만든다(테스트 안에서 반복할 때는 먼저 지운다)
     private long insertCamera(String status, String firstStartedAt) {
+        return insertCamera(status, firstStartedAt, false);
+    }
+
+    private long insertCamera(String status, String firstStartedAt, boolean runRequested) {
         jdbcTemplate.update(
                 "INSERT INTO camera (zone_id, name, source_type, source_uri, run_requested, status, progress, first_started_at) "
-                        + "VALUES (?, '삼청동 캠', 'DUMMY', ?, 0, ?, 0, ?)",
+                        + "VALUES (?, '삼청동 캠', 'DUMMY', ?, ?, ?, 0, ?)",
                 zoneId,
                 DUMMY_URI,
+                runRequested,
                 status,
                 firstStartedAt);
         return jdbcTemplate.queryForObject("SELECT MAX(id) FROM camera", Long.class);

@@ -33,7 +33,6 @@ const uriInput = document.getElementById('camera-uri');
 const uriHint = document.getElementById('camera-uri-hint');
 const saveButton = document.getElementById('camera-save');
 const deleteModal = document.getElementById('camera-delete-modal');
-const deleteMessage = document.getElementById('camera-delete-message');
 const deleteConfirm = document.getElementById('camera-delete-confirm');
 
 let pollTimer = null;
@@ -123,7 +122,15 @@ function errorCell(message) {
     return message ? el('span', 'cam-error', message) : '';
 }
 
+const RUN_PENDING_HINT = '가동 요청 처리 중입니다. 잠시 뒤 다시 시도하거나 정지해 주세요';
+
+// STOPPED이면서 가동 요청 상태(가동 도중)
+function isRunPending(camera) {
+    return camera.status === 'STOPPED' && camera.runRequested;
+}
+
 // STOPPED → 가동 / PREPARING·RUNNING → 정지 / ERROR → 다시 시작 + 정지
+// STOPPED여도 가동 요청 상태면 정지도 보인다(가동 도중 멈춰 이 상태가 남았을 때 빠져나갈 길)
 function actions(camera) {
     const wrap = el('div', 'row-actions');
     wrap.append(liveButton(camera));
@@ -133,18 +140,21 @@ function actions(camera) {
     if (camera.status === 'ERROR') {
         wrap.append(actionButton('다시 시작', 'primary', camera, 'start'));
     }
-    if (camera.status !== 'STOPPED') {
+    if (camera.status !== 'STOPPED' || camera.runRequested) {
         wrap.append(actionButton('정지', 'secondary', camera, 'stop'));
     }
     wrap.append(deleteButton(camera));
     return wrap;
 }
 
-// STOPPED일 때만 켜진다(FNC-A-023은 정지가 아니면 409). 누르면 확인 창을 연다
+// STOPPED이고 가동 요청 상태가 아닐 때만 켜진다(FNC-A-023은 아니면 409). 누르면 확인 창을 연다
 function deleteButton(camera) {
     const button = el('button', 'btn danger sm', '삭제');
     button.type = 'button';
-    button.disabled = camera.status !== 'STOPPED';
+    button.disabled = camera.status !== 'STOPPED' || camera.runRequested;
+    if (isRunPending(camera)) {
+        button.title = RUN_PENDING_HINT;
+    }
     button.addEventListener('click', () => openDeleteModal(camera));
     return button;
 }
@@ -269,7 +279,6 @@ async function submitForm(event) {
 
 function openDeleteModal(camera) {
     deleteTarget = camera;
-    deleteMessage.textContent = `'${camera.name}' 캠을 삭제할까요?`;
     deleteConfirm.disabled = false;
     deleteModal.hidden = false;
     deleteConfirm.focus();
