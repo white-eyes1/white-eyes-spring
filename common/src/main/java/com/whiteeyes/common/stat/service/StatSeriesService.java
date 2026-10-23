@@ -77,7 +77,7 @@ public class StatSeriesService {
 
     /**
      * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)
-     * @throws com.whiteeyes.common.region.exception.ZoneNotFoundException 없거나 삭제된 구역이면(404)
+     * @throws com.whiteeyes.common.region.exception.ZoneNotFoundException 없는 구역이면(404). 삭제된 구역은 지난 통계를 보므로 받는다
      */
     @Transactional(readOnly = true)
     public StatSeriesResponse findSeries(StatSeriesRequest request) {
@@ -105,7 +105,8 @@ public class StatSeriesService {
     }
 
     private Target zoneTarget(long zoneId) {
-        Zone zone = regionQueryService.getActiveZone(zoneId);
+        // 삭제된 구역도 받는다: 삭제 표시된 구역의 지난 통계를 그래프로 볼 수 있어야 한다(FNC-A-017 업무 규칙, #183)
+        Zone zone = regionQueryService.getZoneIncludingDeleted(zoneId);
         return new Target(LevelTarget.zone(zoneId), Map.of(zoneId, zone.getAreaM2()), true);
     }
 

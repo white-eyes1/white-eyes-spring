@@ -107,14 +107,14 @@ async function init() {
 // 구역 이름·면적은 머리글에만 쓰므로 실패해도 화면은 계속 쓴다
 async function loadZoneInfo() {
     try {
-        const zones = await get('/api/v1/zones', undefined, { toast: false });
-        const zone = zones.find((item) => item.id === zoneId);
-        zoneArea = zone ? Number(zone.areaM2) : null;
-        document.getElementById('pb-title').textContent = zone ? `다시보기 · ${zone.name}` : `다시보기 · 구역 ${zoneId}`;
-        document.getElementById('pb-subtitle').textContent = zone ? `${formatNumber(Math.round(zone.areaM2))}㎡` : '삭제되었거나 찾을 수 없는 구역';
+        // 삭제된 구역도 이름을 받아 '(삭제됨)'을 붙인다(FNC-A-017 업무 규칙, #183). 없는 구역이면 404
+        const zone = await get(`/api/v1/zones/${zoneId}`, undefined, { toast: false });
+        zoneArea = Number(zone.areaM2);
+        document.getElementById('pb-title').textContent = `다시보기 · ${zone.name}${zone.deleted ? ' (삭제됨)' : ''}`;
+        document.getElementById('pb-subtitle').textContent = `${formatNumber(Math.round(zone.areaM2))}㎡`;
     } catch {
         document.getElementById('pb-title').textContent = `다시보기 · 구역 ${zoneId}`;
-        document.getElementById('pb-subtitle').textContent = '-';
+        document.getElementById('pb-subtitle').textContent = '찾을 수 없는 구역';
     }
 }
 
