@@ -1,7 +1,9 @@
 package com.whiteeyes.admin.media.controller;
 
 import com.whiteeyes.admin.media.dto.PlaybackResponse;
+import com.whiteeyes.admin.media.dto.PlaybackRangesResponse;
 import com.whiteeyes.admin.media.service.PlaybackFindService;
+import com.whiteeyes.admin.media.service.PlaybackRangesService;
 import com.whiteeyes.common.exception.BusinessException;
 import com.whiteeyes.common.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +16,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 다시보기 녹화 찾기(FNC-A-043). 구역·시각(at) 또는 가장 최근 녹화(latest=true)로 녹화와 재생 시작 위치를 찾는다. */
+/**
+ * 다시보기 녹화 찾기(FNC-A-043). 구역·시각(at) 또는 가장 최근 녹화(latest=true)로 녹화와 재생 시작 위치를 찾고,
+ * 구간 조회(/ranges)는 시간 범위 안에서 녹화가 있는 구간 목록을 준다.
+ */
 @RestController
 @RequiredArgsConstructor
 public class PlaybackController {
@@ -22,6 +27,7 @@ public class PlaybackController {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final PlaybackFindService playbackFindService;
+    private final PlaybackRangesService playbackRangesService;
 
     @GetMapping("/api/v1/playback")
     public PlaybackResponse findPlayback(
@@ -40,8 +46,19 @@ public class PlaybackController {
         return playbackFindService.findAt(zoneId, parseAt(at), now, basePath);
     }
 
+    @GetMapping("/api/v1/playback/ranges")
+    public PlaybackRangesResponse findRanges(
+            @RequestParam("zoneId") Long zoneId, @RequestParam("from") String from, @RequestParam("to") String to) {
+        return playbackRangesService.findRanges(
+                zoneId, parseTime(from, "from"), parseTime(to, "to"), LocalDateTime.now(KST));
+    }
+
     // 오프셋이 있으면 한국 시간으로 바꾸고, 없으면 한국 시간으로 본다. 주소에서 '+'가 공백이 된 경우도 받는다
     private LocalDateTime parseAt(String at) {
+        return parseTime(at, "at");
+    }
+
+    private LocalDateTime parseTime(String at, String name) {
         String text = at.trim().replace(' ', '+');
         try {
             return OffsetDateTime.parse(text).atZoneSameInstant(KST).toLocalDateTime();
@@ -50,7 +67,7 @@ public class PlaybackController {
                 return LocalDateTime.parse(text);
             } catch (DateTimeParseException ignored) {
                 throw new BusinessException(
-                        ErrorCode.INVALID_INPUT, "at은 2026-10-12T14:03:00+09:00 형식이어야 합니다.", e);
+                        ErrorCode.INVALID_INPUT, name + " 시각은 2026-10-12T14:03:00+09:00 형식이어야 합니다.", e);
             }
         }
     }

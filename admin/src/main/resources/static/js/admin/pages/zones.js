@@ -281,7 +281,7 @@ async function register() {
         const created = await post('/api/v1/manage/zones', { name, boundary: draft.boundary }, { toast: false });
         await afterRegistered(created);
     } catch (error) {
-        showError(error, (message) => (error.code === 'DUPLICATE_ZONE_NAME' ? setNameError(message) : showDraftError(message)));
+        showError(error, (message) => (error.code === 'DUPLICATE_ZONE_NAME' ? setNameError(message) : showDraftError(message)), setNameError);
         updateSubmit();
     }
 }
@@ -298,13 +298,13 @@ async function afterRegistered(created) {
 }
 
 // 서버 오류 코드는 화면 문구로 바꿔 보인다. 그 밖의 오류는 토스트(api.js는 toast:false라 직접 띄운다)
-function showError(error, show) {
+function showError(error, show, showName) {
     if (!(error instanceof ApiError) || error.status === 401) {
         return;
     }
     const fieldMessage = error.fieldErrors.find((item) => item.field === 'name')?.message;
     if (fieldMessage) {
-        setNameError(fieldMessage);
+        showName(fieldMessage);
     } else if (ERROR_MESSAGES[error.code]) {
         show(ERROR_MESSAGES[error.code]);
     } else if (error.status === 400) {
@@ -408,7 +408,7 @@ async function saveEdit() {
         await loadZones();
         selectZone(updated.id);
     } catch (error) {
-        showError(error, (message) => (error.code === 'DUPLICATE_ZONE_NAME' ? setEditNameError(message) : showEditError(message)));
+        showError(error, (message) => (error.code === 'DUPLICATE_ZONE_NAME' ? setEditNameError(message) : showEditError(message)), setEditNameError);
         updateEditSubmit();
     }
 }

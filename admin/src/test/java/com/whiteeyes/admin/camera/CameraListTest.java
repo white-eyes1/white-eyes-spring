@@ -18,6 +18,7 @@ import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import jakarta.persistence.EntityManagerFactory;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -96,6 +97,7 @@ class CameraListTest {
     @AfterEach
     void clearAfter() {
         AdminTestLogin.clear();
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
@@ -163,7 +165,7 @@ class CameraListTest {
     }
 
     @Test
-    @DisplayName("FNC-A-022 1분 통계가 없는 캠은 stat이 null, recent10m이 빈 목록이고 todayEventCount는 0(이벤트는 #38)")
+    @DisplayName("FNC-A-022 1분 통계와 오늘 이벤트가 없는 캠은 stat이 null, recent10m이 빈 목록이고 todayEventCount는 0")
     void list_noStats_statNullAndRecentEmpty() throws Exception {
         createCamera(samcheongZoneId, "삼청동 캠");
 
@@ -304,6 +306,25 @@ class CameraListTest {
     }
 
     @Test
+    @DisplayName("FNC-A-022 todayEventCount는 오늘 시작한 혼잡·급증 이벤트만 구역별로 세고, 어제 것과 캠 이상은 제외")
+    void list_todayEventCount_countsTodayCongestionAndSurgeOnly() throws Exception {
+        createCamera(samcheongZoneId, "삼청동 캠");
+        createCamera(sogongZoneId, "소공동 캠");
+        createCamera(sajikZoneId, "사직동 캠");
+        LocalDateTime todayStart = LocalDate.now(KST).atStartOfDay();
+        insertEvent(samcheongZoneId, "CONGESTION", todayStart.plusSeconds(1));
+        insertEvent(samcheongZoneId, "SURGE", todayStart.plusHours(1));
+        insertEvent(samcheongZoneId, "CAM_FAULT", todayStart.plusHours(2));
+        insertEvent(samcheongZoneId, "CONGESTION", todayStart.minusSeconds(1));
+        insertEvent(sogongZoneId, "CONGESTION", todayStart.minusDays(1));
+
+        list(null)
+                .andExpect(jsonPath("$[0].todayEventCount").value(2))
+                .andExpect(jsonPath("$[1].todayEventCount").value(0))
+                .andExpect(jsonPath("$[2].todayEventCount").value(0));
+    }
+
+    @Test
     @DisplayName("FNC-A-022 캠이 늘어도 쿼리 수가 늘지 않는다(캠마다 따로 조회하지 않음)")
     void list_queryCountDoesNotGrowWithCameraCount() throws Exception {
         LocalDateTime lastMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
@@ -330,6 +351,7 @@ class CameraListTest {
     }
 
     private void clearAll() {
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
@@ -353,6 +375,15 @@ class CameraListTest {
                 (int) Math.ceil(countAvg),
                 (int) Math.floor(countAvg),
                 density);
+    }
+
+    private void insertEvent(long zoneId, String type, LocalDateTime startedAt) {
+        jdbcTemplate.update(
+                "INSERT INTO event (type, zone_id, started_at, threshold_snapshot) VALUES (?, ?, ?, ?)",
+                type,
+                zoneId,
+                startedAt,
+                "{\"warnDensity\":0.7,\"dangerDensity\":1.5}");
     }
 
     private long createCamera(long zoneId, String name) {
