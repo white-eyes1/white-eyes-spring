@@ -1,6 +1,6 @@
 // 구역 관리 화면(SCR-A-004). 시·구·동 선택(FNC-C-008), 다각형 미리보기(FNC-A-013), 구역 등록(FNC-A-014),
-// 이웃 설정 창(SCR-A-005, FNC-A-016). 수정·삭제 버튼은 3단계에서 붙인다(자리만 비활성으로 둔다).
-import { ApiError, get, post, put } from '../../common/api.js';
+// 구역 수정(FNC-A-015), 이웃 설정 창(SCR-A-005, FNC-A-016). 삭제 버튼은 자리만 비활성으로 둔다.
+import { ApiError, get, patch, post, put } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
 import { showToast } from '../../common/toast.js';
 import { createZoneMap } from '../../map/zone-draw.js';
@@ -9,6 +9,7 @@ const ERROR_MESSAGES = {
     INVALID_POLYGON: '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
     OUT_OF_SERVICE_AREA: '서비스 지역 밖입니다. 서비스 지역 안에서 다시 그려 주세요.',
     DUPLICATE_ZONE_NAME: '이미 사용 중인 구역 이름입니다.',
+    DONG_CHANGE_NOT_ALLOWED: '다른 동으로 바뀌어 저장할 수 없습니다. 같은 동 안에서만 모양을 바꿀 수 있습니다.',
 };
 
 const citySelect = document.getElementById('region-city');
@@ -27,6 +28,14 @@ const draftNameError = document.getElementById('draft-name-error');
 const draftSubmit = document.getElementById('draft-submit');
 const redrawButton = document.getElementById('draft-redraw');
 
+const editForm = document.getElementById('zone-edit');
+const editArea = document.getElementById('edit-area');
+const editDong = document.getElementById('edit-dong');
+const editError = document.getElementById('edit-error');
+const editName = document.getElementById('edit-name');
+const editNameError = document.getElementById('edit-name-error');
+const editSubmit = document.getElementById('edit-submit');
+
 const DIRECTIONS = ['N', 'E', 'S', 'W'];
 const neighborModal = document.getElementById('neighbor-modal');
 const neighborForm = document.getElementById('neighbor-form');
@@ -43,6 +52,8 @@ let zones = [];
 let selectedZoneId = null;
 // 미리보기를 마친 다각형: { boundary, dongId }
 let draft = null;
+// 수정 중인 구역: { zone, boundary(꼭짓점을 고쳤으면 새 다각형, 아니면 null), shapeOk(고친 모양을 저장할 수 있는지) }
+let edit = null;
 
 const zoneMap = createZoneMap(document.getElementById('zone-map'), {
     onZoneClick: selectZone,
@@ -62,6 +73,15 @@ draftName.addEventListener('input', () => {
     setNameError('');
     updateSubmit();
 });
+editForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    saveEdit();
+});
+editName.addEventListener('input', () => {
+    setEditNameError('');
+    updateEditSubmit();
+});
+document.getElementById('edit-cancel').addEventListener('click', () => cancelEdit(true));
 
 loadRegions(null, citySelect);
 
@@ -95,6 +115,7 @@ function resetSelect(select) {
 
 async function onDongChange() {
     cancelDraft();
+    cancelEdit(false);
     if (!dongSelect.value) {
         clearZones();
         return;
@@ -106,6 +127,7 @@ async function onDongChange() {
 
 function clearZones() {
     cancelDraft();
+    cancelEdit(false);
     selectedDong = null;
     zones = [];
     selectedZoneId = null;
@@ -154,7 +176,7 @@ function zoneRow(zone) {
     actions.className = 'row-actions';
     actions.append(
         neighborButton(zone),
-        disabledButton('수정', 'secondary', '3단계에서 만듭니다'),
+        editButton(zone),
         disabledButton('삭제', 'danger', '3단계에서 만듭니다'),
     );
     row.append(info, actions);
@@ -173,6 +195,18 @@ function neighborButton(zone) {
     return button;
 }
 
+function editButton(zone) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn secondary sm';
+    button.textContent = '수정';
+    button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        startEdit(zone);
+    });
+    return button;
+}
+
 function disabledButton(text, kind, title) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -184,6 +218,10 @@ function disabledButton(text, kind, title) {
 }
 
 function selectZone(zoneId) {
+    // 모양을 고치는 중에는 다른 구역을 고르지 않는다(꼭짓점 편집과 겹친다)
+    if (edit && zoneId !== edit.zone.id) {
+        return;
+    }
     selectedZoneId = zoneId;
     zoneMap.select(zoneId);
     renderList();
@@ -193,6 +231,7 @@ function selectZone(zoneId) {
 
 function startDraw() {
     cancelDraft();
+    cancelEdit(true);
     drawGuide.hidden = false;
     zoneMap.startDraw();
 }
@@ -288,6 +327,126 @@ function setNameError(message) {
 
 function updateSubmit() {
     draftSubmit.disabled = draft === null || draftName.value.trim() === '';
+}
+
+// ---- 구역 수정(FNC-A-015) ----
+
+// 목록의 '수정'을 누르면 그 구역의 꼭짓점을 지도에서 고칠 수 있게 하고, 고칠 때마다 미리보기로 면적·소속 동을 다시 보인다
+function startEdit(zone) {
+    cancelDraft();
+    cancelEdit(true);
+    edit = { zone, boundary: null, shapeOk: true };
+    selectZone(zone.id);
+    editForm.hidden = false;
+    document.getElementById('edit-title').textContent = `'${zone.name}' 수정`;
+    editName.value = zone.name;
+    editArea.textContent = `${formatNumber(Math.round(zone.areaM2))}㎡`;
+    editDong.textContent = selectedDong ? selectedDong.name : '-';
+    showEditError('');
+    setEditNameError('');
+    updateEditSubmit();
+    zoneMap.startEdit(zone.id, onShapeEdited);
+}
+
+// 꼭짓점을 고칠 때마다: 미리보기로 새 면적·소속 동을 받아 보이고, 다른 동으로 넘어가면 저장을 막는다
+let editPreviewRequest = 0;
+async function onShapeEdited(boundary) {
+    if (!edit) {
+        return;
+    }
+    const request = ++editPreviewRequest;
+    const { zone } = edit;
+    edit.boundary = boundary;
+    edit.shapeOk = false;
+    showEditError('');
+    updateEditSubmit();
+    try {
+        const preview = await post('/api/v1/manage/zones/preview', { boundary }, { toast: false });
+        if (!edit || request !== editPreviewRequest) {
+            return;
+        }
+        editArea.textContent = `${formatNumber(Math.round(zone.areaM2))}㎡ → ${formatNumber(Math.round(preview.areaM2))}㎡`;
+        editDong.textContent = preview.dongName;
+        if (preview.dongId === zone.dongId) {
+            edit.shapeOk = true;
+        } else {
+            showEditError(ERROR_MESSAGES.DONG_CHANGE_NOT_ALLOWED);
+        }
+    } catch (error) {
+        if (edit && request === editPreviewRequest) {
+            showError(error, showEditError);
+        }
+    }
+    updateEditSubmit();
+}
+
+async function saveEdit() {
+    if (!edit) {
+        return;
+    }
+    const { zone } = edit;
+    const name = editName.value.trim();
+    if (!name) {
+        setEditNameError('구역 이름을 입력해 주세요.');
+        return;
+    }
+    // 바뀐 것만 보낸다
+    const body = {};
+    if (name !== zone.name) {
+        body.name = name;
+    }
+    if (edit.boundary) {
+        body.boundary = edit.boundary;
+    }
+    editSubmit.disabled = true;
+    try {
+        const updated = await patch(`/api/v1/manage/zones/${zone.id}`, body, { toast: false });
+        zoneMap.stopEdit();
+        edit = null;
+        editForm.hidden = true;
+        showToast(`'${updated.name}' 구역을 수정했습니다.`);
+        await loadZones();
+        selectZone(updated.id);
+    } catch (error) {
+        showError(error, (message) => (error.code === 'DUPLICATE_ZONE_NAME' ? setEditNameError(message) : showEditError(message)));
+        updateEditSubmit();
+    }
+}
+
+// 수정을 끝낸다. restore가 true면 고치던 모양을 버리고 원래 모양으로 다시 그린다
+function cancelEdit(restore) {
+    if (!edit) {
+        return;
+    }
+    editPreviewRequest++;
+    zoneMap.stopEdit();
+    edit = null;
+    editForm.hidden = true;
+    if (restore) {
+        zoneMap.showZones(zones);
+        zoneMap.select(selectedZoneId);
+    }
+}
+
+function showEditError(message) {
+    editError.textContent = message;
+    editError.hidden = !message;
+}
+
+function setEditNameError(message) {
+    editNameError.textContent = message;
+    editNameError.hidden = !message;
+    editName.classList.toggle('err', Boolean(message));
+}
+
+// 이름을 바꿨거나 모양을 고쳤고, 고친 모양을 저장할 수 있을 때만 저장 버튼을 켠다
+function updateEditSubmit() {
+    if (!edit) {
+        editSubmit.disabled = true;
+        return;
+    }
+    const nameChanged = editName.value.trim() !== edit.zone.name && editName.value.trim() !== '';
+    editSubmit.disabled = !edit.shapeOk || !(nameChanged || edit.boundary !== null);
 }
 
 // ---- 이웃 설정 창(SCR-A-005, FNC-A-016) ----
