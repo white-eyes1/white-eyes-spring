@@ -11,6 +11,10 @@
 .user-actions { text-align: right; }
 .user-actions .row-actions { justify-content: flex-end; }
 
+/* 강제 로그아웃 확인 창: 캠 삭제 확인 창(cameras.css .cam-modal)과 같은 크기·위치 */
+.user-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
+.user-confirm { max-width: 480px; }
+
 /* 정렬 머리글: 버튼 모양을 지우고 머리글 글자처럼 보인다 */
 .sort-btn { padding: 0; border: 0; background: none; color: inherit; font-weight: inherit; cursor: pointer; }
 .sort-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
