@@ -1,4 +1,4 @@
-// 통계 메인(대시보드) 진입 파일 SCR-C-003: 지역 필터(FNC-C-008), 통계 패널(FNC-C-009·016·020·025), 지도, 캠 패널(관리자 앱).
+// 통계 메인(대시보드) 진입 파일 SCR-C-003: 지역 필터(FNC-C-008), 통계 패널(FNC-C-009·016·020·025·030), 지도, 캠 패널(관리자 앱).
 // 지역은 주소 쿼리 regionId로 유지한다. 새 1분 통계는 통계 SSE(FNC-C-022)가 알려 주면 화면 값을 새로 읽고,
 // 연결이 끊겨 있거나 한참 소식이 없으면 60초마다 읽는다.
 import { get, url } from '../common/api.js';
@@ -7,6 +7,7 @@ import { initLiveView, openLiveView, updateLiveView } from '../live/live-view.js
 import { showToast } from '../common/toast.js';
 import { createRegionMap, createStatusLayer } from '../map/status-map.js';
 import { createAbnormalPanel } from './stats-main/abnormal.js';
+import { createAuxMetricsPanel } from './stats-main/aux-metrics.js';
 import { createDeck } from './stats-main/deck.js';
 import {
     renderGraphLink,
@@ -34,6 +35,7 @@ let map = null;
 let layer = null;
 let deck = null;
 const abnormalPanel = createAbnormalPanel();
+let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
 let renderedRegionId = null;
@@ -47,6 +49,7 @@ start();
 
 async function start() {
     levels = await get('/api/v1/meta/levels');
+    auxPanel = createAuxMetricsPanel(levels);
     renderMapLegend(levels);
     renderLevelRules(levels);
     initPanelToggle();
@@ -232,6 +235,7 @@ async function loadRegion() {
         renderedRegionId = target.id;
         connectStream(target.id);
         abnormalPanel.setRegion(target.id);
+        auxPanel.setRegion(target.id);
     }
     await refresh();
 }
@@ -262,6 +266,8 @@ async function refresh() {
     renderTarget(target.name, summary.cameraCount);
     renderSummary(summary, levels);
     renderZonePanel(zoneItems, zoneTab, levels);
+    // 보조 지표(FNC-C-030): 펼쳐 있는 영역만 시계열을 다시 읽는다. 읽기 실패는 영역 안에 문구로 보인다
+    auxPanel.refresh(zoneItems);
 
     const statusById = new Map(child.items.map((item) => [item.id, item]));
     if (isDong) {

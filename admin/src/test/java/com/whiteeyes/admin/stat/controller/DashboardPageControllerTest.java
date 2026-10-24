@@ -105,6 +105,44 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-030 검수 기준: 통계 패널에 보조 지표 접기 영역 6개가 처음엔 접힌 채로 있다")
+    void statsPage_hasAuxMetricFolds() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-flow\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-dwell\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-spread\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-level-time\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-top-zones\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-observe\">")))
+                .andExpect(content().string(containsString("인원 변동폭")))
+                .andExpect(content().string(containsString("오늘 단계별 머문 시간")))
+                .andExpect(content().string(containsString("혼잡 구역 TOP 5")))
+                .andExpect(content().string(containsString("관측 상태")))
+                .andExpect(content().string(containsString("id=\"aux-observe-zones\"")))
+                .andExpect(content().string(containsString("id=\"aux-observe-rate\"")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 업무 규칙: 유입·유출·체류 접기 영역 제목에 '추정'을 표기한다")
+    void statsPage_auxFlowAndDwell_markedEstimated() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("방향별 유입·유출 (추정)")))
+                .andExpect(content().string(containsString("평균 체류 시간 (추정)")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 보조 지표를 계산하는 화면 모듈을 관리자 앱이 내려 주고, 통계 메인 진입 파일이 불러온다")
+    void auxMetricsScript_isServed() throws Exception {
+        mockMvc.perform(get("/js/pages/stats-main/aux-metrics.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("export function createAuxMetricsPanel")))
+                .andExpect(content().string(containsString("/api/v1/stats/series")));
+        mockMvc.perform(get("/js/pages/stats-main.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("./stats-main/aux-metrics.js")));
+    }
+
+    @Test
     @DisplayName("SCR-A-008 관리자 앱 /stats에 실시간 보기 창(영상, 연결 실패 시 다시 시도, 현재 통계, 다시보기)이 있다")
     void statsPage_admin_hasLiveViewModal() throws Exception {
         mockMvc.perform(get("/stats"))
