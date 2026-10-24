@@ -53,8 +53,8 @@ export function initExportModal() {
 
 /**
  * 현재 대상·단위·기간으로 창을 연다(screens.md SCR-C-003 '현재 대상 전달', SCR-C-004 '현재 대상·단위·기간 전달').
- * @param {{ zone?: {id, name}, region?: {id, name}, interval: string, from: Date, to: Date }} target
- *     zone이 있으면 구역이 기본 범위, 없으면 region. 전체는 언제나 고를 수 있다
+ * @param {{ zone?: {id, name, deleted?}, region?: {id, name}, interval: string, from: Date, to: Date }} target
+ *     zone이 있으면 구역이 기본 범위, 없으면 region. 전체는 언제나 고를 수 있다. 삭제된 구역은 이름에 '(삭제됨)'(FNC-A-017)
  */
 export function openExportModal({ zone = null, region = null, interval, from, to }) {
     if (!modal) {
@@ -62,7 +62,8 @@ export function openExportModal({ zone = null, region = null, interval, from, to
     }
     scopes = [];
     if (zone) {
-        scopes.push({ scope: 'ZONE', targetId: zone.id, label: `구역 · ${zone.name}` });
+        const name = zone.deleted ? `${zone.name} (삭제됨)` : zone.name;
+        scopes.push({ scope: 'ZONE', targetId: zone.id, label: `구역 · ${name}` });
     }
     if (region) {
         scopes.push({ scope: 'REGION', targetId: region.id, label: `지역 · ${region.name}` });

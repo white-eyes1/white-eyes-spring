@@ -41,6 +41,8 @@ public class StatExportReader {
     static final int DEFAULT_ROW_BUDGET = 50_000;
 
     private static final String ALL_TARGET_NAME = "전체";
+    // 삭제된 구역 이름 뒤에 붙인다(FNC-A-017 업무 규칙, 통계 그래프 화면과 같은 표기)
+    private static final String DELETED_SUFFIX = " (삭제됨)";
 
     private final RegionQueryService regionQueryService;
     private final RegionRepository regionRepository;
@@ -73,9 +75,10 @@ public class StatExportReader {
 
     /**
      * 대상을 확인하고 대상 줄을 정한 뒤 행 수를 확인한다. 전체(ALL)·지역 펼침은 삭제되지 않은 구역만 줄로 쓴다
-     * (FNC-C-023 업무 규칙). 지역 합산은 통계 그래프처럼 삭제된 구역도 더한다.
+     * (FNC-C-023 업무 규칙). 지역 합산은 통계 그래프처럼 삭제된 구역도 더한다. 구역(ZONE) 대상은 통계 그래프
+     * (FNC-C-012)처럼 삭제된 구역도 받고, '구역' 열 이름에 '(삭제됨)'을 붙인다(파일 이름에는 붙이지 않음).
      *
-     * @throws com.whiteeyes.common.region.exception.ZoneNotFoundException 없거나 삭제된 구역이면(404)
+     * @throws com.whiteeyes.common.region.exception.ZoneNotFoundException 없는 구역이면(404)
      * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)
      * @throws com.whiteeyes.common.stat.exception.TooManyRowsException 한 시트가 100만 행을 넘으면(400)
      */
@@ -85,8 +88,9 @@ public class StatExportReader {
                 .collect(Collectors.toMap(Region::getId, Function.identity()));
         return switch (request.scope()) {
             case ZONE -> {
-                Zone zone = regionQueryService.getActiveZone(request.targetId());
-                List<StatExportSeries> series = List.of(zoneSeries(zone, regions));
+                Zone zone = regionQueryService.getZoneIncludingDeleted(request.targetId());
+                String zoneName = zone.getDeletedAt() == null ? zone.getName() : zone.getName() + DELETED_SUFFIX;
+                List<StatExportSeries> series = List.of(named(zone.getId(), zone.getDongId(), zoneName, regions));
                 yield new StatExportPlan(request, zone.getName(), series, 1, request.checkRowLimit(1));
             }
             case REGION -> regionPlan(request, regions);

@@ -213,7 +213,7 @@ function openExport() {
     }
     const region = path[path.length - 1];
     openExportModal({
-        zone: zone ? { id: zone.id, name: zone.name } : null,
+        zone: zone ? { id: zone.id, name: zone.name, deleted: Boolean(zone.deleted) } : null,
         region: { id: region.id, name: region.name },
         interval,
         from,
