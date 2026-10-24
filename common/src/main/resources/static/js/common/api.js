@@ -49,7 +49,15 @@ export function del(path, options) {
     return request('DELETE', path, { ...options });
 }
 
-async function request(method, path, { params, body, toast = true } = {}) {
+/**
+ * 파일을 받는다(GET). 성공하면 { blob, fileName }을 돌려준다. fileName은 Content-Disposition의 filename*에서 읽는다.
+ * 오류 응답은 다른 호출과 같이 ApiError로 던진다. params는 같은 이름을 여러 번 보내려면 [이름, 값] 쌍 배열로 준다.
+ */
+export function download(path, params, options) {
+    return request('GET', path, { params, ...options, file: true });
+}
+
+async function request(method, path, { params, body, toast = true, file = false } = {}) {
     let target = url(path);
     if (params) {
         target += '?' + new URLSearchParams(params).toString();
@@ -80,6 +88,9 @@ async function request(method, path, { params, body, toast = true } = {}) {
         window.location.href = url('/login');
         throw new ApiError(401, 'UNAUTHORIZED', UNAUTHORIZED_MESSAGE, []);
     }
+    if (file && response.ok) {
+        return { blob: await response.blob(), fileName: fileNameOf(response) };
+    }
     const data = await readJson(response);
     if (!response.ok) {
         return fail(
@@ -101,6 +112,17 @@ function fail(error, toast) {
         showToast(error.message);
     }
     throw error;
+}
+
+// Content-Disposition: attachment; filename="…"; filename*=UTF-8''… 에서 filename*를 먼저 읽는다. 없으면 null
+function fileNameOf(response) {
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+    if (encoded) {
+        return decodeURIComponent(encoded[1]);
+    }
+    const plain = /filename="([^"]+)"/i.exec(disposition);
+    return plain ? plain[1] : null;
 }
 
 // 본문이 없거나 JSON이 아니면(프록시 오류 화면 등) null
