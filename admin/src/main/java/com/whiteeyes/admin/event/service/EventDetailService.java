@@ -30,7 +30,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class EventDetailService {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-    // 녹화 보관 기간(RECORDING_RETENTION_DAYS 기본 30일). 다시보기 이동은 이 안의 이벤트만 된다(evt-004)
+    // 녹화 보관 기간. RECORDING_RETENTION_DAYS 설정과 같은 값(상수)이며 설정을 읽지는 않는다. 다시보기 이동은 이 안의 이벤트만 된다(evt-004)
     private static final int PLAYBACK_RETENTION_DAYS = 30;
 
     private final EventRepository eventRepository;
@@ -76,7 +76,15 @@ public class EventDetailService {
 
     private static EventStatus statusOf(JsonNode detail, String field) {
         String text = textOf(detail, field);
-        return text == null ? null : EventStatus.valueOf(text);
+        if (text == null) {
+            return null;
+        }
+        // work_history.detail에 모르는 값이 있어도 상세 전체가 실패하지 않게 null로 둔다
+        try {
+            return EventStatus.valueOf(text);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static String textOf(JsonNode detail, String field) {

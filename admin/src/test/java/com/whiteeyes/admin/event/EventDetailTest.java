@@ -108,7 +108,7 @@ class EventDetailTest {
                 .andExpect(jsonPath("$.type").value("CONGESTION"))
                 .andExpect(jsonPath("$.zoneName").value("삼청동 1구역"))
                 .andExpect(jsonPath("$.regionPath").value("종로구 · 삼청동"))
-                .andExpect(jsonPath("$.cameraName").value("삼청동 캠"))
+                .andExpect(jsonPath("$.cameraName").value(nullValue()))
                 .andExpect(jsonPath("$.startedAt").value("2026-10-12T09:00:00+09:00"))
                 .andExpect(jsonPath("$.endedAt").value("2026-10-12T09:18:00+09:00"))
                 .andExpect(jsonPath("$.ongoing").value(false))
@@ -125,6 +125,19 @@ class EventDetailTest {
                 .andExpect(jsonPath("$.handledBy").value(adminId))
                 .andExpect(jsonPath("$.handledAt").value("2026-10-12T09:15:00+09:00"))
                 .andExpect(jsonPath("$.histories", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("FNC-A-037 처리 이력의 상태가 모르는 값이면 그 칸만 null이고 상세는 200")
+    void detail_histories_unknownStatusIsNull() throws Exception {
+        long eventId = insertEvent("CONGESTION", null, T0, null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "CHECKED");
+        insertHistory(eventId, "admin02", T0.plusMinutes(15), "{\"from\":\"UNKNOWN_STATE\",\"to\":\"CHECKED\"}");
+
+        detail(eventId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.histories", hasSize(1)))
+                .andExpect(jsonPath("$.histories[0].from").value(nullValue()))
+                .andExpect(jsonPath("$.histories[0].to").value("CHECKED"));
     }
 
     @Test
