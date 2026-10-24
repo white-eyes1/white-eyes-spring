@@ -59,6 +59,7 @@
                     <span role="columnheader">최고 단계 · 값</span>
                     <span role="columnheader">지속</span>
                     <span role="columnheader">처리 상태</span>
+                    <span role="columnheader">조치</span>
                 </div>
                 <div id="event-rows" role="rowgroup"></div>
                 <div class="ev-empty" id="event-empty" hidden>
@@ -74,7 +75,7 @@
     </section>
 </main>
 
-<!-- SCR-A-011 이벤트 상세 창 중 이벤트 정보·처리 이력(FNC-A-037). 발생 시점 영상·다시보기 이동은 FNC-A-040, 조치 창은 FNC-A-038 -->
+<!-- SCR-A-011 이벤트 상세 창 중 이벤트 정보·처리 이력(FNC-A-037). 발생 시점 영상·다시보기 이동은 FNC-A-040 -->
 <div class="modal-stage ev-modal-stage" id="detail-modal" hidden>
     <div class="modal ev-modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="이벤트 상세">
         <div class="modal-head">
@@ -98,6 +99,44 @@
             <button class="btn primary" type="button" data-close>닫기</button>
         </div>
     </div>
+</div>
+
+<!-- SCR-A-011 조치 완료 창(FNC-A-038). 표의 [조치하기]로 열린다 -->
+<div class="modal-stage ev-modal-stage" id="action-modal" hidden>
+    <form class="modal ev-action-modal" id="action-form" tabindex="-1" role="dialog" aria-modal="true"
+          aria-labelledby="action-title" novalidate>
+        <div class="modal-head">
+            <div>
+                <h2 id="action-title">조치 완료 처리</h2>
+                <p class="muted ev-action-sub" id="action-sub"></p>
+            </div>
+            <button class="icon-btn" type="button" aria-label="닫기" data-action-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <fieldset class="field ev-action-field">
+                <legend>조치 항목 (필수)</legend>
+                <div class="ev-opts">
+                    <label class="ev-opt"><input type="radio" name="actionCode" value="ONSITE_OK"><i></i>현장 확인·정상</label>
+                    <label class="ev-opt"><input type="radio" name="actionCode" value="STAFF"><i></i>인력 배치</label>
+                    <label class="ev-opt"><input type="radio" name="actionCode" value="FALSE_ALARM"><i></i>오탐</label>
+                    <label class="ev-opt"><input type="radio" name="actionCode" value="CAM_CHECK"><i></i>캠 점검 요청</label>
+                    <label class="ev-opt"><input type="radio" name="actionCode" value="OTHER"><i></i>기타</label>
+                </div>
+            </fieldset>
+            <label class="field">
+                <span>조치 메모 <span class="muted">(기타면 필수, 200자 이하)</span></span>
+                <textarea class="input ev-note" id="action-note" maxlength="200" rows="3" autocomplete="off"></textarea>
+                <span class="hint ev-note-count" id="action-note-count">0 / 200</span>
+            </label>
+            <p class="muted ev-action-help">처리자와 처리 시각은 저장할 때 자동으로 기록됩니다. 조치완료 뒤에는 되돌릴 수 없습니다.</p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-action-close>취소</button>
+            <button class="btn primary" type="submit" id="action-save" disabled>조치완료로 저장</button>
+        </div>
+    </form>
 </div>
 
 <th:block th:replace="~{fragments/layout :: scripts}"/>
