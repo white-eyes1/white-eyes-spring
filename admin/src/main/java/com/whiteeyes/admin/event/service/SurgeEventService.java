@@ -26,6 +26,8 @@ public class SurgeEventService {
 
     private static final BigDecimal PERCENT = BigDecimal.valueOf(100);
     private static final int RATE_SCALE = 4;
+    // event.peak_value DECIMAL(10,4)의 상한. 10분 전 인원이 아주 작으면 증가율이 넘으므로 잘라 저장한다
+    private static final BigDecimal MAX_RATE = new BigDecimal("999999.9999");
 
     private final EventRepository eventRepository;
     private final int minSampleSec;
@@ -74,6 +76,10 @@ public class SurgeEventService {
             int sampleSec,
             BigDecimal previousCountAvg,
             Integer previousSampleSec) {
+        // 현재 결과가 적은 분은 판단 근거가 없어 건너뛴다. 열린 이벤트의 below_since도 건드리지 않는다(FNC-A-033과 같음)
+        if (sampleSec < minSampleSec) {
+            return;
+        }
         Event openEvent = eventRepository
                 .findFirstByZoneIdAndTypeAndEndedAtIsNullOrderByIdAsc(zoneId, EventType.SURGE)
                 .orElse(null);
@@ -86,10 +92,10 @@ public class SurgeEventService {
         }
     }
 
-    // 검사할 수 없는 경우는 '조건 미충족'이다(FNC-A-034 처리 순서 1). 열린 이벤트가 있으면 기준 미만과 같게 처리한다
+    // 밀집도 미달, 10분 전 행 없음·초 수 부족·인원 0은 '조건 미충족'이다(FNC-A-034 처리 순서 1). 열린 이벤트가 있으면 기준 미만과 같게 처리한다
     private boolean isConditionMet(
             BigDecimal density, int sampleSec, BigDecimal previousCountAvg, Integer previousSampleSec) {
-        if (sampleSec < minSampleSec || density.compareTo(minDensity) < 0) {
+        if (density.compareTo(minDensity) < 0) {
             return false;
         }
         return previousCountAvg != null
@@ -109,7 +115,8 @@ public class SurgeEventService {
         BigDecimal rate = countAvg
                 .subtract(previousCountAvg)
                 .multiply(PERCENT)
-                .divide(previousCountAvg, RATE_SCALE, RoundingMode.HALF_UP);
+                .divide(previousCountAvg, RATE_SCALE, RoundingMode.HALF_UP)
+                .min(MAX_RATE);
         int peakCount = countAvg.setScale(0, RoundingMode.HALF_UP).intValueExact();
         if (openEvent != null) {
             openEvent.raiseSurgePeak(rate, peakCount);

@@ -191,10 +191,46 @@ class SurgeEventServiceTest {
         surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), MIN_SAMPLE_SEC - 1);
         // 10분 전 인원 0 (0으로 나눌 수 없다)
         surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("0.00"), FULL_SAMPLE_SEC);
-        // 현재 결과 초 수 29
-        surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, bd("100"), FULL_SAMPLE_SEC);
 
         assertThat(eventRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FNC-A-034 현재 결과 초 수가 30 미만이면 판정을 건너뛰어 이벤트를 열지 않고 열린 이벤트의 below_since도 건드리지 않음")
+    void skipsJudgementWhenCurrentSampleTooShort() {
+        Long zoneId = saveZone("테스트 현재 초 수 부족 구역", "10");
+        surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        Event event = eventRepository.findAll().get(0);
+
+        // 기준 미만이어도, 비교 행이 없어도 초 수가 29면 건너뛴다
+        surgeEventService.judge(zoneId, T0.plusMinutes(1), bd("110"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(zoneId, T0.plusMinutes(2), bd("200"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, null, null);
+        assertThat(event.getBelowSince()).isNull();
+
+        // 이미 below_since가 있으면 그 값도 그대로 두고 종료하지 않는다
+        surgeEventService.judge(zoneId, T0.plusMinutes(3), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(zoneId, T0.plusMinutes(9), bd("110"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, bd("100"), FULL_SAMPLE_SEC);
+        assertThat(event.getBelowSince()).isEqualTo(T0.plusMinutes(3));
+        assertThat(event.getEndedAt()).isNull();
+
+        // 열린 이벤트가 없을 때도 새로 열지 않는다
+        Long other = saveZone("테스트 현재 초 수 부족 다른 구역", "10");
+        surgeEventService.judge(other, T0, bd("200"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, bd("100"), FULL_SAMPLE_SEC);
+        assertThat(eventRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-034 증가율이 peak_value 상한 999999.9999를 넘으면 상한값으로 잘라 저장")
+    void capsRateAtPeakValueLimit() {
+        Long zoneId = saveZone("테스트 증가율 상한 구역", "10");
+
+        // 10분 전 0.0001명 → 100명: 증가율 약 100,000,000%로 상한을 넘는다
+        surgeEventService.judge(zoneId, T0, bd("100"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("0.0001"), FULL_SAMPLE_SEC);
+        entityManager.flush();
+
+        Event event = eventRepository.findAll().get(0);
+        assertThat(event.getPeakValue()).isEqualByComparingTo("999999.9999");
+        assertThat(event.getPeakCount()).isEqualTo(100);
     }
 
     @Test
