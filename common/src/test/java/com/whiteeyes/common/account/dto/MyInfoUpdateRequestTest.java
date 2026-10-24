@@ -59,7 +59,8 @@ class MyInfoUpdateRequestTest {
     @Test
     @DisplayName("FNC-C-006 메일은 빈 값(지우기)과 100자까지 통과한다")
     void email_boundaryInside_passes() {
-        String hundred = "a".repeat(88) + "@example.com"; // 88 + 12 = 100자
+        // 로컬 파트는 64자까지 허용되므로 64 + 1 + 35 = 100자로 만든다
+        String hundred = "a".repeat(64) + "@" + "b".repeat(23) + ".example.com";
         assertThat(hundred).hasSize(100);
         assertThat(invalidFields(new MyInfoUpdateRequest(null, "", null))).isEmpty();
         assertThat(invalidFields(new MyInfoUpdateRequest(null, hundred, null))).isEmpty();
@@ -68,7 +69,7 @@ class MyInfoUpdateRequestTest {
     @Test
     @DisplayName("FNC-C-006 메일이 101자면 email 오류")
     void email_tooLong_fails() {
-        String over = "a".repeat(89) + "@example.com";
+        String over = "a".repeat(64) + "@" + "b".repeat(24) + ".example.com";
         assertThat(over).hasSize(101);
         assertThat(invalidFields(new MyInfoUpdateRequest(null, over, null))).containsExactly("email");
     }
