@@ -3,7 +3,7 @@
 .admin-notice { margin: 12px 16px 0; }
 .admin-empty { padding: 28px 16px; text-align: center; font-size: 12px; }
 /* 동작 열: 시안처럼 버튼을 오른쪽에 붙인다. 본인 행에는 버튼 대신 작은 안내 글자 */
-.admin-actions { text-align: right; }
+.table th.admin-actions, .admin-actions { text-align: right; }
 .admin-actions .row-actions { justify-content: flex-end; align-items: center; }
 .admin-self { font-size: 11px; }
 /* 행 동작 확인 창: 관리자 추가 창(.admin-modal)과 같은 크기·위치 */

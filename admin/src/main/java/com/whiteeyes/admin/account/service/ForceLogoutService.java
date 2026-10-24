@@ -23,7 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 접속 중인 사용자 또는 관리자를 강제로 로그아웃시킨다(FNC-A-008). 사용자는 관리자 이상, 관리자는 최고 관리자만 부를 수 있다
  * (권한은 AdminSecurityConfig 권한 표가 막는다). 사용자 대상은 세션 삭제와 작업 기록이 한 트랜잭션이다.
- * 관리자 대상은 관리자 앱 세션 저장소가 삭제를 바로 확정하므로, 기록이 실패해도 세션은 이미 지워져 있다(지운 수를 기록에 남기려고 삭제를 먼저 한다).
+ * 관리자 대상은 관리자 앱 세션 저장소가 삭제를 바로 확정하므로, 지운 수를 먼저 세어 기록에 넣고 삭제는 맨 뒤에 한다
+ * (기록이 실패하면 세션이 그대로 남는다).
  *
  * <p>세션 저장소는 웹 앱에만 있으므로 웹 서버 없이 띄우는 1회 작업(--job=…)에서는 등록하지 않는다.
  */
@@ -71,8 +72,9 @@ public class ForceLogoutService {
         AdminAccount admin =
                 adminAccountRepository.findById(adminId).orElseThrow(() -> new AdminNotFoundException(adminId));
 
-        // 처리 순서 2: 관리자 앱 세션 표에서 login_id로 찾아 모두 삭제
-        int deleted = accountSessionService.endAdminSessions(admin.getLoginId());
+        // 처리 순서 2: 관리자 앱 세션 표에서 login_id로 찾아 모두 삭제. 그 저장소는 삭제를 바로 확정해 되돌릴 수 없으므로
+        // 지운 수를 먼저 세어 기록에 넣고 삭제는 맨 뒤에 한다(기록이 실패하면 세션이 그대로 남는다)
+        int deleted = accountSessionService.countAdminSessions(admin.getLoginId());
         workRecorder.record(
                 actor,
                 WorkAction.ACCOUNT_CHANGE,
@@ -80,6 +82,7 @@ public class ForceLogoutService {
                 adminId,
                 admin.getLoginId(),
                 Map.of("deletedSessions", deleted));
+        accountSessionService.endAdminSessions(admin.getLoginId());
         log.info("관리자 강제 로그아웃 adminId={} 삭제한 세션={}", adminId, deleted);
         return new ForceLogoutResponse(deleted);
     }
