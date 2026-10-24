@@ -7,7 +7,7 @@
   비정상 인원 변동(FNC-C-020)은 펼칠 때 기간 비교 API로 읽는다.
   보조 지표(FNC-C-030)는 펼친 영역에 필요한 통계 시계열만 읽는다. 이벤트 종류별 건수는 관리자 앱에만 있다(이벤트 요약 API가 관리자 이상).
   엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
-  다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감)은 아직 없다.
+  방문 패턴(FNC-C-028)은 펼칠 때 어제까지 28일의 요일 × 시간 평균 인원을 읽는다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
@@ -76,6 +76,14 @@
                     <div class="acc-h">혼잡 기준<span class="muted small" id="level-rule"></span></div>
                     <ul class="level-rules" id="level-rules"></ul>
                 </section>
+                <!-- 방문 패턴(FNC-C-028): 펼칠 때 어제까지 28일의 요일 × 시간 평균 인원을 읽는다(stats-main/visit-pattern.js) -->
+                <details class="acc fold" id="visit-pattern">
+                    <summary class="acc-h">방문 패턴 (요일×시간)<span class="muted small">어제까지 28일</span></summary>
+                    <div class="acc-b">
+                        <div class="pattern-grid" id="visit-pattern-grid" role="img" aria-label="요일·시간대별 평균 인원"></div>
+                        <span class="muted" id="visit-pattern-message" hidden></span>
+                    </div>
+                </details>
                 <!-- 비정상 인원 변동(FNC-C-020): 펼칠 때 최근 7일을 지난달 같은 요일과 비교해 읽는다 -->
                 <details class="acc fold" id="abnormal-box">
                     <summary class="acc-h">비정상 인원 변동<span class="muted small">최근 7일 · 지난달 대비</span></summary>
