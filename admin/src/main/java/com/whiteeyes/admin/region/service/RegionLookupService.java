@@ -2,6 +2,7 @@ package com.whiteeyes.admin.region.service;
 
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.exception.RegionNotFoundException;
 import com.whiteeyes.common.region.repository.RegionRepository;
 import java.util.Collection;
 import java.util.List;
@@ -25,6 +26,25 @@ public class RegionLookupService {
     @Transactional(readOnly = true)
     public List<Long> findDongIdsUnder(Long regionId) {
         return regionRepository.findIdsOfLevelUnder(regionId, RegionLevel.EMD);
+    }
+
+    /**
+     * 지역이 있는지 확인하고, 있으면 그 아래 읍·면·동 번호를 돌려준다(이벤트 목록 지역 필터, FNC-A-036).
+     *
+     * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404 REGION_NOT_FOUND)
+     */
+    @Transactional(readOnly = true)
+    public List<Long> requireDongIdsUnder(Long regionId) {
+        if (!regionRepository.existsById(regionId)) {
+            throw new RegionNotFoundException();
+        }
+        return findDongIdsUnder(regionId);
+    }
+
+    /** 동 이름이나 소속 시·군·구 이름에 검색어가 들어 있는 읍·면·동 번호(이벤트 목록 검색, FNC-A-036). */
+    @Transactional(readOnly = true)
+    public List<Long> findDongIdsByNameContaining(String keyword) {
+        return regionRepository.findIdsOfLevelByNameOrParentNameContaining(keyword, RegionLevel.EMD);
     }
 
     /** 읍·면·동 번호 → 지역 경로("유성구 · 궁동"). 상위(시·군·구)까지 쿼리 한 번으로 가져온다. */

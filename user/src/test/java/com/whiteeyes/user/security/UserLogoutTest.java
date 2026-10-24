@@ -2,11 +2,14 @@ package com.whiteeyes.user.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.user.support.UserTestAccounts;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -24,14 +27,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * 사용자 앱 로그아웃(FNC-C-002). 사용자 앱 로그인이 아직 없어(이슈 #126) 세션을 저장소에 직접 만들어 확인한다.
- * "로그아웃 뒤 이전 화면 주소 → 로그인 화면"은 사용자 앱 권한 표(#126)가 있어야 확인할 수 있어 여기서는 세션 삭제까지만 본다.
+ * 사용자 앱 로그아웃(FNC-C-002). 세션 삭제는 세션을 저장소에 직접 만들어 확인하고,
+ * 검수 기준 "로그아웃 뒤 이전 화면 주소로 접근하면 로그인 화면으로 이동"은 실제로 로그인한 세션으로 확인한다.
  */
 // 사용자 앱은 Flyway를 돌리지 않아(관리자 앱만 실행) 테스트 H2의 세션 표는 Spring Session이 기본 이름(SPRING_SESSION)으로 만든다
 @SpringBootTest
@@ -49,11 +53,31 @@ class UserLogoutTest {
     @Autowired
     private JdbcIndexedSessionRepository sessionRepository;
 
+    @Autowired
+    private UserAccountRepository userAccountRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @BeforeEach
     @AfterEach
     void cleanUp() {
-        jdbcTemplate.update("DELETE FROM SPRING_SESSION_ATTRIBUTES");
-        jdbcTemplate.update("DELETE FROM SPRING_SESSION");
+        new UserTestAccounts(mockMvc, jdbcTemplate, userAccountRepository, passwordEncoder).clear();
+    }
+
+    @Test
+    @DisplayName("FNC-C-002 검수 기준: 로그아웃 뒤 이전 화면 주소로 접근하면 로그인 화면으로 이동")
+    void afterLogout_previousPage_redirectsToLogin() throws Exception {
+        UserTestAccounts accounts = new UserTestAccounts(mockMvc, jdbcTemplate, userAccountRepository, passwordEncoder);
+        Cookie session = accounts.loginAs("logout01", "ACTIVE", false);
+        mockMvc.perform(get("/me/password").cookie(session)).andExpect(status().isOk());
+
+        mockMvc.perform(post("/logout").cookie(session).with(csrf())).andExpect(status().isFound());
+
+        mockMvc.perform(get("/me/password").cookie(session))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
+        mockMvc.perform(get("/api/v1/meta/levels").cookie(session)).andExpect(status().isUnauthorized());
     }
 
     @ParameterizedTest(name = "{0}")

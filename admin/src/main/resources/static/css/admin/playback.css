@@ -9,6 +9,16 @@
 .pb-video { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .pb-notice { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: #c3ccd8; font-size: 14px; }
 .pb-notice[hidden] { display: none; }
+/* 탐지 박스 캔버스(FNC-A-046). 영상 칸 전체에 겹치고 클릭은 영상으로 통과시킨다 */
+.pb-boxes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pb-boxes[hidden] { display: none; }
+.pb-box-note { position: absolute; right: 12px; top: 12px; padding: 4px 8px; border-radius: 6px; background: rgba(5, 8, 12, .7); font-size: 11px; color: var(--muted); }
+.pb-box-note[hidden] { display: none; }
+.pb-box-toggle { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+.pb-switch { position: relative; width: 34px; height: 18px; padding: 0; border: 0; border-radius: 9px; background: #3a4756; cursor: pointer; }
+.pb-switch i { position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
+.pb-switch[aria-checked="true"] { background: #356fc9; }
+.pb-switch[aria-checked="true"] i { left: 18px; }
 .pb-feed-label { position: absolute; left: 12px; top: 12px; padding: 4px 8px; border-radius: 6px; background: rgba(5, 8, 12, .7); font-size: 11px; }
 .pb-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 

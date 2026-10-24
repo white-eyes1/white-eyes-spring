@@ -47,6 +47,18 @@ public class ZoneService {
                 .collect(Collectors.toMap(ZoneSummary::id, Function.identity()));
     }
 
+    /** 주어진 읍·면·동들에 속한 구역 번호. 삭제된 구역도 포함한다(이벤트 목록 지역 필터·검색, FNC-A-036). */
+    @Transactional(readOnly = true)
+    public List<Long> findAllZoneIdsInDongs(Collection<Long> dongIds) {
+        return zoneRepository.findByDongIdIn(dongIds).stream().map(Zone::getId).toList();
+    }
+
+    /** 이름에 검색어가 들어 있는 구역 번호. 삭제된 구역도 포함한다(이벤트 목록 검색, FNC-A-036). */
+    @Transactional(readOnly = true)
+    public List<Long> findZoneIdsByNameContaining(String keyword) {
+        return zoneRepository.findIdsByNameContaining(keyword);
+    }
+
     /** 주어진 읍·면·동들에 속한 삭제되지 않은 구역 번호(캠 목록 지역 필터, FNC-A-022). */
     @Transactional(readOnly = true)
     public List<Long> findActiveZoneIdsInDongs(Collection<Long> dongIds) {

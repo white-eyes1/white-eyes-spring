@@ -224,6 +224,35 @@ class RegionListTest {
     }
 
     @Test
+    @DisplayName("FNC-C-008 구역 하나를 번호로 조회하면 삭제 여부(deleted)가 함께 오고, 삭제된 구역도 이름이 온다(#183)")
+    void zoneById_includesDeletedFlag_andDeletedZone() throws Exception {
+        mockMvc.perform(get(ZONES_URL + "/" + samcheongZoneA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(samcheongZoneA))
+                .andExpect(jsonPath("$.name").value("삼청동 1구역"))
+                .andExpect(jsonPath("$.deleted").value(false))
+                .andExpect(jsonPath("$.boundary.type").value("Polygon"));
+
+        jdbcTemplate.update("UPDATE zone SET deleted_at = '2026-10-20 12:00:00' WHERE id = ?", samcheongZoneA);
+
+        mockMvc.perform(get(ZONES_URL + "/" + samcheongZoneA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("삼청동 1구역"))
+                .andExpect(jsonPath("$.deleted").value(true));
+        // 목록에는 여전히 없고, 목록 항목은 deleted=false다
+        zones(null).andExpect(jsonPath("$[*].id", not(hasItem((int) samcheongZoneA))))
+                .andExpect(jsonPath("$[0].deleted").value(false));
+    }
+
+    @Test
+    @DisplayName("FNC-C-008 없는 구역을 번호로 조회하면 404 ZONE_NOT_FOUND")
+    void zoneById_unknown_404() throws Exception {
+        mockMvc.perform(get(ZONES_URL + "/" + Long.MAX_VALUE))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
+    }
+
+    @Test
     @DisplayName("FNC-C-008 dongId를 주면 그 동의 구역만 준다")
     void zones_byDong_onlyThatDong() throws Exception {
         zones(regionId("11140520"))

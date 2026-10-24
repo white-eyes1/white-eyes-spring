@@ -41,6 +41,10 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     @Query("select c.id from Camera c where c.zoneId = :zoneId")
     List<Long> findIdsByZoneId(@Param("zoneId") Long zoneId);
 
+    /** 이름에 검색어가 들어 있는 캠의 구역 번호. 삭제된 캠도 포함한다(이벤트 목록 검색, FNC-A-036). */
+    @Query("select distinct c.zoneId from Camera c where locate(lower(:keyword), lower(c.name)) > 0")
+    List<Long> findZoneIdsByNameContaining(@Param("keyword") String keyword);
+
     /** 그 구역의 삭제되지 않은 캠 중 주어진 상태인 것이 있는지 본다(구역 삭제 FNC-A-017 처리 순서 1). */
     boolean existsByZoneIdAndDeletedAtIsNullAndStatusIn(Long zoneId, Collection<CameraStatus> statuses);
 

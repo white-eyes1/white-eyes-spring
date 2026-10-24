@@ -13,8 +13,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-// 사용자 앱 로그인(#126)이 아직 없어 가짜 사용자(@WithMockUser)로 확인한다.
-// 로그인하지 않은 요청은 사용자 앱 권한 표(#126 '넘겨받은 일') 전까지 막지 않으므로 여기서 확인하지 않는다
+// 역할별 동작은 가짜 사용자(@WithMockUser)로 확인한다. 실제 로그인 세션으로 보는 권한 시험은 UserAccessControlTest
 /** 통계 그래프 조회(FNC-C-012)가 사용자 앱에도 같은 경로로 등록되고 접근 권한 검사를 받는지 확인한다. */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -22,6 +21,14 @@ class StatSeriesUserAppTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Test
+    @DisplayName("FNC-C-012 로그인하지 않은 요청은 401")
+    void anonymous_unauthorized() throws Exception {
+        mockMvc.perform(seriesRequest())
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
 
     @Test
     @WithMockUser(roles = "PENDING")

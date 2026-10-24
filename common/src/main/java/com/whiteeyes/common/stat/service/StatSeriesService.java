@@ -77,19 +77,15 @@ public class StatSeriesService {
 
     /**
      * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)
-     * @throws com.whiteeyes.common.region.exception.ZoneNotFoundException 없거나 삭제된 구역이면(404)
+     * @throws com.whiteeyes.common.region.exception.ZoneNotFoundException 없는 구역이면(404). 삭제된 구역은 지난 통계를 보므로 받는다
      */
     @Transactional(readOnly = true)
     public StatSeriesResponse findSeries(StatSeriesRequest request) {
         Target target = request.targetType() == StatTargetType.ZONE
                 ? zoneTarget(request.targetId())
                 : regionTarget(request.targetId());
-        // from이 구간 중간이면 그 구간의 시작부터 세고, to 앞에서 시작한 마지막 구간까지 통째로 넣는다(#25에서 정함)
         StatInterval interval = request.interval();
-        List<LocalDateTime> buckets = new ArrayList<>();
-        for (LocalDateTime at = interval.floor(request.from()); at.isBefore(request.to()); at = interval.next(at)) {
-            buckets.add(at);
-        }
+        List<LocalDateTime> buckets = buckets(interval, request.from(), request.to());
         LocalDateTime end = interval.next(buckets.get(buckets.size() - 1));
         Map<LocalDateTime, List<ZoneRow>> rowsByAt = findSampledRows(target, interval, buckets.get(0), end);
         Map<Long, Map<ZoneDirection, Long>> neighborsByZone = target.isZone() ? Map.of() : findNeighbors(target);
@@ -104,8 +100,52 @@ public class StatSeriesService {
         return new StatSeriesResponse(items);
     }
 
+    /**
+     * 구역마다 따로 낸 시계열(통계 엑셀의 구역별 행, FNC-C-023). 값은 구역 대상 {@link #findSeries}와 같다.
+     * 원본은 구역 수와 관계없이 한 번에 읽는다. 구역 확인(삭제 여부)은 부르는 쪽이 한다.
+     *
+     * @return 구역 번호 → 점 목록(from이 든 구간부터 to 앞까지). 받은 순서대로
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, List<StatSeriesPoint>> findZoneSeries(
+            Collection<Long> zoneIds, StatInterval interval, LocalDateTime from, LocalDateTime to) {
+        List<LocalDateTime> buckets = buckets(interval, from, to);
+        LocalDateTime end = interval.next(buckets.get(buckets.size() - 1));
+        Map<Long, Map<LocalDateTime, ZoneRow>> rowsByZone = zoneIds.isEmpty()
+                ? Map.of()
+                : findRows(zoneIds, interval, buckets.get(0), end).stream()
+                        .filter(row -> row.values().sampleSec() > 0)
+                        .collect(Collectors.groupingBy(
+                                ZoneRow::zoneId, Collectors.toMap(ZoneRow::at, row -> row)));
+        Map<Long, List<StatSeriesPoint>> result = new LinkedHashMap<>();
+        for (Long zoneId : zoneIds) {
+            // 구역 대상은 저장된 밀집도를 그대로 쓰므로 면적은 쓰지 않는다
+            Target target = new Target(LevelTarget.zone(zoneId), Map.of(zoneId, BigDecimal.ZERO), true);
+            Map<LocalDateTime, ZoneRow> rows = rowsByZone.getOrDefault(zoneId, Map.of());
+            List<StatSeriesPoint> points = new ArrayList<>(buckets.size());
+            for (LocalDateTime at : buckets) {
+                ZoneRow row = rows.get(at);
+                points.add(row == null
+                        ? StatSeriesPoint.empty(at.atOffset(KST_OFFSET))
+                        : toPoint(target, at, List.of(row), Map.of()));
+            }
+            result.put(zoneId, points);
+        }
+        return result;
+    }
+
+    // from이 구간 중간이면 그 구간의 시작부터 세고, to 앞에서 시작한 마지막 구간까지 통째로 넣는다(#25에서 정함)
+    private static List<LocalDateTime> buckets(StatInterval interval, LocalDateTime from, LocalDateTime to) {
+        List<LocalDateTime> buckets = new ArrayList<>();
+        for (LocalDateTime at = interval.floor(from); at.isBefore(to); at = interval.next(at)) {
+            buckets.add(at);
+        }
+        return buckets;
+    }
+
     private Target zoneTarget(long zoneId) {
-        Zone zone = regionQueryService.getActiveZone(zoneId);
+        // 삭제된 구역도 받는다: 삭제 표시된 구역의 지난 통계를 그래프로 볼 수 있어야 한다(FNC-A-017 업무 규칙, #183)
+        Zone zone = regionQueryService.getZoneIncludingDeleted(zoneId);
         return new Target(LevelTarget.zone(zoneId), Map.of(zoneId, zone.getAreaM2()), true);
     }
 
