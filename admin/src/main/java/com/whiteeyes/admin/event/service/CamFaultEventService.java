@@ -54,7 +54,7 @@ public class CamFaultEventService {
     public void detect(LocalDateTime now) {
         List<WatchedCamera> watched = watchedCameraService.findWatchedCameras();
         Set<Long> faultyCameraIds = new HashSet<>();
-        // 이번 검사에서 처음 기준 시각을 채운 캠(재시작 직후 등): 결과를 한 번도 못 받아 정상인지 알 수 없다
+        // 기준 시각이 감시 시작 시각뿐인 캠(재시작 직후 등): 결과를 한 번도 못 받아 정상인지 알 수 없다
         Set<Long> unknownCameraIds = new HashSet<>();
         for (WatchedCamera camera : watched) {
             if (isFaulty(camera, now, unknownCameraIds)) {
@@ -110,7 +110,8 @@ public class CamFaultEventService {
         if (camera.status() != CameraStatus.RUNNING) {
             return false;
         }
-        if (lastResultTimeStore.seedIfAbsent(camera.cameraId(), now)) {
+        lastResultTimeStore.seedIfAbsent(camera.cameraId(), now);
+        if (lastResultTimeStore.isSeededOnly(camera.cameraId())) {
             unknownCameraIds.add(camera.cameraId());
         }
         LocalDateTime lastResultAt =

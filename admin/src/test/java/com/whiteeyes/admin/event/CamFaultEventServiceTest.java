@@ -166,6 +166,12 @@ class CamFaultEventServiceTest {
         camFaultEventService.detect(NOW);
         assertThat(openFaults(cameraId)).as("재시작 직후 첫 검사").hasSize(1);
 
+        // 결과를 아직 한 번도 받지 못했으면 다음 검사들(10초 간격)에서도 정상으로 보지 않고 이벤트를 둔다
+        for (int sec = 10; sec < TIMEOUT_SEC; sec += 10) {
+            camFaultEventService.detect(NOW.plusSeconds(sec));
+            assertThat(openFaults(cameraId)).as("재시작 %d초 뒤 검사", sec).hasSize(1);
+        }
+
         // 분석 서버가 계속 죽어 있으면 시작 시각 기준 60초 뒤에도 같은 이벤트가 이어진다(둘로 쪼개지지 않음)
         camFaultEventService.detect(NOW.plusSeconds(TIMEOUT_SEC));
         assertThat(allFaults(cameraId)).hasSize(1);
