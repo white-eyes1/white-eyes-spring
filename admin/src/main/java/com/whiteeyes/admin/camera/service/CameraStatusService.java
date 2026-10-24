@@ -20,8 +20,8 @@ import org.springframework.web.client.RestClientException;
  *
  * <p>정지 지시를 되돌려 보내는 분석 서버 호출(최대 15초)을 DB 트랜잭션 안에 넣지 않으려고 메서드 전체를
  * {@code @Transactional}로 묶지 않는다. 상태 갱신만 {@link TransactionTemplate}으로 감싼다.
- * 캠 이상 이벤트 열기·닫기(처리 순서 3·4, FNC-A-035)는 상태 갱신과 같은
- * 트랜잭션에서 한다. 알림 SSE(처리 순서 2)는 하지 않는다.
+ * 캠 이상 이벤트 열기·닫기(처리 순서 3·4, FNC-A-035)는 상태 갱신 트랜잭션이 끝난 뒤에 따로 하고, 실패하면
+ * 로그만 남긴다(이벤트 저장 실패로 상태 갱신이 롤백되지 않게). 알림 SSE(처리 순서 2)는 하지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -37,18 +37,24 @@ public class CameraStatusService {
 
     public void reportStatus(Long cameraId, CameraStatusUpdateRequest request) {
         // 정지를 원하는 캠(run_requested=0)의 RUNNING 보고는 반영하지 않고 분석 서버에 정지를 다시 지시한다(엇갈림 정리)
-        boolean mismatched = Boolean.TRUE.equals(transactionTemplate.execute(status -> apply(cameraId, request)));
-        if (mismatched) {
+        AppliedReport applied = transactionTemplate.execute(status -> apply(cameraId, request));
+        if (applied.mismatched()) {
             stopMismatchedCamera(cameraId);
+            return;
         }
+        // 이벤트 처리는 상태 갱신이 커밋된 뒤에 한다. 실패해도 로그만 남기고 이미 저장한 상태는 유지한다
+        handleCamFaultEvent(cameraId, request.status(), applied.previous());
     }
 
-    /** 보고를 반영한다. 반영하지 않고 정지 지시로 넘겨야 하는 보고면 true. */
-    private boolean apply(Long cameraId, CameraStatusUpdateRequest request) {
+    /** 상태 갱신 트랜잭션의 결과. mismatched=true면 반영하지 않고 정지 지시로 넘겨야 하는 보고, previous는 갱신 전 상태. */
+    private record AppliedReport(boolean mismatched, CameraStatus previous) {}
+
+    /** 보고를 반영한다. */
+    private AppliedReport apply(Long cameraId, CameraStatusUpdateRequest request) {
         Camera camera = cameraRepository.findByIdAndDeletedAtIsNull(cameraId)
                 .orElseThrow(() -> new CameraNotFoundException(cameraId));
         if (request.status() == CameraStatus.RUNNING && !camera.isRunRequested()) {
-            return true;
+            return new AppliedReport(true, camera.getStatus());
         }
         CameraStatus previous = camera.getStatus();
         camera.updateStatus(request.status(), request.progress(), request.errorMessage());
@@ -58,13 +64,21 @@ public class CameraStatusService {
         } else {
             log.debug("캠 상태 보고 cameraId={} status={} progress={}", cameraId, request.status(), request.progress());
         }
-        // run_requested=0인 RUNNING 보고는 위에서 걸러졌으므로 여기 온 RUNNING은 가동 요청된 캠이다
-        if (request.status() == CameraStatus.ERROR) {
-            camFaultEventService.openOnError(cameraId, LocalDateTime.now(KST));
-        } else if (request.status() == CameraStatus.RUNNING) {
-            camFaultEventService.closeOnRecovered(cameraId, LocalDateTime.now(KST), previous != CameraStatus.RUNNING);
+        return new AppliedReport(false, previous);
+    }
+
+    // run_requested=0인 RUNNING 보고는 걸러졌으므로 여기 온 RUNNING은 가동 요청된 캠이다
+    private void handleCamFaultEvent(Long cameraId, CameraStatus reported, CameraStatus previous) {
+        try {
+            if (reported == CameraStatus.ERROR) {
+                camFaultEventService.openOnError(cameraId, LocalDateTime.now(KST));
+            } else if (reported == CameraStatus.RUNNING) {
+                camFaultEventService.closeOnRecovered(cameraId, LocalDateTime.now(KST), previous != CameraStatus.RUNNING);
+            }
+        } catch (RuntimeException e) {
+            // 상태 보고는 성공으로 끝낸다. 이벤트는 10초마다 도는 캠 이상 검사가 다시 맞춘다
+            log.error("캠 이상 이벤트 처리에 실패했습니다 cameraId={} status={}", cameraId, reported, e);
         }
-        return false;
     }
 
     private void stopMismatchedCamera(Long cameraId) {

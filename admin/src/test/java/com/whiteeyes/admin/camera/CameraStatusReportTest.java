@@ -1,10 +1,15 @@
 package com.whiteeyes.admin.camera;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.admin.event.service.CamFaultEventService;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
@@ -23,6 +28,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -68,6 +74,10 @@ class CameraStatusReportTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    // 이벤트 처리가 실패해도 상태 갱신이 롤백되지 않는지 보려고 실제 객체를 감시(spy)한다
+    @MockitoSpyBean
+    private CamFaultEventService camFaultEventService;
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
@@ -238,6 +248,35 @@ class CameraStatusReportTest {
         assertThat(jdbcTemplate.queryForObject(
                         "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NOT NULL", Integer.class, cameraId))
                 .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-025 ERROR 보고에서 캠 이상 이벤트 저장이 실패해도 상태는 ERROR로 남고 204이다")
+    void report_error_eventFailure_keepsStatus() throws Exception {
+        long cameraId = insertCamera("RUNNING", 100, null, true);
+        doThrow(new IllegalStateException("이벤트 저장 실패"))
+                .when(camFaultEventService)
+                .openOnError(eq(cameraId), any());
+
+        report(cameraId, "{\"status\":\"ERROR\",\"errorMessage\":\"분석 중 오류가 발생함\"}")
+                .andExpect(status().isNoContent());
+
+        Map<String, Object> row = camera(cameraId);
+        assertThat(row.get("STATUS")).isEqualTo("ERROR");
+        assertThat(row.get("ERROR_MESSAGE")).isEqualTo("분석 중 오류가 발생함");
+    }
+
+    @Test
+    @DisplayName("FNC-A-025 RUNNING 보고에서 이벤트 닫기가 실패해도 상태는 RUNNING으로 남고 204이다")
+    void report_running_eventFailure_keepsStatus() throws Exception {
+        long cameraId = insertCamera("ERROR", 30, "분석 중 오류가 발생함", true);
+        doThrow(new IllegalStateException("이벤트 닫기 실패"))
+                .when(camFaultEventService)
+                .closeOnRecovered(eq(cameraId), any(), anyBoolean());
+
+        report(cameraId, "{\"status\":\"RUNNING\",\"progress\":100}").andExpect(status().isNoContent());
+
+        assertThat(camera(cameraId).get("STATUS")).isEqualTo("RUNNING");
     }
 
     @Test
