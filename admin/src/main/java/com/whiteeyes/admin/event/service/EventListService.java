@@ -62,7 +62,13 @@ public class EventListService {
         return PageResponse.of(items, request.page(), request.size(), events.getTotalElements());
     }
 
-    /** 이벤트들을 목록 행으로 바꾼다. 이름은 한 번에 모아 읽는다. 입력 순서가 그대로 유지된다. */
+    /** 이벤트 1건을 목록의 한 행 모양으로 만든다. 상세(FNC-A-037)가 목록과 같은 필드를 재사용한다. */
+    @Transactional(readOnly = true)
+    public EventListItem toListItem(Event event) {
+        return toItems(List.of(event)).get(0);
+    }
+
+    /** 이벤트들을 목록 행으로 바꾼다(엑셀 FNC-A-039도 사용). 이름은 한 번에 모아 읽는다. 입력 순서가 그대로 유지된다. */
     public List<EventListItem> toItems(List<Event> events) {
         if (events.isEmpty()) {
             return List.of();

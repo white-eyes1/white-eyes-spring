@@ -1,9 +1,11 @@
 package com.whiteeyes.admin.event.controller;
 
+import com.whiteeyes.admin.event.dto.EventDetailResponse;
 import com.whiteeyes.admin.event.dto.EventExportRequest;
 import com.whiteeyes.admin.event.dto.EventListItem;
 import com.whiteeyes.admin.event.dto.EventSearchRequest;
 import com.whiteeyes.admin.event.dto.EventSummaryResponse;
+import com.whiteeyes.admin.event.service.EventDetailService;
 import com.whiteeyes.admin.event.service.EventExportService;
 import com.whiteeyes.admin.event.service.EventExportService.EventExportFile;
 import com.whiteeyes.admin.event.service.EventListService;
@@ -18,12 +20,12 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 이벤트 API: 목록 GET /api/v1/events, 요약 GET /api/v1/events/summary(FNC-A-036), 엑셀 GET /api/v1/events/export
- * (FNC-A-039).
+ * 이벤트 API: 목록 GET /api/v1/events, 요약 /summary(FNC-A-036), 상세 /{id}(FNC-A-037), 엑셀 /export(FNC-A-039).
  */
 @RestController
 @RequestMapping("/api/v1/events")
@@ -34,6 +36,7 @@ public class EventApiController {
 
     private final EventListService eventListService;
     private final EventSummaryService eventSummaryService;
+    private final EventDetailService eventDetailService;
     private final EventExportService eventExportService;
 
     @GetMapping
@@ -59,5 +62,10 @@ public class EventApiController {
                             .toString());
             file.writeTo(response.getOutputStream());
         }
+    }
+
+    @GetMapping("/{id}")
+    public EventDetailResponse detail(@PathVariable("id") Long id) {
+        return eventDetailService.find(id);
     }
 }

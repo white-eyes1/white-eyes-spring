@@ -16,5 +16,7 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    // 통계 엑셀 다운로드(FNC-C-023) 시험에서 받은 파일을 열어 본다
+    testImplementation 'org.apache.poi:poi-ooxml:5.5.1'
     testRuntimeOnly 'com.h2database:h2'
 }

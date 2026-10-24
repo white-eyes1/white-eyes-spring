@@ -1,6 +1,6 @@
-// 이벤트 로그 화면 SCR-A-010 중 요약 카드·필터·이벤트 표(FNC-A-036).
-// 내려받기(FNC-A-039)는 현재 필터 그대로 엑셀을 받는다.
-// 행 클릭(상세 FNC-A-037), 조치 버튼(FNC-A-038), 새 이벤트 알림(FNC-A-048)은 각 기능의 이슈에서 붙인다.
+// 이벤트 로그 화면 SCR-A-010 중 요약 카드·필터·이벤트 표(FNC-A-036), 내려받기(FNC-A-039)와, 행을 누르면 열리는
+// 이벤트 상세 창 SCR-A-011 중 이벤트 정보·처리 이력(FNC-A-037).
+// 발생 시점 영상(FNC-A-040), 조치 버튼·조치 창(FNC-A-038), 새 이벤트 알림(FNC-A-048)은 각 기능의 이슈에서 붙인다.
 // 필터는 주소의 쿼리로 유지한다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
 import { download, get } from '../../common/api.js';
@@ -19,6 +19,14 @@ const STATUS = {
 };
 // 혼잡 이벤트의 칩 색은 최고 단계의 색(주의 l2, 위험 l3), 급증은 보라, 캠 이상은 회색
 const LEVEL_CHIP = { 2: 'l2', 3: 'l3' };
+// 조치 항목 코드(conventions.md 코드 값 event.action_code)
+const ACTION_LABEL = {
+    ONSITE_OK: '현장 확인·정상',
+    STAFF: '인력 배치',
+    FALSE_ALARM: '오탐',
+    CAM_CHECK: '캠 점검 요청',
+    OTHER: '기타',
+};
 
 const form = document.getElementById('event-filter');
 const fromInput = document.getElementById('filter-from');
@@ -34,17 +42,26 @@ const totalEl = document.getElementById('event-total');
 const pagesEl = document.getElementById('event-pages');
 const summaryTotalLabel = document.getElementById('summary-total-label');
 const exportButton = document.getElementById('export-button');
+const detailModal = document.getElementById('detail-modal');
+const detailTypeChip = document.getElementById('detail-type-chip');
+const detailTitle = document.getElementById('detail-title');
+const detailStatusChip = document.getElementById('detail-status-chip');
+const detailInfo = document.getElementById('detail-info');
+const detailHistories = document.getElementById('detail-histories');
 
 let page = 0;
 let requestSeq = 0;
 let keywordTimer = null;
 let levelNames = {};
+let detailSeq = 0;
+let detailOpener = null;
 
 init();
 
 async function init() {
     restoreFilters();
     bindFilters();
+    bindDetail();
     await loadLevelNames();
     await refresh();
 }
@@ -233,6 +250,7 @@ function renderList(result) {
 function buildRow(event) {
     const row = el('div', 'tr ev-row');
     row.setAttribute('role', 'row');
+    row.tabIndex = 0;
     row.dataset.eventId = event.id;
     row.append(
         cell(textWithSmall(formatDateTime(event.startedAt), endedText(event))),
@@ -296,6 +314,165 @@ function durationText(seconds) {
 function statusChip(status) {
     const info = STATUS[status] ?? { label: status, chip: 'off' };
     return el('span', `chip ${info.chip}`, info.label);
+}
+
+// ---- 상세 창 (SCR-A-011) ----
+
+function bindDetail() {
+    rowsEl.addEventListener('click', (event) => openDetailOf(event.target));
+    rowsEl.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            openDetailOf(event.target);
+        }
+    });
+    detailModal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeDetail));
+    detailModal.addEventListener('mousedown', (event) => {
+        if (event.target === detailModal) {
+            closeDetail();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !detailModal.hidden) {
+            closeDetail();
+        }
+    });
+}
+
+function openDetailOf(target) {
+    const row = target.closest('.ev-row');
+    if (row) {
+        detailOpener = row;
+        openDetail(row.dataset.eventId);
+    }
+}
+
+async function openDetail(eventId) {
+    const seq = ++detailSeq;
+    try {
+        const detail = await get(`/api/v1/events/${eventId}`);
+        // 그 사이 다른 행을 눌렀거나 창을 닫았으면 이 응답은 버린다
+        if (seq === detailSeq) {
+            renderDetail(detail);
+            detailModal.hidden = false;
+            detailModal.querySelector('.modal').focus();
+        }
+    } catch {
+        // 오류 알림은 공용 API 모듈이 토스트로 띄운다. 창은 열지 않는다
+    }
+}
+
+function closeDetail() {
+    detailSeq++;
+    detailModal.hidden = true;
+    // 열었던 행으로 포커스를 돌려준다(목록이 다시 그려져 행이 사라졌으면 건너뛴다)
+    if (detailOpener?.isConnected) {
+        detailOpener.focus();
+    }
+    detailOpener = null;
+}
+
+function renderDetail(detail) {
+    detailTypeChip.replaceChildren(typeChip(detail));
+    detailTitle.textContent = `${detail.zoneName ?? '-'} · ${peakTitle(detail)}`;
+    detailStatusChip.replaceChildren(statusChip(detail.status));
+
+    const rows = [
+        ['구역 · 지역', [detail.zoneName, regionAndCamera(detail)].filter(Boolean).join(' · ')],
+        ['발생 · 종료', periodText(detail)],
+        ['최고 단계·값', peakNode(detail)],
+        ['당시 기준값', thresholdText(detail)],
+    ];
+    if (detail.actionCode) {
+        rows.push(['조치 항목', ACTION_LABEL[detail.actionCode] ?? detail.actionCode]);
+    }
+    if (detail.actionNote) {
+        rows.push(['조치 메모', detail.actionNote]);
+    }
+    if (detail.handledAt) {
+        rows.push(['처리 일시', formatDateTime(detail.handledAt)]);
+    }
+    detailInfo.replaceChildren(...rows.flatMap(([label, value]) => [el('dt', '', label), definition(value)]));
+
+    detailHistories.replaceChildren(
+        ...(detail.histories.length > 0
+            ? detail.histories.map(buildHistory)
+            : [el('p', 'muted ev-history-empty', '처리 이력이 없습니다')]),
+    );
+}
+
+// 제목 끝: 혼잡=최고 단계 이름, 급증·캠 이상=종류 이름
+function peakTitle(detail) {
+    if (detail.type === 'CONGESTION') {
+        return levelNames[detail.peakLevel] ?? `${detail.peakLevel}단계`;
+    }
+    return TYPE_LABEL[detail.type] ?? detail.type;
+}
+
+function periodText(detail) {
+    const started = formatDateTime(detail.startedAt);
+    const duration = durationText(detail.durationSec);
+    if (detail.ongoing) {
+        return `${started} ~ 진행 중 (${duration})`;
+    }
+    const ended = formatDateTime(detail.endedAt);
+    const endedLabel = started.slice(0, 10) === ended.slice(0, 10) ? ended.slice(11) : ended;
+    return `${started} ~ ${endedLabel} (${duration})`;
+}
+
+// 혼잡=단계 칩 + 밀집도 + 최고 인원, 급증=증가율 + 최고 인원, 캠 이상='-'
+function peakNode(detail) {
+    if (detail.type === 'CAM_FAULT') {
+        return '-';
+    }
+    const fragment = document.createDocumentFragment();
+    if (detail.type === 'CONGESTION') {
+        fragment.append(el('span', `chip ${LEVEL_CHIP[detail.peakLevel] ?? 'l2'}`, peakTitle(detail)), ' ');
+        fragment.append(`${formatDecimal(detail.peakValue, 2)}명/㎡`);
+    } else {
+        fragment.append(`+${formatDecimal(detail.peakValue, 0)}%`);
+    }
+    fragment.append(` · ${formatNumber(detail.peakCount)}명`);
+    return fragment;
+}
+
+// 기준값 JSON은 이벤트 종류마다 키가 다르다(tables.md event.threshold_snapshot, FNC-A-033·034·035)
+function thresholdText(detail) {
+    const snapshot = detail.thresholdSnapshot ?? {};
+    if (detail.type === 'CONGESTION' && has(snapshot.warnDensity) && has(snapshot.dangerDensity)) {
+        return `주의 ${snapshot.warnDensity} · 위험 ${snapshot.dangerDensity} 명/㎡`;
+    }
+    if (detail.type === 'CAM_FAULT' && has(snapshot.timeoutSec)) {
+        return `결과 없음 ${snapshot.timeoutSec}초 이상`;
+    }
+    if (detail.type === 'SURGE' && has(snapshot.window) && has(snapshot.rate) && has(snapshot.minDensity)) {
+        return `${snapshot.window}분 전보다 +${snapshot.rate}% 이상 · 최소 밀집도 ${snapshot.minDensity}명/㎡`;
+    }
+    return '-';
+}
+
+function has(value) {
+    return value !== null && value !== undefined;
+}
+
+function buildHistory(history) {
+    const row = el('div', 'ev-history-row');
+    if (history.from) {
+        row.append(statusChip(history.from), ' → ');
+    }
+    row.append(statusChip(history.to), ` ${formatDateTime(history.at)} · ${history.loginId}`);
+    const action = ACTION_LABEL[history.actionCode] ?? history.actionCode;
+    if (action) {
+        row.append(` · ${action}${history.actionNote ? ` — ${history.actionNote}` : ''}`);
+    } else if (history.actionNote) {
+        row.append(` · ${history.actionNote}`);
+    }
+    return row;
+}
+
+function definition(value) {
+    const node = el('dd');
+    node.append(value);
+    return node;
 }
 
 // ---- 페이지 ----

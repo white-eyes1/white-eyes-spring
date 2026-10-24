@@ -21,8 +21,8 @@ import lombok.NoArgsConstructor;
 /**
  * 이벤트(tables.md 'event'). 혼잡 이벤트 판정(FNC-A-033)과 급증 이벤트 판정(FNC-A-034)이 만들고 갱신·종료한다.
  *
- * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 읽기 전용으로만 매핑한다. 값을 쓰는 것은 이벤트 처리 기능이다.
- * created_at·updated_at은 DB 기본값이 채운다.
+ * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 상세 조회(FNC-A-037)를 위해 읽기만 매핑했다.
+ * 값을 바꾸는 메서드는 처리 상태 변경(FNC-A-038)에서 더한다. created_at·updated_at은 DB 기본값이 채운다.
  */
 @Entity
 @Table(name = "event")
@@ -75,19 +75,18 @@ public class Event {
     @Column(name = "status", nullable = false, length = 20)
     private EventStatus status;
 
-    // 처리 정보 4칸은 읽기 전용으로만 매핑한다(이벤트 목록의 엑셀 FNC-A-039). 값을 쓰는 것은 처리 상태 변경(FNC-A-038)
-    /** 조치 항목. 조치완료일 때만 값이 있다. */
-    @Column(name = "action_code", length = 20, insertable = false, updatable = false)
+    /** 조치 항목 코드(ONSITE_OK·STAFF·FALSE_ALARM·CAM_CHECK·OTHER). 조치완료일 때만 값이 있다. */
+    @Column(name = "action_code", length = 20)
     private String actionCode;
 
-    @Column(name = "action_note", length = 200, insertable = false, updatable = false)
+    @Column(name = "action_note", length = 200)
     private String actionNote;
 
-    /** 마지막으로 처리 상태를 바꾼 관리자 번호(admin_account.id). */
-    @Column(name = "handled_by", insertable = false, updatable = false)
+    /** 마지막으로 처리 상태를 바꾼 관리자(admin_account.id). admin 전용 테이블이라 연관관계 없이 번호만 둔다. */
+    @Column(name = "handled_by")
     private Long handledBy;
 
-    @Column(name = "handled_at", insertable = false, updatable = false)
+    @Column(name = "handled_at")
     private LocalDateTime handledAt;
 
     private Event(

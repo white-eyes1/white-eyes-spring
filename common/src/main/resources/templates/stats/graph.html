@@ -2,19 +2,22 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <!--
   통계 그래프 SCR-C-004(FNC-C-012), 두 앱이 함께 쓰는 화면. 대상·단위·기간은 주소 쿼리로 유지한다.
-  이동 경로·점 클릭 메뉴(FNC-C-013), 하위 비교(FNC-C-014), 시연용 점선(FNC-C-024), 기간 비교·엑셀 버튼(SCR-C-005·006)은 각 기능의 이슈 몫이라 두지 않는다.
+  엑셀 다운로드(SCR-C-006, FNC-C-023)는 현재 대상·단위·기간을 넘겨 창을 연다.
+  이동 경로·점 클릭 메뉴(FNC-C-013), 하위 비교(FNC-C-014), 시연용 점선(FNC-C-024), 기간 비교 버튼(SCR-C-005)은 각 기능의 이슈 몫이라 두지 않는다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('통계 그래프')}"/>
     <!-- 그래프가 필요한 화면만 Chart.js를 더한다. Chart.js 코드는 js/chart/ 안에서만 쓴다 -->
     <script src="https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js"></script>
     <link rel="stylesheet" th:href="@{/css/stats-graph.css}">
+    <link rel="stylesheet" th:href="@{/css/stats-export.css}">
 </head>
 <body class="we">
 <header th:replace="${admin} ? ~{fragments/layout :: adminHeader('stats')} : ~{fragments/layout :: userHeader('stats')}"></header>
 <main class="page">
     <div class="page-heading">
         <div><p class="eyebrow">STATISTICS</p><h1>통계 그래프</h1></div>
+        <button type="button" class="btn secondary" id="export-open">엑셀 다운로드</button>
     </div>
 
     <section class="panel graph-conditions" aria-label="조회 조건">
@@ -56,6 +59,7 @@
         </div>
     </section>
 </main>
+<th:block th:replace="~{fragments/layout :: statExportModal}"/>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/stats-graph.js}"></script>
 </body>
