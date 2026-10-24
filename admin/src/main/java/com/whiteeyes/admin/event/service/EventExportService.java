@@ -6,6 +6,10 @@ import com.whiteeyes.admin.event.dto.EventExportRow;
 import com.whiteeyes.admin.event.dto.EventListItem;
 import com.whiteeyes.admin.event.dto.EventSearchRequest;
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
+import com.whiteeyes.admin.region.dto.RegionNames;
+import com.whiteeyes.admin.region.dto.ZoneSummary;
+import com.whiteeyes.admin.region.service.RegionLookupService;
+import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.repository.EventRepository;
 import com.whiteeyes.common.event.repository.EventSpecifications;
@@ -52,12 +56,15 @@ public class EventExportService {
     private static final DateTimeFormatter FILE_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final String NO_LIMIT_IN_FILE_NAME = "all";
     private static final String EXPORT_KIND = "EVENT";
+    private static final String ALL_TARGET_NAME = "전체";
 
     private final AdminWorkRecorder adminWorkRecorder;
     private final EventConditionService eventConditionService;
     private final EventRepository eventRepository;
     private final EventListService eventListService;
     private final AdminAccountLookupService adminAccountLookupService;
+    private final RegionLookupService regionLookupService;
+    private final ZoneService zoneService;
 
     /**
      * 파일을 만들고 작업 기록을 남긴다. 받은 쪽이 {@link EventExportFile#writeTo}로 내보낸 뒤 {@link EventExportFile#close()}로
@@ -75,7 +82,12 @@ public class EventExportService {
         try {
             toRows(events).forEach(writer::append);
             adminWorkRecorder.record(
-                    actor, WorkAction.EXCEL_DOWNLOAD, WorkTargetType.EVENT, null, null, detailOf(request));
+                    actor,
+                    WorkAction.EXCEL_DOWNLOAD,
+                    WorkTargetType.EVENT,
+                    null,
+                    targetNameOf(request),
+                    detailOf(request));
         } catch (RuntimeException e) {
             closeQuietly(writer);
             throw e;
@@ -108,18 +120,39 @@ public class EventExportService {
         Set<Long> handlerIds =
                 events.stream().map(Event::getHandledBy).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, String> loginIds = adminAccountLookupService.findLoginIds(handlerIds);
+        Map<Long, ZoneSummary> zones =
+                zoneService.findSummaries(events.stream().map(Event::getZoneId).collect(Collectors.toSet()));
+        Map<Long, RegionNames> regionNames = regionLookupService.findNames(
+                zones.values().stream().map(ZoneSummary::dongId).collect(Collectors.toSet()));
 
         List<EventExportRow> rows = new ArrayList<>(events.size());
         for (int i = 0; i < events.size(); i++) {
             Event event = events.get(i);
+            ZoneSummary zone = zones.get(event.getZoneId());
+            RegionNames names = zone == null ? null : regionNames.get(zone.dongId());
             rows.add(new EventExportRow(
                     items.get(i),
+                    names == null ? null : names.sido(),
+                    names == null ? null : names.sigungu(),
+                    names == null ? null : names.emd(),
                     event.getActionCode(),
                     event.getActionNote(),
                     event.getHandledBy() == null ? null : loginIds.get(event.getHandledBy()),
                     event.getHandledAt() == null ? null : toKstOffset(event.getHandledAt())));
         }
         return rows;
+    }
+
+    // 작업 기록의 대상 이름(histwr-001): 구역 조건이면 구역 이름, 지역 조건이면 지역 이름, 둘 다 없으면 '전체'
+    private String targetNameOf(EventExportRequest request) {
+        String name = null;
+        if (request.zoneId() != null) {
+            ZoneSummary zone = zoneService.findSummaries(Set.of(request.zoneId())).get(request.zoneId());
+            name = zone == null ? null : zone.name();
+        } else if (request.regionId() != null) {
+            name = regionLookupService.findName(request.regionId());
+        }
+        return name == null ? ALL_TARGET_NAME : name;
     }
 
     // 다운로드 조건을 그대로 남긴다. 비운 조건은 적지 않는다(histwr-001)

@@ -22,7 +22,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
  * 이벤트 엑셀 파일을 쓴다(FNC-A-039 처리 순서 2). SXSSF(스트리밍)라 메모리에는 최근 행 몇 개만 두고 나머지는 임시 파일로
  * 내린다. 시트 하나에 이벤트 한 건이 한 행이다. 다 쓰면 {@link #close()}로 임시 파일을 지운다.
  *
- * <p>열: 발생·종료 시각, 지속, 종류, 시·군·구, 읍·면·동, 구역, 최고 단계, 최고 밀집도(혼잡), 최고 증가율(급증), 처리 상태,
+ * <p>열: 발생·종료 시각, 지속, 종류, 시·도, 시·군·구, 읍·면·동, 구역, 최고 단계, 최고 밀집도(혼잡), 최고 증가율(급증), 처리 상태,
  * 조치 항목·메모, 처리자, 처리 일시. 종류에 해당하지 않는 값 칸은 비운다. 진행 중이면 종료 시각 칸에 '진행 중'을 쓴다.
  */
 public class EventExcelWriter implements AutoCloseable {
@@ -32,11 +32,10 @@ public class EventExcelWriter implements AutoCloseable {
     // 메모리에 둘 행 수(SXSSF 기본값)
     private static final int WINDOW_SIZE = 100;
     private static final String[] HEADERS = {
-        "발생 시각", "종료 시각", "지속(분)", "종류", "시·군·구", "읍·면·동", "구역", "최고 단계", "최고 밀집도(명/㎡)", "최고 증가율(%)",
+        "발생 시각", "종료 시각", "지속(분)", "종류", "시·도", "시·군·구", "읍·면·동", "구역", "최고 단계", "최고 밀집도(명/㎡)", "최고 증가율(%)",
         "처리 상태", "조치 항목", "조치 메모", "처리자", "처리 일시"
     };
     private static final String ONGOING_TEXT = "진행 중";
-    private static final String REGION_SEPARATOR = " · ";
     private static final int SECONDS_PER_MINUTE = 60;
 
     // 화면 표시 이름(conventions.md 코드 값)
@@ -97,21 +96,23 @@ public class EventExcelWriter implements AutoCloseable {
         row.createCell(2).setCellValue((double) item.durationSec() / SECONDS_PER_MINUTE);
         row.getCell(2).setCellStyle(minuteStyle);
         setText(row, 3, TYPE_LABELS.getOrDefault(item.type(), item.type().name()));
-        setRegion(row, item.regionPath());
-        setText(row, 6, item.zoneName());
-        setText(row, 7, levelName(item.peakLevel()));
+        setText(row, 4, exportRow.sido());
+        setText(row, 5, exportRow.sigungu());
+        setText(row, 6, exportRow.emd());
+        setText(row, 7, item.zoneName());
+        setText(row, 8, levelName(item.peakLevel()));
         // 혼잡은 밀집도(명/㎡), 급증은 증가율(%)이 같은 peak_value 칸에 들어 있어 종류로 나눠 쓴다
         if (item.type() == EventType.CONGESTION) {
-            setNumber(row, 8, item.peakValue());
-        } else if (item.type() == EventType.SURGE) {
             setNumber(row, 9, item.peakValue());
+        } else if (item.type() == EventType.SURGE) {
+            setNumber(row, 10, item.peakValue());
         }
-        setText(row, 10, STATUS_LABELS.getOrDefault(item.status(), item.status().name()));
-        setText(row, 11, actionLabel(exportRow.actionCode()));
-        setText(row, 12, exportRow.actionNote());
-        setText(row, 13, exportRow.handlerLoginId());
+        setText(row, 11, STATUS_LABELS.getOrDefault(item.status(), item.status().name()));
+        setText(row, 12, actionLabel(exportRow.actionCode()));
+        setText(row, 13, exportRow.actionNote());
+        setText(row, 14, exportRow.handlerLoginId());
         if (exportRow.handledAt() != null) {
-            setTime(row, 14, exportRow.handledAt().toLocalDateTime());
+            setTime(row, 15, exportRow.handledAt().toLocalDateTime());
         }
     }
 
@@ -145,20 +146,6 @@ public class EventExcelWriter implements AutoCloseable {
         }
     }
 
-    // 지역 경로는 "시·군·구 · 읍·면·동"(목록과 같은 문자열)이라 두 칸으로 나눈다
-    private static void setRegion(Row row, String regionPath) {
-        if (regionPath == null) {
-            return;
-        }
-        String[] names = regionPath.split(REGION_SEPARATOR, 2);
-        if (names.length == 2) {
-            setText(row, 4, names[0]);
-            setText(row, 5, names[1]);
-        } else {
-            setText(row, 5, names[0]);
-        }
-    }
-
     private static String levelName(Integer level) {
         if (level == null) {
             return null;
@@ -176,9 +163,9 @@ public class EventExcelWriter implements AutoCloseable {
 
     private static int widthOf(int column) {
         return switch (column) {
-            case 0, 1, 14 -> 18;
-            case 12 -> 30;
-            case 8 -> 20;
+            case 0, 1, 15 -> 18;
+            case 13 -> 30;
+            case 9 -> 20;
             default -> 14;
         };
     }
