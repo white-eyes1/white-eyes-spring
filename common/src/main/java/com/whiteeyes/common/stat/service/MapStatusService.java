@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.whiteeyes.common.event.service.TodayEventCountService;
 import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.level.service.LevelTarget;
 import com.whiteeyes.common.region.entity.Region;
@@ -26,7 +27,7 @@ import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
 /**
  * 지도 혼잡 단계 색 표시(FNC-C-009). 대상 지역의 하위 단위별 최근 1분 통계와 혼잡 단계를 돌려준다.
  */
-// TODO(FNC-A-033·034): 2단계에서 단위별 오늘 혼잡·급증 이벤트 수와 진행 중 여부를 채운다. 1단계는 0·false(이슈 #20 범위 밖)
+// TODO(진행 중 이벤트 표시): ongoingEvent는 아직 false다. 오늘 이벤트 수는 FNC-C-017로 채웠다(이슈 #58)
 @Service
 public class MapStatusService {
 
@@ -36,14 +37,17 @@ public class MapStatusService {
     private final RegionQueryService regionQueryService;
     private final RecentZoneStatReader recentZoneStatReader;
     private final LevelService levelService;
+    private final TodayEventCountService todayEventCountService;
 
     public MapStatusService(
             RegionQueryService regionQueryService,
             RecentZoneStatReader recentZoneStatReader,
-            LevelService levelService) {
+            LevelService levelService,
+            TodayEventCountService todayEventCountService) {
         this.regionQueryService = regionQueryService;
         this.recentZoneStatReader = recentZoneStatReader;
         this.levelService = levelService;
+        this.todayEventCountService = todayEventCountService;
     }
 
     /**
@@ -61,22 +65,33 @@ public class MapStatusService {
                         .sorted(Comparator.comparing(Zone::getId))
                         .toList();
         Map<Long, ZoneStatMinute> latestStatByZone = recentZoneStatReader.findLatestStats(zones, now);
+        // 오늘 이벤트 수는 삭제된 구역의 것까지 센다(FNC-C-017)
+        List<Zone> allZones = emdCodeById.isEmpty()
+                ? List.of()
+                : regionQueryService.findAllZonesInDongs(emdCodeById.keySet());
+        Map<Long, Integer> eventCountByZone = todayEventCountService.countByZone(
+                allZones.stream().map(Zone::getId).toList(), now.toLocalDate().atStartOfDay());
 
         if (unit == MapUnit.ZONE || region.getLevel() == RegionLevel.EMD) {
             List<MapStatusItem> items = zones.stream()
-                    .map(zone -> toZoneItem(zone, latestStatByZone.get(zone.getId())))
+                    .map(zone -> toZoneItem(zone, latestStatByZone.get(zone.getId()), eventCountByZone))
                     .toList();
             return new MapStatusResponse(ZONE_UNIT_TYPE, items);
         }
         List<MapStatusItem> items = regionQueryService.findChildRegions(regionId).stream()
-                .map(child -> toRegionItem(child, zonesUnder(child, zones, emdCodeById), latestStatByZone))
+                .map(child -> toRegionItem(
+                        child,
+                        zonesUnder(child, zones, emdCodeById),
+                        sumEventCount(zonesUnder(child, allZones, emdCodeById), eventCountByZone),
+                        latestStatByZone))
                 .toList();
         return new MapStatusResponse(childLevelOf(region.getLevel()).name(), items);
     }
 
-    private MapStatusItem toZoneItem(Zone zone, ZoneStatMinute stat) {
+    private MapStatusItem toZoneItem(Zone zone, ZoneStatMinute stat, Map<Long, Integer> eventCountByZone) {
+        int todayEventCount = eventCountByZone.getOrDefault(zone.getId(), 0);
         if (stat == null) {
-            return noDataItem(zone.getId(), zone.getName(), zone.getCenterLat(), zone.getCenterLng());
+            return noDataItem(zone.getId(), zone.getName(), zone.getCenterLat(), zone.getCenterLng(), todayEventCount);
         }
         int level = levelService
                 .judgeLevel(LevelTarget.zone(zone.getId()), stat.getDensity())
@@ -90,18 +105,19 @@ public class MapStatusService {
                 stat.getDensity(),
                 level,
                 stat.getStatAt().atOffset(KST_OFFSET),
-                0,
+                todayEventCount,
                 false);
     }
 
-    private MapStatusItem toRegionItem(Region child, List<Zone> zones, Map<Long, ZoneStatMinute> latestStatByZone) {
+    private MapStatusItem toRegionItem(
+            Region child, List<Zone> zones, int todayEventCount, Map<Long, ZoneStatMinute> latestStatByZone) {
         return recentZoneStatReader
                 .sumAtLatestMinute(zones, latestStatByZone)
-                .map(sum -> toRegionItem(child, sum))
-                .orElseGet(() -> noDataItem(child.getId(), child.getName(), null, null));
+                .map(sum -> toRegionItem(child, sum, todayEventCount))
+                .orElseGet(() -> noDataItem(child.getId(), child.getName(), null, null, todayEventCount));
     }
 
-    private MapStatusItem toRegionItem(Region child, LatestMinuteSum sum) {
+    private MapStatusItem toRegionItem(Region child, LatestMinuteSum sum, int todayEventCount) {
         int level = levelService
                 .judgeLevel(LevelTarget.region(child.getId()), sum.density())
                 .getLevel();
@@ -114,12 +130,17 @@ public class MapStatusService {
                 sum.density(),
                 level,
                 sum.statAt().atOffset(KST_OFFSET),
-                0,
+                todayEventCount,
                 false);
     }
 
-    private MapStatusItem noDataItem(long id, String name, BigDecimal centerLat, BigDecimal centerLng) {
-        return new MapStatusItem(id, name, centerLat, centerLng, null, null, null, null, 0, false);
+    private MapStatusItem noDataItem(
+            long id, String name, BigDecimal centerLat, BigDecimal centerLng, int todayEventCount) {
+        return new MapStatusItem(id, name, centerLat, centerLng, null, null, null, null, todayEventCount, false);
+    }
+
+    private int sumEventCount(List<Zone> zones, Map<Long, Integer> eventCountByZone) {
+        return zones.stream().mapToInt(zone -> eventCountByZone.getOrDefault(zone.getId(), 0)).sum();
     }
 
     // 하위 지역 코드가 구역 소속 읍·면·동 코드의 앞자리면 그 하위 지역 아래의 구역이다(decisions/0014)

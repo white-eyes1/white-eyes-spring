@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.whiteeyes.common.camera.service.CameraCountService;
+import com.whiteeyes.common.event.service.TodayEventCountService;
 import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.level.service.LevelTarget;
 import com.whiteeyes.common.region.entity.Region;
@@ -31,7 +32,6 @@ import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
 /**
  * 현재 현황 요약(FNC-C-016). 선택한 구역·지역의 최근 1분 인원·밀집도·단계·유입/유출·주요 방향과 캠 수, 오늘 최대 인원을 돌려준다.
  */
-// TODO(FNC-C-017): 3단계에서 오늘 혼잡·급증 이벤트 수를 채운다. 1단계는 0(이슈 #21 범위 밖)
 @Service
 public class DashboardSummaryService {
 
@@ -45,6 +45,7 @@ public class DashboardSummaryService {
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final LevelService levelService;
     private final ZoneNeighborRepository zoneNeighborRepository;
+    private final TodayEventCountService todayEventCountService;
 
     public DashboardSummaryService(
             RegionQueryService regionQueryService,
@@ -52,13 +53,15 @@ public class DashboardSummaryService {
             RecentZoneStatReader recentZoneStatReader,
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             LevelService levelService,
-            ZoneNeighborRepository zoneNeighborRepository) {
+            ZoneNeighborRepository zoneNeighborRepository,
+            TodayEventCountService todayEventCountService) {
         this.regionQueryService = regionQueryService;
         this.cameraCountService = cameraCountService;
         this.recentZoneStatReader = recentZoneStatReader;
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.levelService = levelService;
         this.zoneNeighborRepository = zoneNeighborRepository;
+        this.todayEventCountService = todayEventCountService;
     }
 
     /**
@@ -73,13 +76,15 @@ public class DashboardSummaryService {
         int cameraCount = cameraCountService.countCameras(activeZoneIds);
         int runningCameraCount = cameraCountService.countRunningCameras(activeZoneIds);
         Integer todayMaxCount = findTodayMaxCount(target.allZoneIds(), now);
+        // 통계가 없어도 센다. 삭제된 구역의 오늘 이벤트도 포함(FNC-C-017)
+        int todayEventCount = todayEventCountService.countTotal(target.allZoneIds(), now.toLocalDate().atStartOfDay());
 
         Map<Long, ZoneStatMinute> latestStatByZone = recentZoneStatReader.findLatestStats(target.activeZones(), now);
         return recentZoneStatReader
                 .sumAtLatestMinute(target.activeZones(), latestStatByZone)
-                .map(sum -> toResponse(target, sum, cameraCount, runningCameraCount, todayMaxCount))
+                .map(sum -> toResponse(target, sum, cameraCount, runningCameraCount, todayEventCount, todayMaxCount))
                 .orElseGet(() -> new DashboardSummaryResponse(
-                        null, null, null, null, null, null, null, 0, cameraCount, runningCameraCount, todayMaxCount));
+                        null, null, null, null, null, null, null, todayEventCount, cameraCount, runningCameraCount, todayMaxCount));
     }
 
     private Target zoneTarget(long zoneId) {
@@ -113,7 +118,12 @@ public class DashboardSummaryService {
     }
 
     private DashboardSummaryResponse toResponse(
-            Target target, LatestMinuteSum sum, int cameraCount, int runningCameraCount, Integer todayMaxCount) {
+            Target target,
+            LatestMinuteSum sum,
+            int cameraCount,
+            int runningCameraCount,
+            int todayEventCount,
+            Integer todayMaxCount) {
         // 구역 하나면 저장된 밀집도(당시 면적 기준)를 그대로 쓴다. 지역은 현재 면적 합으로 나눈 값(#20과 같은 규칙)
         BigDecimal density = target.isZone() ? sum.stats().get(0).getDensity() : sum.density();
         int[] inByDirection = new int[DIRECTIONS.size()];
@@ -146,7 +156,7 @@ public class DashboardSummaryService {
                 total(inByDirection),
                 total(outByDirection),
                 mainDirection(outByDirection),
-                0,
+                todayEventCount,
                 cameraCount,
                 runningCameraCount,
                 todayMaxCount);
