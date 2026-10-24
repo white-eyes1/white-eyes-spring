@@ -158,6 +158,23 @@ class SurgeEventServiceTest {
     }
 
     @Test
+    @DisplayName("FNC-A-034 증가율 상한 경계: 999999.9999는 그대로, 1000000.0000은 상한값으로 저장")
+    void rateCapBoundary() {
+        Long equal = saveZone("테스트 상한 경계 구역", "10");
+        Long over = saveZone("테스트 상한 초과 구역", "10");
+
+        // 10분 전 1명: 10000.999999명이면 증가율 정확히 999999.9999, 10001명이면 1000000.0000
+        surgeEventService.judge(equal, T0, bd("10000.999999"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("1"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(over, T0, bd("10001"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("1"), FULL_SAMPLE_SEC);
+        entityManager.flush();
+
+        List<Event> events = eventRepository.findAll();
+        assertThat(events).hasSize(2);
+        assertThat(events).extracting(Event::getPeakValue)
+                .allSatisfy(value -> assertThat(value).isEqualByComparingTo("999999.9999"));
+    }
+
+    @Test
     @DisplayName("FNC-A-034 열린 급증 이벤트가 있으면 새로 만들지 않고 증가율·인원의 최댓값만 갱신하며 below_since를 비움")
     void updatesPeaksOfOpenEvent() {
         Long zoneId = saveZone("테스트 갱신 구역", "10");
