@@ -79,6 +79,14 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-028 사용자 앱 통계 패널에도 방문 패턴 접기 영역이 있다(두 앱 공통)")
+    void statsPage_user_hasVisitPatternFold() throws Exception {
+        mockMvc.perform(get("/stats").with(user("user01").roles("USER")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"visit-pattern\">")))
+                .andExpect(content().string(containsString("id=\"visit-pattern-grid\"")));
+    }
+
+    @Test
     @DisplayName("SCR-C-003 사용자 앱에는 캠 패널·지역 등록 버튼·실시간 보기 창(영상 기능)·이벤트 종류별 건수(FNC-C-030 관리자 앱만)가 없다")
     void statsPage_user_hasNoAdminParts() throws Exception {
         // 템플릿 머리 주석에 '지역 등록·수정'·'캠 패널' 글자가 있어 요소(속성)로 본다

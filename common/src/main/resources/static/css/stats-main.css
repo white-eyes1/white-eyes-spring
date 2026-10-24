@@ -56,6 +56,13 @@
 .acc-b { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 11px; }
 .acc-b .btn { align-self: flex-end; }
 .abnormal-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 방문 패턴(FNC-C-028): 요일 7행 + 평일·주말 2행 × 24시간. 칸 색은 파랑 한 가지의 진하기(시안 SCR-C-003-stats-panel-all) */
+.pattern-grid { display: grid; grid-template-columns: 24px repeat(24, minmax(0, 1fr)); gap: 2px; align-items: center; }
+.pattern-label { font-size: 9px; }
+.pattern-cell { height: 10px; border-radius: 2px; }
+.pattern-cell.empty { background: #161e29; }
+.pattern-label.separated, .pattern-cell.separated { margin-top: 6px; }
 .abnormal-list .row { display: flex; align-items: center; gap: 8px; }
 
 /* 보조 지표(FNC-C-030) 접기 영역. 모양은 시안 SCR-C-003-stats-panel-all */
