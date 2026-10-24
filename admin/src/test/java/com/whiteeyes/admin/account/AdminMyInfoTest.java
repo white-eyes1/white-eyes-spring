@@ -2,6 +2,8 @@ package com.whiteeyes.admin.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -10,7 +12,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.common.history.dto.WorkHistoryCommand;
+import com.whiteeyes.common.history.service.WorkHistoryService;
 import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,8 +26,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.util.AopTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 관리자 앱 내 정보 조회·수정(FNC-C-006). 실제 로그인으로 만든 세션 쿠키로 요청한다(AdminPasswordChangeTest와 같은 방식).
@@ -45,8 +55,14 @@ class AdminMyInfoTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @MockitoSpyBean
+    private WorkHistoryService workHistoryService;
+
+    private final JsonMapper jsonMapper = JsonMapper.builder().build();
+
     @BeforeEach
     void insertAdmin() {
+        jdbcTemplate.update("DELETE FROM work_history");
         jdbcTemplate.update("DELETE FROM SPRING_SESSION_ADMIN_ATTRIBUTES");
         jdbcTemplate.update("DELETE FROM SPRING_SESSION_ADMIN");
         jdbcTemplate.update("DELETE FROM admin_account");
@@ -154,6 +170,62 @@ class AdminMyInfoTest {
                 .andExpect(jsonPath("$.role").value("ADMIN"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
         assertThat(column(LOGIN_ID, "role")).isEqualTo("ADMIN");
+    }
+
+    private int historyCount() {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM work_history", Integer.class);
+    }
+
+    @Test
+    @DisplayName("FNC-C-006·026 관리자 앱: 수정하면 ACCOUNT_CHANGE 1행(행동·대상 모두 본인 관리자, 이름은 아이디, 바뀐 필드 이전·이후)이 남는다")
+    void patch_recordsAccountChange() throws Exception {
+        patchMe(login(), """
+                {"name":"새 이름","email":"admin@example.com","phone":"010-3333-4444"}""")
+                .andExpect(status().isOk());
+
+        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM work_history");
+        Long adminId = jdbcTemplate.queryForObject(
+                "SELECT id FROM admin_account WHERE login_id = ?", Long.class, LOGIN_ID);
+        assertThat(row.get("ACTOR_TYPE")).isEqualTo("ADMIN");
+        assertThat(((Number) row.get("ACTOR_ID")).longValue()).isEqualTo(adminId);
+        assertThat(row.get("ACTOR_LOGIN_ID")).isEqualTo(LOGIN_ID);
+        assertThat(row.get("ACTION")).isEqualTo("ACCOUNT_CHANGE");
+        assertThat(row.get("TARGET_TYPE")).isEqualTo("ADMIN_ACCOUNT");
+        assertThat(((Number) row.get("TARGET_ID")).longValue()).isEqualTo(adminId);
+        assertThat(row.get("TARGET_NAME")).isEqualTo(LOGIN_ID);
+        JsonNode detail = jsonMapper.readTree(new String((byte[]) row.get("DETAIL"), StandardCharsets.UTF_8));
+        assertThat(detail.get("before").get("name").asString()).isEqualTo("관리자 본인");
+        assertThat(detail.get("after").get("name").asString()).isEqualTo("새 이름");
+        assertThat(detail.get("before").get("phone").asString()).isEqualTo("010-1111-2222");
+        assertThat(detail.get("after").get("phone").asString()).isEqualTo("010-3333-4444");
+        assertThat(detail.get("before").has("email")).as("바뀌지 않은 메일은 기록하지 않는다").isFalse();
+    }
+
+    @Test
+    @DisplayName("FNC-C-006·026 관리자 앱: 바뀐 값이 없으면 기록하지 않는다")
+    void patch_unchanged_doesNotRecord() throws Exception {
+        patchMe(login(), """
+                {"name":"관리자 본인","email":"admin@example.com","phone":"010-1111-2222"}""")
+                .andExpect(status().isOk());
+
+        assertThat(historyCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("FNC-C-026 관리자 앱: 기록 저장이 실패하면 수정도 취소된다(같은 트랜잭션)")
+    void patch_recordFails_rollsBackUpdate() throws Exception {
+        Cookie session = login();
+        // 서비스는 @Transactional 프록시라 스텁 호출이 트랜잭션 검사에 걸린다. 프록시 속 spy에 직접 건다
+        doThrow(new IllegalStateException("record failed"))
+                .when((WorkHistoryService) AopTestUtils.getUltimateTargetObject(workHistoryService))
+                .record(any(WorkHistoryCommand.class));
+
+        patchMe(session, """
+                {"name":"새 이름"}""")
+                .andExpect(status().isInternalServerError());
+
+        assertThat(column(LOGIN_ID, "name")).isEqualTo("관리자 본인");
+        assertThat(historyCount()).isZero();
     }
 
     @Test
