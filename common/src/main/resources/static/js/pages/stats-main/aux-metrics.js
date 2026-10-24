@@ -2,7 +2,7 @@
 // 방향별 유입·유출, 평균 체류, 인원 변동폭, 관측 상태(수신율)는 GET /api/v1/stats/series(1m, 최근 1시간),
 // 평균 체류의 시간별 추이는 같은 API(1h, 오늘 0시~현재), 오늘 단계별 머문 시간은 같은 API(1m, 오늘 0시~현재)로 읽는다.
 // 혼잡 구역 TOP 5와 관측 상태(구역 수)는 화면이 이미 읽은 GET /api/v1/map/status?unit=ZONE 결과를 쓴다.
-// 오늘 이벤트 종류별 건수(관리자 앱만)는 GET /api/v1/events/summary를 종류마다 한 번씩 읽는다(목록과 같은 조건의 건수).
+// 오늘 이벤트 종류별 건수(관리자 앱만)는 GET /api/v1/events/summary를 한 번 읽어 종류별 건수(byType)와 미확인(unchecked)을 쓴다.
 // 시계열은 펼친 영역에 필요한 것만 읽고, 새 1분 통계(통계 SSE, FNC-C-022)가 오면 펼쳐 있는 영역만 다시 읽는다.
 import { get } from '../../common/api.js';
 import { formatDecimal, formatNumber } from '../../common/format.js';
@@ -125,11 +125,9 @@ export function createAuxMetricsPanel(levels) {
         const now = new Date();
         const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         try {
-            const summaries = await Promise.all(
-                EVENT_TYPES.map(([type]) => readEventSummary(regionId, type, midnight, now)),
-            );
+            const summary = await readEventSummary(regionId, midnight, now);
             if (requestId === latestEventRequestId) {
-                renderEvents(summaries);
+                renderEvents(summary);
             }
         } catch {
             if (requestId === latestEventRequestId) {
@@ -387,29 +385,28 @@ function renderTopZones(items) {
 
 // ---- 오늘 이벤트 종류별 건수(관리자 앱) ----------------------------------------------------------
 
-function readEventSummary(regionId, type, from, to) {
+// 종류를 거르지 않고 한 번 읽는다. 응답의 byType에 세 종류가 항상 들어 있다
+function readEventSummary(regionId, from, to) {
     const params = {
         from: from.toISOString(),
         to: to.toISOString(),
         regionId: String(regionId),
-        types: type,
     };
     return get(EVENT_SUMMARY_API, params, { toast: false });
 }
 
-// 종류마다 건수 칩, 그 아래 미확인 건수(종류별 미확인의 합). 오늘 이벤트가 없으면 '데이터 없음'
-function renderEvents(summaries) {
-    const total = summaries.reduce((sum, summary) => sum + summary.total, 0);
-    if (total === 0) {
+// 종류마다 건수 칩, 그 아래 미확인 건수. 오늘 이벤트가 없으면 '데이터 없음'
+function renderEvents(summary) {
+    if (summary.total === 0) {
         showMessage(EVENT_FOLD, NO_DATA);
         return;
     }
     const chips = document.createElement('div');
     chips.className = 'row';
-    EVENT_TYPES.forEach(([, label, chipClass], index) => {
+    EVENT_TYPES.forEach(([type, label, chipClass]) => {
         const chip = document.createElement('span');
         chip.className = `chip ${chipClass}`;
-        chip.textContent = `${label} ${formatNumber(summaries[index].total)}`;
+        chip.textContent = `${label} ${formatNumber(summary.byType[type] ?? 0)}`;
         chips.append(chip);
     });
     const unchecked = document.createElement('div');
@@ -419,7 +416,7 @@ function renderEvents(summaries) {
     name.textContent = '미확인';
     const count = document.createElement('b');
     count.className = 'aux-unchecked';
-    count.textContent = `${formatNumber(summaries.reduce((sum, summary) => sum + summary.unchecked, 0))}건`;
+    count.textContent = `${formatNumber(summary.unchecked)}건`;
     unchecked.append(name, count);
     byId(`${EVENT_FOLD}-body`).replaceChildren(chips, unchecked);
 }
