@@ -1,12 +1,16 @@
 // 통계 그래프 진입 파일 SCR-C-004(FNC-C-012): 대상·단위·기간·항목을 고르면 GET /api/v1/stats/series로 그린다.
 // 대상·단위·기간은 주소 쿼리(targetType·targetId·interval·from·to)로 유지한다. 기본은 1h, 오늘(screens.md SCR-C-004).
 // 시각은 브라우저 시각을 오프셋 없이 주고받는다(서버가 KST로 읽음). 끝 칸은 to에서 1분 뺀 시각을 보인다(#25에서 정함).
+// 하위 비교(FNC-C-014)를 켜면 GET /api/v1/stats/children으로 고른 항목 하나를 하위 단위별 선으로 겹쳐 그린다(대상이 지역일 때만).
 import { ApiError, get } from '../common/api.js';
 import { formatDateTime } from '../common/format.js';
 import { SERIES_ITEMS, createSeriesChart } from '../chart/series-chart.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 
 const SERIES_API = '/api/v1/stats/series';
+const CHILDREN_API = '/api/v1/stats/children';
+// 하위 비교 항목 코드(conventions.md '통계 항목') → 그래프 항목 키(SERIES_ITEMS)
+const COMPARE_ITEM_KEYS = { COUNT: 'count', DENSITY: 'density', INFLOW: 'inflow', OUTFLOW: 'outflow', DWELL: 'dwellAvgSec' };
 const LEVEL_LABELS = ['시·도', '시·군·구', '읍·면·동'];
 const DEFAULT_INTERVAL = '1h';
 const MINUTE_MS = 60_000;
@@ -19,7 +23,15 @@ const INTERVALS = {
     '1M': { label: '1월', max: { years: 5 }, maxLabel: '5년' },
     '1y': { label: '1년', max: { years: 10 }, maxLabel: '10년' },
 };
-const FIELD_LABELS = { targetType: '대상', targetId: '대상', interval: '단위', from: '시작', to: '끝' };
+const FIELD_LABELS = {
+    targetType: '대상',
+    targetId: '대상',
+    regionId: '대상',
+    item: '항목',
+    interval: '단위',
+    from: '시작',
+    to: '끝',
+};
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 
 const byId = (id) => document.getElementById(id);
@@ -27,6 +39,10 @@ const regionSelects = ['target-sido', 'target-sigungu', 'target-emd'].map(byId);
 const zoneSelect = byId('target-zone');
 const tabs = document.querySelectorAll('#interval-tabs [data-interval]');
 const itemBoxes = document.querySelectorAll('#graph-items input[type="checkbox"]');
+const itemGroup = byId('graph-items');
+const compareToggle = byId('compare-toggle');
+const compareItemSelect = byId('compare-item');
+const omittedNotice = byId('compare-omitted');
 const fromInput = byId('period-from');
 const endInput = byId('period-end');
 const errorNotice = byId('graph-error');
@@ -41,6 +57,8 @@ let interval = DEFAULT_INTERVAL;
 let from = null;
 let to = null;
 let items = [];
+let comparing = false;
+let compareResult = { series: [], omitted: 0 };
 // 조건을 빠르게 여러 번 바꾸면 마지막 요청의 결과만 그린다
 let latestRequestId = 0;
 
@@ -60,6 +78,7 @@ async function start() {
     await selectTarget(params.get('targetType'), Number(params.get('targetId')));
     initTabs();
     initItems();
+    initCompare();
     byId('period-apply').addEventListener('click', applyPeriod);
     initExportModal();
     byId('export-open').addEventListener('click', openExport);
@@ -149,6 +168,7 @@ async function renderTargetSelects() {
     zoneSelect.value = zone ? String(zone.id) : '';
     zoneSelect.disabled = zones.length === 0;
     zoneSelect.onchange = () => onZoneChange(zones, zoneSelect.value);
+    renderCompareAvailability();
 }
 
 // 삭제된 구역이면 그 구역, 아니거나 없으면 null
@@ -196,6 +216,7 @@ async function onZoneChange(zones, value) {
         // 삭제된 구역을 떠나면 선택 칸에서 '(삭제됨)' 항목을 뺀다
         await renderTargetSelects();
     }
+    renderCompareAvailability();
     await load();
 }
 
@@ -315,6 +336,39 @@ function selectedItems() {
     return [...itemBoxes].filter((box) => box.checked).map((box) => box.value);
 }
 
+// ---- 하위 비교(FNC-C-014) ----------------------------------------------------------------------
+
+function initCompare() {
+    compareToggle.addEventListener('change', () => {
+        comparing = compareToggle.checked;
+        renderCompareControls();
+        load();
+    });
+    // 항목마다 서버가 값을 골라 주므로 항목을 바꾸면 다시 조회한다
+    compareItemSelect.addEventListener('change', load);
+    renderCompareControls();
+}
+
+// 하위 비교는 대상이 지역일 때만(screens.md SCR-C-004 하위 비교). 구역을 고르면 끈다
+function renderCompareAvailability() {
+    const available = !zone && path.length > 0;
+    compareToggle.disabled = !available;
+    compareToggle.closest('label').title = available ? '' : '대상이 지역일 때만 쓸 수 있습니다';
+    if (!available && comparing) {
+        comparing = false;
+        compareToggle.checked = false;
+        renderCompareControls();
+    }
+}
+
+// 켜면 항목 선택을 보이고, 위쪽 항목 체크박스는 쓰지 않으므로 흐리게 한다
+function renderCompareControls() {
+    compareItemSelect.hidden = !comparing;
+    itemGroup.classList.toggle('is-disabled', comparing);
+    itemGroup.setAttribute('aria-disabled', String(comparing));
+    omittedNotice.hidden = true;
+}
+
 // ---- 조회·그리기 ----------------------------------------------------------------------------------
 
 /** 화면에서 먼저 검사한다. 틀리면 문구를 보이고 조회하지 않는다. */
@@ -348,14 +402,30 @@ async function load() {
     hideError();
     try {
         // 오류는 그래프 위 문구로 보이므로 api.js의 토스트는 끈다
-        const response = await get(SERIES_API, query, { toast: false });
-        if (requestId === latestRequestId) {
-            items = response.items;
-            render();
+        if (comparing) {
+            const childrenQuery = {
+                regionId: target.targetId,
+                item: compareItemSelect.value,
+                interval,
+                from: query.from,
+                to: query.to,
+            };
+            const response = await get(CHILDREN_API, childrenQuery, { toast: false });
+            if (requestId === latestRequestId) {
+                compareResult = response;
+                render();
+            }
+        } else {
+            const response = await get(SERIES_API, query, { toast: false });
+            if (requestId === latestRequestId) {
+                items = response.items;
+                render();
+            }
         }
     } catch (error) {
         if (requestId === latestRequestId) {
             items = [];
+            compareResult = { series: [], omitted: 0 };
             render();
             showError(errorText(error));
         }
@@ -363,6 +433,11 @@ async function load() {
 }
 
 function render() {
+    if (comparing) {
+        renderCompare();
+        return;
+    }
+    omittedNotice.hidden = true;
     const keys = selectedItems();
     const seriesByItem = {};
     keys.forEach((key) => {
@@ -378,6 +453,26 @@ function render() {
     chart.update(items.map((point) => axisLabel(point.at)), items.map((point) => tooltipTitle(point.at)), seriesByItem);
     // 오류 문구가 보이는 동안에는 '데이터 없음'을 같이 보이지 않는다
     emptyNotice.hidden = !errorNotice.hidden || items.some((point) => point.sampleSec > 0);
+}
+
+// 하위 단위마다 한 선. 하위 단위의 점은 모두 같은 구간이라 x축은 첫 단위의 점으로 만든다
+function renderCompare() {
+    const { series, omitted } = compareResult;
+    const points = series.length > 0 ? series[0].points : [];
+    chart.compare(
+        points.map((point) => axisLabel(point.at)),
+        points.map((point) => tooltipTitle(point.at)),
+        COMPARE_ITEM_KEYS[compareItemSelect.value],
+        series.map((child) => ({
+            name: child.name,
+            values: child.points.map((point) => (point.value === null ? null : Number(point.value))),
+        })),
+    );
+    // 10개를 넘으면 인원 평균 상위 10개만 온다(FNC-C-014 업무 규칙)
+    omittedNotice.textContent = `나머지 ${omitted}개 생략`;
+    omittedNotice.hidden = !(omitted > 0);
+    const hasValue = series.some((child) => child.points.some((point) => point.value !== null));
+    emptyNotice.hidden = !errorNotice.hidden || hasValue;
 }
 
 // 유입·유출은 방향(N·E·S·W) 합. 값이 없는 점은 null(선 끊김)
