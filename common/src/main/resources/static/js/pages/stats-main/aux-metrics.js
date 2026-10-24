@@ -1,13 +1,15 @@
-// 통계 패널의 보조 지표 접기 영역 6개(SCR-C-003, FNC-C-030). 새 API·새 집계 없이 기존 응답으로 화면에서 계산한다.
+// 통계 패널의 보조 지표 접기 영역 6개(관리자 앱 7개, SCR-C-003, FNC-C-030). 새 API·새 집계 없이 기존 응답으로 화면에서 계산한다.
 // 방향별 유입·유출, 평균 체류, 인원 변동폭, 관측 상태(수신율)는 GET /api/v1/stats/series(1m, 최근 1시간),
 // 평균 체류의 시간별 추이는 같은 API(1h, 오늘 0시~현재), 오늘 단계별 머문 시간은 같은 API(1m, 오늘 0시~현재)로 읽는다.
 // 혼잡 구역 TOP 5와 관측 상태(구역 수)는 화면이 이미 읽은 GET /api/v1/map/status?unit=ZONE 결과를 쓴다.
+// 오늘 이벤트 종류별 건수(관리자 앱만)는 GET /api/v1/events/summary를 종류마다 한 번씩 읽는다(목록과 같은 조건의 건수).
 // 시계열은 펼친 영역에 필요한 것만 읽고, 새 1분 통계(통계 SSE, FNC-C-022)가 오면 펼쳐 있는 영역만 다시 읽는다.
 import { get } from '../../common/api.js';
 import { formatDecimal, formatNumber } from '../../common/format.js';
 import { levelColor } from '../../map/map-view.js';
 
 const SERIES_API = '/api/v1/stats/series';
+const EVENT_SUMMARY_API = '/api/v1/events/summary';
 const NO_DATA = '데이터 없음';
 const LOAD_ERROR = '불러오지 못했습니다.';
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -26,6 +28,13 @@ const DWELL_COLOR = '#a78bfa';
 const SPREAD_COLOR = '#76a7ff';
 const SPREAD_BAND_COLOR = 'rgba(79,140,255,.22)';
 const RECEIVE_COLOR = '#76a7ff';
+// 관리자 앱에만 있는 접기 영역(이벤트 요약 API가 관리자 이상). 종류 코드·이름·칩 색(conventions.md event.type, 시안)
+const EVENT_FOLD = 'aux-events';
+const EVENT_TYPES = [
+    ['CONGESTION', '혼잡', 'l3'],
+    ['SURGE', '급증', 'surge'],
+    ['CAM_FAULT', '캠 이상', 'cam'],
+];
 
 // 접기 영역마다 필요한 시계열. lastHour=1m 최근 1시간, todayHourly=1h 오늘, todayMinute=1m 오늘
 const FOLDS = {
@@ -45,6 +54,8 @@ const byId = (id) => document.getElementById(id);
 export function createAuxMetricsPanel(levels) {
     let regionId = null;
     let latestRequestId = 0;
+    let latestEventRequestId = 0;
+    const eventFold = byId(EVENT_FOLD);
 
     // 펼칠 때는 펼쳐 있는 영역을 함께 읽는다. 앞선 요청의 결과는 버리므로 방금 펼친 영역만 읽으면 다른 영역이 빈다
     Object.keys(FOLDS).forEach((id) => {
@@ -53,6 +64,12 @@ export function createAuxMetricsPanel(levels) {
                 loadSeries(openFolds());
             }
         });
+    });
+
+    eventFold?.addEventListener('toggle', () => {
+        if (eventFold.open) {
+            loadEvents();
+        }
     });
 
     /** 통계 대상 지역이 바뀌면 부른다 */
@@ -68,6 +85,9 @@ export function createAuxMetricsPanel(levels) {
         renderTopZones(items);
         renderObservedZones(items);
         loadSeries(openFolds());
+        if (eventFold?.open) {
+            loadEvents();
+        }
     }
 
     function openFolds() {
@@ -93,6 +113,27 @@ export function createAuxMetricsPanel(levels) {
         } catch {
             if (requestId === latestRequestId) {
                 foldIds.filter((id) => FOLDS[id].length > 0).forEach((id) => showMessage(id, LOAD_ERROR));
+            }
+        }
+    }
+
+    async function loadEvents() {
+        if (regionId === null) {
+            return;
+        }
+        const requestId = ++latestEventRequestId;
+        const now = new Date();
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        try {
+            const summaries = await Promise.all(
+                EVENT_TYPES.map(([type]) => readEventSummary(regionId, type, midnight, now)),
+            );
+            if (requestId === latestEventRequestId) {
+                renderEvents(summaries);
+            }
+        } catch {
+            if (requestId === latestEventRequestId) {
+                showMessage(EVENT_FOLD, LOAD_ERROR);
             }
         }
     }
@@ -342,6 +383,45 @@ function renderTopZones(items) {
             return row;
         }),
     );
+}
+
+// ---- 오늘 이벤트 종류별 건수(관리자 앱) ----------------------------------------------------------
+
+function readEventSummary(regionId, type, from, to) {
+    const params = {
+        from: from.toISOString(),
+        to: to.toISOString(),
+        regionId: String(regionId),
+        types: type,
+    };
+    return get(EVENT_SUMMARY_API, params, { toast: false });
+}
+
+// 종류마다 건수 칩, 그 아래 미확인 건수(종류별 미확인의 합). 오늘 이벤트가 없으면 '데이터 없음'
+function renderEvents(summaries) {
+    const total = summaries.reduce((sum, summary) => sum + summary.total, 0);
+    if (total === 0) {
+        showMessage(EVENT_FOLD, NO_DATA);
+        return;
+    }
+    const chips = document.createElement('div');
+    chips.className = 'row';
+    EVENT_TYPES.forEach(([, label, chipClass], index) => {
+        const chip = document.createElement('span');
+        chip.className = `chip ${chipClass}`;
+        chip.textContent = `${label} ${formatNumber(summaries[index].total)}`;
+        chips.append(chip);
+    });
+    const unchecked = document.createElement('div');
+    unchecked.className = 'row';
+    const name = document.createElement('span');
+    name.className = 'grow';
+    name.textContent = '미확인';
+    const count = document.createElement('b');
+    count.className = 'aux-unchecked';
+    count.textContent = `${formatNumber(summaries.reduce((sum, summary) => sum + summary.unchecked, 0))}건`;
+    unchecked.append(name, count);
+    byId(`${EVENT_FOLD}-body`).replaceChildren(chips, unchecked);
 }
 
 // ---- 관측 상태 -----------------------------------------------------------------------------
