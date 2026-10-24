@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.whiteeyes.admin.camera.service.CameraQueryService;
 import com.whiteeyes.admin.demo.repository.DemoDailyStat;
@@ -44,6 +45,7 @@ public class DemoGenerateService {
     private final ZoneService zoneService;
     private final ZoneNeighborService zoneNeighborService;
     private final CameraQueryService cameraQueryService;
+    private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
     public DemoGenerateService(
@@ -53,6 +55,7 @@ public class DemoGenerateService {
             ZoneService zoneService,
             ZoneNeighborService zoneNeighborService,
             CameraQueryService cameraQueryService,
+            TransactionTemplate transactionTemplate,
             Clock clock) {
         this.configReader = configReader;
         this.demoDeleteService = demoDeleteService;
@@ -60,11 +63,13 @@ public class DemoGenerateService {
         this.zoneService = zoneService;
         this.zoneNeighborService = zoneNeighborService;
         this.cameraQueryService = cameraQueryService;
+        this.transactionTemplate = transactionTemplate;
         this.clock = clock;
     }
 
     /**
-     * 날짜마다 시간별을 저장한 뒤 같은 날의 일별을 저장한다(처리 순서 5). 날짜마다 따로 저장되므로 중간에 실패하면 다시 실행한다
+     * 날짜마다 시간별을 저장한 뒤 같은 날의 일별을 저장한다(처리 순서 5). 같은 날의 시간별·일별은 한 트랜잭션이라
+     * 그 사이에 실패해도 시간별만 남지 않는다(일별 = 시간별 합 유지). 날짜마다 커밋되므로 중간에 실패하면 다시 실행한다
      * (다시 실행하면 먼저 지우고 처음부터 만든다).
      *
      * @param configFile 설정 파일(JSON)
@@ -89,9 +94,11 @@ public class DemoGenerateService {
         long daily = 0;
         for (LocalDate date = config.startDate(); !date.isAfter(lastDate); date = date.plusDays(1)) {
             List<DemoHourlyStat> hours = generator.generateDay(date);
-            demoStatRepository.insertHourly(hours);
             List<DemoDailyStat> days = rollUpDay(date, hours);
-            demoStatRepository.insertDaily(days);
+            transactionTemplate.executeWithoutResult(status -> {
+                demoStatRepository.insertHourly(hours);
+                demoStatRepository.insertDaily(days);
+            });
             hourly += hours.size();
             daily += days.size();
         }
