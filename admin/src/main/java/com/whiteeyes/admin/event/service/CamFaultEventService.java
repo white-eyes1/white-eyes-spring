@@ -54,16 +54,19 @@ public class CamFaultEventService {
     public void detect(LocalDateTime now) {
         List<WatchedCamera> watched = watchedCameraService.findWatchedCameras();
         Set<Long> faultyCameraIds = new HashSet<>();
+        // 이번 검사에서 처음 기준 시각을 채운 캠(재시작 직후 등): 결과를 한 번도 못 받아 정상인지 알 수 없다
+        Set<Long> unknownCameraIds = new HashSet<>();
         for (WatchedCamera camera : watched) {
-            if (isFaulty(camera, now)) {
+            if (isFaulty(camera, now, unknownCameraIds)) {
                 faultyCameraIds.add(camera.cameraId());
                 openIfAbsent(camera.cameraId(), camera.zoneId(), now);
             }
         }
-        // 조건이 풀린 캠과 정지·삭제로 대상에서 빠진 캠은 faultyCameraIds에 없으므로 한 번에 닫힌다
+        // 조건이 풀린 캠과 정지·삭제로 대상에서 빠진 캠은 faultyCameraIds에 없으므로 한 번에 닫힌다.
+        // 단 정상인지 알 수 없는 캠(unknownCameraIds)의 열린 이벤트는 닫지 않고 둔다(결과가 오면 다음 검사에서 닫힌다)
         int closed = 0;
         for (Event event : eventRepository.findByTypeAndEndedAtIsNull(EventType.CAM_FAULT)) {
-            if (!faultyCameraIds.contains(event.getCameraId())) {
+            if (!faultyCameraIds.contains(event.getCameraId()) && !unknownCameraIds.contains(event.getCameraId())) {
                 closeEvent(event, now);
                 closed++;
             }
@@ -99,15 +102,17 @@ public class CamFaultEventService {
         closeOpenEvents(cameraId, now);
     }
 
-    // PREPARING·STOPPED는 검사하지 않는다. 결과 기준 시각이 없는 캠은 감시 시작 시각을 기준으로 삼는다
-    private boolean isFaulty(WatchedCamera camera, LocalDateTime now) {
+    // PREPARING·STOPPED는 검사하지 않는다. 결과 기준 시각이 없는 캠은 감시 시작 시각을 기준으로 삼고 unknownCameraIds에 담는다
+    private boolean isFaulty(WatchedCamera camera, LocalDateTime now, Set<Long> unknownCameraIds) {
         if (camera.status() == CameraStatus.ERROR) {
             return true;
         }
         if (camera.status() != CameraStatus.RUNNING) {
             return false;
         }
-        lastResultTimeStore.seedIfAbsent(camera.cameraId(), now);
+        if (lastResultTimeStore.seedIfAbsent(camera.cameraId(), now)) {
+            unknownCameraIds.add(camera.cameraId());
+        }
         LocalDateTime lastResultAt =
                 lastResultTimeStore.findLastResultAt(camera.cameraId()).orElse(now);
         return Duration.between(lastResultAt, now).compareTo(timeout) >= 0;

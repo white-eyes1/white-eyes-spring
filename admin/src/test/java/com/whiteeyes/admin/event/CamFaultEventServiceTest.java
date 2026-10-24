@@ -155,6 +155,43 @@ class CamFaultEventServiceTest {
     }
 
     @Test
+    @DisplayName("FNC-A-035 재시작 직후 첫 검사에서는 이미 열린 이벤트가 있는 RUNNING 캠의 이벤트를 닫지 않는다")
+    void keepsOpenEventOnFirstCheckAfterRestart() {
+        Long zoneId = saveZone("캠이상 재시작 구역", "1");
+        long cameraId = insertCamera(zoneId, "RUNNING", true, false);
+        camFaultEventService.openOnError(cameraId, NOW.minusSeconds(300));
+        assertThat(openFaults(cameraId)).hasSize(1);
+        assertThat(lastResultTimeStore.findLastResultAt(cameraId)).isEmpty();
+
+        camFaultEventService.detect(NOW);
+        assertThat(openFaults(cameraId)).as("재시작 직후 첫 검사").hasSize(1);
+
+        // 분석 서버가 계속 죽어 있으면 시작 시각 기준 60초 뒤에도 같은 이벤트가 이어진다(둘로 쪼개지지 않음)
+        camFaultEventService.detect(NOW.plusSeconds(TIMEOUT_SEC));
+        assertThat(allFaults(cameraId)).hasSize(1);
+        assertThat(openFaults(cameraId)).hasSize(1);
+
+        // 결과가 다시 들어오면 다음 검사에서 닫힌다
+        LocalDateTime later = NOW.plusSeconds(TIMEOUT_SEC + 10);
+        lastResultTimeStore.update(cameraId, later);
+        camFaultEventService.detect(later);
+        assertThat(openFaults(cameraId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FNC-A-035 재시작 직후 첫 검사에서 결과가 이미 들어온 RUNNING 캠의 열린 이벤트는 닫는다")
+    void closesOpenEventOnFirstCheckWhenResultAlreadyReceived() {
+        Long zoneId = saveZone("캠이상 재시작복구 구역", "1");
+        long cameraId = insertCamera(zoneId, "RUNNING", true, false);
+        camFaultEventService.openOnError(cameraId, NOW.minusSeconds(300));
+        lastResultTimeStore.update(cameraId, NOW.minusSeconds(1));
+
+        camFaultEventService.detect(NOW);
+
+        assertThat(openFaults(cameraId)).isEmpty();
+    }
+
+    @Test
     @DisplayName("FNC-A-035 RUNNING 보고를 받으면 열린 이벤트가 닫히고 마지막 결과 시각이 보고 시각으로 올라간다")
     void closesAndRaisesBaselineOnRecovered() {
         Long zoneId = saveZone("캠이상 보고복구 구역", "1");
