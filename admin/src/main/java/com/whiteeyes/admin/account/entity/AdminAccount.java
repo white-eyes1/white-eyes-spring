@@ -117,4 +117,14 @@ public class AdminAccount {
         this.password = encodedPassword;
         this.mustChangePassword = false;
     }
+
+    /** 계정을 사용 중지한다(FNC-A-011). ACTIVE인지는 부르는 쪽이 먼저 확인한다. */
+    public void disable() {
+        this.status = AdminStatus.DISABLED;
+    }
+
+    /** 계정을 다시 쓰게 한다(FNC-A-011). DISABLED인지는 부르는 쪽이 먼저 확인한다. */
+    public void enable() {
+        this.status = AdminStatus.ACTIVE;
+    }
 }
