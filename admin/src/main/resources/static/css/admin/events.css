@@ -8,6 +8,8 @@
 
 .ev-panel { overflow: hidden; }
 .ev-panel .filterbar { border-radius: 12px 12px 0 0; }
+.ev-detail { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ev-detail[hidden] { display: none; }
 .ev-field { display: inline-flex; align-items: center; gap: 8px; }
 .ev-date { min-width: 0; padding: 0 10px; color-scheme: dark; }
 .ev-select { min-width: 120px; padding: 0 10px; }

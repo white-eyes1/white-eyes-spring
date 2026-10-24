@@ -1,0 +1,31 @@
+package com.whiteeyes.user.account.service;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.common.security.LoginRecorder;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 사용자 로그인에 성공하면 user_account.last_login_at을 갱신한다(FNC-C-001 처리 순서 5).
+ * 승인 대기(PENDING) 계정의 로그인도 기록한다.
+ */
+@Service
+public class UserLoginRecordService implements LoginRecorder {
+
+    // DB에는 한국 시간(KST)으로 저장한다(conventions.md '시각 형식')
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
+    private final UserAccountRepository userAccountRepository;
+
+    public UserLoginRecordService(UserAccountRepository userAccountRepository) {
+        this.userAccountRepository = userAccountRepository;
+    }
+
+    @Override
+    @Transactional
+    public void record(String loginId) {
+        userAccountRepository.findByLoginId(loginId).ifPresent(account -> account.recordLogin(LocalDateTime.now(KST)));
+    }
+}

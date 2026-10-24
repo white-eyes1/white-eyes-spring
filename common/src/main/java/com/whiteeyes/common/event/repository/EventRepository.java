@@ -19,6 +19,9 @@ import com.whiteeyes.common.event.entity.EventType;
  */
 public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
 
+    /** 그 구역의 행이 하나라도 있는지(구역 삭제 FNC-A-017 처리 순서 2의 이력 확인). */
+    boolean existsByZoneId(Long zoneId);
+
     /**
      * 구역·종류의 열린(종료 시각 없는) 이벤트. 열린 이벤트는 하나만 두는 것이 규칙이지만(evtdet-004),
      * 어긋나서 둘이 되더라도 판정이 멈추지 않게 가장 먼저 만든 것을 돌려준다.

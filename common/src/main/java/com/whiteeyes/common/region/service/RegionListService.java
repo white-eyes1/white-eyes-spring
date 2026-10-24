@@ -7,6 +7,7 @@ import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
 import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.exception.RegionNotFoundException;
+import com.whiteeyes.common.region.exception.ZoneNotFoundException;
 import com.whiteeyes.common.region.repository.RegionRepository;
 import com.whiteeyes.common.region.repository.ZoneRepository;
 import java.util.List;
@@ -70,6 +71,18 @@ public class RegionListService {
                 .map(zone -> ZoneResponse.of(
                         zone, jsonMapper.readTree(zone.getBoundary()), zoneIdsWithCamera.contains(zone.getId())))
                 .toList();
+    }
+
+    /**
+     * 구역 하나. 삭제된 구역도 준다(deleted=true). 지난 통계·다시보기 화면이 '(삭제됨)'을 붙이는 데 쓴다(#183).
+     *
+     * @throws ZoneNotFoundException 없는 구역이면(404 ZONE_NOT_FOUND)
+     */
+    @Transactional(readOnly = true)
+    public ZoneResponse findZone(Long zoneId) {
+        Zone zone = zoneRepository.findById(zoneId).orElseThrow(ZoneNotFoundException::new);
+        boolean hasCamera = !zoneCameraService.findZoneIdsWithCamera(List.of(zoneId)).isEmpty();
+        return ZoneResponse.of(zone, jsonMapper.readTree(zone.getBoundary()), hasCamera);
     }
 
     private void requireRegion(Long regionId) {

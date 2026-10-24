@@ -42,16 +42,6 @@ public class CameraQueryService {
                 .collect(Collectors.toMap(Camera::getId, Camera::getName));
     }
 
-    /**
-     * 구역 번호 → 그 구역의 캠 이름. 삭제된 캠도 포함하고, 캠이 여럿이면 가장 최근에 만든 것이다(이벤트 목록의 캠 이름, FNC-A-036).
-     * 캠이 없는 구역은 빠진다.
-     */
-    @Transactional(readOnly = true)
-    public Map<Long, String> findLatestNamesByZoneIds(Collection<Long> zoneIds) {
-        return cameraRepository.findByZoneIdInOrderByIdAsc(zoneIds).stream()
-                .collect(Collectors.toMap(Camera::getZoneId, Camera::getName, (older, newer) -> newer));
-    }
-
     /** 이름에 검색어가 들어 있는 캠의 구역 번호. 삭제된 캠도 포함한다(이벤트 목록 검색, FNC-A-036). */
     @Transactional(readOnly = true)
     public List<Long> findZoneIdsByCameraNameContaining(String keyword) {

@@ -12,6 +12,9 @@ public interface ZoneRepository extends JpaRepository<Zone, Long> {
     /** 같은 동의 삭제되지 않은 구역 중 이름이 같은 것이 있는지 본다(FNC-A-014 처리 순서 2). */
     boolean existsByDongIdAndNameAndDeletedAtIsNull(Long dongId, String name);
 
+    /** 같은 동의 삭제되지 않은 다른 구역 중 이름이 같은 것이 있는지 본다(FNC-A-015 처리 순서 3). */
+    boolean existsByDongIdAndNameAndDeletedAtIsNullAndIdNot(Long dongId, String name, Long id);
+
     /** 구역이 있고 삭제되지 않았는지 본다(캠 등록 FNC-A-018 처리 순서 1). */
     boolean existsByIdAndDeletedAtIsNull(Long id);
 

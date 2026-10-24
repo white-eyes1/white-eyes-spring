@@ -23,6 +23,8 @@
         <section class="panel pb-player-panel">
             <div class="pb-feed" id="pb-feed">
                 <video id="pb-video" class="pb-video" playsinline preload="auto" hidden></video>
+                <canvas id="pb-boxes" class="pb-boxes" aria-hidden="true" hidden></canvas>
+                <span class="pb-box-note" id="pb-box-note" role="status" hidden>박스 정보 없음</span>
                 <div class="pb-notice" id="pb-notice" role="status">불러오는 중…</div>
                 <span class="pb-feed-label" id="pb-feed-label" hidden></span>
             </div>
@@ -37,6 +39,9 @@
                     <button type="button" data-rate="2">2×</button>
                     <button type="button" data-rate="4">4×</button>
                 </span>
+                <label class="pb-box-toggle" for="pb-box-switch">박스 표시
+                    <button type="button" class="pb-switch" id="pb-box-switch" role="switch" aria-checked="true"><i></i></button>
+                </label>
             </div>
         </section>
 
@@ -91,11 +96,13 @@
                 <p class="pb-chart-empty muted" id="pb-chart-empty" hidden>통계 없음</p>
             </div>
             <div class="pb-level-strip" id="pb-level-strip" aria-label="분마다 혼잡 단계"></div>
+            <div class="pb-rec-strip" id="pb-rec-strip" aria-label="녹화가 있는 구간" hidden></div>
             <div class="pb-axis muted" id="pb-axis"></div>
         </div>
         <div class="pb-legend muted">
             <span><i class="dot pb-dot-line"></i> 1분 평균 값 (옅은 띠: 최대·최소)</span>
             <span>가운데 띠: 분마다 혼잡 단계</span>
+            <span id="pb-legend-rec" hidden><i class="dot pb-dot-rec"></i> 녹화 있음 <i class="dot pb-dot-norec"></i> 녹화 없음</span>
             <span class="pb-legend-event">▼ 이벤트 시작 · 붉은 영역 = 이벤트 진행</span>
         </div>
     </section>

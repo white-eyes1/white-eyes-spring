@@ -6,6 +6,7 @@ import com.whiteeyes.common.region.service.RegionListService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,5 +27,11 @@ public class RegionListApiController {
     @GetMapping("/api/v1/zones")
     public List<ZoneResponse> getZones(@RequestParam(name = "dongId", required = false) Long dongId) {
         return regionListService.findZones(dongId);
+    }
+
+    /** 구역 하나(삭제된 구역 포함). 삭제된 구역이면 deleted=true. 통계 그래프·다시보기가 '(삭제됨)'을 붙일 때 쓴다 */
+    @GetMapping("/api/v1/zones/{id}")
+    public ZoneResponse getZone(@PathVariable("id") Long id) {
+        return regionListService.findZone(id);
     }
 }

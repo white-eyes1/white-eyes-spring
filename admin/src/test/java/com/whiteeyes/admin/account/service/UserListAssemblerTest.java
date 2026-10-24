@@ -151,8 +151,8 @@ class UserListAssemblerTest {
         assertThat(page.totalElements()).isEqualTo(3);
     }
 
-    private UserActivities activities() {
-        return new UserActivities(sessions, KST, NOW.minusMinutes(30));
+    private AccountActivities activities() {
+        return new AccountActivities(sessions, KST, NOW.minusMinutes(30));
     }
 
     private static UserSearchRequest request(Boolean active, String sort, int page, int size) {

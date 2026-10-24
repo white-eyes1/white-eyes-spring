@@ -7,6 +7,9 @@
 .user-search { margin-left: auto; }
 .user-notice { margin: 12px 16px 0; }
 .user-empty { padding: 28px 16px; text-align: center; font-size: 12px; }
+/* 동작 열: 시안처럼 버튼을 오른쪽에 붙인다 */
+.user-actions { text-align: right; }
+.user-actions .row-actions { justify-content: flex-end; }
 
 /* 정렬 머리글: 버튼 모양을 지우고 머리글 글자처럼 보인다 */
 .sort-btn { padding: 0; border: 0; background: none; color: inherit; font-weight: inherit; cursor: pointer; }

@@ -114,7 +114,7 @@ class EventListTest {
     }
 
     @Test
-    @DisplayName("FNC-A-036 행에 구역 이름·구 동 경로·캠 이름·진행 중 여부·지속 시간·최고 값이 담긴다")
+    @DisplayName("FNC-A-036 행에 구역 이름·구 동 경로·진행 중 여부·지속 시간·최고 값이 담긴다(혼잡의 캠 이름은 null)")
     void list_returnsRowFields() throws Exception {
         createCamera(samcheongZoneId, "삼청동 캠");
         long eventId = insertEvent("CONGESTION", samcheongZoneId, null, T0, T0.plusMinutes(10), 3, "1.6400", 48, "CHECKED");
@@ -127,7 +127,7 @@ class EventListTest {
                 .andExpect(jsonPath("$.items[0].zoneId").value(samcheongZoneId))
                 .andExpect(jsonPath("$.items[0].zoneName").value("삼청동 1구역"))
                 .andExpect(jsonPath("$.items[0].regionPath").value("종로구 · 삼청동"))
-                .andExpect(jsonPath("$.items[0].cameraName").value("삼청동 캠"))
+                .andExpect(jsonPath("$.items[0].cameraName").value(nullValue()))
                 .andExpect(jsonPath("$.items[0].zoneDeleted").value(false))
                 .andExpect(jsonPath("$.items[0].startedAt").value("2026-10-12T09:00:00+09:00"))
                 .andExpect(jsonPath("$.items[0].endedAt").value("2026-10-12T09:10:00+09:00"))
@@ -179,17 +179,19 @@ class EventListTest {
     }
 
     @Test
-    @DisplayName("FNC-A-036 캠 이상은 이벤트의 캠, 혼잡은 구역의 캠 이름을 보인다. 캠이 없으면 null")
-    void list_cameraName_fromEventOrZone() throws Exception {
+    @DisplayName("FNC-A-036 캠 이상은 이벤트의 캠 이름, 혼잡·급증은 구역에 캠이 있어도 null")
+    void list_cameraName_onlyCamFault() throws Exception {
         long samcheongCamera = createCamera(samcheongZoneId, "삼청동 캠");
         createCamera(sogongZoneId, "소공동 캠");
         jdbcTemplate.update("UPDATE camera SET deleted_at = NOW() WHERE id = ?", samcheongCamera);
         insertEvent("CAM_FAULT", samcheongZoneId, samcheongCamera, T0, null, null, null, null, "UNCHECKED");
         insertEvent("CONGESTION", sogongZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
+        insertEvent("SURGE", sogongZoneId, null, T0.plusMinutes(3), null, 2, "1.5000", 10, "UNCHECKED");
         insertEvent("CONGESTION", sajikZoneId, null, T0.plusMinutes(2), null, 2, "0.8000", 10, "UNCHECKED");
 
-        list().andExpect(jsonPath("$.items[2].cameraName").value("삼청동 캠"))
-                .andExpect(jsonPath("$.items[1].cameraName").value("소공동 캠"))
+        list().andExpect(jsonPath("$.items[3].cameraName").value("삼청동 캠"))
+                .andExpect(jsonPath("$.items[2].cameraName").value(nullValue()))
+                .andExpect(jsonPath("$.items[1].cameraName").value(nullValue()))
                 .andExpect(jsonPath("$.items[0].cameraName").value(nullValue()));
     }
 
@@ -304,6 +306,18 @@ class EventListTest {
     }
 
     @Test
+    @DisplayName("FNC-A-036 삭제된 캠 이름으로도 검색된다")
+    void list_keyword_matchesDeletedCameraName() throws Exception {
+        long deletedCamera = createCamera(samcheongZoneId, "철거된 캠");
+        jdbcTemplate.update("UPDATE camera SET deleted_at = NOW() WHERE id = ?", deletedCamera);
+        createCamera(sogongZoneId, "소공동 캠");
+        long hit = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
+        insertEvent("CONGESTION", sogongZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
+
+        list(param("keyword", "철거")).andExpect(jsonPath("$.items[*].id").value(contains((int) hit)));
+    }
+
+    @Test
     @DisplayName("FNC-A-036 keyword와 지역·구역을 함께 주면 둘 다 맞는 구역만 본다")
     void list_keywordWithRegionOrZone_intersection() throws Exception {
         long samcheong = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
@@ -321,14 +335,16 @@ class EventListTest {
     }
 
     @Test
-    @DisplayName("FNC-A-036 구역에 캠이 여럿이면 가장 최근 캠 이름, 캠 이상인데 캠 번호가 없으면 구역의 캠 이름")
-    void list_cameraName_latestOfZone_andFaultWithoutCamera() throws Exception {
+    @DisplayName("FNC-A-036 구역에 캠이 여럿이어도 혼잡은 캠 이름이 null, 캠 번호가 없는 캠 이상도 null")
+    void list_cameraName_nullWhenNoEventCamera() throws Exception {
         long oldCamera = createCamera(samcheongZoneId, "옛 캠");
         jdbcTemplate.update("UPDATE camera SET deleted_at = NOW() WHERE id = ?", oldCamera);
         createCamera(samcheongZoneId, "새 캠");
         insertEvent("CAM_FAULT", samcheongZoneId, null, T0, null, null, null, null, "UNCHECKED");
+        insertEvent("CONGESTION", samcheongZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
 
-        list().andExpect(jsonPath("$.items[0].cameraName").value("새 캠"));
+        list().andExpect(jsonPath("$.items[0].cameraName").value(nullValue()))
+                .andExpect(jsonPath("$.items[1].cameraName").value(nullValue()));
     }
 
     @Test

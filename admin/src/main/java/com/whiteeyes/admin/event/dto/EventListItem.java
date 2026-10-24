@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
  *
  * @param zoneName 삭제된 구역이면 앞에 "(삭제됨) "이 붙는다
  * @param regionPath "유성구 · 궁동"
- * @param cameraName 캠 이상이면 이벤트의 캠, 그 밖에는 구역의 캠. 없으면 null
+ * @param cameraName 캠 이상이면 이벤트의 캠 이름, 혼잡·급증은 구역 단위라 null
  * @param durationSec 진행 중이면 발생 시각부터 지금까지
  * @param peakLevel 혼잡 이벤트만
  * @param peakValue 혼잡은 밀집도(명/㎡), 급증은 증가율(%), 캠 이상은 null

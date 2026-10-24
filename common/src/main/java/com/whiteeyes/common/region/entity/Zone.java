@@ -58,6 +58,24 @@ public class Zone {
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
+    /** 삭제 표시를 한다(가동 이력이 있는 구역 삭제, FNC-A-017). 이미 지워진 구역은 호출하는 쪽이 먼저 걸러 낸다. */
+    public void markDeleted(LocalDateTime now) {
+        this.deletedAt = now;
+    }
+
+    /** 이름을 바꾼다(FNC-A-015). 같은 동의 이름 중복은 호출하는 쪽이 먼저 확인한다. */
+    public void rename(String name) {
+        this.name = name;
+    }
+
+    /** 다각형을 바꾸고 그에 따라 다시 계산한 면적·중심점을 넣는다(FNC-A-015). 소속 동은 바뀌지 않는다. */
+    public void reshape(BigDecimal areaM2, String boundary, BigDecimal centerLat, BigDecimal centerLng) {
+        this.areaM2 = areaM2;
+        this.boundary = boundary;
+        this.centerLat = centerLat;
+        this.centerLng = centerLng;
+    }
+
     public Zone(
             Long dongId,
             String name,

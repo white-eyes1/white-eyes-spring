@@ -15,6 +15,9 @@ import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 
 public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, ZoneStatMinuteId> {
 
+    /** 그 구역의 행이 하나라도 있는지(구역 삭제 FNC-A-017 처리 순서 2의 이력 확인). */
+    boolean existsByZoneId(Long zoneId);
+
     /** 저장된 가장 최근 1분 통계 시각. 통계가 하나도 없으면 null(실시간 통계 갱신 FNC-C-022가 5초마다 본다). */
     @Query("select max(s.statAt) from ZoneStatMinute s")
     LocalDateTime findLatestStatAt();
@@ -24,6 +27,10 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
 
     /** 구역들의 from 이후(포함) 1분 통계. 최근 현황 조회(FNC-C-009)에 쓴다. */
     List<ZoneStatMinute> findByZoneIdInAndStatAtGreaterThanEqual(Collection<Long> zoneIds, LocalDateTime from);
+
+    /** 구역들의 from 이상 to 미만 1분 통계. 통계 시계열(FNC-C-012)이 구역 수와 관계없이 한 번에 읽는다. */
+    List<ZoneStatMinute> findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(
+            Collection<Long> zoneIds, LocalDateTime from, LocalDateTime to);
 
     /** from 이상 to 미만 1분 통계(전 구역). 시간별 통계가 한 시간치를 묶을 때 쓴다(FNC-A-029). */
     List<ZoneStatMinute> findByStatAtGreaterThanEqualAndStatAtLessThan(LocalDateTime from, LocalDateTime to);
@@ -42,6 +49,17 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
     /** 구역들의 from 이후 1분 통계를 같은 시각끼리 더한 count_max 합들. 오늘 최대 인원(FNC-C-016)에 쓴다. */
     @Query("select sum(s.countMax) from ZoneStatMinute s where s.zoneId in :zoneIds and s.statAt >= :from group by s.statAt")
     List<Long> sumCountMaxByStatAt(@Param("zoneIds") Collection<Long> zoneIds, @Param("from") LocalDateTime from);
+
+    /**
+     * stat_at이 cutoff보다 앞선 1분 통계를 최대 limit건 지운다(FNC-A-032).
+     *
+     * @return 지운 건수
+     */
+    // 건수 제한이 있는 삭제는 JPQL로 쓸 수 없어 네이티브로 쓴다(MySQL·H2 모두 DELETE ... LIMIT 지원)
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM zone_stat_minute WHERE stat_at < :cutoff LIMIT :limit", nativeQuery = true)
+    int deleteOlderThan(@Param("cutoff") LocalDateTime cutoff, @Param("limit") int limit);
 
     /**
      * (zone_id, stat_at) 기준으로 넣거나 덮어쓴다(FNC-A-028 처리 순서 3).
