@@ -11,6 +11,19 @@
 .map-canvas { position: absolute; inset: 0; }
 .panel-open { position: absolute; left: 14px; bottom: 14px; z-index: 500; }
 .map-legend { position: absolute; top: 14px; left: 14px; z-index: 500; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(13,19,27,.9); }
+/* 지도 도구(이동 흐름·히트맵): 지도 오른쪽 위 버튼(시안 SCR-C-003). 켠 버튼은 파랑 테두리 */
+.map-tools { position: absolute; top: 14px; right: 14px; z-index: 500; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.map-tool { display: flex; gap: 6px; align-items: center; }
+.map-tools .btn { background: #111a24; }
+.map-tools .btn.on { border-color: var(--blue); color: #cfe0ff; background: #1b2a3d; }
+/* 히트맵 조건 영역(FNC-C-011): 색은 혼잡 단계와 다른 파랑 계열, min~max 범례 */
+.heatmap-box { display: flex; flex-direction: column; gap: 8px; width: 290px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(13,19,27,.94); font-size: 12px; }
+.heatmap-box[hidden] { display: none; }
+.heatmap-row { display: flex; align-items: center; gap: 6px; }
+.heatmap-row .input { height: 30px; font-size: 12px; min-width: 0; flex: 1; }
+.heatmap-row input[type="range"] { flex: 1; accent-color: #4f8cff; }
+.heatmap-hour { width: 34px; text-align: right; }
+.heatmap-legend i { width: 90px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(79,140,255,.12), rgba(79,140,255,.8)); }
 
 /* 통계 패널 */
 .stat-panel { flex: 0 1 360px; min-width: 300px; border-right: 1px solid var(--line); background: #0d131b; display: flex; flex-direction: column; }

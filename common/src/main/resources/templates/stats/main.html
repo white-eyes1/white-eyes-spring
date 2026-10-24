@@ -8,6 +8,7 @@
   보조 지표(FNC-C-030)는 펼친 영역에 필요한 통계 시계열만 읽는다. 이벤트 종류별 건수는 관리자 앱에만 있다(이벤트 요약 API가 관리자 이상).
   엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
   다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감)은 아직 없다.
+  지도 도구 히트맵(FNC-C-011)은 켜면 하위 단위를 시간대별 평균값의 파랑 진하기로 칠한다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
@@ -130,6 +131,39 @@
             <div class="map-canvas" id="dash-map"></div>
             <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
             <div class="map-legend legend" id="map-legend"></div>
+            <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 히트맵(FNC-C-011): 조건·시간대 슬라이더·재생(stats-main/heatmap-tool.js) -->
+            <div class="map-tools" id="map-tools">
+                <div class="map-tool">
+                    <button type="button" class="btn secondary sm" id="heatmap-toggle" aria-pressed="false">히트맵</button>
+                </div>
+                <div class="heatmap-box" id="heatmap-box" hidden>
+                    <div class="heatmap-row">
+                        <input class="input" type="date" id="heatmap-from" aria-label="히트맵 시작 날짜">
+                        <span class="muted">~</span>
+                        <input class="input" type="date" id="heatmap-to" aria-label="히트맵 끝 날짜">
+                    </div>
+                    <div class="heatmap-row">
+                        <select class="input" id="heatmap-item" aria-label="히트맵 항목">
+                            <option value="COUNT">인원</option>
+                            <option value="DENSITY">밀집도</option>
+                            <option value="INFLOW">유입</option>
+                            <option value="OUTFLOW">유출</option>
+                        </select>
+                        <select class="input" id="heatmap-day-type" aria-label="히트맵 요일">
+                            <option value="ALL">전체 요일</option>
+                            <option value="WEEKDAY">평일</option>
+                            <option value="WEEKEND">주말</option>
+                        </select>
+                    </div>
+                    <div class="heatmap-row">
+                        <button type="button" class="btn secondary sm" id="heatmap-play" aria-pressed="false">재생</button>
+                        <input type="range" id="heatmap-hour" min="0" max="23" step="1" value="0" aria-label="시간대">
+                        <b class="heatmap-hour" id="heatmap-hour-label">0시</b>
+                    </div>
+                    <div class="heatmap-row heatmap-legend"><i></i><span class="muted" id="heatmap-range"></span></div>
+                    <span class="muted" id="heatmap-status" role="status" hidden></span>
+                </div>
+            </div>
         </section>
     </div>
 

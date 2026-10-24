@@ -4,6 +4,7 @@ import { createMap, levelColor } from './map-view.js';
 import { formatDecimal, formatNumber } from '../common/format.js';
 
 const FALLBACK_ZOOM = 12;
+const OFF_PAINT = '#4a5768';
 // 고정 문자열이라 innerHTML에 넣어도 안전하다(서버 값이 아님)
 const PIN_ICON =
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
@@ -38,12 +39,33 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
     const boundaries = L.layerGroup().addTo(map);
     const pins = L.layerGroup().addTo(map);
     let zonePoints = [];
+    // 경계 층과 그 단계 색 모양. 히트맵(FNC-C-011)이 켜져 있으면 paint로 덮어 칠한다
+    let boundaryLayers = [];
+    let paint = null;
     map.on('moveend', onViewChange);
+
+    function applyPaint() {
+        boundaryLayers.forEach(({ id, name, layer, style, item }) => {
+            const painted = paint?.get(id);
+            if (paint && painted) {
+                layer.setStyle({ color: painted.color, weight: 1.5, fillColor: painted.color, fillOpacity: painted.fillOpacity });
+                layer.setTooltipContent(textTooltip(name, painted.label));
+            } else if (paint) {
+                // 히트맵 값이 없는 칸은 회색(FNC-C-011 예외 상황)
+                layer.setStyle({ color: OFF_PAINT, weight: 1, fillColor: OFF_PAINT, fillOpacity: 0.12 });
+                layer.setTooltipContent(textTooltip(name, '데이터 없음'));
+            } else {
+                layer.setStyle(style);
+                layer.setTooltipContent(tooltip(name, item));
+            }
+        });
+    }
 
     return {
         /** 경계를 단계 색으로 칠한다. 통계가 없으면 회색. clickable이면 눌러서 그 지역으로 이동. */
         showBoundaries(units, clickable) {
             boundaries.clearLayers();
+            boundaryLayers = [];
             units.forEach(({ id, name, boundary, item }) => {
                 if (!boundary) {
                     return;
@@ -62,7 +84,19 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
                     layer.on('click', () => onSelectRegion(id));
                 }
                 boundaries.addLayer(layer);
+                boundaryLayers.push({ id, name, layer, style: layer.options.style, item });
             });
+            applyPaint();
+        },
+
+        /**
+         * 경계를 혼잡 단계 색 대신 주어진 색으로 칠한다(히트맵, FNC-C-011). null이면 단계 색으로 되돌린다.
+         * 경계를 다시 그려도(새 1분 통계) 끌 때까지 이 색을 유지한다.
+         * @param {Map<number, {color: string, fillOpacity: number, label: string}>|null} next 단위 id → 칠할 모양
+         */
+        paintBoundaries(next) {
+            paint = next;
+            applyPaint();
         },
 
         /** 구역 핀: 중심점에 단계 색, 진행 중 이벤트가 있으면 배지. */
@@ -105,6 +139,16 @@ function pinIcon(item) {
         pin.append(badge);
     }
     return L.divIcon({ html: pin, className: 'zone-pin', iconSize: [0, 0] });
+}
+
+function textTooltip(name, text) {
+    const box = document.createElement('div');
+    const title = document.createElement('b');
+    title.textContent = name;
+    const body = document.createElement('div');
+    body.textContent = text;
+    box.append(title, body);
+    return box;
 }
 
 // 이름 + 인원·밀집도 (통계가 없으면 '데이터 없음')
