@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipFile;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -301,7 +302,8 @@ class EventExportTest {
 
         MvcResult result = export().andExpect(status().isOk()).andReturn();
 
-        assertThat(rowsOf(result)).hasSize(MAX_ROWS);
+        // 5만 행을 POI로 통째로 읽으면 시험 JVM 메모리가 모자라 시트 XML의 행 태그만 센다(머리글 1행 포함)
+        assertThat(countRowTags(result)).isEqualTo(MAX_ROWS + 1);
     }
 
     @Test
@@ -370,6 +372,21 @@ class EventExportTest {
             rows.add(sheet.getRow(i));
         }
         return rows;
+    }
+
+    private static int countRowTags(MvcResult result) throws Exception {
+        java.nio.file.Path file = java.nio.file.Files.createTempFile("event-export", ".xlsx");
+        try {
+            java.nio.file.Files.write(file, result.getResponse().getContentAsByteArray());
+            try (ZipFile zip = new ZipFile(file.toFile())) {
+                String xml = new String(
+                        zip.getInputStream(zip.getEntry("xl/worksheets/sheet1.xml")).readAllBytes(),
+                        StandardCharsets.UTF_8);
+                return xml.split("<row ", -1).length - 1;
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(file);
+        }
     }
 
     private static ParamPair param(String name, String value) {
