@@ -2,6 +2,7 @@ package com.whiteeyes.admin.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -242,6 +243,15 @@ class AdminLoginTest {
                 .andExpect(content().string(containsString("type=\"password\"")))
                 .andExpect(content().string(containsString("name=\"_csrf\"")))
                 .andExpect(content().string(containsString("action=\"/admin/login\"")));
+    }
+
+    @Test
+    @DisplayName("SCR-C-001 관리자 앱 로그인 화면에는 회원가입 링크가 없다")
+    void loginPage_hidesSignupLink() throws Exception {
+        mockMvc.perform(get("/admin/login").contextPath(CONTEXT_PATH))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("signup"))))
+                .andExpect(content().string(not(containsString("회원가입"))));
     }
 
     @Test

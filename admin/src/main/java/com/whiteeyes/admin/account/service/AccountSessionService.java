@@ -39,6 +39,11 @@ public class AccountSessionService {
         return deleteAll(adminSessionRepository, loginId);
     }
 
+    /** 관리자의 세션 수를 지우지 않고 센다. 지운 수를 기록에 먼저 넣고 삭제를 맨 뒤에 하려고 쓴다. */
+    public int countAdminSessions(String loginId) {
+        return adminSessionRepository.findByPrincipalName(loginId).size();
+    }
+
     // 세션 저장소로만 찾고 지운다. SQL을 직접 쓰지 않는다(conventions.md '세션 주인 이름': Redis 전환 대비)
     private static int deleteAll(FindByIndexNameSessionRepository<? extends Session> repository, String loginId) {
         int deleted = 0;

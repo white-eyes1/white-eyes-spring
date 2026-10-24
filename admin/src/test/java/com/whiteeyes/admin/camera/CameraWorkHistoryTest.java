@@ -97,6 +97,7 @@ class CameraWorkHistoryTest {
     private void clearAll() {
         jdbcTemplate.update("DELETE FROM work_history");
         jdbcTemplate.update("DELETE FROM recording");
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");

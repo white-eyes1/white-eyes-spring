@@ -27,6 +27,7 @@
                 <input class="input" type="password" name="password" required>
             </label>
             <button class="btn primary lg" type="submit" style="width: 100%">로그인</button>
+            <p class="muted" th:if="${signupLink}" style="text-align: center; font-size: 12px">계정이 없나요? <a th:href="@{/signup}" style="color: #76a7ff">회원가입</a></p>
         </form>
     </section>
 </div>

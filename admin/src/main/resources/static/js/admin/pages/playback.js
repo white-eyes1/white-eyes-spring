@@ -483,12 +483,16 @@ function renderStat(ms) {
     const box = document.getElementById('pb-event-box');
     box.hidden = event === null;
     if (event) {
-        document.getElementById('pb-event-chip').textContent = event.type === 'SURGE' ? '급증' : '혼잡';
+        document.getElementById('pb-event-chip').textContent = EVENT_TYPE_LABELS[event.type] ?? '혼잡';
         document.getElementById('pb-event-text').textContent = `${formatHm(event.startedAt)} ~ ${event.endedAt ? formatHm(event.endedAt) : '진행 중'} 이벤트 안`;
         // 이벤트 상세 창(SCR-A-011)은 이벤트 로그 화면 안에 있어 일단 이벤트 로그로 연결한다
         document.getElementById('pb-event-link').href = url('/events');
     }
 }
+
+// 시간축에는 혼잡·급증 이벤트만 표시한다(PM 결정). 캠 이상은 요청에서 뺀다
+const PLAYBACK_EVENT_TYPES = 'CONGESTION,SURGE';
+const EVENT_TYPE_LABELS = { CONGESTION: '혼잡', SURGE: '급증', CAM_FAULT: '캠 이상' };
 
 function updateEventButtons(ms) {
     prevEventButton.disabled = previousEvent(events, ms) === null;
@@ -503,7 +507,7 @@ async function loadTimeline(center) {
     const query = { from: toKstIso(timeWindow.from), to: toKstIso(timeWindow.to) };
     const [seriesResult, eventsResult, rangesResult] = await Promise.allSettled([
         get('/api/v1/stats/series', { targetType: 'ZONE', targetId: zoneId, interval: '1m', ...query }, { toast: false }),
-        get('/api/v1/events', { zoneId, ...query, size: 100 }, { toast: false }),
+        get('/api/v1/events', { zoneId, ...query, types: PLAYBACK_EVENT_TYPES, size: 100 }, { toast: false }),
         get('/api/v1/playback/ranges', { zoneId, ...query }, { toast: false }),
     ]);
     if (request !== timelineRequest) {

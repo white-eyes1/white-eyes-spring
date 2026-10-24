@@ -7,3 +7,7 @@ spring:
     hibernate:
       # 사용자 앱은 Flyway를 돌리지 않아(관리자 앱만 실행) 테스트 H2의 테이블은 엔티티로 만든다
       ddl-auto: create-drop
+
+# 테스트용 application.yml이 main 설정을 덮으므로 사용자 앱 화면 설정을 같게 둔다(SCR-C-001 회원가입 링크)
+login:
+  signup-link: true
