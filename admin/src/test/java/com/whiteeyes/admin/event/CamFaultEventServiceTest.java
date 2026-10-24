@@ -155,8 +155,8 @@ class CamFaultEventServiceTest {
     }
 
     @Test
-    @DisplayName("FNC-A-035 재시작 직후 첫 검사에서는 이미 열린 이벤트가 있는 RUNNING 캠의 이벤트를 닫지 않는다")
-    void keepsOpenEventOnFirstCheckAfterRestart() {
+    @DisplayName("FNC-A-035 재시작 직후 결과를 아직 한 번도 받지 못한 RUNNING 캠의 열린 이벤트는 닫지 않는다")
+    void keepsOpenEventUntilFirstResultAfterRestart() {
         Long zoneId = saveZone("캠이상 재시작 구역", "1");
         long cameraId = insertCamera(zoneId, "RUNNING", true, false);
         camFaultEventService.openOnError(cameraId, NOW.minusSeconds(300));
@@ -164,7 +164,7 @@ class CamFaultEventServiceTest {
         assertThat(lastResultTimeStore.findLastResultAt(cameraId)).isEmpty();
 
         camFaultEventService.detect(NOW);
-        assertThat(openFaults(cameraId)).as("재시작 직후 첫 검사").hasSize(1);
+        assertThat(openFaults(cameraId)).as("재시작 직후 검사").hasSize(1);
 
         // 결과를 아직 한 번도 받지 못했으면 다음 검사들(10초 간격)에서도 정상으로 보지 않고 이벤트를 둔다
         for (int sec = 10; sec < TIMEOUT_SEC; sec += 10) {
@@ -185,8 +185,8 @@ class CamFaultEventServiceTest {
     }
 
     @Test
-    @DisplayName("FNC-A-035 재시작 직후 첫 검사에서 결과가 이미 들어온 RUNNING 캠의 열린 이벤트는 닫는다")
-    void closesOpenEventOnFirstCheckWhenResultAlreadyReceived() {
+    @DisplayName("FNC-A-035 재시작 직후라도 결과가 이미 들어온 RUNNING 캠의 열린 이벤트는 검사에서 닫는다")
+    void closesOpenEventWhenResultAlreadyReceivedAfterRestart() {
         Long zoneId = saveZone("캠이상 재시작복구 구역", "1");
         long cameraId = insertCamera(zoneId, "RUNNING", true, false);
         camFaultEventService.openOnError(cameraId, NOW.minusSeconds(300));
