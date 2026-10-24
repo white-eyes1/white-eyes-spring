@@ -25,6 +25,8 @@ const toInput = document.getElementById('filter-to');
 const statusSelect = document.getElementById('filter-status');
 const typeSelect = document.getElementById('filter-type');
 const keywordInput = document.getElementById('filter-keyword');
+const detailToggle = document.getElementById('filter-detail-toggle');
+const detailPanel = document.getElementById('filter-detail');
 const rowsEl = document.getElementById('event-rows');
 const emptyEl = document.getElementById('event-empty');
 const totalEl = document.getElementById('event-total');
@@ -56,10 +58,18 @@ function restoreFilters() {
     typeSelect.value = params.get('type') || '';
     keywordInput.value = params.get('keyword') || '';
     page = Math.max(0, Number(params.get('page')) || 0);
+    // 기간·종류는 '상세 필터'에 있다(screens.md SCR-A-010). 주소로 지정돼 들어오면 펼쳐서 보인다
+    setDetailOpen(params.has('from') || params.has('to') || params.has('type'));
+}
+
+function setDetailOpen(open) {
+    detailPanel.hidden = !open;
+    detailToggle.setAttribute('aria-expanded', String(open));
 }
 
 function bindFilters() {
     form.addEventListener('submit', (event) => event.preventDefault());
+    detailToggle.addEventListener('click', () => setDetailOpen(detailPanel.hidden));
     for (const control of [fromInput, toInput, statusSelect, typeSelect]) {
         control.addEventListener('change', () => applyFilters());
     }
