@@ -1,8 +1,11 @@
 package com.whiteeyes.common.history.service;
 
 import com.whiteeyes.common.history.dto.WorkHistoryCommand;
+import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkHistory;
+import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.history.repository.WorkHistoryRepository;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,5 +36,12 @@ public class WorkHistoryService {
                 command.targetId(),
                 command.targetName(),
                 command.detail()));
+    }
+
+    /** 한 대상의 한 행동 기록을 오래된 것부터 돌려준다(이벤트 처리 이력, FNC-A-037). 조회라 기록하지 않는다. */
+    @Transactional(readOnly = true)
+    public List<WorkHistory> findByTarget(WorkTargetType targetType, Long targetId, WorkAction action) {
+        return workHistoryRepository.findByTargetTypeAndTargetIdAndActionOrderByCreatedAtAscIdAsc(
+                targetType, targetId, action);
     }
 }

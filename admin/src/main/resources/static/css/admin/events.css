@@ -18,10 +18,26 @@
 
 .ev-table { --cols: 1.1fr .7fr 1.6fr 1.3fr .7fr .8fr; }
 .ev-table .tr > * { min-width: 0; }
-.ev-table .tr.ev-row { cursor: default; }
+.ev-table .tr.ev-row { cursor: pointer; }
+.ev-table .tr.ev-row:focus-visible { outline: 2px solid #5d95ef; outline-offset: -2px; }
 .ev-empty { padding: 36px 16px; text-align: center; font-size: 13px; }
 .ev-empty p { margin-top: 6px; font-size: 12px; }
 
 .pager .pages button { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
 .pager .pages button.on { background: var(--blue-btn); border-color: #5d95ef; color: #fff; }
 .pager .pages button:disabled { opacity: .4; cursor: default; }
+
+/* 이벤트 상세 창(SCR-A-011) */
+.ev-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
+.ev-modal-stage[hidden] { display: none; }
+.ev-modal { max-width: 900px; }
+.ev-modal-title { display: flex; align-items: center; gap: 10px; }
+.ev-modal-body { gap: 16px; }
+.ev-modal .kv { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px 12px; margin: 0; font-size: 12px; }
+.ev-modal .kv dt { color: #8b98a9; }
+.ev-modal .kv dd { margin: 0; overflow-wrap: anywhere; }
+.ev-history { display: flex; flex-direction: column; gap: 6px; }
+.ev-history strong { font-size: 12px; }
+.ev-history-row { padding: 8px 10px; border-radius: 8px; background: #151e29; font-size: 12px; overflow-wrap: anywhere; }
+.ev-history-row + .ev-history-row { margin-top: 6px; }
+.ev-history-empty { padding: 8px 10px; font-size: 12px; }
