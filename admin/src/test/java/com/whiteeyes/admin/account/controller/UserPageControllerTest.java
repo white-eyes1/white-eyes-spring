@@ -41,6 +41,14 @@ class UserPageControllerTest {
                 .andExpect(content().string(containsString("id=\"user-pagination\"")));
     }
 
+    @Test
+    @DisplayName("SCR-A-001 강제 로그아웃 확인 창이 있다(FNC-A-008)")
+    void forceLogoutConfirmModal() throws Exception {
+        mockMvc.perform(get("/users"))
+                .andExpect(content().string(containsString("id=\"user-confirm-modal\" hidden")))
+                .andExpect(content().string(containsString("id=\"user-confirm-ok\"")));
+    }
+
     // 행의 승인 버튼(FNC-A-006)은 users.js가 이 열에 그린다
     @Test
     @DisplayName("SCR-A-001 사용자 표에 동작 열이 있다")
