@@ -30,6 +30,14 @@ public final class AdminTestLogin {
         return authentication(token(loginId));
     }
 
+    /** 최고 관리자 권한으로 로그인한 요청(최고 관리자만 부르는 API의 경계 확인용). */
+    public static RequestPostProcessor superAdmin(String loginId) {
+        AccountPrincipal principal = new AccountPrincipal(
+                ADMIN_ID, loginId, "encoded", true, false, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        return authentication(
+                UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities()));
+    }
+
     /** MockMvc를 거치지 않고 서비스를 바로 부르는 테스트에서 현재 스레드를 로그인한 상태로 만든다. 끝나면 {@link #clear()}. */
     public static void loginForDirectCalls() {
         SecurityContextHolder.getContext().setAuthentication(token());
