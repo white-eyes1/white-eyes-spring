@@ -61,6 +61,7 @@
 .peak-periods { display: flex; gap: 6px; }
 .peak-periods button { border: 0; cursor: pointer; }
 .peak-periods button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.peak-list { display: flex; flex-direction: column; gap: 8px; }
 .abnormal-list .row { display: flex; align-items: center; gap: 8px; }
 
 /* 보조 지표(FNC-C-030) 접기 영역. 모양은 시안 SCR-C-003-stats-panel-all */
