@@ -12,10 +12,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.whiteeyes.admin.camera.service.CameraQueryService;
-import com.whiteeyes.admin.camera.service.CameraQueryService.WatchedCamera;
 import com.whiteeyes.admin.stat.service.LastResultTimeStore;
 import com.whiteeyes.common.camera.entity.CameraStatus;
+import com.whiteeyes.common.camera.service.WatchedCameraService;
+import com.whiteeyes.common.camera.service.WatchedCameraService.WatchedCamera;
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventType;
 import com.whiteeyes.common.event.repository.EventRepository;
@@ -30,19 +30,19 @@ public class CamFaultEventService {
 
     private static final Logger log = LoggerFactory.getLogger(CamFaultEventService.class);
 
-    private final CameraQueryService cameraQueryService;
+    private final WatchedCameraService watchedCameraService;
     private final EventRepository eventRepository;
     private final LastResultTimeStore lastResultTimeStore;
     private final long timeoutSec;
     private final Duration timeout;
 
     public CamFaultEventService(
-            CameraQueryService cameraQueryService,
+            WatchedCameraService watchedCameraService,
             EventRepository eventRepository,
             LastResultTimeStore lastResultTimeStore,
             // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본값 conventions.md)
             @Value("${CAM_FAULT_TIMEOUT_SEC:60}") long timeoutSec) {
-        this.cameraQueryService = cameraQueryService;
+        this.watchedCameraService = watchedCameraService;
         this.eventRepository = eventRepository;
         this.lastResultTimeStore = lastResultTimeStore;
         this.timeoutSec = timeoutSec;
@@ -52,7 +52,7 @@ public class CamFaultEventService {
     /** 감시 대상 캠을 모두 검사해 이벤트를 열고, 조건이 풀렸거나 대상에서 빠진 캠의 열린 이벤트를 닫는다. */
     @Transactional
     public void detect(LocalDateTime now) {
-        List<WatchedCamera> watched = cameraQueryService.findWatchedCameras();
+        List<WatchedCamera> watched = watchedCameraService.findWatchedCameras();
         Set<Long> faultyCameraIds = new HashSet<>();
         for (WatchedCamera camera : watched) {
             if (isFaulty(camera, now)) {
@@ -74,7 +74,7 @@ public class CamFaultEventService {
     /** 상태 보고가 ERROR일 때 부른다. run_requested=1인 캠만 이벤트를 연다(FNC-A-025 처리 순서 3). */
     @Transactional
     public void openOnError(Long cameraId, LocalDateTime now) {
-        cameraQueryService
+        watchedCameraService
                 .findWatchedCamera(cameraId)
                 .ifPresent(camera -> openIfAbsent(camera.cameraId(), camera.zoneId(), now));
     }
@@ -126,8 +126,8 @@ public class CamFaultEventService {
 
     private void closeOpenEvents(Long cameraId, LocalDateTime now) {
         // 열린 이벤트는 캠당 하나가 규칙이지만, 어긋나 둘이 되어도 모두 닫는다
-        eventRepository.findByTypeAndEndedAtIsNull(EventType.CAM_FAULT).stream()
-                .filter(event -> cameraId.equals(event.getCameraId()))
+        eventRepository
+                .findByCameraIdAndTypeAndEndedAtIsNull(cameraId, EventType.CAM_FAULT)
                 .forEach(event -> closeEvent(event, now));
     }
 

@@ -1,6 +1,5 @@
 package com.whiteeyes.admin.camera.service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -11,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
-import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
 
 // TODO: 캠 가동·수정 기능에서 일반 CameraService가 필요해지면 합친다(지금 dev에는 CameraRegisterService만 있음)
@@ -20,9 +18,6 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 public class CameraQueryService {
 
     private final CameraRepository cameraRepository;
-
-    /** 캠 이상 감지(FNC-A-035)가 보는 캠의 값. 다른 도메인에 엔티티를 넘기지 않으려고 필요한 것만 담는다. */
-    public record WatchedCamera(Long cameraId, Long zoneId, CameraStatus status) {}
 
     public CameraQueryService(CameraRepository cameraRepository) {
         this.cameraRepository = cameraRepository;
@@ -36,27 +31,6 @@ public class CameraQueryService {
         return cameraRepository.findAllById(cameraIds).stream()
                 .filter(camera -> camera.getDeletedAt() == null && camera.isRunRequested())
                 .collect(Collectors.toMap(Camera::getId, Camera::getZoneId));
-    }
-
-    /** 캠 이상 감지 대상: run_requested=1이고 삭제되지 않은 캠(FNC-A-035). */
-    @Transactional(readOnly = true)
-    public List<WatchedCamera> findWatchedCameras() {
-        return cameraRepository.findByRunRequestedTrueAndDeletedAtIsNullOrderByIdAsc().stream()
-                .map(CameraQueryService::toWatched)
-                .toList();
-    }
-
-    /** 감시 대상이면 그 캠을, 아니면(없음·삭제·run_requested=0) 빈 값(FNC-A-035). */
-    @Transactional(readOnly = true)
-    public Optional<WatchedCamera> findWatchedCamera(Long cameraId) {
-        return cameraRepository
-                .findByIdAndDeletedAtIsNull(cameraId)
-                .filter(Camera::isRunRequested)
-                .map(CameraQueryService::toWatched);
-    }
-
-    private static WatchedCamera toWatched(Camera camera) {
-        return new WatchedCamera(camera.getId(), camera.getZoneId(), camera.getStatus());
     }
 
     /**

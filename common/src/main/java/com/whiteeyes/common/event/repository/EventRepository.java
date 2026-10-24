@@ -27,6 +27,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     /** 캠의 열린 이벤트(캠 이상 FNC-A-035). 어긋나 둘이 되어도 멈추지 않게 가장 먼저 만든 것을 돌려준다. */
     Optional<Event> findFirstByCameraIdAndTypeAndEndedAtIsNullOrderByIdAsc(Long cameraId, EventType type);
 
+    /** 캠의 열린 이벤트 전부. 어긋나 둘 이상이어도 모두 닫을 수 있게 목록으로 돌려준다(캠 이상 FNC-A-035). */
+    List<Event> findByCameraIdAndTypeAndEndedAtIsNull(Long cameraId, EventType type);
+
     /** 종류별 열린 이벤트 전부(캠 이상 감지가 조건이 풀린 것을 닫을 때, FNC-A-035). */
     List<Event> findByTypeAndEndedAtIsNull(EventType type);
 
