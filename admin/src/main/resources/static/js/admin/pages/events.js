@@ -1,10 +1,12 @@
 // 이벤트 로그 화면 SCR-A-010 중 요약 카드·필터·이벤트 표(FNC-A-036)와, 행을 누르면 열리는
-// 이벤트 상세 창 SCR-A-011 중 이벤트 정보·처리 이력(FNC-A-037).
-// 발생 시점 영상(FNC-A-040), 조치 버튼·조치 창(FNC-A-038), 내려받기(FNC-A-039), 새 이벤트 알림(FNC-A-048)은 각 기능의 이슈에서 붙인다.
+// 이벤트 상세 창 SCR-A-011 중 이벤트 정보·처리 이력(FNC-A-037), 표의 조치 버튼(FNC-A-038).
+// 조치 완료 창은 event-action.js. 발생 시점 영상(FNC-A-040), 내려받기(FNC-A-039),
+// 새 이벤트 알림(FNC-A-048)은 각 기능의 이슈에서 붙인다.
 // 필터는 주소의 쿼리로 유지한다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
 import { get } from '../../common/api.js';
 import { formatDateTime, formatDecimal, formatNumber } from '../../common/format.js';
+import { openActionDialog, requestStatusChange } from '../event-action.js';
 
 const PAGE_SIZE = 20;
 const KEYWORD_DEBOUNCE_MS = 300;
@@ -228,8 +230,49 @@ function buildRow(event) {
         cell(textWithSmall(valueText(event), peakCountText(event))),
         cell(document.createTextNode(durationText(event.durationSec))),
         cell(statusChip(event.status)),
+        cell(actionControls(event)),
     );
     return row;
+}
+
+// 미확인: [확인] [조치하기] / 확인 중: [조치하기] / 조치완료: '처리됨' 표시(screens.md SCR-A-010, FNC-A-038)
+function actionControls(event) {
+    const box = el('div', 'ev-actions');
+    if (event.status === 'RESOLVED') {
+        box.append(el('span', 'muted ev-handled', '처리됨'));
+        return box;
+    }
+    if (event.status === 'UNCHECKED') {
+        const check = el('button', 'btn secondary sm', '확인');
+        check.type = 'button';
+        check.addEventListener('click', () => markChecked(event, check));
+        box.append(check);
+    }
+    const resolve = el('button', 'btn primary sm', '조치하기');
+    resolve.type = 'button';
+    resolve.addEventListener('click', () => {
+        openActionDialog(actionTarget(event, resolve), refresh);
+    });
+    box.append(resolve);
+    return box;
+}
+
+// [확인]은 창 없이 바로 저장한다. 성공이든 다른 관리자가 먼저 처리한 409든 목록·요약 카드를 다시 읽는다
+async function markChecked(event, button) {
+    button.disabled = true;
+    await requestStatusChange(event.id, { expectedStatus: event.status, status: 'CHECKED' });
+    await refresh();
+}
+
+// 조치 창 머리: 구역(캠 이상은 캠)·발생 시각·단계
+function actionTarget(event, opener) {
+    const place = [event.zoneName, event.cameraName].filter(Boolean).join(' · ');
+    return {
+        eventId: event.id,
+        expectedStatus: event.status,
+        summary: `${place} · ${formatDateTime(event.startedAt).slice(11)} · ${peakTitle(event)}`,
+        opener,
+    };
 }
 
 function endedText(event) {
@@ -308,6 +351,10 @@ function bindDetail() {
 }
 
 function openDetailOf(target) {
+    // 조치 버튼을 누른 것은 행 클릭이 아니다
+    if (target.closest('button')) {
+        return;
+    }
     const row = target.closest('.ev-row');
     if (row) {
         detailOpener = row;

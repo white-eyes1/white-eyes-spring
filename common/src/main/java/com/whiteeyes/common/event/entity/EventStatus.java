@@ -7,5 +7,10 @@ public enum EventStatus {
     /** 확인 중 */
     CHECKED,
     /** 조치완료 */
-    RESOLVED
+    RESOLVED;
+
+    /** 앞으로만 바꿀 수 있다: 미확인→확인 중·조치완료, 확인 중→조치완료(FNC-A-038). 같은 상태나 되돌리기는 안 된다. */
+    public boolean canChangeTo(EventStatus next) {
+        return next.ordinal() > ordinal();
+    }
 }
