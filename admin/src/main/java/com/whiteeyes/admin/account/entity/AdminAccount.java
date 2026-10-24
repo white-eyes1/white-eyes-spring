@@ -117,4 +117,11 @@ public class AdminAccount {
         this.password = encodedPassword;
         this.mustChangePassword = false;
     }
+
+    /** 본인이 이름·메일·연락처를 고친다(FNC-C-006). 아이디·역할·상태는 이 메서드로 바꿀 수 없다. */
+    public void updateProfile(String name, String email, String phone) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+    }
 }
