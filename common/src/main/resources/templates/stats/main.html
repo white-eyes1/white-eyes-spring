@@ -4,15 +4,17 @@
   통계 메인(대시보드) SCR-C-003, 두 앱이 함께 쓰는 화면(FNC-C-008·009·016·025, 캠 패널 FNC-A-022).
   admin 모델 값이 true일 때만 지역 등록·수정 버튼과 캠 패널이 그려진다(관리자 앱).
   새 1분 통계는 통계 SSE(FNC-C-022)로 받아 화면을 새로 읽는다.
-  2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감, 비정상 변동, 보조 지표)과 그래프·엑셀 버튼은 아직 없다.
+  비정상 인원 변동(FNC-C-020)은 펼칠 때 기간 비교 API로 읽는다.
+  다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감, 보조 지표)과 엑셀 버튼은 아직 없다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
     <th:block th:replace="~{fragments/layout :: leaflet}"/>
     <link rel="stylesheet" th:href="@{/css/stats-main.css}">
+    <link rel="stylesheet" th:href="@{/css/live.css}">
 </head>
 <body class="we">
-<div class="dash" id="dash" th:attr="data-admin=${admin}">
+<div class="dash" id="dash" th:attr="data-admin=${admin}, data-snapshot-interval-sec=${cardSnapshotIntervalSec}">
     <header th:replace="${admin} ? ~{fragments/layout :: adminHeader('dashboard')} : ~{fragments/layout :: userHeader('dashboard')}"></header>
 
     <div class="filterbar">
@@ -71,6 +73,17 @@
                     <div class="acc-h">혼잡 기준<span class="muted small" id="level-rule"></span></div>
                     <ul class="level-rules" id="level-rules"></ul>
                 </section>
+                <!-- 비정상 인원 변동(FNC-C-020): 펼칠 때 최근 7일을 지난달 같은 요일과 비교해 읽는다 -->
+                <details class="acc fold" id="abnormal-box">
+                    <summary class="acc-h">비정상 인원 변동<span class="muted small">최근 7일 · 지난달 대비</span></summary>
+                    <div class="acc-b">
+                        <div class="muted" id="abnormal-count"></div>
+                        <div class="abnormal-list" id="abnormal-list"></div>
+                        <a class="btn secondary sm" id="abnormal-detail" th:href="@{/stats/compare}">자세히</a>
+                    </div>
+                </details>
+                <!-- 그래프 보기(FNC-C-012): 현재 지역을 넘긴다(panel.js renderGraphLink) -->
+                <a class="btn secondary" id="graph-link" th:href="@{/stats/graph}">그래프 보기</a>
             </div>
         </aside>
 
@@ -98,6 +111,11 @@
         <div class="deck-cards" id="deck-cards"></div>
     </section>
 </div>
+<!-- SCR-A-008 실시간 보기 창(관리자 앱만) -->
+<th:block th:if="${admin}">
+    <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
+</th:block>
+
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/stats-main.js}"></script>
 </body>

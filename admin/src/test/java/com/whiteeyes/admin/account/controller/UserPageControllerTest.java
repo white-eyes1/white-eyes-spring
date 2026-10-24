@@ -41,6 +41,14 @@ class UserPageControllerTest {
                 .andExpect(content().string(containsString("id=\"user-pagination\"")));
     }
 
+    // 행의 승인 버튼(FNC-A-006)은 users.js가 이 열에 그린다
+    @Test
+    @DisplayName("SCR-A-001 사용자 표에 동작 열이 있다")
+    void users_hasActionsColumn() throws Exception {
+        mockMvc.perform(get("/users"))
+                .andExpect(content().string(containsString("<th scope=\"col\" class=\"user-actions\">동작</th>")));
+    }
+
     // common/api.js가 이 두 meta로 컨텍스트 경로(/admin)와 CSRF 토큰을 읽는다
     @Test
     @DisplayName("SCR-A-001 사용자 관리 화면은 목록 JS와 api.js가 읽을 meta를 갖는다")

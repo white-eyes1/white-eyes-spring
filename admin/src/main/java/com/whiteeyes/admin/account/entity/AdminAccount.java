@@ -82,6 +82,27 @@ public class AdminAccount {
         return account;
     }
 
+    /**
+     * 최고 관리자가 만드는 관리자 계정(FNC-A-009 처리 순서 3). 임시 비밀번호로 만들어 첫 로그인 때 비밀번호를 바꾸게 한다.
+     *
+     * @param encodedPassword 임시 비밀번호를 bcrypt로 바꾼 값. 평문을 넘기지 않는다
+     * @param createdBy 만든 최고 관리자 번호
+     */
+    public static AdminAccount createAdmin(
+            String loginId, String encodedPassword, String name, String email, String phone, Long createdBy) {
+        AdminAccount account = new AdminAccount();
+        account.loginId = loginId;
+        account.password = encodedPassword;
+        account.name = name;
+        account.email = email;
+        account.phone = phone;
+        account.role = AdminRole.ADMIN;
+        account.status = AdminStatus.ACTIVE;
+        account.mustChangePassword = true;
+        account.createdBy = createdBy;
+        return account;
+    }
+
     /** 로그인에 성공한 시각을 남긴다(FNC-C-001). */
     public void recordLogin(LocalDateTime loggedInAt) {
         this.lastLoginAt = loggedInAt;
