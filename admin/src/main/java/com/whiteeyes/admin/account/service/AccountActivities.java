@@ -28,14 +28,17 @@ public class AccountActivities {
 
     /**
      * 최근 활동 시각은 세션의 마지막 접근 시각이고, 세션이 없으면 마지막 로그인 시각이다(aclst-004).
+     * 활동 중은 세션이 있을 때만 그 마지막 접근 시각으로 판단한다. 마지막 로그인 시각은 표시만 하고 판단에 쓰지 않는다
+     * (conventions.md '활동 중 판단'). 그래서 강제 로그아웃·비활성화로 세션이 지워지면 바로 활동 중이 아니다(#203).
      *
      * @param lastLoginAt user_account.last_login_at(없으면 null)
      */
     public AccountActivity activityOf(String loginId, LocalDateTime lastLoginAt) {
         Instant sessionLastAccess = sessionLastAccessTimes.get(loginId);
-        LocalDateTime lastActiveAt =
-                sessionLastAccess == null ? lastLoginAt : LocalDateTime.ofInstant(sessionLastAccess, zone);
-        boolean active = lastActiveAt != null && !lastActiveAt.isBefore(activeSince);
-        return new AccountActivity(lastActiveAt, active);
+        if (sessionLastAccess == null) {
+            return new AccountActivity(lastLoginAt, false);
+        }
+        LocalDateTime lastActiveAt = LocalDateTime.ofInstant(sessionLastAccess, zone);
+        return new AccountActivity(lastActiveAt, !lastActiveAt.isBefore(activeSince));
     }
 }

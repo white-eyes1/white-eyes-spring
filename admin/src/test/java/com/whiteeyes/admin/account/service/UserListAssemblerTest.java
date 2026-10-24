@@ -75,7 +75,7 @@ class UserListAssemblerTest {
     }
 
     @Test
-    @DisplayName("FNC-A-002 active로 거르면 전체 개수도 거른 뒤 개수")
+    @DisplayName("FNC-A-002 active로 거르면 전체 개수도 거른 뒤 개수(세션 없이 최근 로그인만 있으면 활동 중 아님, #203)")
     void assembleInMemory_activeFilter() {
         sessions.put("u001", toInstant(NOW.minusMinutes(1)));
         List<UserRow> rows = List.of(
@@ -86,10 +86,10 @@ class UserListAssemblerTest {
         PageResponse<UserListItem> inactive =
                 UserListAssembler.assembleInMemory(rows, activities(), request(false, "loginId,asc", 0, 20));
 
-        assertThat(active.items()).extracting(UserListItem::loginId).containsExactly("u001", "u002");
-        assertThat(active.totalElements()).isEqualTo(2);
-        assertThat(inactive.items()).extracting(UserListItem::loginId).containsExactly("u003");
-        assertThat(inactive.totalElements()).isEqualTo(1);
+        assertThat(active.items()).extracting(UserListItem::loginId).containsExactly("u001");
+        assertThat(active.totalElements()).isEqualTo(1);
+        assertThat(inactive.items()).extracting(UserListItem::loginId).containsExactly("u002", "u003");
+        assertThat(inactive.totalElements()).isEqualTo(2);
     }
 
     @Test
