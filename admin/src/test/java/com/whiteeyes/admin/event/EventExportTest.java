@@ -15,6 +15,7 @@ import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import jakarta.persistence.EntityManagerFactory;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -94,6 +95,8 @@ class EventExportTest {
         samcheongZoneId = createZone("삼청동 1구역", SAMCHEONG_SQUARE);
         sogongZoneId = createZone("소공동 1구역", SOGONG_SQUARE);
         sajikZoneId = createZone("사직동 1구역", SAJIK_SQUARE);
+        // 구역 등록이 남긴 작업 기록은 이 시험의 대상이 아니다
+        jdbcTemplate.update("DELETE FROM work_history");
     }
 
     // event → camera → zone → region 순으로 외래키가 걸려 있어, 남겨 두면 다른 테스트가 region을 지우다 실패한다
@@ -270,7 +273,7 @@ class EventExportTest {
         assertThat(row.get("ACTION")).isEqualTo("EXCEL_DOWNLOAD");
         assertThat(row.get("TARGET_TYPE")).isEqualTo("EVENT");
         assertThat(row.get("TARGET_ID")).isNull();
-        JsonNode detail = jsonMapper.readTree(row.get("DETAIL").toString());
+        JsonNode detail = jsonMapper.readTree(new String((byte[]) row.get("DETAIL"), StandardCharsets.UTF_8));
         assertThat(detail.get("kind").asString()).isEqualTo("EVENT");
         JsonNode filter = detail.get("filter");
         assertThat(filter.get("from").asString()).isEqualTo("2026-10-12T00:00:00+09:00");

@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 /**
  * 이벤트(tables.md 'event'). 혼잡 이벤트 판정(FNC-A-033)과 급증 이벤트 판정(FNC-A-034)이 만들고 갱신·종료한다.
  *
- * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 이벤트 처리 기능을 만들 때 매핑한다.
+ * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 읽기 전용으로만 매핑한다. 값을 쓰는 것은 이벤트 처리 기능이다.
  * created_at·updated_at은 DB 기본값이 채운다.
  */
 @Entity
@@ -74,6 +74,21 @@ public class Event {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private EventStatus status;
+
+    // 처리 정보 4칸은 읽기 전용으로만 매핑한다(이벤트 목록의 엑셀 FNC-A-039). 값을 쓰는 것은 처리 상태 변경(FNC-A-038)
+    /** 조치 항목. 조치완료일 때만 값이 있다. */
+    @Column(name = "action_code", length = 20, insertable = false, updatable = false)
+    private String actionCode;
+
+    @Column(name = "action_note", length = 200, insertable = false, updatable = false)
+    private String actionNote;
+
+    /** 마지막으로 처리 상태를 바꾼 관리자 번호(admin_account.id). */
+    @Column(name = "handled_by", insertable = false, updatable = false)
+    private Long handledBy;
+
+    @Column(name = "handled_at", insertable = false, updatable = false)
+    private LocalDateTime handledAt;
 
     private Event(
             EventType type,
