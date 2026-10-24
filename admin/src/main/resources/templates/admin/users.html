@@ -6,7 +6,7 @@
 </head>
 <body class="we">
 <header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
-<!-- SCR-A-001 사용자 관리. 목록은 화면 JS(js/admin/pages/users.js)가 GET /api/v1/users(FNC-A-002)로 받아 채우고, 행의 승인(FNC-A-006)도 맡는다 -->
+<!-- SCR-A-001 사용자 관리. 목록은 화면 JS(js/admin/pages/users.js)가 GET /api/v1/users(FNC-A-002)로 받아 채우고, 행의 승인(FNC-A-006)과 강제 로그아웃(FNC-A-008)도 맡는다 -->
 <main class="page">
     <div class="page-heading">
         <div>
@@ -71,6 +71,25 @@
         </div>
     </section>
 </main>
+
+<!-- 강제 로그아웃 확인 창(FNC-A-008). 누른 행의 사용자 아이디는 users.js가 문구에 넣는다 -->
+<div class="modal-stage user-modal-stage" id="user-confirm-modal" hidden>
+    <div class="modal user-confirm" role="alertdialog" aria-modal="true" aria-labelledby="user-confirm-title">
+        <div class="modal-head">
+            <h2 id="user-confirm-title">강제 로그아웃</h2>
+            <button class="icon-btn" type="button" aria-label="닫기" data-confirm-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="user-confirm-message"></p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-confirm-close>취소</button>
+            <button class="btn danger" type="button" id="user-confirm-ok">로그아웃</button>
+        </div>
+    </div>
+</div>
 
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/users.js}"></script>

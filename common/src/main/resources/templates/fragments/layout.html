@@ -100,6 +100,61 @@
     </div>
 </div>
 
+<!--
+  SCR-C-006 엑셀 다운로드 창(FNC-C-023, 두 앱). 통계 메인 통계 패널과 통계 그래프의 '엑셀 다운로드'에서 연다.
+  <head>에 css/stats-export.css를 더한다. 동작은 js/export/export-modal.js
+-->
+<div th:fragment="statExportModal" class="modal-stage export-modal-stage" id="export-modal" hidden>
+    <form class="modal export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" novalidate>
+        <div class="modal-head">
+            <h2 id="export-title">엑셀 다운로드</h2>
+            <button class="icon-btn" type="button" aria-label="닫기" data-export-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <label class="field">범위
+                <select class="input" id="export-scope"></select>
+            </label>
+            <label class="ck" id="export-expand-row" hidden><input type="checkbox" id="export-expand"><i></i>구역별 펼치기</label>
+            <div class="export-period">
+                <label class="field export-period-range">기간
+                    <span class="export-period-inputs">
+                        <input class="input" type="datetime-local" id="export-from" aria-label="시작 시각">
+                        <span class="muted">~</span>
+                        <input class="input" type="datetime-local" id="export-end" aria-label="끝 시각">
+                    </span>
+                </label>
+                <label class="field export-interval">단위
+                    <select class="input" id="export-interval">
+                        <option value="1m">1분</option>
+                        <option value="1h">1시간</option>
+                        <option value="1d">1일</option>
+                        <option value="1w">1주</option>
+                        <option value="1M">1월</option>
+                        <option value="1y">1년</option>
+                    </select>
+                </label>
+            </div>
+            <div class="field">항목
+                <div class="export-items" id="export-items">
+                    <label class="ck"><input type="checkbox" value="COUNT" checked><i></i>인원</label>
+                    <label class="ck"><input type="checkbox" value="DENSITY" checked><i></i>밀집도</label>
+                    <label class="ck"><input type="checkbox" value="INFLOW" checked><i></i>유입</label>
+                    <label class="ck"><input type="checkbox" value="OUTFLOW" checked><i></i>유출</label>
+                    <label class="ck"><input type="checkbox" value="DWELL"><i></i>평균 체류</label>
+                </div>
+            </div>
+            <p class="hint err export-reason" id="export-reason" role="status" hidden></p>
+            <p class="alert" id="export-error" role="alert" hidden></p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-export-close>취소</button>
+            <button class="btn primary" type="submit" id="export-submit">다운로드</button>
+        </div>
+    </form>
+</div>
+
 <!-- SCR-U-004 사용자 공통 헤더(틀만). active: dashboard | stats -->
 <header th:fragment="userHeader(active)" class="we topbar" data-header="user">
     <a class="brand" th:href="@{/stats}">White Eyes<small>혼잡 현황</small></a>

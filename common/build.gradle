@@ -14,6 +14,8 @@ dependencies {
     // 로그인 핸들러용. Boot 자동 설정(starter-security)은 넣지 않아 로그인을 만드는 앱만 보안이 켜진다
     api 'org.springframework.security:spring-security-web'
     runtimeOnly 'com.mysql:mysql-connector-j'
+    // 통계 엑셀: SXSSF 스트리밍 작성 (conventions.md '주요 라이브러리')
+    implementation 'org.apache.poi:poi-ooxml:5.5.1'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 }

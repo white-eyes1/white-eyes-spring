@@ -1,5 +1,6 @@
 // 사용자 관리 화면(SCR-A-001). 사용자 목록(FNC-A-002)을 검색·정렬·페이지 이동하며 GET /api/v1/users로 불러오고,
 // 미승인 행의 '승인'(FNC-A-006)은 POST /api/v1/users/{id}/approve로 보낸다.
+// 활동 중인 행의 '강제 로그아웃'(FNC-A-008)은 확인 창 뒤 POST /api/v1/users/{id}/logout으로 보낸다.
 import { ApiError, get, post } from '../../common/api.js';
 import { formatDateTime, formatNumber } from '../../common/format.js';
 import { showToast } from '../../common/toast.js';
@@ -39,7 +40,14 @@ const errorNotice = document.getElementById('user-list-error');
 const pagination = document.getElementById('user-pagination');
 const totalText = document.getElementById('user-total');
 
+const confirmModal = document.getElementById('user-confirm-modal');
+const confirmMessage = document.getElementById('user-confirm-message');
+const confirmOk = document.getElementById('user-confirm-ok');
+
 const state = { filters: {}, size: 20, sortField: 'createdAt', sortDirection: 'desc', page: 0 };
+// 확인 창에서 고른 사용자와 요청 진행 중 여부
+let confirmTarget = null;
+let forcing = false;
 // 조회를 빠르게 여러 번 누르면 마지막 요청의 결과만 그린다
 let latestRequestId = 0;
 
@@ -135,7 +143,7 @@ function toRow(user) {
     return row;
 }
 
-// 승인 취소(FNC-A-007)·강제 로그아웃(FNC-A-008) 버튼은 각 기능의 이슈에서 이 칸에 더한다
+// 승인 취소(FNC-A-007) 버튼은 그 기능의 이슈에서 이 칸에 더한다
 function actionsCell(user) {
     const td = document.createElement('td');
     td.className = 'user-actions';
@@ -143,6 +151,10 @@ function actionsCell(user) {
     wrap.className = 'row-actions';
     if (user.status === 'PENDING') {
         wrap.append(approveButton(user));
+    }
+    // 활동 중일 때만 보인다(screens.md SCR-A-001)
+    if (user.active) {
+        wrap.append(forceLogoutButton(user));
     }
     td.append(wrap);
     return td;
@@ -174,6 +186,67 @@ async function approve(button, user) {
         button.disabled = false;
     }
 }
+
+// ---- 강제 로그아웃 (FNC-A-008) ----
+
+function forceLogoutButton(user) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn secondary sm';
+    button.textContent = '강제 로그아웃';
+    button.addEventListener('click', () => openConfirm(user));
+    return button;
+}
+
+function openConfirm(user) {
+    confirmTarget = user;
+    confirmMessage.textContent = `'${user.loginId}' 사용자를 로그아웃시킬까요? 열려 있는 모든 세션이 종료됩니다.`;
+    confirmOk.disabled = false;
+    confirmModal.hidden = false;
+    confirmOk.focus();
+}
+
+function closeConfirm() {
+    if (forcing) {
+        return; // 요청이 끝나기 전에는 닫지 않는다(끝난 뒤 새로 연 창을 닫는 일을 막는다)
+    }
+    confirmModal.hidden = true;
+    confirmTarget = null;
+}
+
+async function forceLogout() {
+    if (!confirmTarget || forcing) {
+        return;
+    }
+    const user = confirmTarget;
+    forcing = true;
+    confirmOk.disabled = true;
+    try {
+        const result = await post(`${USERS_API}/${user.id}/logout`, undefined, { toast: false });
+        showToast(`${result.deletedSessions}개 세션을 종료했습니다`);
+        forcing = false;
+        closeConfirm();
+        loadUsers();
+        return;
+    } catch (error) {
+        showToast(error instanceof ApiError ? error.message : DEFAULT_ERROR_MESSAGE);
+    }
+    forcing = false;
+    closeConfirm();
+}
+
+confirmModal.querySelectorAll('[data-confirm-close]').forEach((button) => button.addEventListener('click', closeConfirm));
+confirmModal.addEventListener('mousedown', (event) => {
+    if (event.target === confirmModal) {
+        closeConfirm();
+    }
+});
+confirmOk.addEventListener('click', forceLogout);
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !confirmModal.hidden) {
+        closeConfirm();
+    }
+});
 
 function cell(text) {
     const td = document.createElement('td');
