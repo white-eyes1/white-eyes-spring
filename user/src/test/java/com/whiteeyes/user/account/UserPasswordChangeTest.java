@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.whiteeyes.common.account.entity.UserAccount;
@@ -38,8 +39,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * 사용자 앱 비밀번호 변경(FNC-C-007). 사용자 앱 로그인이 아직 없어(이슈 #126) 세션을 저장소에 직접 만들어 확인한다.
- * 비밀번호 변경이 필요한 계정을 변경 화면에 가두는 필터 연결도 #126이라 여기서는 API 동작만 본다.
+ * 사용자 앱 비밀번호 변경(FNC-C-007). 세션을 저장소에 직접 만들어 확인한다.
+ * 비밀번호 변경이 필요한 계정을 변경 화면에 가두는 필터는 UserLoginTest가 실제 로그인으로 본다.
  */
 // 사용자 앱은 Flyway를 돌리지 않아 테스트 H2의 세션 표는 Spring Session이 기본 이름(SPRING_SESSION)으로 만든다
 @SpringBootTest
@@ -220,9 +221,11 @@ class UserPasswordChangeTest {
     }
 
     @Test
-    @DisplayName("FNC-C-007 사용자 앱: 로그인하지 않은 변경 화면 요청은 401이다(로그인 화면 이동은 #126)")
-    void passwordPage_notLoggedIn_unauthorized() throws Exception {
-        mockMvc.perform(get("/me/password")).andExpect(status().isUnauthorized());
+    @DisplayName("FNC-C-007 사용자 앱: 로그인하지 않은 변경 화면 요청은 로그인 화면으로 이동한다")
+    void passwordPage_notLoggedIn_redirectsToLogin() throws Exception {
+        mockMvc.perform(get("/me/password"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test

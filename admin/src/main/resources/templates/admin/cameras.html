@@ -41,11 +41,11 @@
     </section>
 </main>
 
-<!-- SCR-A-007 캠 등록 창 -->
+<!-- SCR-A-007 캠 등록·수정 창 -->
 <div class="modal-stage cam-modal-stage" id="camera-modal" hidden>
-    <form class="modal cam-modal" id="camera-form" role="dialog" aria-modal="true" aria-label="캠 등록" novalidate>
+    <form class="modal cam-modal" id="camera-form" role="dialog" aria-modal="true" aria-labelledby="camera-modal-title" novalidate>
         <div class="modal-head">
-            <h2>캠 등록</h2>
+            <h2 id="camera-modal-title">캠 등록</h2>
             <button class="icon-btn" type="button" aria-label="닫기" data-close>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
             </button>
@@ -83,6 +83,25 @@
             <button class="btn primary" type="submit" id="camera-save">저장</button>
         </div>
     </form>
+</div>
+
+<!-- FNC-A-023 캠 삭제 확인 창 -->
+<div class="modal-stage cam-modal-stage" id="camera-delete-modal" hidden>
+    <div class="modal cam-modal cam-confirm" role="alertdialog" aria-modal="true" aria-labelledby="camera-delete-title">
+        <div class="modal-head">
+            <h2 id="camera-delete-title">캠 삭제</h2>
+            <button class="icon-btn" type="button" aria-label="닫기" data-delete-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="camera-delete-message">이 캠을 삭제할까요? 가동한 적이 있으면 지난 녹화·통계는 남습니다.</p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-delete-close>취소</button>
+            <button class="btn danger" type="button" id="camera-delete-confirm">삭제</button>
+        </div>
+    </div>
 </div>
 
 <!-- SCR-A-008 실시간 보기 창 -->

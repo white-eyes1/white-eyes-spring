@@ -26,6 +26,20 @@ export function formatNumber(value) {
     return isBlank(value) ? '-' : Number(value).toLocaleString('ko-KR');
 }
 
+/** 증감을 부호와 함께(+18.4, −35, 0). 감소는 빼기 기호(−)를 쓴다. 값이 없으면 '-'. */
+export function formatSigned(value, fractionDigits = 1) {
+    if (isBlank(value)) {
+        return '-';
+    }
+    const number = Number(value);
+    const text = formatDecimal(Math.abs(number), fractionDigits);
+    // 반올림해서 0이 되면 부호를 붙이지 않는다
+    if (Number(text.replace(/,/g, '')) === 0) {
+        return text;
+    }
+    return (number > 0 ? '+' : '−') + text;
+}
+
 /** 소수 자릿수를 고정해서(기본 1자리) 쉼표와 함께. 값이 없으면 '-'. */
 export function formatDecimal(value, fractionDigits = 1) {
     if (isBlank(value)) {

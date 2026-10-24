@@ -1,7 +1,9 @@
 package com.whiteeyes.admin.media.service;
 
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
 import com.whiteeyes.admin.media.dto.PlaybackResponse;
 import com.whiteeyes.admin.media.entity.Recording;
+import com.whiteeyes.admin.media.exception.NextRecordingNotFoundException;
 import com.whiteeyes.admin.media.exception.RecordingExpiredException;
 import com.whiteeyes.admin.media.exception.RecordingNotFoundException;
 import com.whiteeyes.admin.media.repository.RecordingRepository;
@@ -12,20 +14,25 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 구역·시각으로 녹화와 재생 시작 위치를 찾는다(FNC-A-043). */
 @Service
+@EnableConfigurationProperties(RetentionProperties.class)
 @RequiredArgsConstructor
 public class PlaybackFindService {
 
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
-    private static final int RETENTION_DAYS = 30;
+    // 이어 재생(FNC-A-045): 다음 녹화가 현재 녹화 끝보다 이만큼까지 앞서 시작해도 이어지는 것으로 보고, 이 시간보다 많이 비면 끝낸다
+    private static final Duration CONTINUE_OVERLAP = Duration.ofSeconds(2);
+    private static final Duration CONTINUE_MAX_GAP = Duration.ofSeconds(10);
 
     private final ZoneCameraService zoneCameraService;
     private final RecordingRepository recordingRepository;
+    private final RetentionProperties retentionProperties;
 
     /**
      * 구역에서 at 시각을 포함하는 녹화를 찾는다.
@@ -38,8 +45,8 @@ public class PlaybackFindService {
      */
     @Transactional(readOnly = true)
     public PlaybackResponse findAt(Long zoneId, LocalDateTime at, LocalDateTime now, String basePath) {
-        // 처리 순서 1: 보관 기간 30일을 지난 시각
-        if (at.isBefore(now.minusDays(RETENTION_DAYS))) {
+        // 처리 순서 1: 보관 기간(RECORDING_RETENTION_DAYS)을 지난 시각
+        if (at.isBefore(now.minusDays(retentionProperties.recordingDays()))) {
             throw new RecordingExpiredException();
         }
         // 처리 순서 2·3: 구역의 캠(삭제 포함) 녹화 중 at을 포함하고 started_at이 가장 늦은 것
@@ -68,9 +75,37 @@ public class PlaybackFindService {
         }
         Recording recording = recordingRepository
                 .findFirstByCameraIdInAndStartedAtGreaterThanEqualOrderByStartedAtDescIdDesc(
-                        cameraIds, now.minusDays(RETENTION_DAYS))
+                        cameraIds, now.minusDays(retentionProperties.recordingDays()))
                 .orElseThrow(RecordingNotFoundException::new);
         return toResponse(recording, 0, basePath);
+    }
+
+    /**
+     * 같은 캠에서 이 녹화에 이어지는 다음 녹화를 찾는다(FNC-A-045). seekSec은 0이다.
+     *
+     * <p>started_at ≥ 현재 녹화 ended_at − 2초 인 가장 이른 녹화이고, 그 시작이 현재 녹화 끝보다 10초를 넘게 뒤면
+     * '이후 영상 없음'으로 끝낸다. 끝나지 않은(ended_at 없음) 녹화에는 이어질 녹화가 없다.
+     *
+     * @throws RecordingNotFoundException 녹화가 없으면(404 '영상 없음')
+     * @throws NextRecordingNotFoundException 이어질 녹화가 없으면(404 '이후 영상 없음')
+     */
+    @Transactional(readOnly = true)
+    public PlaybackResponse findNext(Long recordingId, String basePath) {
+        Recording current = recordingRepository.findById(recordingId).orElseThrow(RecordingNotFoundException::new);
+        if (current.getEndedAt() == null) {
+            throw new NextRecordingNotFoundException();
+        }
+        Recording next = recordingRepository
+                .findFollowing(
+                        current.getCameraId(),
+                        current.getId(),
+                        current.getEndedAt().minus(CONTINUE_OVERLAP),
+                        Limit.of(1))
+                .stream()
+                .findFirst()
+                .filter(candidate -> !candidate.getStartedAt().isAfter(current.getEndedAt().plus(CONTINUE_MAX_GAP)))
+                .orElseThrow(NextRecordingNotFoundException::new);
+        return toResponse(next, 0, basePath);
     }
 
     private PlaybackResponse toResponse(Recording recording, double seekSec, String basePath) {

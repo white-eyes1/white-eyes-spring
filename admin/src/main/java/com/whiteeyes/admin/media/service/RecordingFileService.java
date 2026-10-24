@@ -1,5 +1,6 @@
 package com.whiteeyes.admin.media.service;
 
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
 import com.whiteeyes.admin.media.entity.Recording;
 import com.whiteeyes.admin.media.exception.RecordingExpiredException;
 import com.whiteeyes.admin.media.exception.RecordingNotFoundException;
@@ -7,6 +8,7 @@ import com.whiteeyes.admin.media.repository.RecordingRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriUtils;
@@ -16,15 +18,15 @@ import org.springframework.web.util.UriUtils;
  * 권한과 녹화 존재·보관 기간만 확인한 뒤 X-Accel-Redirect로 nginx에 넘긴다.
  */
 @Service
+@EnableConfigurationProperties(RetentionProperties.class)
 @RequiredArgsConstructor
 public class RecordingFileService {
 
     /** nginx의 internal location(conventions.md 'nginx 경로 규칙'). 외부에서 직접 요청하면 404다 */
     static final String PROTECTED_PREFIX = "/protected/media/";
 
-    private static final int RETENTION_DAYS = 30;
-
     private final RecordingRepository recordingRepository;
+    private final RetentionProperties retentionProperties;
 
     /**
      * 영상 파일의 X-Accel-Redirect 값을 돌려준다.
@@ -46,8 +48,8 @@ public class RecordingFileService {
 
     private Recording findRetained(Long recordingId, LocalDateTime now) {
         Recording recording = recordingRepository.findById(recordingId).orElseThrow(RecordingNotFoundException::new);
-        // 보관 기간(30일)이 지난 행은 매일 정리되지만 정리 전에도 보내지 않는다
-        if (recording.getStartedAt().isBefore(now.minusDays(RETENTION_DAYS))) {
+        // 보관 기간(RECORDING_RETENTION_DAYS)이 지난 행은 매일 정리되지만 정리 전에도 보내지 않는다
+        if (recording.getStartedAt().isBefore(now.minusDays(retentionProperties.recordingDays()))) {
             throw new RecordingExpiredException();
         }
         return recording;

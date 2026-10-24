@@ -16,11 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** 지역·구역 목록(FNC-C-008)이 사용자 앱에도 같은 경로로 등록되는지 확인한다. */
 @SpringBootTest
 @AutoConfigureMockMvc
+// 권한 표(사용자 이상)를 통과한 뒤의 동작을 본다. 로그인하지 않은 요청은 UserAccessControlTest가 본다
+@WithMockUser(roles = "USER")
 class RegionListUserAppTest {
 
     private static final String BOUNDARY =

@@ -1,8 +1,16 @@
 package com.whiteeyes.user.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.user.support.UserTestAccounts;
+import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
@@ -21,17 +30,20 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
+import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * 사용자 앱 세션 만료·정리(FNC-C-004). 사용자 앱 로그인이 아직 없어(이슈 #126) 세션을 저장소에 직접 만든다.
- * "만료 뒤 요청하면 로그인 화면으로 이동"은 사용자 앱 권한 표(#126)가 있어야 확인할 수 있어, 여기서는
- * 30분이 지난 세션을 저장소가 더는 돌려주지 않는지와 정리 작업까지 본다.
+ * 사용자 앱 세션 만료·정리(FNC-C-004). 검수 기준: 30분 무동작 후 요청 시 로그인 화면으로 이동, 만료 세션 행이 정리됨.
+ * 저장소·정리 작업은 세션을 저장소에 직접 만들어 보고, 로그인 화면 이동은 실제로 로그인한 세션으로 본다.
+ * 만료 판정은 저장된 마지막 접근 시각(LAST_ACCESS_TIME)으로 계산되므로(트러블슈팅 0016) 그 값을 과거로 바꿔 시험한다.
  * 사용자 앱은 Flyway를 돌리지 않아(관리자 앱만 실행) 테스트 H2의 세션 표는 Spring Session이 기본 이름(SPRING_SESSION)으로 만든다.
  */
 @SpringBootTest
+@AutoConfigureMockMvc
 class UserSessionExpiryTest {
 
     @Autowired
@@ -40,11 +52,51 @@ class UserSessionExpiryTest {
     @Autowired
     private JdbcIndexedSessionRepository sessionRepository;
 
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private UserTestAccounts accounts() {
+        return new UserTestAccounts(mockMvc, jdbcTemplate, userAccountRepository, passwordEncoder);
+    }
+
     @BeforeEach
     @AfterEach
     void cleanUp() {
-        jdbcTemplate.update("DELETE FROM SPRING_SESSION_ATTRIBUTES");
-        jdbcTemplate.update("DELETE FROM SPRING_SESSION");
+        accounts().clear();
+    }
+
+    @Test
+    @DisplayName("FNC-C-004 검수 기준: 30분 무동작 뒤 이전 화면 주소로 요청하면 로그인 화면으로, API는 401")
+    void idleOver30Minutes_previousPage_redirectsToLogin() throws Exception {
+        Cookie session = accounts().loginAs("idle01", "ACTIVE", false);
+        mockMvc.perform(get("/me/password").cookie(session)).andExpect(status().isOk());
+
+        idleFor(sessionId(session), Duration.ofMinutes(31));
+
+        mockMvc.perform(get("/me/password").cookie(session))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
+        mockMvc.perform(get("/api/v1/meta/levels").cookie(session)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("FNC-C-004 30분이 지나기 전이면 같은 세션으로 계속 쓸 수 있다")
+    void idleUnder30Minutes_stillLoggedIn() throws Exception {
+        Cookie session = accounts().loginAs("idle02", "ACTIVE", false);
+
+        idleFor(sessionId(session), Duration.ofMinutes(29));
+
+        mockMvc.perform(get("/me/password").cookie(session)).andExpect(status().isOk());
+    }
+
+    private String sessionId(Cookie cookie) {
+        return new String(Base64.getDecoder().decode(cookie.getValue()), StandardCharsets.UTF_8);
     }
 
     @Test

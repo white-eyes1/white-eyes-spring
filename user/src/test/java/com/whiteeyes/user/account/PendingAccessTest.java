@@ -18,7 +18,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * 승인 대기 안내(FNC-U-003). 사용자 앱 로그인(#3)이 아직 없어 가짜 PENDING 사용자(@WithMockUser)로 확인한다.
+ * 승인 대기 안내(FNC-U-003)를 가짜 PENDING 사용자(@WithMockUser)로 확인한다. 실제 PENDING 계정 로그인은 UserLoginTest가 본다.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -93,10 +93,11 @@ class PendingAccessTest {
         mockMvc.perform(get("/api/v1/meta/levels")).andExpect(status().isOk());
     }
 
-    // #4(접근 권한 검사)가 권한 표를 넣으면 401로 바뀐다. 그때 이 테스트를 고친다
     @Test
-    @DisplayName("FNC-U-003 로그인하지 않은 요청은 아직 막지 않는다(#4 전까지)")
-    void anonymous_statsApi_notBlockedYet() throws Exception {
-        mockMvc.perform(get("/api/v1/meta/levels")).andExpect(status().isOk());
+    @DisplayName("FNC-C-003 로그인하지 않은 통계 API 요청은 401")
+    void anonymous_statsApi_unauthorized() throws Exception {
+        mockMvc.perform(get("/api/v1/meta/levels"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 }

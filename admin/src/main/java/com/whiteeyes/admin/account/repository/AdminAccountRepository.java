@@ -10,4 +10,7 @@ public interface AdminAccountRepository extends JpaRepository<AdminAccount, Long
     boolean existsByRole(AdminRole role);
 
     Optional<AdminAccount> findByLoginId(String loginId);
+
+    // 비활성화한 계정도 지우지 않으므로 상태와 관계없이 본다
+    boolean existsByLoginId(String loginId);
 }
