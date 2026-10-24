@@ -53,6 +53,7 @@ let requestSeq = 0;
 let keywordTimer = null;
 let levelNames = {};
 let detailSeq = 0;
+let detailOpener = null;
 
 init();
 
@@ -309,6 +310,7 @@ function bindDetail() {
 function openDetailOf(target) {
     const row = target.closest('.ev-row');
     if (row) {
+        detailOpener = row;
         openDetail(row.dataset.eventId);
     }
 }
@@ -321,6 +323,7 @@ async function openDetail(eventId) {
         if (seq === detailSeq) {
             renderDetail(detail);
             detailModal.hidden = false;
+            detailModal.querySelector('.modal').focus();
         }
     } catch {
         // 오류 알림은 공용 API 모듈이 토스트로 띄운다. 창은 열지 않는다
@@ -330,6 +333,11 @@ async function openDetail(eventId) {
 function closeDetail() {
     detailSeq++;
     detailModal.hidden = true;
+    // 열었던 행으로 포커스를 돌려준다(목록이 다시 그려져 행이 사라졌으면 건너뛴다)
+    if (detailOpener?.isConnected) {
+        detailOpener.focus();
+    }
+    detailOpener = null;
 }
 
 function renderDetail(detail) {
@@ -417,6 +425,9 @@ function has(value) {
 
 function buildHistory(history) {
     const row = el('div', 'ev-history-row');
+    if (history.from) {
+        row.append(statusChip(history.from), ' → ');
+    }
     row.append(statusChip(history.to), ` ${formatDateTime(history.at)} · ${history.loginId}`);
     const action = ACTION_LABEL[history.actionCode] ?? history.actionCode;
     if (action) {
