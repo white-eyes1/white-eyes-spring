@@ -2,6 +2,8 @@ package com.whiteeyes.admin.demo.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.doAnswer;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -24,7 +26,10 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
+import com.whiteeyes.admin.demo.repository.DemoDailyStat;
+import com.whiteeyes.admin.demo.repository.DemoStatRepository;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구 사직동(11110530)
@@ -46,6 +51,10 @@ class DemoGenerateTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    // 일별 저장 실패를 일으키려고 감싼다. 따로 정하지 않으면 실제 저장을 그대로 부른다
+    @MockitoSpyBean
+    private DemoStatRepository demoStatRepository;
 
     @TempDir
     private Path tempDir;
@@ -154,6 +163,30 @@ class DemoGenerateTest {
         assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 0")).isEqualTo(1);
         assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE stat_at = '2099-01-01 00:00:00'"))
                 .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-051 같은 날의 일별 저장이 실패하면 그날 시간별도 남지 않고, 앞선 날은 일별 = 시간별 그대로 남는다")
+    void dailyFailureRollsBackSameDayHourly() throws IOException {
+        LocalDate failDate = START.plusDays(2);
+        doAnswer(invocation -> {
+                    List<DemoDailyStat> rows = invocation.getArgument(0);
+                    if (!rows.isEmpty() && rows.get(0).statDate().equals(failDate)) {
+                        throw new IllegalStateException("일별 저장 실패(시험)");
+                    }
+                    return invocation.callRealMethod();
+                })
+                .when(demoStatRepository)
+                .insertDaily(anyList());
+        Path config = writeConfig(validConfig());
+
+        assertThatThrownBy(() -> demoGenerateService.generate(config)).hasMessageContaining("일별 저장 실패(시험)");
+
+        // 시작일·다음 날(2일 × 2구역)만 남는다
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly")).isEqualTo(2 * 2 * 24);
+        assertThat(count("zone_stat_daily")).isEqualTo(2 * 2);
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE stat_at >= '" + failDate + " 00:00:00'"))
+                .isZero();
     }
 
     @Test
