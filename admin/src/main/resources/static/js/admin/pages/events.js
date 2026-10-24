@@ -1,6 +1,7 @@
 // 이벤트 로그 화면 SCR-A-010 중 요약 카드·필터·이벤트 표(FNC-A-036)와, 행을 누르면 열리는
 // 이벤트 상세 창 SCR-A-011 중 이벤트 정보·처리 이력(FNC-A-037), 표의 조치 버튼(FNC-A-038).
-// 조치 완료 창은 event-action.js. 발생 시점 영상(FNC-A-040), 내려받기(FNC-A-039), 새 이벤트 알림(FNC-A-048)은 각 기능의 이슈에서 붙인다.
+// 조치 완료 창은 event-action.js. 발생 시점 영상(FNC-A-040), 내려받기(FNC-A-039),
+// 새 이벤트 알림(FNC-A-048)은 각 기능의 이슈에서 붙인다.
 // 필터는 주소의 쿼리로 유지한다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
 import { get } from '../../common/api.js';
@@ -249,7 +250,9 @@ function actionControls(event) {
     }
     const resolve = el('button', 'btn primary sm', '조치하기');
     resolve.type = 'button';
-    resolve.addEventListener('click', () => openActionDialog(actionTarget(event, resolve), refresh));
+    resolve.addEventListener('click', () => {
+        openActionDialog(actionTarget(event, resolve), refresh);
+    });
     box.append(resolve);
     return box;
 }

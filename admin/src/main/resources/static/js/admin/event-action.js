@@ -113,7 +113,9 @@ form.addEventListener('submit', (event) => {
 });
 form.addEventListener('change', updateState);
 noteInput.addEventListener('input', updateState);
-modal.querySelectorAll('[data-action-close]').forEach((button) => button.addEventListener('click', closeActionDialog));
+modal.querySelectorAll('[data-action-close]').forEach((button) => {
+    button.addEventListener('click', closeActionDialog);
+});
 modal.addEventListener('mousedown', (event) => {
     if (event.target === modal) {
         closeActionDialog();

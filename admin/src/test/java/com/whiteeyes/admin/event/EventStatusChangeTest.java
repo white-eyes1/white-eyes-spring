@@ -47,7 +47,8 @@ class EventStatusChangeTest {
 
     private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String SAMCHEONG_SQUARE =
-            "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
+            "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],"
+                    + "[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
     private static final LocalDateTime T0 = LocalDateTime.of(2026, 10, 12, 9, 0);
     private static final String CONGESTION_SNAPSHOT = "{\"warnDensity\":0.7,\"dangerDensity\":1.5}";
 
@@ -303,7 +304,8 @@ class EventStatusChangeTest {
             ready.countDown();
             go.await();
             String actionPart = "RESOLVED".equals(newStatus) ? ",\"actionCode\":\"STAFF\"" : "";
-            return send(eventId, "{\"expectedStatus\":\"UNCHECKED\",\"status\":\"" + newStatus + "\"" + actionPart + "}")
+            String json = "{\"expectedStatus\":\"UNCHECKED\",\"status\":\"" + newStatus + "\"" + actionPart + "}";
+            return send(eventId, json)
                     .andReturn()
                     .getResponse()
                     .getStatus();
