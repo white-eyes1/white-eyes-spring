@@ -1,25 +1,27 @@
 package com.whiteeyes.user.config;
 
+import com.whiteeyes.common.security.LoginFailureHandler;
+import com.whiteeyes.common.security.LoginRequiredEntryPoint;
+import com.whiteeyes.common.security.LoginSuccessHandler;
 import com.whiteeyes.common.security.LogoutSupport;
+import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
+import com.whiteeyes.user.account.service.UserAccountDetailsService;
+import com.whiteeyes.user.account.service.UserLoginRecordService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authorization.AuthorityAuthorizationManager;
-import org.springframework.security.authorization.AuthorizationManager;
-import org.springframework.security.authorization.AuthorizationManagers;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 사용자 앱 보안 설정. 지금은 승인 대기 계정을 승인 대기 화면 안에 가두는 일(FNC-U-003)과 로그아웃(FNC-C-002)을 한다.
- * 아직 없는 부분은 각 이슈가 이 설정을 넓힌다.
- * <ul>
- *   <li>#3 로그인(FNC-C-001): formLogin과 common의 LoginSuccessHandler·LoginFailureHandler 연결</li>
- *   <li>#4 접근 권한 검사(FNC-C-003): '그 외' 규칙을 권한 표(ROLE_USER)로 바꾸고,
- *       세션 없음은 화면 /login·API 401</li>
- * </ul>
+ * 사용자 앱 로그인(FNC-C-001), 로그아웃(FNC-C-002), 접근 권한 검사(FNC-C-003), 승인 대기 안내(FNC-U-003).
+ * 권한 표(사용자 앱): 공개 /login·/signup·/api/v1/signup/**, PENDING은 /pending·/logout, USER는 그 외 전부.
  */
 @Configuration
 // 웹 서버 없이 띄우는 실행에는 HTTP 보안이 필요 없다(AdminSecurityConfig와 같음)
@@ -27,27 +29,51 @@ import tools.jackson.databind.json.JsonMapper;
 public class UserSecurityConfig {
 
     static final String PENDING_PATH = "/pending";
+    private static final String LOGIN_PATH = "/login";
     // 권한 표(FNC-C-003)의 공개 경로와 정적 파일, 오류 화면
     private static final String[] PUBLIC_PATHS = {
-        "/login", "/signup", "/api/v1/signup/**", "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error"
+        LOGIN_PATH, "/signup", "/api/v1/signup/**", "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error"
     };
 
     @Bean
-    public SecurityFilterChain userFilterChain(HttpSecurity http, JsonMapper jsonMapper) throws Exception {
-        // #3: 여기에 formLogin(...)을 붙인다. 성공 처리는 LoginSuccessHandler가 ROLE_PENDING을 /pending으로 보낸다
-        http.authorizeHttpRequests(requests -> requests
+    public SecurityFilterChain userFilterChain(
+            HttpSecurity http,
+            AuthenticationProvider userAuthenticationProvider,
+            UserLoginRecordService loginRecordService,
+            JsonMapper jsonMapper)
+            throws Exception {
+        http.authenticationProvider(userAuthenticationProvider)
+                .authorizeHttpRequests(requests -> requests
                         .requestMatchers(PUBLIC_PATHS).permitAll()
+                        // /logout은 로그아웃 필터가 권한 검사 전에 처리하므로 PENDING도 쓸 수 있다
                         .requestMatchers(PENDING_PATH).hasRole(UserRoles.PENDING)
-                        // #4: 권한 표가 생기면 hasRole(UserRoles.USER)로 바꾼다. 그 전까지는 승인 대기 계정만 막는다
-                        .anyRequest().access(notPending()))
-                .exceptionHandling(exceptions ->
-                        exceptions.accessDeniedHandler(new PendingAccessDeniedHandler(jsonMapper)))
+                        .anyRequest().hasRole(UserRoles.USER))
+                // 성공 처리(LoginSuccessHandler)가 ROLE_PENDING은 /pending, 비밀번호 변경 필요는 /me/password로 보낸다
+                .formLogin(form -> form.loginPage(LOGIN_PATH)
+                        .loginProcessingUrl(LOGIN_PATH)
+                        .successHandler(new LoginSuccessHandler(loginRecordService))
+                        .failureHandler(new LoginFailureHandler()))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(new LoginRequiredEntryPoint(jsonMapper))
+                        .accessDeniedHandler(new PendingAccessDeniedHandler(jsonMapper)))
+                // 명세 처리 순서대로 권한 표(순서 3)를 통과한 요청에만 비밀번호 변경 필요 여부(순서 4)를 본다
+                .addFilterAfter(new PasswordChangeRequiredFilter(jsonMapper), AuthorizationFilter.class)
+                // 로그인 성공 뒤 이동은 LoginSuccessHandler가 정해 저장한 요청을 쓰지 않으므로, 비로그인 요청마다 세션이 생기지 않게 끈다
+                .requestCache(AbstractHttpConfigurer::disable)
                 .logout(logout -> logout.logoutSuccessHandler(LogoutSupport.successHandler()))
                 .csrf(csrf -> csrf.ignoringRequestMatchers(LogoutSupport.logoutWithoutSession()));
         return http.build();
     }
 
-    private AuthorizationManager<RequestAuthorizationContext> notPending() {
-        return AuthorizationManagers.not(AuthorityAuthorizationManager.hasRole(UserRoles.PENDING));
+    /**
+     * 사용자 계정에는 DISABLED가 없고 탈퇴 계정은 '아이디 없음'으로 거부하므로(UserAccountDetailsService)
+     * 관리자 앱처럼 비활성화 판정을 비밀번호 확인 뒤로 옮길 필요가 없다.
+     */
+    @Bean
+    public AuthenticationProvider userAuthenticationProvider(
+            UserAccountDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return provider;
     }
 }

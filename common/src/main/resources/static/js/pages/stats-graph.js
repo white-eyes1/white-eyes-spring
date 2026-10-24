@@ -112,6 +112,10 @@ async function selectTarget(targetType, targetId) {
     if (targetType === 'ZONE' && targetId) {
         // 구역은 소속 동을 알아야 경로를 찾을 수 있어 전체 구역에서 찾는다
         zone = (await get('/api/v1/zones')).find((candidate) => candidate.id === targetId) ?? null;
+        if (!zone) {
+            // 목록에는 삭제되지 않은 구역만 있다. 삭제된 구역의 지난 통계를 주소로 열면 단건 조회로 찾아 '(삭제됨)'을 붙인다(FNC-A-017, #183)
+            zone = await findDeletedZone(targetId);
+        }
         found = zone ? await findPath(zone.dongId) : null;
         if (!found) {
             zone = null;
@@ -138,18 +142,30 @@ async function renderTargetSelects() {
         select.onchange = () => onRegionChange(depth, select.value);
     }
     const dong = path[LEVEL_LABELS.length - 1];
-    const zones = dong ? await zonesOf(dong.id) : [];
+    const active = dong ? await zonesOf(dong.id) : [];
+    // 삭제된 구역을 보는 중이면 그 구역도 선택 칸에 '(삭제됨)'으로 넣는다(다른 구역을 고르면 사라진다)
+    const zones = zone && zone.deleted && zone.dongId === dong?.id ? [...active, zone] : active;
     zoneSelect.replaceChildren(...optionList(zones, '구역 전체'));
     zoneSelect.value = zone ? String(zone.id) : '';
     zoneSelect.disabled = zones.length === 0;
     zoneSelect.onchange = () => onZoneChange(zones, zoneSelect.value);
 }
 
+// 삭제된 구역이면 그 구역, 아니거나 없으면 null
+async function findDeletedZone(zoneId) {
+    try {
+        const found = await get(`/api/v1/zones/${zoneId}`, undefined, { toast: false });
+        return found.deleted ? found : null;
+    } catch {
+        return null;
+    }
+}
+
 function optionList(entries, allLabel) {
     const list = entries.map((entry) => {
         const option = document.createElement('option');
         option.value = String(entry.id);
-        option.textContent = entry.name;
+        option.textContent = entry.deleted ? `${entry.name} (삭제됨)` : entry.name;
         return option;
     });
     if (allLabel) {
@@ -174,7 +190,12 @@ async function onRegionChange(depth, value) {
 }
 
 async function onZoneChange(zones, value) {
+    const previous = zone;
     zone = zones.find((candidate) => String(candidate.id) === value) ?? null;
+    if (previous?.deleted && zone?.id !== previous.id) {
+        // 삭제된 구역을 떠나면 선택 칸에서 '(삭제됨)' 항목을 뺀다
+        await renderTargetSelects();
+    }
     await load();
 }
 
