@@ -98,9 +98,19 @@ class StatExportReaderIntegrationTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 없거나 삭제된 구역은 404 ZONE_NOT_FOUND, 없는 지역은 404 REGION_NOT_FOUND")
+    @DisplayName("FNC-C-023 삭제된 구역도 구역 대상으로 받는다: '구역' 열 이름에 '(삭제됨)', 대상 이름(파일 이름)에는 붙이지 않음")
+    void planDeletedZone() throws BindException {
+        StatExportPlan plan = statExportReader.plan(request(StatExportScope.ZONE, deletedZone, false));
+
+        assertThat(plan.targetName()).isEqualTo("삼청동 삭제된 구역");
+        assertThat(plan.series()).containsExactly(
+                new StatExportSeries(deletedZone, "서울특별시", "종로구", "삼청동", "삼청동 삭제된 구역 (삭제됨)"));
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 없는 구역은 404 ZONE_NOT_FOUND, 없는 지역은 404 REGION_NOT_FOUND")
     void planNotFound() {
-        assertThatThrownBy(() -> statExportReader.plan(request(StatExportScope.ZONE, deletedZone, false)))
+        assertThatThrownBy(() -> statExportReader.plan(request(StatExportScope.ZONE, 999_999L, false)))
                 .isInstanceOf(ZoneNotFoundException.class);
         assertThatThrownBy(() -> statExportReader.plan(request(StatExportScope.REGION, 999_999L, false)))
                 .isInstanceOf(RegionNotFoundException.class);

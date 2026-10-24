@@ -110,6 +110,51 @@ class StatExportApiTest {
     }
 
     @Test
+    @DisplayName("FNC-C-023 삭제된 구역도 구역 대상으로 받는다: 지난 통계가 들어가고 '구역' 열에 '(삭제됨)', 파일 이름에는 붙이지 않음")
+    void exportDeletedZone_file() throws Exception {
+        insertHourly(sajik, H0, "100.00", false);
+        jdbcTemplate.update("UPDATE zone SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", sajik);
+
+        byte[] body = mockMvc.perform(exportRequest("ZONE", sajik, "1h", "2099-01-01T10:00", "2099-01-01T11:00")
+                        .param("items", "COUNT")
+                        .with(AdminTestLogin.admin()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", containsString(
+                        "filename*=UTF-8''stats_%EC%82%AC%EC%A7%81%EB%8F%99%201%EA%B5%AC%EC%97%AD_20990101_20990101.xlsx")))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
+            Sheet count = workbook.getSheet("인원");
+            assertThat(count.getLastRowNum()).isEqualTo(1);
+            assertThat(count.getRow(1).getCell(4).getStringCellValue()).isEqualTo("사직동 1구역 (삭제됨)");
+            assertThat(count.getRow(1).getCell(5).getNumericCellValue()).isEqualTo(100.0);
+        }
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 전체(ALL)는 삭제된 구역을 줄로 쓰지 않는다")
+    void exportAll_skipsDeletedZone() throws Exception {
+        insertZone("11110540", "삼청동 1구역");
+        jdbcTemplate.update("UPDATE zone SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", sajik);
+
+        byte[] body = mockMvc.perform(exportRequest("ALL", null, "1h", "2099-01-01T10:00", "2099-01-01T11:00")
+                        .param("items", "COUNT")
+                        .with(AdminTestLogin.admin()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
+            Sheet count = workbook.getSheet("인원");
+            assertThat(count.getLastRowNum()).isEqualTo(1);
+            assertThat(count.getRow(1).getCell(4).getStringCellValue()).isEqualTo("삼청동 1구역");
+        }
+    }
+
+    @Test
     @DisplayName("FNC-C-023 처리 순서 4: 내려받으면 work_history에 EXCEL_DOWNLOAD 1행(행동한 관리자·대상·detail)")
     void exportZone_recordsHistory() throws Exception {
         mockMvc.perform(exportRequest("ZONE", sajik, "1h", "2099-01-01T10:00", "2099-01-01T12:00")
