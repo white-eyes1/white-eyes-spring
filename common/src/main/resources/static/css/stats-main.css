@@ -56,6 +56,12 @@
 .acc-b { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 11px; }
 .acc-b .btn { align-self: flex-end; }
 .abnormal-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 피크 시간 TOP 3(FNC-C-029): 기간 탭은 시안의 칩 모양(켠 탭 .chip.run, 끈 탭 .chip.off) */
+.peak-periods { display: flex; gap: 6px; }
+.peak-periods button { border: 0; cursor: pointer; }
+.peak-periods button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.peak-list { display: flex; flex-direction: column; gap: 8px; }
 .abnormal-list .row { display: flex; align-items: center; gap: 8px; }
 
 /* 보조 지표(FNC-C-030) 접기 영역. 모양은 시안 SCR-C-003-stats-panel-all */
