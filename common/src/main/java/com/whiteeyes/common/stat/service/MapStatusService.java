@@ -27,7 +27,7 @@ import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
 /**
  * 지도 혼잡 단계 색 표시(FNC-C-009). 대상 지역의 하위 단위별 최근 1분 통계와 혼잡 단계를 돌려준다.
  */
-// TODO(진행 중 이벤트 표시): ongoingEvent는 아직 false다. 오늘 이벤트 수는 FNC-C-017로 채웠다(이슈 #58)
+// TODO(진행 중 이벤트 표시, 이슈 #211): ongoingEvent는 아직 false다. 오늘 이벤트 수는 FNC-C-017로 채웠다(이슈 #58)
 @Service
 public class MapStatusService {
 
