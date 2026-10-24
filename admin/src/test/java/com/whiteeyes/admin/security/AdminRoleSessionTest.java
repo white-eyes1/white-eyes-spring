@@ -75,7 +75,7 @@ class AdminRoleSessionTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
         mockMvc.perform(get("/admin/api/v1/events").contextPath(CONTEXT_PATH).cookie(session))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -87,7 +87,7 @@ class AdminRoleSessionTest {
         mockMvc.perform(get("/admin/api/v1/admins").contextPath(CONTEXT_PATH).cookie(session))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/admin/api/v1/events").contextPath(CONTEXT_PATH).cookie(session))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
     }
 
     @Test

@@ -14,8 +14,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.whiteeyes.admin.event.service.CongestionEventService;
+import com.whiteeyes.admin.event.service.SurgeEventService;
 import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
+import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /** 1분 통계 저장(FNC-A-028) */
@@ -28,6 +30,7 @@ public class MinuteStatService {
     private final ZoneService zoneService;
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final CongestionEventService congestionEventService;
+    private final SurgeEventService surgeEventService;
     private final Duration closeGrace;
 
     public MinuteStatService(
@@ -35,12 +38,14 @@ public class MinuteStatService {
             ZoneService zoneService,
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             CongestionEventService congestionEventService,
+            SurgeEventService surgeEventService,
             // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본 5초, conventions.md)
             @Value("${MINUTE_CLOSE_GRACE_SEC:5}") long closeGraceSec) {
         this.minuteAccumulatorStore = minuteAccumulatorStore;
         this.zoneService = zoneService;
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.congestionEventService = congestionEventService;
+        this.surgeEventService = surgeEventService;
         this.closeGrace = Duration.ofSeconds(closeGraceSec);
     }
 
@@ -84,7 +89,7 @@ public class MinuteStatService {
         log.debug("1분 통계 저장 zoneId={} statAt={} sampleSec={}",
                 accumulator.getZoneId(), accumulator.getMinute(), accumulator.getSampleSec());
         judgeCongestionEvent(stat);
-        // TODO(FNC-A-034): 급증 이벤트 검사를 여기에 붙인다(FNC-A-028 처리 순서 4)
+        judgeSurgeEvent(stat);
     }
 
     // 이벤트 판정이 실패해도 이미 저장한 통계는 유지하고 다음 구역을 계속 처리한다(FNC-A-033은 FNC-A-028 저장 뒤에 도는 후속 처리)
@@ -94,6 +99,26 @@ public class MinuteStatService {
                     stat.getZoneId(), stat.getStatAt(), stat.getCountAvg(), stat.getDensity(), stat.getSampleSec());
         } catch (RuntimeException e) {
             log.error("혼잡 이벤트 판정 실패 zoneId={} statAt={}", stat.getZoneId(), stat.getStatAt(), e);
+        }
+    }
+
+    // 비교 시간 전 1분 통계와 비교한다. 혼잡 판정이 실패해도 급증 판정은 따로 돈다(FNC-A-034)
+    private void judgeSurgeEvent(ZoneStatMinute stat) {
+        try {
+            LocalDateTime previousAt = stat.getStatAt().minusMinutes(surgeEventService.getWindowMin());
+            ZoneStatMinute previous = zoneStatMinuteRepository
+                    .findById(new ZoneStatMinuteId(stat.getZoneId(), previousAt))
+                    .orElse(null);
+            surgeEventService.judge(
+                    stat.getZoneId(),
+                    stat.getStatAt(),
+                    stat.getCountAvg(),
+                    stat.getDensity(),
+                    stat.getSampleSec(),
+                    previous == null ? null : previous.getCountAvg(),
+                    previous == null ? null : Integer.valueOf(previous.getSampleSec()));
+        } catch (RuntimeException e) {
+            log.error("급증 이벤트 판정 실패 zoneId={} statAt={}", stat.getZoneId(), stat.getStatAt(), e);
         }
     }
 }

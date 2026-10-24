@@ -1,5 +1,7 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -31,6 +33,19 @@ public class CameraQueryService {
         return cameraRepository.findAllById(cameraIds).stream()
                 .filter(camera -> camera.getDeletedAt() == null && camera.isRunRequested())
                 .collect(Collectors.toMap(Camera::getId, Camera::getZoneId));
+    }
+
+    /** 캠 번호 → 캠 이름. 삭제된 캠도 포함한다(이벤트 목록의 캠 이름, FNC-A-036). */
+    @Transactional(readOnly = true)
+    public Map<Long, String> findNamesByIds(Collection<Long> cameraIds) {
+        return cameraRepository.findAllById(cameraIds).stream()
+                .collect(Collectors.toMap(Camera::getId, Camera::getName));
+    }
+
+    /** 이름에 검색어가 들어 있는 캠의 구역 번호. 삭제된 캠도 포함한다(이벤트 목록 검색, FNC-A-036). */
+    @Transactional(readOnly = true)
+    public List<Long> findZoneIdsByCameraNameContaining(String keyword) {
+        return cameraRepository.findZoneIdsByNameContaining(keyword);
     }
 
     /**
