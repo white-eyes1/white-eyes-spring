@@ -105,6 +105,18 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-018 통계 패널에 시간대별 혼잡 단계 접기 영역(처음엔 접힘)과 0~23시 막대 자리가 있고, 화면 모듈을 내려 준다")
+    void statsPage_hasHourlyLevelsFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"hourly-levels\">")))
+                .andExpect(content().string(containsString("시간대별 혼잡 단계")))
+                .andExpect(content().string(containsString("id=\"hourly-levels-bars\"")));
+        mockMvc.perform(get("/js/pages/stats-main/hourly-levels.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/hourly-levels")));
+    }
+
+    @Test
     @DisplayName("FNC-C-030 검수 기준: 통계 패널에 보조 지표 접기 영역 6개가 처음엔 접힌 채로 있다")
     void statsPage_hasAuxMetricFolds() throws Exception {
         mockMvc.perform(get("/stats"))
