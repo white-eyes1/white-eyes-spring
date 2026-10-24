@@ -225,6 +225,29 @@ class CamFaultEventServiceTest {
     }
 
     @Test
+    @DisplayName("FNC-A-035 반복 RUNNING 보고로는 열린 이벤트를 닫지 않고, 결과가 들어온 뒤 점검에서 닫혀 이벤트가 1건이다")
+    void keepsOpenEventOnRepeatedRunningReportUntilResultArrives() {
+        long cameraId = insertCamera(saveZone("캠이상 반복유지 구역", "1"), "RUNNING", true, false);
+        lastResultTimeStore.update(cameraId, NOW.minusSeconds(TIMEOUT_SEC));
+        camFaultEventService.detect(NOW);
+        assertThat(openFaults(cameraId)).hasSize(1);
+
+        // 분석 서버를 다시 켜면 상태가 이미 RUNNING이라 반복 보고만 온다
+        camFaultEventService.closeOnRecovered(cameraId, NOW.plusSeconds(5), false);
+        camFaultEventService.detect(NOW.plusSeconds(6));
+        assertThat(openFaults(cameraId)).hasSize(1);
+        assertThat(allFaults(cameraId)).hasSize(1);
+
+        LocalDateTime resultAt = NOW.plusSeconds(10);
+        lastResultTimeStore.update(cameraId, resultAt);
+        camFaultEventService.detect(resultAt);
+        camFaultEventService.detect(resultAt.plusSeconds(1));
+
+        assertThat(openFaults(cameraId)).isEmpty();
+        assertThat(allFaults(cameraId)).hasSize(1);
+    }
+
+    @Test
     @DisplayName("FNC-A-035 캠이 정지되면 열린 이벤트가 닫히고, 정지·삭제로 감시 대상에서 빠진 캠의 이벤트도 다음 검사에서 닫힌다")
     void closesOnStopAndWhenLeavingWatch() {
         long stopCamera = insertCamera(saveZone("캠이상 정지종료 구역", "1"), "ERROR", true, false);

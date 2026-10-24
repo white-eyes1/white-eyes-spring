@@ -83,17 +83,18 @@ public class CamFaultEventService {
     }
 
     /**
-     * 상태 보고가 RUNNING일 때 부른다. 열린 이벤트를 닫는다.
-     * 상태가 RUNNING으로 바뀐 보고(재가동·복구)면 마지막 결과 시각도 지금으로 올린다. 올리지 않으면 오래된 시각 때문에
-     * 다음 검사가 곧바로 이벤트를 다시 연다. 이미 RUNNING인 캠의 반복 보고로는 올리지 않는다. 결과가 끊긴 캠의 기준
-     * 시각이 보고마다 밀리면 이벤트가 열리지 않기 때문이다.
+     * 상태 보고가 RUNNING일 때 부른다. 상태가 RUNNING으로 바뀐 보고(재가동·복구)일 때만 열린 이벤트를 닫고
+     * 마지막 결과 시각을 지금으로 올린다. 올리지 않으면 오래된 시각 때문에 다음 검사가 곧바로 이벤트를 다시 연다.
+     * 이미 RUNNING인 캠의 반복 보고로는 닫지도 올리지도 않는다. 결과가 끊긴 캠의 이벤트가 닫혔다 다시 열려
+     * 장애 하나가 둘로 나뉘거나 기준 시각이 보고마다 밀리는 것을 막고, 결과가 들어온 뒤의 검사에서 닫히게 한다.
      */
     @Transactional
     public void closeOnRecovered(Long cameraId, LocalDateTime now, boolean statusChanged) {
-        closeOpenEvents(cameraId, now);
-        if (statusChanged) {
-            lastResultTimeStore.update(cameraId, now);
+        if (!statusChanged) {
+            return;
         }
+        closeOpenEvents(cameraId, now);
+        lastResultTimeStore.update(cameraId, now);
     }
 
     /** 캠이 정지되면 열린 이벤트를 닫는다(FNC-A-021 처리 순서 5). */
