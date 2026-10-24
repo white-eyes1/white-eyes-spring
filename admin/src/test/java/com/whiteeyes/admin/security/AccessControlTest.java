@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.whiteeyes.common.security.AccountPrincipal;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -50,6 +52,28 @@ class AccessControlTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    // 내 정보(FNC-C-006)는 로그인 정보의 계정 번호로 행을 읽으므로, 아래 가짜 로그인 정보와 같은 번호의 행을 둔다
+    @BeforeEach
+    void insertAccounts() {
+        jdbcTemplate.update("DELETE FROM admin_account");
+        insertAccount(1L, "admin01", "ADMIN");
+        insertAccount(2L, "admin02", "ADMIN");
+        insertAccount(3L, "super01", "SUPER_ADMIN");
+    }
+
+    private void insertAccount(long id, String loginId, String role) {
+        jdbcTemplate.update(
+                "INSERT INTO admin_account (id, login_id, password, name, role, status, must_change_password)"
+                        + " VALUES (?, ?, 'encoded', ?, ?, 'ACTIVE', FALSE)",
+                id,
+                loginId,
+                loginId,
+                role);
+    }
+
     private MockHttpServletRequestBuilder request(HttpMethod method, String path) {
         return MockMvcRequestBuilders.request(method, CONTEXT_PATH + path).contextPath(CONTEXT_PATH);
     }
@@ -58,12 +82,15 @@ class AccessControlTest {
         return request(HttpMethod.GET, path);
     }
 
+    // 내 정보(FNC-C-006)처럼 계정 번호를 쓰는 경로가 있어 계정 번호가 있는 로그인 정보로 만든다
     private static org.springframework.test.web.servlet.request.RequestPostProcessor asAdmin() {
-        return user("admin01").roles("ADMIN");
+        return user(new AccountPrincipal(
+                1L, "admin01", "encoded", true, false, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
     }
 
     private static org.springframework.test.web.servlet.request.RequestPostProcessor asSuperAdmin() {
-        return user("super01").roles("SUPER_ADMIN");
+        return user(new AccountPrincipal(
+                3L, "super01", "encoded", true, false, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))));
     }
 
     private static org.springframework.test.web.servlet.request.RequestPostProcessor asMustChangePassword() {
