@@ -209,14 +209,17 @@ class WorkHistoryServiceTest {
     }
 
     @Test
-    @DisplayName("FNC-C-026 INSERT만 한다: 서비스에는 record, 리포지토리에는 save뿐이고 엔티티에는 setter가 없다")
+    @DisplayName("FNC-C-026 INSERT만 한다: 쓰는 메서드는 서비스의 record와 리포지토리의 save뿐이고 엔티티에는 setter가 없다")
     void insertOnly_noUpdateOrDeletePath() {
+        // 조회(find…)는 이벤트 처리 이력(FNC-A-037)에 쓰려고 열었으므로 쓰는 메서드만 센다
         List<String> serviceMethods = Arrays.stream(WorkHistoryService.class.getDeclaredMethods())
                 .filter(method -> Modifier.isPublic(method.getModifiers()))
                 .map(Method::getName)
+                .filter(name -> !name.startsWith("find"))
                 .toList();
         List<String> repositoryMethods = Arrays.stream(WorkHistoryRepository.class.getMethods())
                 .map(Method::getName)
+                .filter(name -> !name.startsWith("find"))
                 .toList();
         List<String> entitySetters = Arrays.stream(WorkHistory.class.getDeclaredMethods())
                 .map(Method::getName)

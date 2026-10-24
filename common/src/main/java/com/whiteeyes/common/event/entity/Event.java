@@ -19,10 +19,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 이벤트(tables.md 'event'). 혼잡 이벤트 판정(FNC-A-033)과 급증 이벤트 판정(FNC-A-034)이 만들고 갱신·종료한다.
+ * 이벤트(tables.md 'event'). 혼잡 이벤트 판정(FNC-A-033), 급증 이벤트 판정(FNC-A-034), 캠 이상 감지(FNC-A-035)가
+ * 만들고 갱신·종료한다.
  *
- * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 이벤트 처리 기능을 만들 때 매핑한다.
- * created_at·updated_at은 DB 기본값이 채운다.
+ * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 상세 조회(FNC-A-037)를 위해 읽기만 매핑했다.
+ * 값을 바꾸는 메서드는 처리 상태 변경(FNC-A-038)에서 더한다. created_at·updated_at은 DB 기본값이 채운다.
  */
 @Entity
 @Table(name = "event")
@@ -75,9 +76,24 @@ public class Event {
     @Column(name = "status", nullable = false, length = 20)
     private EventStatus status;
 
+    /** 조치 항목 코드(ONSITE_OK·STAFF·FALSE_ALARM·CAM_CHECK·OTHER). 조치완료일 때만 값이 있다. */
+    @Column(name = "action_code", length = 20)
+    private String actionCode;
+
+    @Column(name = "action_note", length = 200)
+    private String actionNote;
+
+    /** 마지막으로 처리 상태를 바꾼 관리자(admin_account.id). admin 전용 테이블이라 연관관계 없이 번호만 둔다. */
+    @Column(name = "handled_by")
+    private Long handledBy;
+
+    @Column(name = "handled_at")
+    private LocalDateTime handledAt;
+
     private Event(
             EventType type,
             Long zoneId,
+            Long cameraId,
             LocalDateTime startedAt,
             Integer peakLevel,
             BigDecimal peakValue,
@@ -85,6 +101,7 @@ public class Event {
             String thresholdSnapshot) {
         this.type = type;
         this.zoneId = zoneId;
+        this.cameraId = cameraId;
         this.startedAt = startedAt;
         this.peakLevel = peakLevel;
         this.peakValue = peakValue;
@@ -106,7 +123,19 @@ public class Event {
             BigDecimal peakValue,
             int peakCount,
             String thresholdSnapshot) {
-        return new Event(EventType.CONGESTION, zoneId, startedAt, peakLevel, peakValue, peakCount, thresholdSnapshot);
+        return new Event(
+                EventType.CONGESTION, zoneId, null, startedAt, peakLevel, peakValue, peakCount, thresholdSnapshot);
+    }
+
+    /**
+     * 새 캠 이상 이벤트(미확인). 최고 단계·값·인원은 캠 이상에 없어 비워 둔다.
+     *
+     * @param zoneId 캠이 있는 구역
+     * @param startedAt 이상을 발견한 시각
+     * @param thresholdSnapshot 발생 당시 기준값 JSON({timeoutSec})
+     */
+    public static Event openCamFault(Long zoneId, Long cameraId, LocalDateTime startedAt, String thresholdSnapshot) {
+        return new Event(EventType.CAM_FAULT, zoneId, cameraId, startedAt, null, null, null, thresholdSnapshot);
     }
 
     /**
@@ -118,7 +147,7 @@ public class Event {
      */
     public static Event openSurge(
             Long zoneId, LocalDateTime startedAt, BigDecimal ratePct, int peakCount, String thresholdSnapshot) {
-        return new Event(EventType.SURGE, zoneId, startedAt, null, ratePct, peakCount, thresholdSnapshot);
+        return new Event(EventType.SURGE, zoneId, null, startedAt, null, ratePct, peakCount, thresholdSnapshot);
     }
 
     /** 열려 있는 동안 더 오른 값만 최고 값으로 남긴다(단계·값·인원을 각각 최댓값으로). */

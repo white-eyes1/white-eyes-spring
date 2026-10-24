@@ -5,13 +5,16 @@
   admin 모델 값이 true일 때만 지역 등록·수정 버튼과 캠 패널이 그려진다(관리자 앱).
   새 1분 통계는 통계 SSE(FNC-C-022)로 받아 화면을 새로 읽는다.
   비정상 인원 변동(FNC-C-020)은 펼칠 때 기간 비교 API로 읽는다.
-  다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감, 보조 지표)과 엑셀 버튼은 아직 없다.
+  보조 지표(FNC-C-030)는 펼친 영역에 필요한 통계 시계열만 읽는다. 관리자 앱의 이벤트 종류별 건수는 아직 없다(#199).
+  엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
+  다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감)은 아직 없다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
     <th:block th:replace="~{fragments/layout :: leaflet}"/>
     <link rel="stylesheet" th:href="@{/css/stats-main.css}">
     <link rel="stylesheet" th:href="@{/css/live.css}">
+    <link rel="stylesheet" th:href="@{/css/stats-export.css}">
 </head>
 <body class="we">
 <div class="dash" id="dash" th:attr="data-admin=${admin}, data-snapshot-interval-sec=${cardSnapshotIntervalSec}">
@@ -82,8 +85,40 @@
                         <a class="btn secondary sm" id="abnormal-detail" th:href="@{/stats/compare}">자세히</a>
                     </div>
                 </details>
-                <!-- 그래프 보기(FNC-C-012): 현재 지역을 넘긴다(panel.js renderGraphLink) -->
-                <a class="btn secondary" id="graph-link" th:href="@{/stats/graph}">그래프 보기</a>
+                <!-- 보조 지표(FNC-C-030): 기존 통계 응답으로 화면에서 계산한다(stats-main/aux-metrics.js) -->
+                <details class="acc fold" id="aux-flow">
+                    <summary class="acc-h">방향별 유입·유출 (추정)<span class="muted small">최근 1시간</span></summary>
+                    <div class="acc-b aux-flow" id="aux-flow-body"></div>
+                </details>
+                <details class="acc fold" id="aux-dwell">
+                    <summary class="acc-h">평균 체류 시간 (추정)<span class="muted small">최근 1시간</span></summary>
+                    <div class="acc-b" id="aux-dwell-body"></div>
+                </details>
+                <details class="acc fold" id="aux-spread">
+                    <summary class="acc-h">인원 변동폭<span class="muted small">최근 1시간 · 1분마다</span></summary>
+                    <div class="acc-b" id="aux-spread-body"></div>
+                </details>
+                <details class="acc fold" id="aux-level-time">
+                    <summary class="acc-h">오늘 단계별 머문 시간<span class="muted small">오늘 0시부터</span></summary>
+                    <div class="acc-b" id="aux-level-time-body"></div>
+                </details>
+                <details class="acc fold" id="aux-top-zones">
+                    <summary class="acc-h">혼잡 구역 TOP 5<span class="muted small">밀집도 순</span></summary>
+                    <div class="acc-b aux-rank" id="aux-top-zones-body"></div>
+                </details>
+                <details class="acc fold" id="aux-observe">
+                    <summary class="acc-h">관측 상태</summary>
+                    <div class="acc-b">
+                        <div class="row"><span class="grow">통계가 있는 구역</span><b id="aux-observe-zones">-</b></div>
+                        <div class="row"><span class="grow">최근 1시간 수신율</span><span class="aux-rate" id="aux-observe-rate">-</span></div>
+                        <span class="muted">지역 값은 통계가 있는 구역만의 값입니다.</span>
+                    </div>
+                </details>
+                <!-- 그래프 보기(FNC-C-012)·엑셀 다운로드(FNC-C-023): 현재 지역을 넘긴다(panel.js renderGraphLink, stats-main.js openExport) -->
+                <div class="panel-actions">
+                    <a class="btn secondary" id="graph-link" th:href="@{/stats/graph}">그래프 보기</a>
+                    <button type="button" class="btn secondary" id="export-open">엑셀 다운로드</button>
+                </div>
             </div>
         </aside>
 
@@ -115,6 +150,8 @@
 <th:block th:if="${admin}">
     <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
 </th:block>
+<!-- SCR-C-006 엑셀 다운로드 창(두 앱) -->
+<th:block th:replace="~{fragments/layout :: statExportModal}"/>
 
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/stats-main.js}"></script>
