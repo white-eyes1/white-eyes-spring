@@ -62,6 +62,7 @@ class CameraRegisterTest {
     @BeforeEach
     void prepareZones() {
         AdminTestLogin.loginForDirectCalls();
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
@@ -75,6 +76,7 @@ class CameraRegisterTest {
     @AfterEach
     void clearCamerasAndZones() {
         AdminTestLogin.clear();
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
