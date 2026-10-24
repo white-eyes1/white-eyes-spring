@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--
+  내 정보·비밀번호 변경 SCR-C-002(내 정보 영역 FNC-C-006 + 비밀번호 변경 영역 FNC-C-007), 두 앱이 함께 쓰는 화면.
+  내 정보 값은 js/pages/my-info.js가 GET /api/v1/me로 받아 채운다. 시안(design/)에 내 정보 영역이 없어
+  비밀번호 변경 시안과 같은 패널 모양으로 만들었다. 회원 탈퇴 영역(FNC-U-004)은 그 기능의 이슈에서 붙인다.
+  비밀번호 변경이 강제된 계정은 이 화면에 오지 못하고 /me/password(password.html)로 간다.
+-->
+<head>
+    <th:block th:replace="~{fragments/layout :: head('내 정보')}"/>
+</head>
+<body class="we">
+<th:block th:if="${admin}">
+    <header th:replace="~{fragments/layout :: adminHeader('')}"></header>
+</th:block>
+<th:block th:unless="${admin}">
+    <header th:replace="~{fragments/layout :: userHeader('')}"></header>
+</th:block>
+
+<main style="padding: 64px 24px; display: flex; flex-direction: column; align-items: center; gap: 24px">
+    <form class="panel" id="profile-form" novalidate style="width: 100%; max-width: 480px; overflow: hidden">
+        <div class="panel-head">
+            <div><p class="eyebrow">MY ACCOUNT</p><h2 style="margin-top: 4px">내 정보</h2></div>
+        </div>
+        <div style="padding: 22px; display: flex; flex-direction: column; gap: 16px">
+            <label class="field">아이디
+                <input class="input" type="text" name="loginId" readonly>
+            </label>
+            <label class="field" th:if="${admin}">역할
+                <input class="input" type="text" name="role" readonly>
+            </label>
+            <label class="field">이름
+                <input class="input" type="text" name="name" autocomplete="name" required>
+                <span class="hint" data-hint-for="name">1~50자</span>
+            </label>
+            <label class="field">메일
+                <input class="input" type="text" name="email" autocomplete="email" inputmode="email">
+                <span class="hint" data-hint-for="email">선택, 100자 이하의 메일 형식</span>
+            </label>
+            <label class="field">연락처
+                <input class="input" type="text" name="phone" autocomplete="tel" inputmode="tel">
+                <span class="hint" data-hint-for="phone">선택, 숫자와 -만, 20자 이하</span>
+            </label>
+            <button class="btn primary lg" id="profile-submit" type="submit" style="width: 100%" disabled>저장</button>
+        </div>
+    </form>
+
+    <th:block th:replace="~{account/password-panel :: passwordPanel}"/>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/pages/my-info.js}"></script>
+<script type="module" th:src="@{/js/pages/password-change.js}"></script>
+</body>
+</html>
