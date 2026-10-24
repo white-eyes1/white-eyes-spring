@@ -99,11 +99,20 @@ class AdminPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-A-003 다른 기능의 행 버튼과 시안 표시용 속성은 옮기지 않는다")
+    @DisplayName("SCR-A-003 표에 동작 열과 확인 창(강제 로그아웃·비활성화 공용)이 있고, 현재 로그인 아이디를 JS에 넘긴다")
+    void actionsColumnAndConfirmModal() throws Exception {
+        mockMvc.perform(get(PAGE_URL).contextPath(CONTEXT_PATH).cookie(login("super01")))
+                .andExpect(content().string(containsString("<th scope=\"col\" class=\"admin-actions\">동작</th>")))
+                .andExpect(content().string(containsString("id=\"admin-confirm-modal\" hidden")))
+                .andExpect(content().string(containsString("id=\"admin-confirm-ok\"")))
+                .andExpect(content().string(containsString("data-current-login-id=\"super01\"")));
+    }
+
+    @Test
+    @DisplayName("SCR-A-003 이 이슈 밖의 행 버튼(수정·비밀번호 재설정)과 시안 표시용 속성은 옮기지 않는다")
     void noOtherFeaturesOrAnnotations() throws Exception {
         mockMvc.perform(get(PAGE_URL).contextPath(CONTEXT_PATH).cookie(login("super01")))
                 .andExpect(content().string(not(containsString("비밀번호 재설정"))))
-                .andExpect(content().string(not(containsString("강제 로그아웃"))))
                 .andExpect(content().string(not(containsString("data-api"))))
                 .andExpect(content().string(not(containsString("data-fnc"))))
                 .andExpect(content().string(not(containsString("anno"))));
