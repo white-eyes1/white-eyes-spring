@@ -19,7 +19,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 이벤트(tables.md 'event'). 혼잡 이벤트 판정(FNC-A-033)이 만들고 갱신·종료한다.
+ * 이벤트(tables.md 'event'). 혼잡 이벤트 판정(FNC-A-033)과 급증 이벤트 판정(FNC-A-034)이 만들고 갱신·종료한다.
  *
  * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 상세 조회(FNC-A-037)를 위해 읽기만 매핑했다.
  * 값을 바꾸는 메서드는 처리 상태 변경(FNC-A-038)에서 더한다. created_at·updated_at은 DB 기본값이 채운다.
@@ -123,6 +123,18 @@ public class Event {
         return new Event(EventType.CONGESTION, zoneId, startedAt, peakLevel, peakValue, peakCount, thresholdSnapshot);
     }
 
+    /**
+     * 새 급증 이벤트(미확인). 대상 캠과 최고 혼잡 단계는 없다.
+     *
+     * @param startedAt 판정한 1분 통계의 시각
+     * @param ratePct 증가율(%)
+     * @param thresholdSnapshot 발생 당시 기준값 JSON({window, rate, minDensity})
+     */
+    public static Event openSurge(
+            Long zoneId, LocalDateTime startedAt, BigDecimal ratePct, int peakCount, String thresholdSnapshot) {
+        return new Event(EventType.SURGE, zoneId, startedAt, null, ratePct, peakCount, thresholdSnapshot);
+    }
+
     /** 열려 있는 동안 더 오른 값만 최고 값으로 남긴다(단계·값·인원을 각각 최댓값으로). */
     public void raisePeak(int level, BigDecimal value, int count) {
         if (peakLevel == null || level > peakLevel) {
@@ -130,6 +142,16 @@ public class Event {
         }
         if (peakValue == null || value.compareTo(peakValue) > 0) {
             this.peakValue = value;
+        }
+        if (peakCount == null || count > peakCount) {
+            this.peakCount = count;
+        }
+    }
+
+    /** 급증 이벤트가 열려 있는 동안 더 오른 증가율(%)·인원만 최고 값으로 남긴다. 최고 단계는 없다. */
+    public void raiseSurgePeak(BigDecimal ratePct, int count) {
+        if (peakValue == null || ratePct.compareTo(peakValue) > 0) {
+            this.peakValue = ratePct;
         }
         if (peakCount == null || count > peakCount) {
             this.peakCount = count;
