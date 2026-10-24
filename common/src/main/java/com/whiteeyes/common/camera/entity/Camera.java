@@ -83,6 +83,13 @@ public class Camera {
         this.progress = INITIAL_PROGRESS;
     }
 
+    /** 정지 상태인 캠의 이름·입력 방식·영상 주소를 바꾼다(FNC-A-019). 정지 확인과 주소 규칙 검사는 호출하는 쪽이 먼저 한다. */
+    public void updateInfo(String name, CameraSourceType sourceType, String sourceUri) {
+        this.name = name;
+        this.sourceType = sourceType;
+        this.sourceUri = sourceUri;
+    }
+
     /** 분석 서버가 이 캠을 가동해야 한다고 기록한다. 분석 서버가 다시 켜지면 이 값을 보고 자동 가동한다(FNC-A-020 처리 순서 2). */
     public void requestRun() {
         this.runRequested = true;

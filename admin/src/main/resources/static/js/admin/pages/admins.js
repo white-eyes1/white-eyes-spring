@@ -1,6 +1,7 @@
 // 관리자 관리 화면(SCR-A-003). 관리자 목록(FNC-A-003)을 GET /api/v1/admins로 불러와 아이디 정렬·페이지 이동한다.
 // 시안·screens.md에 검색 줄이 없어 조건 없이 부른다(API는 검색 조건을 받음). 기본 순서는 API 기본값(최근 생성 순)이다.
-import { ApiError, get } from '../../common/api.js';
+// '관리자 추가' 창은 POST /api/v1/admins(FNC-A-009)로 계정을 만들고 임시 비밀번호를 한 번만 보여 준다.
+import { ApiError, get, post } from '../../common/api.js';
 import { formatDateTime, formatNumber } from '../../common/format.js';
 
 const ADMINS_API = '/api/v1/admins';
@@ -173,3 +174,128 @@ function showError(error) {
     }
     errorNotice.hidden = false;
 }
+
+// ---- 관리자 추가 창 (FNC-A-009) ----
+
+const modal = document.getElementById('admin-modal');
+const form = document.getElementById('admin-form');
+const formError = document.getElementById('admin-form-error');
+const saveButton = document.getElementById('admin-save');
+const formParts = ['admin-form-fields', 'admin-form-foot'].map((id) => document.getElementById(id));
+const createdParts = ['admin-created', 'admin-created-foot'].map((id) => document.getElementById(id));
+const tempPassword = document.getElementById('admin-temp-password');
+const copyButton = document.getElementById('admin-temp-copy');
+// 409 아이디 중복은 아이디 칸 아래에 보인다
+const FORM_ERROR_TARGET = { DUPLICATE_LOGIN_ID: 'loginId' };
+const COPY_LABEL = '복사';
+const COPIED_LABEL = '복사됨';
+// 만든 뒤 창을 닫을 때만 목록을 새로 읽는다
+let created = false;
+
+function openModal() {
+    form.reset();
+    clearFormErrors();
+    showCreated(false);
+    created = false;
+    modal.hidden = false;
+    form.elements.loginId.focus();
+}
+
+// 닫으면 임시 비밀번호를 화면에서 지운다(conventions.md '임시 비밀번호': 한 번만 보여 줌)
+function closeModal() {
+    modal.hidden = true;
+    tempPassword.textContent = '';
+    if (created) {
+        created = false;
+        state.page = 0;
+        loadAdmins();
+    }
+}
+
+function showCreated(visible) {
+    formParts.forEach((part) => {
+        part.hidden = visible;
+    });
+    createdParts.forEach((part) => {
+        part.hidden = !visible;
+    });
+}
+
+function clearFormErrors() {
+    formError.hidden = true;
+    formError.textContent = '';
+    form.querySelectorAll('[data-error-for]').forEach((hint) => {
+        hint.hidden = true;
+        hint.textContent = '';
+    });
+    form.querySelectorAll('.input.err').forEach((input) => input.classList.remove('err'));
+}
+
+function showFieldError(field, message) {
+    const hint = form.querySelector(`[data-error-for="${field}"]`);
+    if (!hint) {
+        formError.textContent = message;
+        formError.hidden = false;
+        return;
+    }
+    hint.textContent = message;
+    hint.hidden = false;
+    form.elements[field]?.classList?.add('err');
+}
+
+async function submitForm(event) {
+    event.preventDefault();
+    clearFormErrors();
+    const body = {
+        loginId: form.elements.loginId.value.trim(),
+        name: form.elements.name.value.trim(),
+        email: form.elements.email.value.trim(),
+        phone: form.elements.phone.value.trim(),
+    };
+    saveButton.disabled = true;
+    try {
+        const result = await post(ADMINS_API, body, { toast: false });
+        created = true;
+        document.getElementById('admin-created-login-id').textContent = body.loginId;
+        tempPassword.textContent = result.temporaryPassword;
+        copyButton.textContent = COPY_LABEL;
+        showCreated(true);
+    } catch (error) {
+        if (!(error instanceof ApiError)) {
+            console.error(error);
+            showFieldError('', DEFAULT_ERROR_MESSAGE);
+        } else if (error.fieldErrors.length > 0) {
+            error.fieldErrors.forEach(({ field, message }) => showFieldError(field, message));
+        } else {
+            showFieldError(FORM_ERROR_TARGET[error.code] ?? '', error.message);
+        }
+    } finally {
+        saveButton.disabled = false;
+    }
+}
+
+// 클립보드를 쓸 수 없으면(HTTP 접속 등) 글자를 선택해 두어 직접 복사하게 한다
+async function copyTempPassword() {
+    try {
+        await navigator.clipboard.writeText(tempPassword.textContent);
+        copyButton.textContent = COPIED_LABEL;
+    } catch {
+        window.getSelection()?.selectAllChildren(tempPassword);
+    }
+}
+
+document.getElementById('admin-add').addEventListener('click', openModal);
+modal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeModal));
+modal.addEventListener('mousedown', (event) => {
+    // 임시 비밀번호를 보여 주는 중에는 바깥을 눌러 실수로 닫히지 않게 한다
+    if (event.target === modal && !created) {
+        closeModal();
+    }
+});
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modal.hidden && !created) {
+        closeModal();
+    }
+});
+form.addEventListener('submit', submitForm);
+copyButton.addEventListener('click', copyTempPassword);

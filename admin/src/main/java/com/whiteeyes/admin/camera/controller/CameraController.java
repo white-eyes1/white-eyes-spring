@@ -6,17 +6,20 @@ import com.whiteeyes.admin.camera.dto.CameraListItem;
 import com.whiteeyes.admin.camera.dto.CameraResponse;
 import com.whiteeyes.admin.camera.dto.CameraStartResponse;
 import com.whiteeyes.admin.camera.dto.CameraStopResponse;
+import com.whiteeyes.admin.camera.dto.CameraUpdateRequest;
 import com.whiteeyes.admin.camera.service.CameraDeleteService;
 import com.whiteeyes.admin.camera.service.CameraListService;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
 import com.whiteeyes.admin.camera.service.CameraStartService;
 import com.whiteeyes.admin.camera.service.CameraStopService;
+import com.whiteeyes.admin.camera.service.CameraUpdateService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,6 +37,7 @@ public class CameraController {
     private final CameraListService cameraListService;
     private final CameraStartService cameraStartService;
     private final CameraStopService cameraStopService;
+    private final CameraUpdateService cameraUpdateService;
     private final CameraDeleteService cameraDeleteService;
 
     @GetMapping
@@ -50,6 +54,12 @@ public class CameraController {
     @PostMapping("/{id}/stop")
     public CameraStopResponse stop(@PathVariable Long id) {
         return cameraStopService.stop(id);
+    }
+
+    /** 캠 정보 수정(FNC-A-019): 정지 상태일 때만. 보낸 필드(이름·입력 방식·영상 주소)만 고친다. */
+    @PatchMapping("/{id}")
+    public CameraResponse update(@PathVariable Long id, @Valid @RequestBody CameraUpdateRequest request) {
+        return cameraUpdateService.update(id, request);
     }
 
     /** 캠 삭제(FNC-A-023) */

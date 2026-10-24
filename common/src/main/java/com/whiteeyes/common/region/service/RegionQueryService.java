@@ -66,6 +66,16 @@ public class RegionQueryService {
                 .orElseThrow(ZoneNotFoundException::new);
     }
 
+    /**
+     * 삭제된 구역도 돌려주는 구역 조회. 지난 통계·다시보기 화면이 삭제된 구역의 이름을 '(삭제됨)'과 함께 보일 때 쓴다(FNC-A-017 업무 규칙).
+     *
+     * @throws ZoneNotFoundException 없는 구역이면(404 ZONE_NOT_FOUND)
+     */
+    @Transactional(readOnly = true)
+    public Zone getZoneIncludingDeleted(long zoneId) {
+        return zoneRepository.findById(zoneId).orElseThrow(ZoneNotFoundException::new);
+    }
+
     /** 읍·면·동들에 속한 구역. 삭제된 구역도 포함한다(지난 통계의 지역 합산, FNC-C-012). */
     @Transactional(readOnly = true)
     public List<Zone> findAllZonesInDongs(Collection<Long> dongIds) {
