@@ -9,6 +9,7 @@ import { createRegionMap, createStatusLayer } from '../map/status-map.js';
 import { createAbnormalPanel } from './stats-main/abnormal.js';
 import { createAuxMetricsPanel } from './stats-main/aux-metrics.js';
 import { createDeck } from './stats-main/deck.js';
+import { createHourlyLevelsPanel } from './stats-main/hourly-levels.js';
 import {
     renderGraphLink,
     renderLevelRules,
@@ -35,6 +36,7 @@ let map = null;
 let layer = null;
 let deck = null;
 const abnormalPanel = createAbnormalPanel();
+const hourlyLevelsPanel = createHourlyLevelsPanel();
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -235,6 +237,7 @@ async function loadRegion() {
         renderedRegionId = target.id;
         connectStream(target.id);
         abnormalPanel.setRegion(target.id);
+        hourlyLevelsPanel.setRegion(target.id);
         auxPanel.setRegion(target.id);
     }
     await refresh();
@@ -268,6 +271,8 @@ async function refresh() {
     renderZonePanel(zoneItems, zoneTab, levels);
     // 보조 지표(FNC-C-030): 펼쳐 있는 영역만 시계열을 다시 읽는다. 읽기 실패는 영역 안에 문구로 보인다
     auxPanel.refresh(zoneItems);
+    // 시간대별 혼잡 단계(FNC-C-018): 현재 시간 막대가 1분 통계로 바뀐다
+    hourlyLevelsPanel.refresh();
 
     const statusById = new Map(child.items.map((item) => [item.id, item]));
     if (isDong) {

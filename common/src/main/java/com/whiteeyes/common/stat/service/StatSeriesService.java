@@ -134,6 +134,38 @@ public class StatSeriesService {
         return result;
     }
 
+    /**
+     * 아직 시간별 통계가 없는 구간(진행 중인 시간)을 1분 통계로 묶은 점 하나(FNC-C-018 처리 순서 3).
+     * 구역마다 1분 통계를 시간별 집계(FNC-A-029)와 같은 계산으로 묶은 뒤, 지역은 {@link #findSeries}의 점과 같은 규칙으로 합산한다.
+     *
+     * @param from 구간 시작(점의 at)
+     * @param to 구간 끝(미만)
+     * @return 받은 초가 있는 1분 통계가 없으면 빈 점
+     * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)
+     * @throws com.whiteeyes.common.region.exception.ZoneNotFoundException 없는 구역이면(404)
+     */
+    @Transactional(readOnly = true)
+    public StatSeriesPoint findMinuteRollup(
+            StatTargetType targetType, long targetId, LocalDateTime from, LocalDateTime to) {
+        Target target = targetType == StatTargetType.ZONE ? zoneTarget(targetId) : regionTarget(targetId);
+        if (target.areaByZone().isEmpty()) {
+            return StatSeriesPoint.empty(from.atOffset(KST_OFFSET));
+        }
+        Map<Long, List<StatValues>> minutesByZone = findRows(target.areaByZone().keySet(), StatInterval.MINUTE, from, to)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        ZoneRow::zoneId, Collectors.mapping(ZoneRow::values, Collectors.toList())));
+        List<ZoneRow> rolledUp = new ArrayList<>();
+        // 1분 통계에는 시연용 데이터가 없다(tables.md zone_stat_minute)
+        minutesByZone.forEach((zoneId, minutes) -> StatRollupCalculator.rollUp(minutes)
+                .ifPresent(values -> rolledUp.add(new ZoneRow(zoneId, from, values, false))));
+        if (rolledUp.isEmpty()) {
+            return StatSeriesPoint.empty(from.atOffset(KST_OFFSET));
+        }
+        Map<Long, Map<ZoneDirection, Long>> neighborsByZone = target.isZone() ? Map.of() : findNeighbors(target);
+        return toPoint(target, from, rolledUp, neighborsByZone);
+    }
+
     // from이 구간 중간이면 그 구간의 시작부터 세고, to 앞에서 시작한 마지막 구간까지 통째로 넣는다(#25에서 정함)
     private static List<LocalDateTime> buckets(StatInterval interval, LocalDateTime from, LocalDateTime to) {
         List<LocalDateTime> buckets = new ArrayList<>();
