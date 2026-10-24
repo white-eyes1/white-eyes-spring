@@ -250,6 +250,21 @@ class ForceLogoutTest {
     }
 
     @Test
+    @DisplayName("FNC-C-026 관리자 대상도 기록 저장이 실패하면 세션이 그대로 남는다(삭제는 맨 뒤)")
+    void admin_historyFails_sessionsKept() throws Exception {
+        insertSession("SPRING_SESSION_ADMIN", "admin01");
+
+        // 행동한 계정 아이디가 work_history 칸(20자)보다 길면 기록 저장이 실패한다
+        mockMvc.perform(post("/api/v1/admins/{id}/logout", adminId)
+                        .with(csrf())
+                        .with(AdminTestLogin.superAdmin("s".repeat(21))))
+                .andExpect(status().isInternalServerError());
+
+        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "admin01")).isOne();
+        assertThat(count("work_history")).isZero();
+    }
+
+    @Test
     @DisplayName("FNC-A-008 관리자 강제 로그아웃은 work_history에 ACCOUNT_CHANGE 1행(ADMIN_ACCOUNT, deletedSessions)을 남긴다")
     void admin_recordsAccountChange() throws Exception {
         login("admin01");
