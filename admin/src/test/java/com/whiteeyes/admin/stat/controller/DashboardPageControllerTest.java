@@ -138,11 +138,13 @@ class DashboardPageControllerTest {
     }
 
     @Test
-    @DisplayName("FNC-C-030 처리 순서 7: 보조 지표 화면 모듈은 이벤트 요약 API를 종류별로 읽는다")
+    @DisplayName("FNC-C-030 처리 순서 7: 보조 지표 화면 모듈은 이벤트 요약 API를 종류 조건 없이 한 번 읽어 종류별 건수(byType)를 쓴다")
     void auxMetricsModule_readsEventSummaryByType() throws Exception {
         mockMvc.perform(get("/js/pages/stats-main/aux-metrics.js"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/api/v1/events/summary")))
+                .andExpect(content().string(containsString("summary.byType[type]")))
+                .andExpect(content().string(not(containsString("types: type"))))
                 .andExpect(content().string(containsString("'CONGESTION'")))
                 .andExpect(content().string(containsString("'SURGE'")))
                 .andExpect(content().string(containsString("'CAM_FAULT'")));
