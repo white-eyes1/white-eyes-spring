@@ -28,8 +28,8 @@ import com.whiteeyes.common.stat.dto.StatSeriesPoint;
  * 통계 엑셀 파일을 쓴다(FNC-C-023 처리 순서 2·3·5). SXSSF(스트리밍)라 메모리에는 최근 행 몇 개만 두고 나머지는
  * 임시 파일로 내린다. 항목마다 시트 하나, 행 = 대상 줄 × 시각.
  *
- * <p>열: 시각, 시·도, 시·군·구, 읍·면·동, 구역, 항목 값, 시연용. 인원은 평균·최대·최소 3열(#28에서 정함).
- * 통계가 없는 시각은 값 칸을 비운다(#28에서 정함). 다 쓰면 {@link #close()}로 임시 파일을 지운다.
+ * <p>열: 시각, 시·도, 시·군·구, 읍·면·동, 구역, 항목 값, 시연용. 인원은 평균·최대·최소 3열.
+ * 통계가 없는 시각은 값 칸을 비운다. 다 쓰면 {@link #close()}로 임시 파일을 지운다.
  */
 public class StatExcelWriter implements AutoCloseable {
 
@@ -98,7 +98,7 @@ public class StatExcelWriter implements AutoCloseable {
                 }
                 column++;
             }
-            // 1분 통계에는 시연용 데이터가 없어 항상 '아니오'(#28에서 정함, tables.md zone_stat_minute)
+            // 1분 통계에는 시연용 데이터가 없어 항상 '아니오'(tables.md zone_stat_minute)
             row.createCell(column).setCellValue(point.isDemo() ? "예" : "아니오");
         });
     }
@@ -116,7 +116,7 @@ public class StatExcelWriter implements AutoCloseable {
 
     /**
      * 파일 이름: stats_{대상이름}_{from}_{to}.xlsx(FNC-C-023 처리 순서 5). 날짜는 yyyyMMdd, to는 마지막으로 들어간 날
-     * (to 미만이라 to에서 1분 뺀 날, #28에서 정함). 파일 이름에 쓸 수 없는 글자는 '_'로 바꾼다.
+     * (to 미만이라 to에서 1분 뺀 날). 파일 이름에 쓸 수 없는 글자는 '_'로 바꾼다.
      */
     public static String fileName(StatExportPlan plan) {
         String target = plan.targetName().replaceAll(UNSAFE_FILE_CHARS, "_");
