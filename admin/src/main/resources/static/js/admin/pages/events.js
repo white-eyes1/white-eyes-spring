@@ -1,9 +1,9 @@
-// 이벤트 로그 화면 SCR-A-010 중 요약 카드·필터·이벤트 표(FNC-A-036)와, 행을 누르면 열리는
+// 이벤트 로그 화면 SCR-A-010 중 요약 카드·필터·이벤트 표(FNC-A-036), 내려받기(FNC-A-039)와, 행을 누르면 열리는
 // 이벤트 상세 창 SCR-A-011 중 이벤트 정보·처리 이력(FNC-A-037).
-// 발생 시점 영상(FNC-A-040), 조치 버튼·조치 창(FNC-A-038), 내려받기(FNC-A-039), 새 이벤트 알림(FNC-A-048)은 각 기능의 이슈에서 붙인다.
+// 발생 시점 영상(FNC-A-040), 조치 버튼·조치 창(FNC-A-038), 새 이벤트 알림(FNC-A-048)은 각 기능의 이슈에서 붙인다.
 // 필터는 주소의 쿼리로 유지한다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
-import { get } from '../../common/api.js';
+import { download, get } from '../../common/api.js';
 import { formatDateTime, formatDecimal, formatNumber } from '../../common/format.js';
 
 const PAGE_SIZE = 20;
@@ -41,6 +41,7 @@ const emptyEl = document.getElementById('event-empty');
 const totalEl = document.getElementById('event-total');
 const pagesEl = document.getElementById('event-pages');
 const summaryTotalLabel = document.getElementById('summary-total-label');
+const exportButton = document.getElementById('export-button');
 const detailModal = document.getElementById('detail-modal');
 const detailTypeChip = document.getElementById('detail-type-chip');
 const detailTitle = document.getElementById('detail-title');
@@ -95,6 +96,36 @@ function bindFilters() {
         window.clearTimeout(keywordTimer);
         keywordTimer = window.setTimeout(applyFilters, KEYWORD_DEBOUNCE_MS);
     });
+}
+
+exportButton.addEventListener('click', downloadExcel);
+
+// 내려받기: 지금 화면의 필터 그대로(page·size는 보내지 않는다). 5만 건 초과 같은 오류는 api.js가 토스트로 알린다
+async function downloadExcel() {
+    exportButton.disabled = true;
+    const query = commonQuery();
+    if (statusSelect.value) {
+        query.append('statuses', statusSelect.value);
+    }
+    try {
+        const { blob, fileName } = await download('/api/v1/events/export', [...query.entries()]);
+        saveFile(blob, fileName ?? 'events.xlsx');
+    } catch (error) {
+        console.error(error);
+    } finally {
+        exportButton.disabled = false;
+    }
+}
+
+function saveFile(blob, fileName) {
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = fileName;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
 }
 
 function applyFilters() {
