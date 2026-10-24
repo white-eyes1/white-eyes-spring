@@ -74,11 +74,10 @@ public class EventListService {
         Map<Long, String> regionPaths = regionLookupService.findPaths(
                 zones.values().stream().map(ZoneSummary::dongId).collect(Collectors.toSet()));
         Map<Long, String> cameraNamesById = cameraIds.isEmpty() ? Map.of() : cameraQueryService.findNamesByIds(cameraIds);
-        Map<Long, String> cameraNamesByZone = cameraQueryService.findLatestNamesByZoneIds(zoneIds);
         LocalDateTime now = LocalDateTime.now(KST);
 
         return events.stream()
-                .map(event -> toItem(event, zones.get(event.getZoneId()), regionPaths, cameraNamesById, cameraNamesByZone, now))
+                .map(event -> toItem(event, zones.get(event.getZoneId()), regionPaths, cameraNamesById, now))
                 .toList();
     }
 
@@ -87,7 +86,6 @@ public class EventListService {
             ZoneSummary zone,
             Map<Long, String> regionPaths,
             Map<Long, String> cameraNamesById,
-            Map<Long, String> cameraNamesByZone,
             LocalDateTime now) {
         boolean ongoing = event.getEndedAt() == null;
         LocalDateTime until = ongoing ? now : event.getEndedAt();
@@ -97,7 +95,7 @@ public class EventListService {
                 event.getZoneId(),
                 zone == null ? null : zoneNameOf(zone),
                 zone == null ? null : regionPaths.get(zone.dongId()),
-                cameraNameOf(event, cameraNamesById, cameraNamesByZone),
+                cameraNameOf(event, cameraNamesById),
                 zone != null && zone.deleted(),
                 toKstOffset(event.getStartedAt()),
                 ongoing ? null : toKstOffset(event.getEndedAt()),
@@ -113,13 +111,12 @@ public class EventListService {
         return zone.deleted() ? DELETED_ZONE_PREFIX + zone.name() : zone.name();
     }
 
-    // 캠 이상은 이벤트가 가리키는 캠, 혼잡·급증은 camera_id가 없어 그 구역의 캠을 보인다
-    private static String cameraNameOf(
-            Event event, Map<Long, String> cameraNamesById, Map<Long, String> cameraNamesByZone) {
+    // 캠 이상만 이벤트가 가리키는 캠 이름. 혼잡·급증은 구역 단위라 camera_id가 없으므로 null (PM 결정)
+    private static String cameraNameOf(Event event, Map<Long, String> cameraNamesById) {
         if (event.getType() == EventType.CAM_FAULT && event.getCameraId() != null) {
             return cameraNamesById.get(event.getCameraId());
         }
-        return cameraNamesByZone.get(event.getZoneId());
+        return null;
     }
 
     // DB에는 KST를 오프셋 없이 저장하므로 응답에서 +09:00을 붙인다
