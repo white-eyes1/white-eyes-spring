@@ -118,6 +118,20 @@ class EventSummaryTest {
     }
 
     @Test
+    @DisplayName("FNC-A-036 regionId 조건은 그 지역 아래 구역의 이벤트만 센다")
+    void summary_appliesRegionId() throws Exception {
+        insertEvent("CONGESTION", samcheongZoneId, 0, "UNCHECKED");
+        insertEvent("CONGESTION", samcheongZoneId, 1, "RESOLVED");
+        insertEvent("CONGESTION", sogongZoneId, 2, "UNCHECKED");
+        long jongno = jdbcTemplate.queryForObject("SELECT id FROM region WHERE name = ?", Long.class, "종로구");
+
+        mockMvc.perform(get(SUMMARY_URL).param("regionId", String.valueOf(jongno)))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.unchecked").value(1))
+                .andExpect(jsonPath("$.resolved").value(1));
+    }
+
+    @Test
     @DisplayName("FNC-A-036 기간·구역·종류·검색어 조건은 목록과 같게 적용한다")
     void summary_appliesSameFiltersAsList() throws Exception {
         insertEvent("CONGESTION", samcheongZoneId, 0, "UNCHECKED");
