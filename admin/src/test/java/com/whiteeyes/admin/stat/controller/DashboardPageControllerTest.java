@@ -105,6 +105,23 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-011 지도 도구에 히트맵 토글과 조건(기간·항목 4개·요일 3개)·시간대 슬라이더(0~23)·재생이 있고, 화면 모듈을 내려 준다")
+    void statsPage_hasHeatmapTool() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("id=\"heatmap-toggle\" aria-pressed=\"false\">히트맵<")))
+                .andExpect(content().string(containsString("id=\"heatmap-from\"")))
+                .andExpect(content().string(containsString("id=\"heatmap-to\"")))
+                .andExpect(content().string(containsString("<option value=\"INFLOW\">유입</option>")))
+                .andExpect(content().string(containsString("<option value=\"WEEKEND\">주말</option>")))
+                .andExpect(content().string(containsString("id=\"heatmap-hour\" min=\"0\" max=\"23\"")))
+                .andExpect(content().string(containsString("id=\"heatmap-play\"")));
+        mockMvc.perform(get("/js/pages/stats-main/heatmap-tool.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/map/heatmap")))
+                .andExpect(content().string(containsString("PLAY_INTERVAL_MS = 1000")));
+    }
+
+    @Test
     @DisplayName("FNC-C-030 검수 기준: 통계 패널에 보조 지표 접기 영역 6개가 처음엔 접힌 채로 있다")
     void statsPage_hasAuxMetricFolds() throws Exception {
         mockMvc.perform(get("/stats"))

@@ -9,6 +9,7 @@ import { createRegionMap, createStatusLayer } from '../map/status-map.js';
 import { createAbnormalPanel } from './stats-main/abnormal.js';
 import { createAuxMetricsPanel } from './stats-main/aux-metrics.js';
 import { createDeck } from './stats-main/deck.js';
+import { createHeatmapTool } from './stats-main/heatmap-tool.js';
 import {
     renderGraphLink,
     renderLevelRules,
@@ -35,6 +36,7 @@ let map = null;
 let layer = null;
 let deck = null;
 const abnormalPanel = createAbnormalPanel();
+const heatmapTool = createHeatmapTool();
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -235,6 +237,7 @@ async function loadRegion() {
         renderedRegionId = target.id;
         connectStream(target.id);
         abnormalPanel.setRegion(target.id);
+        heatmapTool.setRegion(layer, target.id);
         auxPanel.setRegion(target.id);
     }
     await refresh();
