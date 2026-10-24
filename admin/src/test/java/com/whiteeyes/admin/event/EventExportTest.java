@@ -223,18 +223,19 @@ class EventExportTest {
         Row handled = rows.get(0);
         assertThat(handled.getCell(2).getNumericCellValue()).isEqualTo(10.0);
         assertThat(handled.getCell(3).getStringCellValue()).isEqualTo("혼잡");
-        assertThat(handled.getCell(4).getStringCellValue()).isEqualTo("종로구");
-        assertThat(handled.getCell(5).getStringCellValue()).isEqualTo("삼청동");
-        assertThat(handled.getCell(6).getStringCellValue()).isEqualTo("삼청동 1구역");
-        assertThat(handled.getCell(7).getStringCellValue()).isEqualTo("위험");
-        assertThat(handled.getCell(8).getNumericCellValue()).isEqualTo(1.64);
-        assertThat(handled.getCell(10).getStringCellValue()).isEqualTo("조치완료");
-        assertThat(handled.getCell(11).getStringCellValue()).isEqualTo("인력 배치");
-        assertThat(handled.getCell(12).getStringCellValue()).isEqualTo("인력 2명 배치");
-        assertThat(handled.getCell(13).getStringCellValue()).isEqualTo(adminLoginId);
-        assertThat(handled.getCell(14).getLocalDateTimeCellValue()).isEqualTo(T0.plusMinutes(20));
+        assertThat(handled.getCell(4).getStringCellValue()).isEqualTo("서울특별시");
+        assertThat(handled.getCell(5).getStringCellValue()).isEqualTo("종로구");
+        assertThat(handled.getCell(6).getStringCellValue()).isEqualTo("삼청동");
+        assertThat(handled.getCell(7).getStringCellValue()).isEqualTo("삼청동 1구역");
+        assertThat(handled.getCell(8).getStringCellValue()).isEqualTo("위험");
+        assertThat(handled.getCell(9).getNumericCellValue()).isEqualTo(1.64);
+        assertThat(handled.getCell(11).getStringCellValue()).isEqualTo("조치완료");
+        assertThat(handled.getCell(12).getStringCellValue()).isEqualTo("인력 배치");
+        assertThat(handled.getCell(13).getStringCellValue()).isEqualTo("인력 2명 배치");
+        assertThat(handled.getCell(14).getStringCellValue()).isEqualTo(adminLoginId);
+        assertThat(handled.getCell(15).getLocalDateTimeCellValue()).isEqualTo(T0.plusMinutes(20));
         Row deleted = rows.get(1);
-        assertThat(deleted.getCell(6).getStringCellValue()).isEqualTo("(삭제됨) 사직동 1구역");
+        assertThat(deleted.getCell(7).getStringCellValue()).isEqualTo("(삭제됨) 사직동 1구역");
         assertThat(deleted.getCell(1).getStringCellValue()).isEqualTo("진행 중");
     }
 
@@ -251,9 +252,9 @@ class EventExportTest {
         Row row = rowsOf(export().andExpect(status().isOk()).andReturn()).get(0);
 
         assertThat(row.getCell(3).getStringCellValue()).isEqualTo("캠 이상");
-        assertThat(row.getCell(7)).isNull();
         assertThat(row.getCell(8)).isNull();
         assertThat(row.getCell(9)).isNull();
+        assertThat(row.getCell(10)).isNull();
     }
 
     @Test
@@ -281,6 +282,19 @@ class EventExportTest {
         assertThat(filter.get("to").asString()).isEqualTo("2026-10-13T00:00:00+09:00");
         assertThat(filter.get("types").get(0).asString()).isEqualTo("CONGESTION");
         assertThat(filter.get("keyword").asString()).isEqualTo("삼청");
+    }
+
+    @Test
+    @DisplayName("FNC-A-039 작업 기록의 대상 이름: 구역 조건이면 구역 이름, 지역 조건이면 지역 이름, 없으면 '전체'")
+    void export_recordsTargetName() throws Exception {
+        insertEvent("CONGESTION", samcheongZoneId, T0, null, 2, "0.8000", 10, "UNCHECKED");
+
+        export().andExpect(status().isOk());
+        export(param("regionId", String.valueOf(regionId("종로구")))).andExpect(status().isOk());
+        export(param("zoneId", String.valueOf(samcheongZoneId))).andExpect(status().isOk());
+
+        List<String> names = jdbcTemplate.queryForList("SELECT target_name FROM work_history ORDER BY id", String.class);
+        assertThat(names).containsExactly("전체", "종로구", "삼청동 1구역");
     }
 
     @Test

@@ -41,6 +41,7 @@ class EventExcelWriterTest {
                         "종료 시각",
                         "지속(분)",
                         "종류",
+                        "시·도",
                         "시·군·구",
                         "읍·면·동",
                         "구역",
@@ -59,22 +60,23 @@ class EventExcelWriterTest {
     void congestionRow() throws Exception {
         EventListItem item = item(EventType.CONGESTION, ENDED, false, 630, 3, "1.6400", 48, EventStatus.CHECKED);
 
-        Row row = write(List.of(new EventExportRow(item, null, null, null, null))).getRow(1);
+        Row row = write(List.of(row(item))).getRow(1);
 
         assertThat(row.getCell(0).getLocalDateTimeCellValue()).isEqualTo(LocalDateTime.of(2026, 10, 12, 9, 0));
         assertThat(row.getCell(1).getLocalDateTimeCellValue()).isEqualTo(LocalDateTime.of(2026, 10, 12, 9, 10, 30));
         assertThat(row.getCell(2).getNumericCellValue()).isEqualTo(10.5);
         assertThat(text(row, 3)).isEqualTo("혼잡");
-        assertThat(text(row, 4)).isEqualTo("종로구");
-        assertThat(text(row, 5)).isEqualTo("삼청동");
-        assertThat(text(row, 6)).isEqualTo("삼청동 1구역");
-        assertThat(text(row, 7)).isEqualTo("위험");
-        assertThat(row.getCell(8).getNumericCellValue()).isEqualTo(1.64);
-        assertThat(row.getCell(9)).isNull();
-        assertThat(text(row, 10)).isEqualTo("확인 중");
-        assertThat(row.getCell(11)).isNull();
-        assertThat(row.getCell(13)).isNull();
+        assertThat(text(row, 4)).isEqualTo("서울특별시");
+        assertThat(text(row, 5)).isEqualTo("종로구");
+        assertThat(text(row, 6)).isEqualTo("삼청동");
+        assertThat(text(row, 7)).isEqualTo("삼청동 1구역");
+        assertThat(text(row, 8)).isEqualTo("위험");
+        assertThat(row.getCell(9).getNumericCellValue()).isEqualTo(1.64);
+        assertThat(row.getCell(10)).isNull();
+        assertThat(text(row, 11)).isEqualTo("확인 중");
+        assertThat(row.getCell(12)).isNull();
         assertThat(row.getCell(14)).isNull();
+        assertThat(row.getCell(15)).isNull();
     }
 
     @Test
@@ -82,13 +84,13 @@ class EventExcelWriterTest {
     void surgeRow() throws Exception {
         EventListItem item = item(EventType.SURGE, ENDED, false, 600, null, "75.5000", 30, EventStatus.UNCHECKED);
 
-        Row row = write(List.of(new EventExportRow(item, null, null, null, null))).getRow(1);
+        Row row = write(List.of(row(item))).getRow(1);
 
         assertThat(text(row, 3)).isEqualTo("급증");
-        assertThat(row.getCell(7)).isNull();
         assertThat(row.getCell(8)).isNull();
-        assertThat(row.getCell(9).getNumericCellValue()).isEqualTo(75.5);
-        assertThat(text(row, 10)).isEqualTo("미확인");
+        assertThat(row.getCell(9)).isNull();
+        assertThat(row.getCell(10).getNumericCellValue()).isEqualTo(75.5);
+        assertThat(text(row, 11)).isEqualTo("미확인");
     }
 
     @Test
@@ -96,12 +98,12 @@ class EventExcelWriterTest {
     void camFaultRow() throws Exception {
         EventListItem item = item(EventType.CAM_FAULT, ENDED, false, 600, null, null, null, EventStatus.UNCHECKED);
 
-        Row row = write(List.of(new EventExportRow(item, null, null, null, null))).getRow(1);
+        Row row = write(List.of(row(item))).getRow(1);
 
         assertThat(text(row, 3)).isEqualTo("캠 이상");
-        assertThat(row.getCell(7)).isNull();
         assertThat(row.getCell(8)).isNull();
         assertThat(row.getCell(9)).isNull();
+        assertThat(row.getCell(10)).isNull();
     }
 
     @Test
@@ -109,7 +111,7 @@ class EventExcelWriterTest {
     void ongoingRow() throws Exception {
         EventListItem item = item(EventType.CONGESTION, null, true, 1800, 2, "0.8000", 10, EventStatus.UNCHECKED);
 
-        Row row = write(List.of(new EventExportRow(item, null, null, null, null))).getRow(1);
+        Row row = write(List.of(row(item))).getRow(1);
 
         assertThat(text(row, 1)).isEqualTo("진행 중");
         assertThat(row.getCell(2).getNumericCellValue()).isEqualTo(30.0);
@@ -121,13 +123,13 @@ class EventExcelWriterTest {
         EventListItem item = item(EventType.CONGESTION, ENDED, false, 600, 2, "0.8000", 10, EventStatus.RESOLVED);
         OffsetDateTime handledAt = OffsetDateTime.parse("2026-10-12T09:20:00+09:00");
 
-        Row row = write(List.of(new EventExportRow(item, "STAFF", "인력 2명 배치", "admin01", handledAt))).getRow(1);
+        Row row = write(List.of(new EventExportRow(item, "서울특별시", "종로구", "삼청동", "STAFF", "인력 2명 배치", "admin01", handledAt))).getRow(1);
 
-        assertThat(text(row, 10)).isEqualTo("조치완료");
-        assertThat(text(row, 11)).isEqualTo("인력 배치");
-        assertThat(text(row, 12)).isEqualTo("인력 2명 배치");
-        assertThat(text(row, 13)).isEqualTo("admin01");
-        assertThat(row.getCell(14).getLocalDateTimeCellValue()).isEqualTo(LocalDateTime.of(2026, 10, 12, 9, 20));
+        assertThat(text(row, 11)).isEqualTo("조치완료");
+        assertThat(text(row, 12)).isEqualTo("인력 배치");
+        assertThat(text(row, 13)).isEqualTo("인력 2명 배치");
+        assertThat(text(row, 14)).isEqualTo("admin01");
+        assertThat(row.getCell(15).getLocalDateTimeCellValue()).isEqualTo(LocalDateTime.of(2026, 10, 12, 9, 20));
     }
 
     @Test
@@ -137,11 +139,16 @@ class EventExcelWriterTest {
                 1L, EventType.CONGESTION, 7L, "(삭제됨) 사직동 1구역", null, null, true, STARTED, ENDED, false, 600, 2,
                 new BigDecimal("0.8000"), 10, EventStatus.UNCHECKED);
 
-        Row row = write(List.of(new EventExportRow(item, null, null, null, null))).getRow(1);
+        Row row = write(List.of(new EventExportRow(item, null, null, null, null, null, null, null))).getRow(1);
 
-        assertThat(text(row, 6)).isEqualTo("(삭제됨) 사직동 1구역");
+        assertThat(text(row, 7)).isEqualTo("(삭제됨) 사직동 1구역");
         assertThat(row.getCell(4)).isNull();
         assertThat(row.getCell(5)).isNull();
+        assertThat(row.getCell(6)).isNull();
+    }
+
+    private static EventExportRow row(EventListItem item) {
+        return new EventExportRow(item, "서울특별시", "종로구", "삼청동", null, null, null, null);
     }
 
     private static EventListItem item(
