@@ -8,6 +8,7 @@
   보조 지표(FNC-C-030)는 펼친 영역에 필요한 통계 시계열만 읽는다. 관리자 앱의 이벤트 종류별 건수는 아직 없다(#199).
   엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
   다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감)은 아직 없다.
+  지도 도구 이동 흐름(FNC-C-010)은 동 단계에서 켜면 기간의 구역 간 이동을 화살표로 그린다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
@@ -126,6 +127,19 @@
             <div class="map-canvas" id="dash-map"></div>
             <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
             <div class="map-legend legend" id="map-legend"></div>
+            <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 이동 흐름(FNC-C-010)은 동 단계에서만 켤 수 있다(stats-main/flow-tool.js) -->
+            <div class="map-tools" id="map-tools">
+                <div class="map-tool">
+                    <button type="button" class="btn secondary sm" id="flow-toggle" aria-pressed="false">이동 흐름 (추정)</button>
+                    <select class="input map-tool-select" id="flow-period" aria-label="이동 흐름 기간" hidden>
+                        <option value="1h" selected>최근 1시간</option>
+                        <option value="24h">최근 24시간</option>
+                        <option value="7d">최근 7일</option>
+                        <option value="30d">최근 30일</option>
+                    </select>
+                </div>
+                <span class="map-tool-status" id="flow-status" role="status" hidden></span>
+            </div>
         </section>
     </div>
 

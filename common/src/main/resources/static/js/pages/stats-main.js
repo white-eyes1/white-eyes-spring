@@ -9,6 +9,7 @@ import { createRegionMap, createStatusLayer } from '../map/status-map.js';
 import { createAbnormalPanel } from './stats-main/abnormal.js';
 import { createAuxMetricsPanel } from './stats-main/aux-metrics.js';
 import { createDeck } from './stats-main/deck.js';
+import { createFlowTool } from './stats-main/flow-tool.js';
 import {
     renderGraphLink,
     renderLevelRules,
@@ -35,6 +36,7 @@ let map = null;
 let layer = null;
 let deck = null;
 const abnormalPanel = createAbnormalPanel();
+const flowTool = createFlowTool();
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -235,6 +237,7 @@ async function loadRegion() {
         renderedRegionId = target.id;
         connectStream(target.id);
         abnormalPanel.setRegion(target.id);
+        flowTool.setRegion(map, target.id, target.level === EMD);
         auxPanel.setRegion(target.id);
     }
     await refresh();
@@ -284,6 +287,8 @@ async function refresh() {
         );
     }
     layer.showPins(zoneItems);
+    // 이동 흐름(FNC-C-010): 켜져 있으면 구역 중심점으로 화살표를 다시 그린다
+    flowTool.refresh(zoneItems);
     if (isAdmin) {
         await loadCameras();
     }
