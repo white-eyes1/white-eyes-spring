@@ -57,6 +57,12 @@
 .acc-b .btn { align-self: flex-end; }
 .abnormal-list { display: flex; flex-direction: column; gap: 8px; }
 
+/* 시간대별 혼잡 단계(FNC-C-018): 0~23시 단계 색 막대(시안 SCR-C-003-stats-panel-all) */
+.hour-bars { display: flex; align-items: flex-end; gap: 2px; height: 70px; }
+.hour-bar { flex: 1; border-radius: 2px 2px 0 0; }
+.hour-bar.empty { background: #2a3646; }
+.hour-axis { display: flex; justify-content: space-between; }
+
 /* 방문 패턴(FNC-C-028): 요일 7행 + 평일·주말 2행 × 24시간. 칸 색은 파랑 한 가지의 진하기(시안 SCR-C-003-stats-panel-all) */
 .pattern-grid { display: grid; grid-template-columns: 24px repeat(24, minmax(0, 1fr)); gap: 2px; align-items: center; }
 .pattern-label { font-size: 9px; }
@@ -81,6 +87,7 @@
 .aux-rank .rank { width: 16px; flex: none; }
 .aux-rank .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aux-rate { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.aux-unchecked { color: #ff8a90; }
 
 /* 지도 위 구역 핀 */
 .zone-pin { background: none; border: 0; }

@@ -46,5 +46,7 @@ subprojects {
 
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
+        // 기본 512MB로는 admin 시험(스프링 컨텍스트 여러 개)이 CI에서 가끔 Java heap space로 멈춘다
+        maxHeapSize = '1g'
     }
 }
