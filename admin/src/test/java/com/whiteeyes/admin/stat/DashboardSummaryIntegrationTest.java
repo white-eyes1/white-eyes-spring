@@ -11,7 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 import org.junit.jupiter.api.AfterEach;
@@ -216,7 +218,57 @@ class DashboardSummaryIntegrationTest {
         assertThat(zone.outflow()).isEqualTo(6);
     }
 
+    @Test
+    @DisplayName("FNC-C-017 오늘 시작한 혼잡·급증만 세고 캠 이상·어제 것은 빼며, 지역은 삭제된 구역까지 합한다")
+    void todayEventCount_countsCongestionAndSurgeOfToday() {
+        LocalDateTime todayStart = NOW.toLocalDate().atStartOfDay();
+        long otherRegionZone = insertZone("11140520", "소공동 1구역", "100.00");
+        insertEvent(sajik, "CONGESTION", todayStart.plusHours(8));
+        insertEvent(sajik, "SURGE", todayStart);
+        insertEvent(sajik, "CAM_FAULT", todayStart.plusHours(9));
+        insertEvent(sajik, "CONGESTION", todayStart.minusSeconds(1));
+        insertEvent(samcheong, "SURGE", todayStart.plusHours(10));
+        insertEvent(deletedZone, "CONGESTION", todayStart.plusHours(7));
+        insertEvent(otherRegionZone, "CONGESTION", todayStart.plusHours(6));
+
+        // 사직 2(오늘 00:00 정각 포함, 캠 이상·어제 제외) + 삼청 1 + 삭제된 구역 1
+        assertThat(dashboardSummaryService
+                        .findSummary(DashboardTargetType.REGION, regionIdLong("11110"), NOW)
+                        .todayEventCount())
+                .isEqualTo(4);
+        assertThat(dashboardSummaryService
+                        .findSummary(DashboardTargetType.ZONE, sajik, NOW)
+                        .todayEventCount())
+                .isEqualTo(2);
+        // 5분 안에 통계가 없는 지역도 이벤트 수는 센다
+        DashboardSummaryResponse noStat =
+                dashboardSummaryService.findSummary(DashboardTargetType.REGION, regionIdLong("11140"), NOW);
+        assertThat(noStat.statAt()).isNull();
+        assertThat(noStat.todayEventCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-C-017 API 응답에 todayEventCount가 실제 값으로 나온다")
+    void todayEventCount_inApiResponse() throws Exception {
+        insertEvent(sajik, "CONGESTION", LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay().plusSeconds(1));
+        insertEvent(sajik, "CAM_FAULT", LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay().plusSeconds(1));
+
+        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "ZONE").param("targetId", String.valueOf(sajik)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.todayEventCount").value(1));
+    }
+
+    private void insertEvent(long zoneId, String type, LocalDateTime startedAt) {
+        jdbcTemplate.update(
+                "INSERT INTO event (type, zone_id, started_at, threshold_snapshot) VALUES (?, ?, ?, ?)",
+                type,
+                zoneId,
+                Timestamp.valueOf(startedAt),
+                "{\"warnDensity\":0.7,\"dangerDensity\":1.5}");
+    }
+
     private void deleteRows() {
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM zone_neighbor");
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM camera");

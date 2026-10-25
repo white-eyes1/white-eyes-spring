@@ -172,16 +172,15 @@ class UserListTest {
     }
 
     @Test
-    @DisplayName("FNC-A-002 활동 중 필터: 30분 안에 세션 접근이나 로그인이 있으면 활동 중")
+    @DisplayName("FNC-A-002 활동 중 필터: 30분 안에 세션 접근이 있을 때만 활동 중(세션 없이 최근 로그인만 있으면 아님, #203)")
     void list_activeFilter() throws Exception {
         list("?active=true")
-                .andExpect(jsonPath("$.items[*].loginId").value(contains("lee03", "hong01")))
-                .andExpect(jsonPath("$.totalElements").value(2));
+                .andExpect(jsonPath("$.items[*].loginId").value(contains("lee03")))
+                .andExpect(jsonPath("$.totalElements").value(1));
         list("?active=false")
-                .andExpect(jsonPath("$.items[*].loginId").value(contains("pct06", "hong05", "park04", "kim02")))
-                .andExpect(jsonPath("$.totalElements").value(4));
-        list("?active=true&status=ACTIVE&keyword=hong")
-                .andExpect(jsonPath("$.items[*].loginId").value(contains("hong01")));
+                .andExpect(jsonPath("$.items[*].loginId").value(contains("pct06", "hong05", "park04", "kim02", "hong01")))
+                .andExpect(jsonPath("$.totalElements").value(5));
+        list("?active=true&status=ACTIVE&keyword=hong").andExpect(jsonPath("$.items", empty()));
     }
 
     @Test

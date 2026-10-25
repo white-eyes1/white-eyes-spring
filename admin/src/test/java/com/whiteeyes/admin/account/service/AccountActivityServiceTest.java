@@ -40,13 +40,13 @@ class AccountActivityServiceTest {
     }
 
     @Test
-    @DisplayName("FNC-A-002 세션이 없으면 마지막 로그인 시각을 쓴다")
+    @DisplayName("FNC-A-002 세션이 없으면 최근 활동은 마지막 로그인 시각이고, 30분 안이어도 활동 중이 아니다(#203)")
     void activityOf_noSession_usesLastLogin() {
         AccountActivities activities = load("hong01", NOW.minusMinutes(5));
 
         AccountActivity activity = activities.activityOf("kim02", NOW.minusMinutes(10));
 
-        assertThat(activity).isEqualTo(new AccountActivity(NOW.minusMinutes(10), true));
+        assertThat(activity).isEqualTo(new AccountActivity(NOW.minusMinutes(10), false));
     }
 
     @Test
