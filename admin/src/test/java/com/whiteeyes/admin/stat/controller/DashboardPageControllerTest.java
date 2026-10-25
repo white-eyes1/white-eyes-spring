@@ -118,6 +118,35 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-028 통계 패널에 방문 패턴 접기 영역(처음엔 접힘)과 요일×시간 표 자리가 있고, 화면 모듈을 내려 준다")
+    void statsPage_hasVisitPatternFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"visit-pattern\">")))
+                .andExpect(content().string(containsString("방문 패턴 (요일×시간)")))
+                .andExpect(content().string(containsString("id=\"visit-pattern-grid\"")));
+        mockMvc.perform(get("/js/pages/stats-main/visit-pattern.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/visit-pattern")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-029 통계 패널에 피크 시간 TOP 3 접기 영역(처음엔 접힘)과 기간 탭 일·주·월·연이 있고, 화면 모듈을 내려 준다")
+    void statsPage_hasPeakHoursFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"peak-trend\">")))
+                .andExpect(content().string(containsString("피크 시간 TOP 3")))
+                .andExpect(content().string(containsString("data-period=\"DAY\">일<")))
+                .andExpect(content().string(containsString("data-period=\"WEEK\">주<")))
+                .andExpect(content().string(containsString("data-period=\"MONTH\">월<")))
+                .andExpect(content().string(containsString("data-period=\"YEAR\">연<")))
+                .andExpect(content().string(containsString("id=\"peak-list\"")));
+        mockMvc.perform(get("/js/pages/stats-main/peak-hours.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/peak-hours")))
+                .andExpect(content().string(containsString("DEFAULT_PERIOD = 'WEEK'")));
+    }
+
+    @Test
     @DisplayName("FNC-C-019 통계 패널 '피크 시간 TOP 3 · 증감 추세' 접기 영역에 증감 추세 자리가 있고, 화면 모듈은 증감 API와 기간 비교 주소를 쓴다")
     void statsPage_hasTrendFold() throws Exception {
         mockMvc.perform(get("/stats"))

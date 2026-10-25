@@ -86,9 +86,20 @@ class StatGraphPageControllerTest {
                 .andExpect(content().string(not(containsString("anno"))));
     }
 
+    @Test
+    @DisplayName("SCR-C-004 그래프 패널 머리에 이동 경로, 그래프 안에 점 선택 창 자리가 있다(FNC-C-013)")
+    void graphPage_user_hasDrillDown() throws Exception {
+        mockMvc.perform(get("/stats/graph").with(user("user01").roles("USER")))
+                .andExpect(content().string(containsString("id=\"drill-path\" aria-label=\"이동 경로\"")))
+                .andExpect(content().string(containsString("id=\"point-menu\"")))
+                .andExpect(content().string(containsString("id=\"point-menu-notice\"")));
+    }
+
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 사용자 앱에서도 내려가는지 본다
     @ParameterizedTest
-    @ValueSource(strings = {"/js/pages/stats-graph.js", "/js/chart/series-chart.js", "/css/stats-graph.css"})
+    @ValueSource(strings = {
+        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js", "/css/stats-graph.css"
+    })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 사용자 앱이 내려준다")
     void graphPage_staticFilesServed(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isOk());
