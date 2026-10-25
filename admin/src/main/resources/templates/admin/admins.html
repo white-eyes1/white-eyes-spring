@@ -9,7 +9,7 @@
 <!--
   SCR-A-003 관리자 관리(최고 관리자 전용). 목록은 화면 JS(js/admin/pages/admins.js)가 GET /api/v1/admins(FNC-A-003)로 받아 채우고,
   관리자 추가 창은 POST /api/v1/admins(FNC-A-009)로 계정을 만들고, 행의 강제 로그아웃(FNC-A-008)은 확인 창 뒤 POST /api/v1/admins/{id}/logout으로 보낸다.
-  나머지 행 동작 버튼(FNC-A-010·011)은 각 기능의 이슈에서 붙인다.
+  행의 비활성화·활성화(FNC-A-011)도 같은 확인 창을 거쳐 POST /api/v1/admins/{id}/disable·enable로 보낸다. FNC-A-010의 행 버튼은 그 기능의 이슈에서 붙인다.
 -->
 <main class="page">
     <div class="page-heading">

@@ -104,6 +104,16 @@ public class UserAccount {
         this.phone = phone;
     }
 
+    /**
+     * 관리자가 임시 비밀번호로 재설정한다. 다음 로그인 때 비밀번호를 바꾸게 변경 강제를 켠다(FNC-A-005).
+     *
+     * @param encodedPassword bcrypt로 암호화한 임시 비밀번호
+     */
+    public void resetPassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.mustChangePassword = true;
+    }
+
     /** 로그인에 성공한 시각을 남긴다(FNC-C-001). */
     public void recordLogin(LocalDateTime loggedInAt) {
         this.lastLoginAt = loggedInAt;
