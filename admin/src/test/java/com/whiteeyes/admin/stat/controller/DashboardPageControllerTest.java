@@ -118,6 +118,64 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-028 통계 패널에 방문 패턴 접기 영역(처음엔 접힘)과 요일×시간 표 자리가 있고, 화면 모듈을 내려 준다")
+    void statsPage_hasVisitPatternFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"visit-pattern\">")))
+                .andExpect(content().string(containsString("방문 패턴 (요일×시간)")))
+                .andExpect(content().string(containsString("id=\"visit-pattern-grid\"")));
+        mockMvc.perform(get("/js/pages/stats-main/visit-pattern.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/visit-pattern")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-029 통계 패널에 피크 시간 TOP 3 접기 영역(처음엔 접힘)과 기간 탭 일·주·월·연이 있고, 화면 모듈을 내려 준다")
+    void statsPage_hasPeakHoursFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"peak-trend\">")))
+                .andExpect(content().string(containsString("피크 시간 TOP 3")))
+                .andExpect(content().string(containsString("data-period=\"DAY\">일<")))
+                .andExpect(content().string(containsString("data-period=\"WEEK\">주<")))
+                .andExpect(content().string(containsString("data-period=\"MONTH\">월<")))
+                .andExpect(content().string(containsString("data-period=\"YEAR\">연<")))
+                .andExpect(content().string(containsString("id=\"peak-list\"")));
+        mockMvc.perform(get("/js/pages/stats-main/peak-hours.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/peak-hours")))
+                .andExpect(content().string(containsString("DEFAULT_PERIOD = 'WEEK'")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-019 통계 패널 '피크 시간 TOP 3 · 증감 추세' 접기 영역에 증감 추세 자리가 있고, 화면 모듈은 증감 API와 기간 비교 주소를 쓴다")
+    void statsPage_hasTrendFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"peak-trend\">")))
+                .andExpect(content().string(containsString("증감 추세")))
+                .andExpect(content().string(containsString("id=\"trend-list\"")));
+        mockMvc.perform(get("/js/pages/stats-main/trend.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/trend")))
+                .andExpect(content().string(containsString("/stats/compare?")))
+                .andExpect(content().string(containsString("baseFrom")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-010 지도 도구에 '이동 흐름 (추정)' 토글과 기간 선택(기본 최근 1시간)이 있고, 화면 모듈과 화살표 층을 내려 준다")
+    void statsPage_hasFlowTool() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("id=\"map-tools\"")))
+                .andExpect(content().string(containsString("id=\"flow-toggle\" aria-pressed=\"false\">이동 흐름 (추정)<")))
+                .andExpect(content().string(containsString("<option value=\"1h\" selected>최근 1시간</option>")));
+        mockMvc.perform(get("/js/pages/stats-main/flow-tool.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/map/flows")));
+        mockMvc.perform(get("/js/map/flow-layer.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("dashArray")));
+    }
+
+    @Test
     @DisplayName("FNC-C-011 지도 도구에 히트맵 토글과 조건(기간·항목 4개·요일 3개)·시간대 슬라이더(0~23)·재생이 있고, 화면 모듈을 내려 준다")
     void statsPage_hasHeatmapTool() throws Exception {
         mockMvc.perform(get("/stats"))

@@ -10,6 +10,10 @@ import { createAbnormalPanel } from './stats-main/abnormal.js';
 import { createAuxMetricsPanel } from './stats-main/aux-metrics.js';
 import { createDeck } from './stats-main/deck.js';
 import { createHourlyLevelsPanel } from './stats-main/hourly-levels.js';
+import { createVisitPatternPanel } from './stats-main/visit-pattern.js';
+import { createPeakHoursPanel } from './stats-main/peak-hours.js';
+import { createTrendPanel } from './stats-main/trend.js';
+import { createFlowTool } from './stats-main/flow-tool.js';
 import { createHeatmapTool } from './stats-main/heatmap-tool.js';
 import {
     renderGraphLink,
@@ -38,6 +42,10 @@ let layer = null;
 let deck = null;
 const abnormalPanel = createAbnormalPanel();
 const hourlyLevelsPanel = createHourlyLevelsPanel();
+const visitPatternPanel = createVisitPatternPanel();
+const peakHoursPanel = createPeakHoursPanel();
+const trendPanel = createTrendPanel();
+const flowTool = createFlowTool();
 const heatmapTool = createHeatmapTool();
 let auxPanel = null;
 let zoneItems = [];
@@ -240,6 +248,10 @@ async function loadRegion() {
         connectStream(target.id);
         abnormalPanel.setRegion(target.id);
         hourlyLevelsPanel.setRegion(target.id);
+        visitPatternPanel.setRegion(target.id);
+        peakHoursPanel.setRegion(target.id);
+        trendPanel.setRegion(target.id);
+        flowTool.setRegion(map, target.id, target.level === EMD);
         heatmapTool.setRegion(layer, target.id);
         auxPanel.setRegion(target.id);
     }
@@ -292,6 +304,8 @@ async function refresh() {
         );
     }
     layer.showPins(zoneItems);
+    // 이동 흐름(FNC-C-010): 켜져 있으면 구역 중심점으로 화살표를 다시 그린다
+    flowTool.refresh(zoneItems);
     if (isAdmin) {
         await loadCameras();
     }

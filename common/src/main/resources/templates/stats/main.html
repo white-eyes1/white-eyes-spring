@@ -8,7 +8,10 @@
   보조 지표(FNC-C-030)는 펼친 영역에 필요한 통계 시계열만 읽는다. 이벤트 종류별 건수는 관리자 앱에만 있다(이벤트 요약 API가 관리자 이상).
   엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
   시간대별 혼잡 단계(FNC-C-018)는 펼칠 때 오늘 0~23시 단계를 읽는다.
-  다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감)은 아직 없다.
+  방문 패턴(FNC-C-028)은 펼칠 때 어제까지 28일의 요일 × 시간 평균 인원을 읽는다.
+  피크 시간 TOP 3(FNC-C-029)·증감 추세(FNC-C-019)는 한 접기 영역(peak-trend)을 함께 쓴다. 피크는 기간 탭(기본 주)의 상위 3개 시간대를,
+  증감은 어제까지 7일을 지난주·지난달·지난해와 비교해 읽는다(펼칠 때).
+  지도 도구 이동 흐름(FNC-C-010)은 동 단계에서 켜면 기간의 구역 간 이동을 화살표로 그린다.
   지도 도구 히트맵(FNC-C-011)은 켜면 하위 단위를 시간대별 평균값의 파랑 진하기로 칠한다.
 -->
 <head>
@@ -75,6 +78,14 @@
                         <span class="muted" id="hourly-levels-message" hidden></span>
                     </div>
                 </details>
+                <!-- 방문 패턴(FNC-C-028): 펼칠 때 어제까지 28일의 요일 × 시간 평균 인원을 읽는다(stats-main/visit-pattern.js) -->
+                <details class="acc fold" id="visit-pattern">
+                    <summary class="acc-h">방문 패턴 (요일×시간)<span class="muted small">어제까지 28일</span></summary>
+                    <div class="acc-b">
+                        <div class="pattern-grid" id="visit-pattern-grid" role="img" aria-label="요일·시간대별 평균 인원"></div>
+                        <span class="muted" id="visit-pattern-message" hidden></span>
+                    </div>
+                </details>
                 <section class="acc">
                     <div class="acc-h">유입·유출 (추정)<span class="muted small">최근 1분</span></div>
                     <div class="cells flow">
@@ -87,6 +98,20 @@
                     <div class="acc-h">혼잡 기준<span class="muted small" id="level-rule"></span></div>
                     <ul class="level-rules" id="level-rules"></ul>
                 </section>
+                <!-- 피크 시간 TOP 3(FNC-C-029, stats-main/peak-hours.js)과 그 아래 증감 추세(FNC-C-019, 줄을 누르면 기간 비교, stats-main/trend.js) -->
+                <details class="acc fold" id="peak-trend">
+                    <summary class="acc-h">피크 시간 TOP 3 · 증감 추세<span class="muted small">어제까지</span></summary>
+                    <div class="acc-b">
+                        <div class="peak-periods" id="peak-periods" role="tablist" aria-label="기간">
+                            <button type="button" role="tab" data-period="DAY">일</button>
+                            <button type="button" role="tab" data-period="WEEK">주</button>
+                            <button type="button" role="tab" data-period="MONTH">월</button>
+                            <button type="button" role="tab" data-period="YEAR">연</button>
+                        </div>
+                        <div class="aux-rank peak-list" id="peak-list"></div>
+                        <div class="trend-list" id="trend-list"></div>
+                    </div>
+                </details>
                 <!-- 비정상 인원 변동(FNC-C-020): 펼칠 때 최근 7일을 지난달 같은 요일과 비교해 읽는다 -->
                 <details class="acc fold" id="abnormal-box">
                     <summary class="acc-h">비정상 인원 변동<span class="muted small">최근 7일 · 지난달 대비</span></summary>
@@ -141,8 +166,18 @@
             <div class="map-canvas" id="dash-map"></div>
             <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
             <div class="map-legend legend" id="map-legend"></div>
-            <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 히트맵(FNC-C-011): 조건·시간대 슬라이더·재생(stats-main/heatmap-tool.js) -->
+            <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 이동 흐름(FNC-C-010)은 동 단계에서만 켤 수 있다(stats-main/flow-tool.js). 히트맵(FNC-C-011): 조건·시간대 슬라이더·재생(stats-main/heatmap-tool.js) -->
             <div class="map-tools" id="map-tools">
+                <div class="map-tool">
+                    <button type="button" class="btn secondary sm" id="flow-toggle" aria-pressed="false">이동 흐름 (추정)</button>
+                    <select class="input map-tool-select" id="flow-period" aria-label="이동 흐름 기간" hidden>
+                        <option value="1h" selected>최근 1시간</option>
+                        <option value="24h">최근 24시간</option>
+                        <option value="7d">최근 7일</option>
+                        <option value="30d">최근 30일</option>
+                    </select>
+                </div>
+                <span class="map-tool-status" id="flow-status" role="status" hidden></span>
                 <div class="map-tool">
                     <button type="button" class="btn secondary sm" id="heatmap-toggle" aria-pressed="false">히트맵</button>
                 </div>

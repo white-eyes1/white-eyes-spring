@@ -1,4 +1,4 @@
-// 통계 시계열 선 그래프(SCR-C-004, FNC-C-012·014). Chart.js(전역 Chart, graph.html이 불러옴) 코드는 이 파일에만 둔다.
+// 통계 시계열 선 그래프(SCR-C-004, FNC-C-012·013·014). Chart.js(전역 Chart, graph.html이 불러옴) 코드는 이 파일에만 둔다.
 // 값이 없는 점(sampleSec=0·통계 없음)은 null이라 선과 띠가 끊긴다(spanGaps 끔).
 import { formatDecimal, formatNumber } from '../common/format.js';
 
@@ -29,8 +29,11 @@ const AXES = {
 /**
  * 그래프를 만든다. 다시 그릴 때는 돌려받은 update를 부른다.
  * @param {HTMLCanvasElement} canvas
+ * @param {{onPointClick?: (index: number, position: {x: number, y: number}) => void, clickable?: (index: number) => boolean}} [options]
+ *     onPointClick: 그래프 안을 누르면 가장 가까운 점의 순번과 canvas 안 위치를 넘긴다(단계별 들어가기, FNC-C-013).
+ *     clickable: 그 점을 누를 수 있는지(마우스 모양을 손가락으로 바꿀지)
  */
-export function createSeriesChart(canvas) {
+export function createSeriesChart(canvas, { onPointClick, clickable = () => true } = {}) {
     let chart = null;
 
     /**
@@ -119,6 +122,17 @@ export function createSeriesChart(canvas) {
                 maintainAspectRatio: false,
                 animation: false,
                 interaction: { mode: 'index', intersect: false },
+                // 값이 없는 점(null)도 누를 수 있게 x 위치로 점을 찾는다
+                onClick: (event) => {
+                    const index = pointIndexAt(event);
+                    if (onPointClick && index !== null) {
+                        onPointClick(index, { x: event.x, y: event.y });
+                    }
+                },
+                onHover: (event) => {
+                    const index = onPointClick ? pointIndexAt(event) : null;
+                    canvas.style.cursor = index !== null && clickable(index) ? 'pointer' : '';
+                },
                 scales,
                 plugins: {
                     legend: {
@@ -145,6 +159,17 @@ export function createSeriesChart(canvas) {
             chart.destroy();
         }
         chart = new window.Chart(canvas, config);
+    }
+
+    // 그래프 영역 안이면 x 위치에 가장 가까운 점의 순번, 밖이거나 점이 없으면 null
+    function pointIndexAt(event) {
+        const area = chart?.chartArea;
+        const count = chart?.data.labels.length ?? 0;
+        if (!area || count === 0 || event.x < area.left || event.x > area.right || event.y < area.top || event.y > area.bottom) {
+            return null;
+        }
+        const index = Math.round(chart.scales.x.getValueForPixel(event.x));
+        return Math.min(Math.max(index, 0), count - 1);
     }
 
     return { update, compare };
