@@ -1,9 +1,9 @@
 // 통계 패널 '피크 시간 TOP 3 · 증감 추세' 접기 영역의 증감 추세(SCR-C-003, FNC-C-019).
 // 펼칠 때 GET /api/v1/dashboard/trend로 읽어 어제까지 7일을 지난주·지난달·지난해 같은 7일과 비교한 증감률을 보인다.
-// 증가는 빨강 ▲, 감소는 파랑 ▼, 기준 기간 데이터가 없으면 '-'. 줄을 누르면 기간 비교 화면(SCR-C-005)에 대상·기간을 넣어 연다.
+// 증가는 빨강 ▲ +n%, 감소는 파랑 ▼ −n%, 기준 기간 데이터가 없으면 '-'. 줄을 누르면 기간 비교 화면(SCR-C-005)에 대상·기간을 넣어 연다.
 // 기간이 어제까지라 1분마다 바뀌지 않으므로 새 1분 통계(SSE)에는 다시 읽지 않는다.
 import { get, url } from '../../common/api.js';
-import { formatDecimal } from '../../common/format.js';
+import { formatSigned } from '../../common/format.js';
 
 const TREND_API = '/api/v1/dashboard/trend';
 const DAYS = 7;
@@ -84,7 +84,7 @@ function compareLink(regionId, daysAgo) {
     return url(`/stats/compare?${params.toString()}`);
 }
 
-// '지난주 대비  ▲ 12.4%' (증가 빨강, 감소 파랑, 기준 없음 '-')
+// '지난주 대비  ▲ +12.4%' (증가 빨강, 감소 파랑 ▼ −n%, 기준 없음 '-')
 function row(label, rate, href) {
     const element = document.createElement('a');
     element.className = 'row trend-row';
@@ -97,10 +97,13 @@ function row(label, rate, href) {
         value.className = 'muted';
         value.textContent = '-';
     } else {
-        const number = Number(rate);
-        value.className = number > 0 ? 'trend-up' : number < 0 ? 'trend-down' : '';
-        const mark = number > 0 ? '▲ ' : number < 0 ? '▼ ' : '';
-        value.textContent = `${mark}${formatDecimal(Math.abs(number), 1)}%`;
+        // 기간 비교 화면과 같은 부호 표기. 반올림해서 0이면 부호가 없으므로 화살표·색도 붙이지 않는다
+        const text = formatSigned(rate, 1);
+        const up = text.startsWith('+');
+        const down = text.startsWith('−');
+        value.className = up ? 'trend-up' : down ? 'trend-down' : '';
+        const mark = up ? '▲ ' : down ? '▼ ' : '';
+        value.textContent = `${mark}${text}%`;
     }
     element.append(name, value);
     return element;
