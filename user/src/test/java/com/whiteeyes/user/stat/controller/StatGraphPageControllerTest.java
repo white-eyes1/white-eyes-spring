@@ -87,6 +87,13 @@ class StatGraphPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-024 사용자 앱 그래프에도 '시연용 데이터 포함' 배지 자리가 있다(두 앱 공통)")
+    void graphPage_user_hasDemoBadge() throws Exception {
+        mockMvc.perform(get("/stats/graph").with(user("user01").roles("USER")))
+                .andExpect(content().string(containsString("id=\"demo-badge\" hidden>시연용 데이터 포함<")));
+    }
+
+    @Test
     @DisplayName("SCR-C-004 그래프 패널 머리에 이동 경로, 그래프 안에 점 선택 창 자리가 있다(FNC-C-013)")
     void graphPage_user_hasDrillDown() throws Exception {
         mockMvc.perform(get("/stats/graph").with(user("user01").roles("USER")))
