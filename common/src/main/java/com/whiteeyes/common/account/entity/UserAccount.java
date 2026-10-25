@@ -97,6 +97,13 @@ public class UserAccount {
         this.mustChangePassword = false;
     }
 
+    /** 본인이 이름·메일·연락처를 고친다(FNC-C-006). 아이디·상태는 이 메서드로 바꿀 수 없다. */
+    public void updateProfile(String name, String email, String phone) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+    }
+
     /**
      * 관리자가 임시 비밀번호로 재설정한다. 다음 로그인 때 비밀번호를 바꾸게 변경 강제를 켠다(FNC-A-005).
      *

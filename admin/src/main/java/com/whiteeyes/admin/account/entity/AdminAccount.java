@@ -118,6 +118,13 @@ public class AdminAccount {
         this.mustChangePassword = false;
     }
 
+    /** 본인이 이름·메일·연락처를 고친다(FNC-C-006). 아이디·역할·상태는 이 메서드로 바꿀 수 없다. */
+    public void updateProfile(String name, String email, String phone) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+    }
+
     /** 계정을 사용 중지한다(FNC-A-011). ACTIVE인지는 부르는 쪽이 먼저 확인한다. */
     public void disable() {
         this.status = AdminStatus.DISABLED;
