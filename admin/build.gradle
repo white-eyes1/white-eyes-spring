@@ -11,6 +11,8 @@ dependencies {
     implementation 'org.flywaydb:flyway-mysql'
     // 다각형 계산: 내부 점(getInteriorPoint) (conventions.md '주요 라이브러리')
     implementation 'org.locationtech.jts:jts-core:1.20.0'
+    // 이벤트 엑셀 다운로드(FNC-A-039): SXSSF 스트리밍 작성 (conventions.md '주요 라이브러리')
+    implementation 'org.apache.poi:poi-ooxml:5.5.1'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.security:spring-security-test'
