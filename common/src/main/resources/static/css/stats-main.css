@@ -20,6 +20,15 @@
 .map-tool-select { height: 30px; font-size: 12px; }
 .map-tool-status { padding: 4px 8px; border-radius: 6px; background: rgba(13,19,27,.9); color: var(--muted); font-size: 11px; }
 
+/* 히트맵 조건 영역(FNC-C-011): 색은 혼잡 단계와 다른 파랑 계열, min~max 범례 */
+.heatmap-box { display: flex; flex-direction: column; gap: 8px; width: 290px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(13,19,27,.94); font-size: 12px; }
+.heatmap-box[hidden] { display: none; }
+.heatmap-row { display: flex; align-items: center; gap: 6px; }
+.heatmap-row .input { height: 30px; font-size: 12px; min-width: 0; flex: 1; }
+.heatmap-row input[type="range"] { flex: 1; accent-color: #4f8cff; }
+.heatmap-hour { width: 34px; text-align: right; }
+.heatmap-legend i { width: 90px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(79,140,255,.12), rgba(79,140,255,.8)); }
+
 /* 통계 패널 */
 .stat-panel { flex: 0 1 360px; min-width: 300px; border-right: 1px solid var(--line); background: #0d131b; display: flex; flex-direction: column; }
 .stat-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 12px; }

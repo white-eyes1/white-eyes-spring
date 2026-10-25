@@ -14,6 +14,7 @@ import { createVisitPatternPanel } from './stats-main/visit-pattern.js';
 import { createPeakHoursPanel } from './stats-main/peak-hours.js';
 import { createTrendPanel } from './stats-main/trend.js';
 import { createFlowTool } from './stats-main/flow-tool.js';
+import { createHeatmapTool } from './stats-main/heatmap-tool.js';
 import {
     renderGraphLink,
     renderLevelRules,
@@ -45,6 +46,7 @@ const visitPatternPanel = createVisitPatternPanel();
 const peakHoursPanel = createPeakHoursPanel();
 const trendPanel = createTrendPanel();
 const flowTool = createFlowTool();
+const heatmapTool = createHeatmapTool();
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -250,6 +252,7 @@ async function loadRegion() {
         peakHoursPanel.setRegion(target.id);
         trendPanel.setRegion(target.id);
         flowTool.setRegion(map, target.id, target.level === EMD);
+        heatmapTool.setRegion(layer, target.id);
         auxPanel.setRegion(target.id);
     }
     await refresh();

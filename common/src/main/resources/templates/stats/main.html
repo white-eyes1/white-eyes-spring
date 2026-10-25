@@ -12,6 +12,7 @@
   피크 시간 TOP 3(FNC-C-029)·증감 추세(FNC-C-019)는 한 접기 영역(peak-trend)을 함께 쓴다. 피크는 기간 탭(기본 주)의 상위 3개 시간대를,
   증감은 어제까지 7일을 지난주·지난달·지난해와 비교해 읽는다(펼칠 때).
   지도 도구 이동 흐름(FNC-C-010)은 동 단계에서 켜면 기간의 구역 간 이동을 화살표로 그린다.
+  지도 도구 히트맵(FNC-C-011)은 켜면 하위 단위를 시간대별 평균값의 파랑 진하기로 칠한다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
@@ -165,7 +166,7 @@
             <div class="map-canvas" id="dash-map"></div>
             <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
             <div class="map-legend legend" id="map-legend"></div>
-            <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 이동 흐름(FNC-C-010)은 동 단계에서만 켤 수 있다(stats-main/flow-tool.js) -->
+            <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 이동 흐름(FNC-C-010)은 동 단계에서만 켤 수 있다(stats-main/flow-tool.js). 히트맵(FNC-C-011): 조건·시간대 슬라이더·재생(stats-main/heatmap-tool.js) -->
             <div class="map-tools" id="map-tools">
                 <div class="map-tool">
                     <button type="button" class="btn secondary sm" id="flow-toggle" aria-pressed="false">이동 흐름 (추정)</button>
@@ -177,6 +178,36 @@
                     </select>
                 </div>
                 <span class="map-tool-status" id="flow-status" role="status" hidden></span>
+                <div class="map-tool">
+                    <button type="button" class="btn secondary sm" id="heatmap-toggle" aria-pressed="false">히트맵</button>
+                </div>
+                <div class="heatmap-box" id="heatmap-box" hidden>
+                    <div class="heatmap-row">
+                        <input class="input" type="date" id="heatmap-from" aria-label="히트맵 시작 날짜">
+                        <span class="muted">~</span>
+                        <input class="input" type="date" id="heatmap-to" aria-label="히트맵 끝 날짜">
+                    </div>
+                    <div class="heatmap-row">
+                        <select class="input" id="heatmap-item" aria-label="히트맵 항목">
+                            <option value="COUNT">인원</option>
+                            <option value="DENSITY">밀집도</option>
+                            <option value="INFLOW">유입</option>
+                            <option value="OUTFLOW">유출</option>
+                        </select>
+                        <select class="input" id="heatmap-day-type" aria-label="히트맵 요일">
+                            <option value="ALL">전체 요일</option>
+                            <option value="WEEKDAY">평일</option>
+                            <option value="WEEKEND">주말</option>
+                        </select>
+                    </div>
+                    <div class="heatmap-row">
+                        <button type="button" class="btn secondary sm" id="heatmap-play" aria-pressed="false">재생</button>
+                        <input type="range" id="heatmap-hour" min="0" max="23" step="1" value="0" aria-label="시간대">
+                        <b class="heatmap-hour" id="heatmap-hour-label">0시</b>
+                    </div>
+                    <div class="heatmap-row heatmap-legend"><i></i><span class="muted" id="heatmap-range"></span></div>
+                    <span class="muted" id="heatmap-status" role="status" hidden></span>
+                </div>
             </div>
         </section>
     </div>
