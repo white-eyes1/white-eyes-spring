@@ -87,6 +87,30 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-028 사용자 앱 통계 패널에도 방문 패턴 접기 영역이 있다(두 앱 공통)")
+    void statsPage_user_hasVisitPatternFold() throws Exception {
+        mockMvc.perform(get("/stats").with(user("user01").roles("USER")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"visit-pattern\">")))
+                .andExpect(content().string(containsString("id=\"visit-pattern-grid\"")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-029 사용자 앱 통계 패널에도 피크 시간 TOP 3 접기 영역이 있다(두 앱 공통)")
+    void statsPage_user_hasPeakHoursFold() throws Exception {
+        mockMvc.perform(get("/stats").with(user("user01").roles("USER")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"peak-trend\">")))
+                .andExpect(content().string(containsString("id=\"peak-list\"")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-019 사용자 앱 통계 패널에도 증감 추세가 있다(두 앱 공통)")
+    void statsPage_user_hasTrendFold() throws Exception {
+        mockMvc.perform(get("/stats").with(user("user01").roles("USER")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"peak-trend\">")))
+                .andExpect(content().string(containsString("id=\"trend-list\"")));
+    }
+
+    @Test
     @DisplayName("FNC-C-010 사용자 앱 지도에도 이동 흐름 도구가 있다(두 앱 공통)")
     void statsPage_user_hasFlowTool() throws Exception {
         mockMvc.perform(get("/stats").with(user("user01").roles("USER")))

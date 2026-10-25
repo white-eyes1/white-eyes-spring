@@ -70,6 +70,26 @@
 .hour-bar { flex: 1; border-radius: 2px 2px 0 0; }
 .hour-bar.empty { background: #2a3646; }
 .hour-axis { display: flex; justify-content: space-between; }
+
+/* 방문 패턴(FNC-C-028): 요일 7행 + 평일·주말 2행 × 24시간. 칸 색은 파랑 한 가지의 진하기(시안 SCR-C-003-stats-panel-all) */
+.pattern-grid { display: grid; grid-template-columns: 24px repeat(24, minmax(0, 1fr)); gap: 2px; align-items: center; }
+.pattern-label { font-size: 9px; }
+.pattern-cell { height: 10px; border-radius: 2px; }
+.pattern-cell.empty { background: #161e29; }
+.pattern-label.separated, .pattern-cell.separated { margin-top: 6px; }
+
+/* 피크 시간 TOP 3(FNC-C-029): 기간 탭은 시안의 칩 모양(켠 탭 .chip.run, 끈 탭 .chip.off) */
+.peak-periods { display: flex; gap: 6px; }
+.peak-periods button { border: 0; cursor: pointer; }
+.peak-periods button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.peak-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 증감 추세(FNC-C-019): 증가 빨강 ▲, 감소 파랑 ▼(시안 SCR-C-003-stats-panel-all). 줄을 누르면 기간 비교로 간다 */
+.trend-list { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid #1e2a38; }
+.trend-row { color: inherit; text-decoration: none; }
+.trend-row:hover .grow { text-decoration: underline; }
+.trend-up { color: #ff8a90; }
+.trend-down { color: #9cc0ff; }
 .abnormal-list .row { display: flex; align-items: center; gap: 8px; }
 
 /* 보조 지표(FNC-C-030) 접기 영역. 모양은 시안 SCR-C-003-stats-panel-all */

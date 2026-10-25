@@ -68,12 +68,24 @@ class StatGraphPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-C-004 이 이슈 범위 밖인 이동 경로·기간 비교 버튼은 두지 않는다")
+    @DisplayName("SCR-C-004 이 이슈 범위 밖인 기간 비교 버튼은 두지 않는다")
     void graphPage_hasNoOutOfScopeElements() throws Exception {
-        // 머리 주석에는 이름이 나오므로 요소(속성·글자)만 본다. 엑셀 버튼은 #28, 하위 비교는 #57에서 붙였다
+        // 머리 주석에는 이름이 나오므로 요소(글자)만 본다. 엑셀 버튼은 #28, 하위 비교는 #57, 이동 경로는 #56에서 붙였다
         mockMvc.perform(get("/stats/graph"))
-                .andExpect(content().string(not(containsString("aria-label=\"이동 경로\""))))
                 .andExpect(content().string(not(containsString(">기간 비교<"))));
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 그래프 패널 머리에 이동 경로, 그래프 안에 1시간 점 선택 창 자리가 있다(FNC-C-013)")
+    void graphPage_hasDrillDown() throws Exception {
+        String[] expected = {
+            "id=\"drill-path\" aria-label=\"이동 경로\"", "id=\"point-menu\"", "id=\"point-menu-title\"",
+            "id=\"point-menu-summary\"", "id=\"point-menu-actions\"", "id=\"point-menu-notice\""
+        };
+        var result = mockMvc.perform(get("/stats/graph")).andExpect(status().isOk());
+        for (String fragment : expected) {
+            result.andExpect(content().string(containsString(fragment)));
+        }
     }
 
     @Test
@@ -121,7 +133,7 @@ class StatGraphPageControllerTest {
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 관리자 앱에서 내려가는지 본다
     @ParameterizedTest
     @ValueSource(strings = {
-        "/js/pages/stats-graph.js", "/js/chart/series-chart.js", "/css/stats-graph.css",
+        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js", "/css/stats-graph.css",
         "/js/export/export-modal.js", "/css/stats-export.css"
     })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 관리자 앱이 내려준다")
