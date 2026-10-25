@@ -123,4 +123,9 @@ public class UserAccount {
     public void approve() {
         this.status = UserAccountStatus.ACTIVE;
     }
+
+    /** 승인을 취소해 PENDING으로 되돌린다(FNC-A-007). ACTIVE인지는 부르는 쪽이 먼저 확인한다. */
+    public void unapprove() {
+        this.status = UserAccountStatus.PENDING;
+    }
 }
