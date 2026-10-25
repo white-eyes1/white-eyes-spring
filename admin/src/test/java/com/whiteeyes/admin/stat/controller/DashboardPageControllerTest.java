@@ -147,6 +147,20 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-019 통계 패널 '피크 시간 TOP 3 · 증감 추세' 접기 영역에 증감 추세 자리가 있고, 화면 모듈은 증감 API와 기간 비교 주소를 쓴다")
+    void statsPage_hasTrendFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"peak-trend\">")))
+                .andExpect(content().string(containsString("증감 추세")))
+                .andExpect(content().string(containsString("id=\"trend-list\"")));
+        mockMvc.perform(get("/js/pages/stats-main/trend.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/trend")))
+                .andExpect(content().string(containsString("/stats/compare?")))
+                .andExpect(content().string(containsString("baseFrom")));
+    }
+
+    @Test
     @DisplayName("FNC-C-030 검수 기준: 통계 패널에 보조 지표 접기 영역 6개가 처음엔 접힌 채로 있다")
     void statsPage_hasAuxMetricFolds() throws Exception {
         mockMvc.perform(get("/stats"))

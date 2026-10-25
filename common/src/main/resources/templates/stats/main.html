@@ -9,7 +9,8 @@
   엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
   시간대별 혼잡 단계(FNC-C-018)는 펼칠 때 오늘 0~23시 단계를 읽는다.
   방문 패턴(FNC-C-028)은 펼칠 때 어제까지 28일의 요일 × 시간 평균 인원을 읽는다.
-  피크 시간 TOP 3(FNC-C-029)은 펼칠 때 기간 탭(기본 주)의 상위 3개 시간대를 읽는다. 같은 영역의 증감 추세는 FNC-C-019(#60) 몫이다.
+  피크 시간 TOP 3(FNC-C-029)·증감 추세(FNC-C-019)는 한 접기 영역(peak-trend)을 함께 쓴다. 피크는 기간 탭(기본 주)의 상위 3개 시간대를,
+  증감은 어제까지 7일을 지난주·지난달·지난해와 비교해 읽는다(펼칠 때).
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
@@ -95,7 +96,7 @@
                     <div class="acc-h">혼잡 기준<span class="muted small" id="level-rule"></span></div>
                     <ul class="level-rules" id="level-rules"></ul>
                 </section>
-                <!-- 피크 시간 TOP 3(FNC-C-029): 펼칠 때 기간 탭(일·주·월·연, 기본 주)의 상위 3개 시간대를 읽는다(stats-main/peak-hours.js) -->
+                <!-- 피크 시간 TOP 3(FNC-C-029, stats-main/peak-hours.js)과 그 아래 증감 추세(FNC-C-019, 줄을 누르면 기간 비교, stats-main/trend.js) -->
                 <details class="acc fold" id="peak-trend">
                     <summary class="acc-h">피크 시간 TOP 3 · 증감 추세<span class="muted small">어제까지</span></summary>
                     <div class="acc-b">
@@ -106,6 +107,7 @@
                             <button type="button" role="tab" data-period="YEAR">연</button>
                         </div>
                         <div class="aux-rank peak-list" id="peak-list"></div>
+                        <div class="trend-list" id="trend-list"></div>
                     </div>
                 </details>
                 <!-- 비정상 인원 변동(FNC-C-020): 펼칠 때 최근 7일을 지난달 같은 요일과 비교해 읽는다 -->

@@ -75,6 +75,13 @@
 .peak-periods button { border: 0; cursor: pointer; }
 .peak-periods button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .peak-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 증감 추세(FNC-C-019): 증가 빨강 ▲, 감소 파랑 ▼(시안 SCR-C-003-stats-panel-all). 줄을 누르면 기간 비교로 간다 */
+.trend-list { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid #1e2a38; }
+.trend-row { color: inherit; text-decoration: none; }
+.trend-row:hover .grow { text-decoration: underline; }
+.trend-up { color: #ff8a90; }
+.trend-down { color: #9cc0ff; }
 .abnormal-list .row { display: flex; align-items: center; gap: 8px; }
 
 /* 보조 지표(FNC-C-030) 접기 영역. 모양은 시안 SCR-C-003-stats-panel-all */
