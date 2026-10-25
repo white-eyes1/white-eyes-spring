@@ -2,6 +2,7 @@ package com.whiteeyes.admin.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -241,5 +242,16 @@ class AdminMyInfoTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"profile-form\"")))
                 .andExpect(content().string(containsString("id=\"password-form\"")));
+    }
+
+    @Test
+    @DisplayName("SCR-C-002 회원 탈퇴 버튼·창(FNC-U-004)은 사용자 앱에만 있어 관리자 앱 /admin/me에는 없다")
+    void mePage_hasNoWithdraw() throws Exception {
+        mockMvc.perform(get("/admin/me").contextPath(CONTEXT_PATH).cookie(login()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("id=\"withdraw-open\""))))
+                .andExpect(content().string(not(containsString("id=\"withdraw-modal\""))))
+                .andExpect(content().string(not(containsString("/js/user/withdraw.js"))))
+                .andExpect(content().string(not(containsString("/css/user/withdraw.css"))));
     }
 }

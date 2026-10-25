@@ -1,0 +1,8 @@
+/* 회원 탈퇴(FNC-U-004): 내 정보 화면 아래 영역과 탈퇴 창 SCR-U-003(시안 폭 560px) */
+.withdraw-panel { width: 100%; max-width: 480px; overflow: hidden; }
+.withdraw-panel-body { padding: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
+.withdraw-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
+.withdraw-modal-stage[hidden] { display: none; }
+.withdraw-modal { max-width: 560px; }
+.withdraw-confirm { max-width: 440px; }
+.withdraw-confirm .modal-body p { font-size: 13px; line-height: 1.6; }

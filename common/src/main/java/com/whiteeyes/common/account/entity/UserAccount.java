@@ -123,4 +123,10 @@ public class UserAccount {
     public void approve() {
         this.status = UserAccountStatus.ACTIVE;
     }
+
+    /** 탈퇴 처리한다(FNC-U-004). 행은 지우지 않으므로 같은 아이디로 다시 가입할 수 없다. */
+    public void withdraw(LocalDateTime withdrawnAt) {
+        this.status = UserAccountStatus.WITHDRAWN;
+        this.withdrawnAt = withdrawnAt;
+    }
 }

@@ -3,11 +3,13 @@
 <!--
   내 정보·비밀번호 변경 SCR-C-002(내 정보 영역 FNC-C-006 + 비밀번호 변경 영역 FNC-C-007), 두 앱이 함께 쓰는 화면.
   내 정보 값은 js/pages/my-info.js가 GET /api/v1/me로 받아 채운다. 시안(design/)에 내 정보 영역이 없어
-  비밀번호 변경 시안과 같은 패널 모양으로 만들었다. 회원 탈퇴 영역(FNC-U-004)은 그 기능의 이슈에서 붙인다.
+  비밀번호 변경 시안과 같은 패널 모양으로 만들었다.
+  회원 탈퇴(FNC-U-004)는 사용자 앱에만 보인다: 버튼 → 탈퇴 창(SCR-U-003) → 확인 창 → DELETE /api/v1/me(js/user/withdraw.js, 사용자 앱 파일).
   비밀번호 변경이 강제된 계정은 이 화면에 오지 못하고 /me/password(password.html)로 간다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('내 정보')}"/>
+    <link rel="stylesheet" th:unless="${admin}" th:href="@{/css/user/withdraw.css}">
 </head>
 <body class="we">
 <th:block th:if="${admin}">
@@ -46,10 +48,65 @@
     </form>
 
     <th:block th:replace="~{account/password-panel :: passwordPanel}"/>
+
+    <!-- 회원 탈퇴(SCR-C-002 회원 탈퇴 버튼, FNC-U-004): 사용자 앱에만 -->
+    <section class="panel withdraw-panel" th:unless="${admin}">
+        <div class="panel-head">
+            <div><p class="eyebrow">ACCOUNT</p><h2 style="margin-top: 4px">회원 탈퇴</h2></div>
+        </div>
+        <div class="withdraw-panel-body">
+            <p class="muted">탈퇴하면 같은 아이디로 다시 가입할 수 없습니다.</p>
+            <button class="btn danger" type="button" id="withdraw-open">회원 탈퇴</button>
+        </div>
+    </section>
 </main>
+
+<th:block th:unless="${admin}">
+<!-- 회원 탈퇴 창 SCR-U-003. 비밀번호가 비어 있으면 '탈퇴' 버튼을 끈다 -->
+<div class="modal-stage withdraw-modal-stage" id="withdraw-modal" hidden>
+    <form class="modal withdraw-modal" id="withdraw-form" role="dialog" aria-modal="true" aria-labelledby="withdraw-title" novalidate>
+        <div class="modal-head">
+            <h2 id="withdraw-title">회원 탈퇴</h2>
+            <button class="icon-btn" type="button" aria-label="닫기" data-withdraw-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="alert">탈퇴하면 같은 아이디로 다시 가입할 수 없습니다. 계속하려면 비밀번호를 입력하세요.</p>
+            <p class="alert" id="withdraw-error" role="alert" hidden></p>
+            <div class="field">
+                <label for="withdraw-password">비밀번호</label>
+                <input class="input" id="withdraw-password" name="password" type="password" autocomplete="current-password">
+                <span class="hint err" data-error-for="password" hidden></span>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-withdraw-close>취소</button>
+            <button class="btn danger" type="submit" id="withdraw-submit" disabled>탈퇴</button>
+        </div>
+    </form>
+</div>
+
+<!-- 탈퇴 확인 창(SCR-U-003 '확인 창 한 번 더') -->
+<div class="modal-stage withdraw-modal-stage" id="withdraw-confirm-modal" hidden>
+    <div class="modal withdraw-confirm" role="alertdialog" aria-modal="true" aria-labelledby="withdraw-confirm-title">
+        <div class="modal-head">
+            <h2 id="withdraw-confirm-title">정말 탈퇴할까요?</h2>
+        </div>
+        <div class="modal-body">
+            <p>탈퇴하면 바로 로그아웃되고 이 계정으로 다시 로그인하거나 같은 아이디로 가입할 수 없습니다.</p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-withdraw-confirm-close>취소</button>
+            <button class="btn danger" type="button" id="withdraw-confirm-ok">탈퇴</button>
+        </div>
+    </div>
+</div>
+</th:block>
 
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/my-info.js}"></script>
 <script type="module" th:src="@{/js/pages/password-change.js}"></script>
+<script type="module" th:unless="${admin}" th:src="@{/js/user/withdraw.js}"></script>
 </body>
 </html>
