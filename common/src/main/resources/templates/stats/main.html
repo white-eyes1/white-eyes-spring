@@ -5,7 +5,7 @@
   admin 모델 값이 true일 때만 지역 등록·수정 버튼과 캠 패널이 그려진다(관리자 앱).
   새 1분 통계는 통계 SSE(FNC-C-022)로 받아 화면을 새로 읽는다.
   비정상 인원 변동(FNC-C-020)은 펼칠 때 기간 비교 API로 읽는다.
-  보조 지표(FNC-C-030)는 펼친 영역에 필요한 통계 시계열만 읽는다. 관리자 앱의 이벤트 종류별 건수는 아직 없다(#199).
+  보조 지표(FNC-C-030)는 펼친 영역에 필요한 통계 시계열만 읽는다. 이벤트 종류별 건수는 관리자 앱에만 있다(이벤트 요약 API가 관리자 이상).
   엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
   다른 2·3단계 접기 영역(시간대별 단계, 방문 패턴, 피크·증감)은 아직 없다.
 -->
@@ -105,6 +105,10 @@
                 <details class="acc fold" id="aux-top-zones">
                     <summary class="acc-h">혼잡 구역 TOP 5<span class="muted small">밀집도 순</span></summary>
                     <div class="acc-b aux-rank" id="aux-top-zones-body"></div>
+                </details>
+                <details class="acc fold" id="aux-events" th:if="${admin}">
+                    <summary class="acc-h">오늘 이벤트 종류별 건수<span class="muted small">오늘 0시부터</span></summary>
+                    <div class="acc-b" id="aux-events-body"></div>
                 </details>
                 <details class="acc fold" id="aux-observe">
                     <summary class="acc-h">관측 상태</summary>

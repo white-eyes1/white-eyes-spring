@@ -85,7 +85,10 @@ class EventSummaryTest {
                 .andExpect(jsonPath("$.total").value(0))
                 .andExpect(jsonPath("$.unchecked").value(0))
                 .andExpect(jsonPath("$.checked").value(0))
-                .andExpect(jsonPath("$.resolved").value(0));
+                .andExpect(jsonPath("$.resolved").value(0))
+                .andExpect(jsonPath("$.byType.CONGESTION").value(0))
+                .andExpect(jsonPath("$.byType.SURGE").value(0))
+                .andExpect(jsonPath("$.byType.CAM_FAULT").value(0));
     }
 
     @Test
@@ -103,6 +106,41 @@ class EventSummaryTest {
                 .andExpect(jsonPath("$.unchecked").value(3))
                 .andExpect(jsonPath("$.checked").value(1))
                 .andExpect(jsonPath("$.resolved").value(2));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 종류별 건수(byType)를 처리 상태와 관계없이 세고, 세 종류를 항상 준다")
+    void summary_countsByType() throws Exception {
+        insertEvent("CONGESTION", samcheongZoneId, 0, "UNCHECKED");
+        insertEvent("CONGESTION", sogongZoneId, 1, "CHECKED");
+        insertEvent("CONGESTION", sogongZoneId, 2, "RESOLVED");
+        insertEvent("SURGE", samcheongZoneId, 3, "UNCHECKED");
+        insertEvent("SURGE", samcheongZoneId, 4, "RESOLVED");
+
+        mockMvc.perform(get(SUMMARY_URL))
+                .andExpect(jsonPath("$.total").value(5))
+                .andExpect(jsonPath("$.unchecked").value(2))
+                .andExpect(jsonPath("$.checked").value(1))
+                .andExpect(jsonPath("$.resolved").value(2))
+                .andExpect(jsonPath("$.byType.CONGESTION").value(3))
+                .andExpect(jsonPath("$.byType.SURGE").value(2))
+                .andExpect(jsonPath("$.byType.CAM_FAULT").value(0));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 종류 필터를 걸면 byType도 그 종류만 세고 나머지는 0")
+    void summary_byTypeWithTypeFilter() throws Exception {
+        insertEvent("CONGESTION", samcheongZoneId, 0, "UNCHECKED");
+        insertEvent("SURGE", samcheongZoneId, 1, "UNCHECKED");
+        insertEvent("CAM_FAULT", sogongZoneId, 2, "CHECKED");
+        insertEvent("CAM_FAULT", sogongZoneId, 3, "UNCHECKED");
+
+        mockMvc.perform(get(SUMMARY_URL).param("types", "SURGE", "CAM_FAULT"))
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.unchecked").value(2))
+                .andExpect(jsonPath("$.byType.CONGESTION").value(0))
+                .andExpect(jsonPath("$.byType.SURGE").value(1))
+                .andExpect(jsonPath("$.byType.CAM_FAULT").value(2));
     }
 
     @Test

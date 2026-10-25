@@ -3,6 +3,7 @@ package com.whiteeyes.admin.camera.service;
 import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStopResponse;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
+import com.whiteeyes.admin.event.service.CamFaultEventService;
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.admin.media.repository.RecordingRepository;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
@@ -40,6 +41,7 @@ public class CameraStopService {
     private final TransactionTemplate transactionTemplate;
     private final RecordingRepository recordingRepository;
     private final AdminWorkRecorder workRecorder;
+    private final CamFaultEventService camFaultEventService;
 
     public CameraStopResponse stop(Long cameraId) {
         // 로그인하지 않은 요청은 정지를 시작하기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
@@ -59,8 +61,8 @@ public class CameraStopService {
 
         // 처리 순서 3: status=STOPPED, progress=0 (이전 오류 내용도 지운다)
         transactionTemplate.executeWithoutResult(status -> markStopped(cameraId, actor));
-        // 처리 순서 4(더미 캠의 마지막 녹화 닫기)와 6(작업 기록 CAMERA_RUN, op: STOP)은 위 3단계 트랜잭션 안에서 한다.
-        // 처리 순서 5(열린 캠 이상 이벤트 종료)는 이벤트 테이블이 들어오는 #39에서 연결한다
+        // 처리 순서 4(더미 캠의 마지막 녹화 닫기), 5(열린 캠 이상 이벤트 종료, FNC-A-035), 6(작업 기록 CAMERA_RUN, op: STOP)은
+        // 위 3단계 트랜잭션 안에서 한다
         return new CameraStopResponse(CameraStatus.STOPPED, warning);
     }
 
@@ -73,6 +75,8 @@ public class CameraStopService {
     private void markStopped(Long cameraId, LoginAccount actor) {
         cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
             camera.updateStatus(CameraStatus.STOPPED, STOPPED_PROGRESS, null);
+            // 정지한 캠은 감시 대상이 아니므로 열린 캠 이상 이벤트를 같은 트랜잭션에서 닫는다(FNC-A-035)
+            camFaultEventService.closeOnStop(cameraId, LocalDateTime.now(KST));
             // 처리 순서 4: 더미 캠은 종료 시각이 빈 마지막 녹화를 지금 시각으로 닫는다(라이브 캠은 분석 서버가 파일을 닫아 등록한다)
             if (camera.getSourceType() == CameraSourceType.DUMMY) {
                 recordingRepository

@@ -79,6 +79,7 @@ class CameraStopTest {
         AdminTestLogin.loginForDirectCalls();
         ANALYZER.reset();
         jdbcTemplate.update("DELETE FROM recording");
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
@@ -94,6 +95,7 @@ class CameraStopTest {
     void clearCamerasAndZones() {
         AdminTestLogin.clear();
         jdbcTemplate.update("DELETE FROM recording");
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -113,6 +115,26 @@ class CameraStopTest {
         assertThat(row.get("STATUS")).isEqualTo("STOPPED");
         assertThat(((Number) row.get("PROGRESS")).intValue()).isZero();
         assertThat(isRunRequested(row)).isFalse();
+    }
+
+    @Test
+    @DisplayName("FNC-A-021 정지하면 그 캠의 열린 캠 이상 이벤트가 종료된다")
+    void stop_closesOpenCamFaultEvent() throws Exception {
+        long cameraId = insertCamera("ERROR", 40, "분석 중 오류가 발생함", true);
+        jdbcTemplate.update(
+                "INSERT INTO event (type, zone_id, camera_id, started_at, threshold_snapshot) "
+                        + "VALUES ('CAM_FAULT', ?, ?, CURRENT_TIMESTAMP, '{\"timeoutSec\":60}')",
+                zoneId,
+                cameraId);
+
+        stop(cameraId).andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NULL", Integer.class, cameraId))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NOT NULL", Integer.class, cameraId))
+                .isEqualTo(1);
     }
 
     @Test
@@ -208,6 +230,7 @@ class CameraStopTest {
             assertThat(row.get("STATUS")).as("http " + http).isEqualTo("STOPPED");
             assertThat(isRunRequested(row)).as("http " + http).isFalse();
             jdbcTemplate.update("DELETE FROM recording");
+            jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM camera");
         }
     }

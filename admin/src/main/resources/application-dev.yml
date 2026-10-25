@@ -1,5 +1,11 @@
 # dev 환경 값은 환경변수로 주입한다.
 spring:
+  # MySQL 드라이버가 batchUpdate를 여러 행 INSERT 한 문장으로 보내게 한다(시연용 통계 생성 FNC-A-051의 1년 치 넣기).
+  # local·dev에서만 시연용 작업이 돌므로 여기에만 둔다. 테스트(H2)는 이 프로필을 쓰지 않는다
+  datasource:
+    hikari:
+      data-source-properties:
+        rewriteBatchedStatements: true
   # 시각 버전(V<yyyyMMdd>_<HHmm>) 파일이 늦게 머지돼도 적용한다. prod는 기본값(false) 유지
   flyway:
     out-of-order: true

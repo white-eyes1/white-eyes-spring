@@ -1,9 +1,11 @@
-// 통계 시계열 선 그래프(SCR-C-004, FNC-C-012). Chart.js(전역 Chart, graph.html이 불러옴) 코드는 이 파일에만 둔다.
+// 통계 시계열 선 그래프(SCR-C-004, FNC-C-012·014). Chart.js(전역 Chart, graph.html이 불러옴) 코드는 이 파일에만 둔다.
 // 값이 없는 점(sampleSec=0·통계 없음)은 null이라 선과 띠가 끊긴다(spanGaps 끔).
 import { formatDecimal, formatNumber } from '../common/format.js';
 
 const GRID_COLOR = '#1e2a38';
 const TICK_COLOR = '#8b98a9';
+// 하위 비교 선 색(최대 10개, FNC-C-014). 어두운 배경에서 서로 구분되는 색
+const COMPARE_COLORS = ['#4f8cff', '#f59e0b', '#3bc99b', '#ef4d55', '#a78bfa', '#22c3e6', '#f472b6', '#facc15', '#94a3b8', '#fb923c'];
 
 /**
  * 항목 정의. axis: count(명) | density(명/㎡) | dwell(초). 색은 시안(인원 파랑, 밀집도 주황)을 따른다.
@@ -39,23 +41,10 @@ export function createSeriesChart(canvas) {
      */
     function update(labels, titles, seriesByItem) {
         const keys = Object.keys(seriesByItem);
-        const usedAxes = new Set(keys.map((key) => SERIES_ITEMS[key].axis));
         const datasets = keys.flatMap((key) => {
             const item = SERIES_ITEMS[key];
             const series = seriesByItem[key];
-            const line = {
-                itemKey: key,
-                label: item.label,
-                data: series.values,
-                yAxisID: item.axis,
-                borderColor: item.color,
-                backgroundColor: item.color,
-                borderWidth: item.width,
-                pointRadius: 0,
-                pointHoverRadius: 5,
-                spanGaps: false,
-                tension: 0.2,
-            };
+            const line = lineDataset(key, item.label, series.values, item.color, item.width);
             if (!item.bandColor || !series.high || !series.low) {
                 return [line];
             }
@@ -67,6 +56,49 @@ export function createSeriesChart(canvas) {
                 { ...edge, label: `${item.label} 최소`, data: series.low, backgroundColor: item.bandColor, fill: false },
             ];
         });
+        const usedAxes = new Set(keys.map((key) => SERIES_ITEMS[key].axis));
+        draw(labels, titles, datasets, usedAxes, (context) => {
+            const key = context.dataset.itemKey;
+            const series = seriesByItem[key];
+            const index = context.dataIndex;
+            return tooltipLine(key, context.parsed.y, series.high?.[index], series.low?.[index]);
+        });
+    }
+
+    /**
+     * 하위 비교(FNC-C-014): 한 항목을 하위 단위마다 다른 색 선으로 겹쳐 그린다. 범례는 하위 단위 이름이다.
+     * @param {string[]} labels x축 글자
+     * @param {string[]} titles 툴팁 제목
+     * @param {string} key SERIES_ITEMS의 키(단위·축·자릿수에 씀)
+     * @param {{name: string, values: (number|null)[]}[]} seriesList 하위 단위별 값(목록 순서대로 색을 준다)
+     */
+    function compare(labels, titles, key, seriesList) {
+        const item = SERIES_ITEMS[key];
+        const datasets = seriesList.map((series, index) =>
+            lineDataset(key, series.name, series.values, COMPARE_COLORS[index % COMPARE_COLORS.length], 2),
+        );
+        draw(labels, titles, datasets, new Set([item.axis]), (context) =>
+            `${context.dataset.label} ${valueText(key, context.parsed.y)}`,
+        );
+    }
+
+    function lineDataset(key, label, data, color, width) {
+        return {
+            itemKey: key,
+            label,
+            data,
+            yAxisID: SERIES_ITEMS[key].axis,
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: width,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            spanGaps: false,
+            tension: 0.2,
+        };
+    }
+
+    function draw(labels, titles, datasets, usedAxes, tooltipLabel) {
         const scales = { x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, maxTicksLimit: 12 } } };
         Object.entries(AXES).forEach(([id, axis]) => {
             scales[id] = {
@@ -103,12 +135,7 @@ export function createSeriesChart(canvas) {
                         filter: (context) => !context.dataset.bandOf,
                         callbacks: {
                             title: (contexts) => titles[contexts[0].dataIndex],
-                            label: (context) => {
-                                const key = context.dataset.itemKey;
-                                const series = seriesByItem[key];
-                                const index = context.dataIndex;
-                                return tooltipLine(key, context.parsed.y, series.high?.[index], series.low?.[index]);
-                            },
+                            label: tooltipLabel,
                         },
                     },
                 },
@@ -120,7 +147,7 @@ export function createSeriesChart(canvas) {
         chart = new window.Chart(canvas, config);
     }
 
-    return { update };
+    return { update, compare };
 }
 
 // '밀집도 0.92명/㎡', 띠가 있는 항목은 '인원 평균 120명 (최대 150 · 최소 90)'. 값이 없으면 '데이터 없음'
@@ -129,7 +156,7 @@ function tooltipLine(key, value, high, low) {
     if (value === null || value === undefined) {
         return `${item.label} 데이터 없음`;
     }
-    const format = (number) => (item.decimals ? formatDecimal(number, item.decimals) : formatNumber(Math.round(number)));
+    const format = (number) => formatValue(item, number);
     if (!item.bandColor) {
         return `${item.label} ${format(value)}${item.unit}`;
     }
@@ -137,4 +164,14 @@ function tooltipLine(key, value, high, low) {
         ? ''
         : ` (최대 ${format(high)} · 최소 ${format(low)})`;
     return `${item.label} 평균 ${format(value)}${item.unit}${range}`;
+}
+
+// 하위 비교 툴팁 값: '120명', 값이 없으면 '데이터 없음'
+function valueText(key, value) {
+    const item = SERIES_ITEMS[key];
+    return value === null || value === undefined ? '데이터 없음' : `${formatValue(item, value)}${item.unit}`;
+}
+
+function formatValue(item, number) {
+    return item.decimals ? formatDecimal(number, item.decimals) : formatNumber(Math.round(number));
 }
