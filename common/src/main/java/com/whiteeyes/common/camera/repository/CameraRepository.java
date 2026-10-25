@@ -55,6 +55,9 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
             """)
     boolean existsActiveOrRunRequested(@Param("zoneId") Long zoneId, @Param("statuses") Collection<CameraStatus> statuses);
 
+    /** 처음 가동한 적이 있는 모든 캠. 삭제된 캠도 포함한다(시연용 통계를 가동 시작 전날까지만 만드는 기준, FNC-A-051). */
+    List<Camera> findByFirstStartedAtIsNotNull();
+
     /** 그 구역에 처음 가동한 적이 있는 캠이 있는지 본다. 삭제된 캠도 포함한다(구역 삭제 FNC-A-017 처리 순서 2). */
     boolean existsByZoneIdAndFirstStartedAtIsNotNull(Long zoneId);
 

@@ -79,6 +79,14 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-018 사용자 앱 통계 패널에도 시간대별 혼잡 단계 접기 영역이 있다(두 앱 공통)")
+    void statsPage_user_hasHourlyLevelsFold() throws Exception {
+        mockMvc.perform(get("/stats").with(user("user01").roles("USER")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"hourly-levels\">")))
+                .andExpect(content().string(containsString("id=\"hourly-levels-bars\"")));
+    }
+
+    @Test
     @DisplayName("FNC-C-029 사용자 앱 통계 패널에도 피크 시간 TOP 3 접기 영역이 있다(두 앱 공통)")
     void statsPage_user_hasPeakHoursFold() throws Exception {
         mockMvc.perform(get("/stats").with(user("user01").roles("USER")))

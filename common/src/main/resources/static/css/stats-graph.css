@@ -25,3 +25,20 @@
 .graph-canvas { position: relative; height: 420px; padding: 20px 24px 18px; }
 .graph-empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; }
 .graph-empty[hidden] { display: none; }
+
+/* 하위 비교(FNC-C-014): 그래프 패널 머리 오른쪽 토글과 항목 선택. 토글 모양은 시안의 34×18 스위치 */
+.graph-panel-head { padding: 12px 18px; }
+.compare-controls { display: flex; align-items: center; gap: 12px; }
+.compare-controls .input { height: 30px; font-size: 12px; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #c3cdd9; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch span { width: 34px; height: 18px; border-radius: 9px; background: #2d3b4d; position: relative; display: inline-block; transition: background .15s; }
+.switch span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
+.switch input:checked + span { background: #356fc9; }
+.switch input:checked + span::after { left: 18px; }
+.switch input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.switch input:disabled + span { opacity: .4; }
+.switch:has(input:disabled) { cursor: not-allowed; color: #6b7889; }
+.compare-omitted { padding: 0 24px 16px; font-size: 12px; }
+.compare-omitted[hidden] { display: none; }
+.graph-items.is-disabled { opacity: .45; pointer-events: none; }

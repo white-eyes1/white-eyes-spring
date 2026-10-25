@@ -57,6 +57,12 @@
 .acc-b .btn { align-self: flex-end; }
 .abnormal-list { display: flex; flex-direction: column; gap: 8px; }
 
+/* 시간대별 혼잡 단계(FNC-C-018): 0~23시 단계 색 막대(시안 SCR-C-003-stats-panel-all) */
+.hour-bars { display: flex; align-items: flex-end; gap: 2px; height: 70px; }
+.hour-bar { flex: 1; border-radius: 2px 2px 0 0; }
+.hour-bar.empty { background: #2a3646; }
+.hour-axis { display: flex; justify-content: space-between; }
+
 /* 피크 시간 TOP 3(FNC-C-029): 기간 탭은 시안의 칩 모양(켠 탭 .chip.run, 끈 탭 .chip.off) */
 .peak-periods { display: flex; gap: 6px; }
 .peak-periods button { border: 0; cursor: pointer; }
@@ -80,6 +86,7 @@
 .aux-rank .rank { width: 16px; flex: none; }
 .aux-rank .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aux-rate { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.aux-unchecked { color: #ff8a90; }
 
 /* 지도 위 구역 핀 */
 .zone-pin { background: none; border: 0; }

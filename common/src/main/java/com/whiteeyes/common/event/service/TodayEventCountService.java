@@ -44,4 +44,15 @@ public class TodayEventCountService {
         }
         return countByZone;
     }
+
+    /**
+     * 구역들 전체의 오늘 이벤트 수 합계(지역·구역 하나의 대시보드 요약).
+     *
+     * @param zoneIds 삭제된 구역도 포함한 구역 번호
+     * @param from 오늘 00:00(KST)
+     */
+    @Transactional(readOnly = true)
+    public int countTotal(Collection<Long> zoneIds, LocalDateTime from) {
+        return countByZone(zoneIds, from).values().stream().mapToInt(Integer::intValue).sum();
+    }
 }

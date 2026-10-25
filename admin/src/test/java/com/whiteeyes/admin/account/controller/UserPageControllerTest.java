@@ -49,6 +49,21 @@ class UserPageControllerTest {
                 .andExpect(content().string(containsString("id=\"user-confirm-ok\"")));
     }
 
+    // 상세 창은 user-detail.js가 행 클릭으로 연다. 임시 비밀번호 상자는 재설정 응답을 받은 뒤에만 채워진다(FNC-A-005)
+    @Test
+    @DisplayName("SCR-A-002 사용자 상세 창에 재설정 버튼·확인 창·임시 비밀번호 상자가 있고 처음에는 숨겨져 있다")
+    void users_hasDetailModalWithPasswordReset() throws Exception {
+        mockMvc.perform(get("/users"))
+                .andExpect(content().string(containsString("id=\"user-detail-modal\" hidden")))
+                .andExpect(content().string(containsString("id=\"user-detail-reset\"")))
+                .andExpect(content().string(containsString("id=\"user-reset-confirm-modal\" hidden")))
+                .andExpect(content().string(containsString("id=\"user-reset-confirm-ok\"")))
+                .andExpect(content().string(containsString("id=\"user-temp-password-box\" hidden")))
+                .andExpect(content().string(containsString("id=\"user-temp-password\"")))
+                .andExpect(content().string(containsString("id=\"user-temp-copy\"")))
+                .andExpect(content().string(containsString("이 창을 닫으면 다시 볼 수 없습니다")));
+    }
+
     // 행의 승인 버튼(FNC-A-006)은 users.js가 이 열에 그린다
     @Test
     @DisplayName("SCR-A-001 사용자 표에 동작 열이 있다")
@@ -82,6 +97,7 @@ class UserPageControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {
         "/js/admin/pages/users.js",
+        "/js/admin/user-detail.js",
         "/js/common/api.js",
         "/js/common/format.js",
         "/js/common/toast.js",
