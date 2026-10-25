@@ -1,6 +1,7 @@
 package com.whiteeyes.admin.account.controller;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -62,6 +63,26 @@ class UserPageControllerTest {
                 .andExpect(content().string(containsString("id=\"user-temp-password\"")))
                 .andExpect(content().string(containsString("id=\"user-temp-copy\"")))
                 .andExpect(content().string(containsString("이 창을 닫으면 다시 볼 수 없습니다")));
+    }
+
+    // 저장은 user-detail.js가 폼 제출로 PATCH /api/v1/users/{id}를 부른다(FNC-A-004)
+    @Test
+    @DisplayName("SCR-A-002 사용자 상세 창의 이름·메일·연락처는 고칠 수 있고, 칸마다 오류 자리와 취소·저장 버튼이 있다")
+    void users_hasEditableDetailForm() throws Exception {
+        String[] expected = {
+            "id=\"user-detail-form\"", "id=\"user-detail-error\"",
+            "id=\"user-detail-name\" name=\"name\"", "data-error-for=\"name\"",
+            "id=\"user-detail-email\" name=\"email\"", "data-error-for=\"email\"",
+            "id=\"user-detail-phone\" name=\"phone\"", "data-error-for=\"phone\"",
+            ">취소</button>", "type=\"submit\" id=\"user-detail-save\">저장</button>"
+        };
+        var result = mockMvc.perform(get("/users"));
+        for (String fragment : expected) {
+            result.andExpect(content().string(containsString(fragment)));
+        }
+        // 아이디는 고칠 칸이 없다(업무 규칙 '아이디·역할은 바꿀 수 없음'). 이름·메일·연락처 칸은 읽기 전용이 아니다
+        result.andExpect(content().string(not(containsString("id=\"user-detail-login-id\""))))
+                .andExpect(content().string(not(containsString("readonly"))));
     }
 
     // 행의 승인 버튼(FNC-A-006)은 users.js가 이 열에 그린다
