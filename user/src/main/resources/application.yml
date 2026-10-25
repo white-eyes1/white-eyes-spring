@@ -26,6 +26,10 @@ server:
       cookie:
         name: USER_SESSION
 
+# 로그인 화면에 회원가입 링크를 보인다(SCR-C-001, 사용자 앱에만)
+login:
+  signup-link: true
+
 management:
   endpoints:
     web:

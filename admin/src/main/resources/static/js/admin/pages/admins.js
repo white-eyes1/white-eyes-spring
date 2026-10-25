@@ -1,8 +1,10 @@
 // 관리자 관리 화면(SCR-A-003). 관리자 목록(FNC-A-003)을 GET /api/v1/admins로 불러와 아이디 정렬·페이지 이동한다.
 // 시안·screens.md에 검색 줄이 없어 조건 없이 부른다(API는 검색 조건을 받음). 기본 순서는 API 기본값(최근 생성 순)이다.
 // '관리자 추가' 창은 POST /api/v1/admins(FNC-A-009)로 계정을 만들고 임시 비밀번호를 한 번만 보여 준다.
+// 활동 중인 관리자 행의 '강제 로그아웃'(FNC-A-008)은 확인 창 뒤 POST /api/v1/admins/{id}/logout으로 보낸다.
 import { ApiError, get, post } from '../../common/api.js';
 import { formatDateTime, formatNumber } from '../../common/format.js';
+import { showToast } from '../../common/toast.js';
 
 const ADMINS_API = '/api/v1/admins';
 const PAGE_SIZE = 20;
@@ -15,6 +17,10 @@ const ROLE_LABELS = { ADMIN: '관리자', SUPER_ADMIN: '최고 관리자' };
 const STATUS_LABELS = { ACTIVE: '정상', DISABLED: '비활성화' };
 const STATUS_CHIPS = { ACTIVE: 'done', DISABLED: 'off' };
 const SORT_MARKS = { asc: '↑', desc: '↓', none: '↕' };
+
+const SELF_LABEL = '본인 계정';
+// 서버가 화면에 넣어 준 현재 로그인 아이디(본인 행 표시용)
+const currentLoginId = document.getElementById('admin-table').dataset.currentLoginId;
 
 const tableBody = document.getElementById('admin-table-body');
 const sortButtons = document.querySelectorAll('#admin-table button[data-sort]');
@@ -82,9 +88,113 @@ function toRow(admin) {
         statusCell(admin.status),
         cell(formatDateTime(admin.lastActiveAt)),
         activeCell(admin.active),
+        actionsCell(admin),
     );
     return row;
 }
+
+// 최고 관리자 행에는 버튼이 없고(screens.md SCR-A-003), 본인 행에는 '본인 계정'만 보인다.
+// 수정·비밀번호 재설정(FNC-A-010)과 비활성화·활성화(FNC-A-011) 버튼은 각 기능의 이슈에서 이 칸에 더한다
+function actionsCell(admin) {
+    const td = document.createElement('td');
+    td.className = 'admin-actions';
+    const wrap = document.createElement('div');
+    wrap.className = 'row-actions';
+    if (admin.role === 'SUPER_ADMIN') {
+        if (admin.loginId === currentLoginId) {
+            const self = document.createElement('span');
+            self.className = 'muted admin-self';
+            self.textContent = SELF_LABEL;
+            wrap.append(self);
+        }
+    } else if (admin.active) {
+        // 활동 중일 때만 보인다(screens.md SCR-A-003)
+        wrap.append(forceLogoutButton(admin));
+    }
+    td.append(wrap);
+    return td;
+}
+
+// ---- 행 동작 확인 창 (강제 로그아웃 FNC-A-008, 비활성화·활성화 FNC-A-011 공용) ----
+
+const confirmModal = document.getElementById('admin-confirm-modal');
+const confirmTitle = document.getElementById('admin-confirm-title');
+const confirmMessage = document.getElementById('admin-confirm-message');
+const confirmOk = document.getElementById('admin-confirm-ok');
+// 열려 있는 확인 창이 확인되면 할 일. run은 성공 시 토스트로 보일 문장을 돌려준다
+let confirmAction = null;
+let confirming = false;
+
+function openConfirm({ title, message, okLabel, run }) {
+    confirmAction = run;
+    confirmTitle.textContent = title;
+    confirmMessage.textContent = message;
+    confirmOk.textContent = okLabel;
+    confirmOk.disabled = false;
+    confirmModal.hidden = false;
+    confirmOk.focus();
+}
+
+function closeConfirm() {
+    if (confirming) {
+        return; // 요청이 끝나기 전에는 닫지 않는다(끝난 뒤 새로 연 창을 닫는 일을 막는다)
+    }
+    confirmModal.hidden = true;
+    confirmAction = null;
+}
+
+async function runConfirmed() {
+    if (!confirmAction || confirming) {
+        return;
+    }
+    const run = confirmAction;
+    confirming = true;
+    confirmOk.disabled = true;
+    let succeeded = false;
+    try {
+        showToast(await run());
+        succeeded = true;
+    } catch (error) {
+        showToast(error instanceof ApiError ? error.message : DEFAULT_ERROR_MESSAGE);
+    }
+    confirming = false;
+    closeConfirm();
+    if (succeeded) {
+        loadAdmins();
+    }
+}
+
+function forceLogoutButton(admin) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn secondary sm';
+    button.textContent = '강제 로그아웃';
+    button.addEventListener('click', () =>
+        openConfirm({
+            title: '강제 로그아웃',
+            message: `'${admin.loginId}' 관리자를 로그아웃시킬까요? 열려 있는 모든 세션이 종료됩니다.`,
+            okLabel: '로그아웃',
+            run: async () => {
+                const result = await post(`${ADMINS_API}/${admin.id}/logout`, undefined, { toast: false });
+                return `${result.deletedSessions}개 세션을 종료했습니다`;
+            },
+        }),
+    );
+    return button;
+}
+
+confirmModal.querySelectorAll('[data-confirm-close]').forEach((button) => button.addEventListener('click', closeConfirm));
+confirmModal.addEventListener('mousedown', (event) => {
+    if (event.target === confirmModal) {
+        closeConfirm();
+    }
+});
+confirmOk.addEventListener('click', runConfirmed);
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !confirmModal.hidden) {
+        closeConfirm();
+    }
+});
 
 function cell(text) {
     const td = document.createElement('td');

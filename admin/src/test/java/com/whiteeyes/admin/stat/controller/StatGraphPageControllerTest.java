@@ -68,14 +68,46 @@ class StatGraphPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-C-004 이 이슈 범위 밖인 이동 경로·하위 비교·기간 비교·엑셀 버튼은 두지 않는다")
+    @DisplayName("SCR-C-004 이 이슈 범위 밖인 이동 경로·기간 비교 버튼은 두지 않는다")
     void graphPage_hasNoOutOfScopeElements() throws Exception {
-        // 머리 주석에는 이름이 나오므로 요소(속성·글자)만 본다
+        // 머리 주석에는 이름이 나오므로 요소(속성·글자)만 본다. 엑셀 버튼은 #28, 하위 비교는 #57에서 붙였다
         mockMvc.perform(get("/stats/graph"))
                 .andExpect(content().string(not(containsString("aria-label=\"이동 경로\""))))
-                .andExpect(content().string(not(containsString(">하위 비교"))))
-                .andExpect(content().string(not(containsString(">기간 비교<"))))
-                .andExpect(content().string(not(containsString(">엑셀 다운로드<"))));
+                .andExpect(content().string(not(containsString(">기간 비교<"))));
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 그래프 패널 머리에 하위 비교 토글과 항목 선택(인원·밀집도·유입·유출·평균 체류)이 있다(FNC-C-014)")
+    void graphPage_hasChildrenCompare() throws Exception {
+        String[] expected = {
+            ">하위 비교", "id=\"compare-toggle\"", "role=\"switch\"", "id=\"compare-item\"", "id=\"compare-omitted\"",
+            "<option value=\"COUNT\">인원</option>", "<option value=\"DENSITY\">밀집도</option>",
+            "<option value=\"INFLOW\">유입</option>", "<option value=\"OUTFLOW\">유출</option>",
+            "<option value=\"DWELL\">평균 체류</option>"
+        };
+        var result = mockMvc.perform(get("/stats/graph")).andExpect(status().isOk());
+        for (String fragment : expected) {
+            result.andExpect(content().string(containsString(fragment)));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/stats/graph", "/stats"})
+    @DisplayName("SCR-C-003·004 '엑셀 다운로드' 버튼과 엑셀 다운로드 창(SCR-C-006, FNC-C-023)이 있다")
+    void graphAndStatsPage_haveExportButton(String path) throws Exception {
+        String[] expected = {
+            "id=\"export-open\"", ">엑셀 다운로드<", "id=\"export-modal\"", "id=\"export-scope\"",
+            "id=\"export-expand\"", "id=\"export-from\"", "id=\"export-end\"", "id=\"export-interval\"",
+            "value=\"COUNT\"", "value=\"DENSITY\"", "value=\"INFLOW\"", "value=\"OUTFLOW\"", "value=\"DWELL\"",
+            "id=\"export-submit\"", "href=\"/css/stats-export.css\""
+        };
+        var result = mockMvc.perform(get(path)).andExpect(status().isOk());
+        for (String fragment : expected) {
+            result.andExpect(content().string(containsString(fragment)));
+        }
+        // 시안의 설명 요소·속성은 옮기지 않는다
+        result.andExpect(content().string(not(containsString("data-fnc="))))
+                .andExpect(content().string(not(containsString("data-api="))));
     }
 
     @Test
@@ -88,7 +120,10 @@ class StatGraphPageControllerTest {
 
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 관리자 앱에서 내려가는지 본다
     @ParameterizedTest
-    @ValueSource(strings = {"/js/pages/stats-graph.js", "/js/chart/series-chart.js", "/css/stats-graph.css"})
+    @ValueSource(strings = {
+        "/js/pages/stats-graph.js", "/js/chart/series-chart.js", "/css/stats-graph.css",
+        "/js/export/export-modal.js", "/css/stats-export.css"
+    })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 관리자 앱이 내려준다")
     void graphPage_staticFilesServed(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isOk());

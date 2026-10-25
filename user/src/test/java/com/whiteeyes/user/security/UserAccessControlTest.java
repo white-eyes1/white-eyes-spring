@@ -37,6 +37,8 @@ class UserAccessControlTest {
             "/api/v1/stats/series?targetType=REGION&targetId=999999&interval=1h&from=2099-01-01T10:00&to=2099-01-01T11:00";
     private static final String COMPARE =
             "/api/v1/compare?targetType=ZONE&targetId=1&from=2099-01-05&to=2099-01-11&basePreset=LAST_MONTH";
+    // 없는 구역이라 허용되면 404. USER의 200은 user_zoneDetail_ok에서 실제 구역으로 확인한다
+    private static final String ZONE_DETAIL = "/api/v1/zones/999999";
 
     @Autowired
     private MockMvc mockMvc;
@@ -91,7 +93,8 @@ class UserAccessControlTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(
-            strings = {"/api/v1/regions", "/api/v1/zones", STAT_SERIES, COMPARE, "/api/v1/meta/levels", "/api/v1/me"})
+            strings = {"/api/v1/regions", "/api/v1/zones", ZONE_DETAIL, STAT_SERIES, COMPARE, "/api/v1/meta/levels",
+                    "/api/v1/me"})
     @DisplayName("FNC-C-003 세션 없이 사용자 이상 API를 요청하면 공통 오류 형식의 401을 돌려준다")
     void anonymous_api_unauthorized(String path) throws Exception {
         mockMvc.perform(get(path))
@@ -101,7 +104,8 @@ class UserAccessControlTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"/api/v1/regions", "/api/v1/zones", STAT_SERIES, COMPARE, "/api/v1/meta/levels"})
+    @ValueSource(strings = {"/api/v1/regions", "/api/v1/zones", ZONE_DETAIL, STAT_SERIES, COMPARE,
+            "/api/v1/meta/levels"})
     @DisplayName("FNC-C-003 로그인한 USER는 사용자 이상 API를 쓸 수 있다")
     void user_api_allowed(String path) throws Exception {
         Cookie session = accounts.loginAs("user01", "ACTIVE", false);
@@ -110,7 +114,8 @@ class UserAccessControlTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"/api/v1/regions", "/api/v1/zones", STAT_SERIES, COMPARE, "/api/v1/meta/levels"})
+    @ValueSource(strings = {"/api/v1/regions", "/api/v1/zones", ZONE_DETAIL, STAT_SERIES, COMPARE,
+            "/api/v1/meta/levels"})
     @DisplayName("FNC-U-003 로그인한 PENDING 계정이 사용자 이상 API를 요청하면 403")
     void pending_api_forbidden(String path) throws Exception {
         Cookie session = accounts.loginAs("wait01", "PENDING", false);
@@ -118,6 +123,24 @@ class UserAccessControlTest {
         mockMvc.perform(get(path).cookie(session))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("FNC-C-003 로그인한 USER는 구역 하나 조회(GET /api/v1/zones/{id})에서 200을 받는다")
+    void user_zoneDetail_ok() throws Exception {
+        jdbcTemplate.update("INSERT INTO zone (dong_id, name, area_m2, boundary, center_lat, center_lng)"
+                + " VALUES (1, '접근 시험 구역', 100.00, '{}', 37.600000, 127.002000)");
+        try {
+            long zoneId = jdbcTemplate.queryForObject(
+                    "SELECT id FROM zone WHERE name = '접근 시험 구역'", Long.class);
+            Cookie session = accounts.loginAs("user04", "ACTIVE", false);
+
+            mockMvc.perform(get("/api/v1/zones/" + zoneId).cookie(session))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value("접근 시험 구역"));
+        } finally {
+            jdbcTemplate.update("DELETE FROM zone WHERE name = '접근 시험 구역'");
+        }
     }
 
     @Test

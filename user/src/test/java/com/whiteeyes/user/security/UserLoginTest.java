@@ -268,6 +268,15 @@ class UserLoginTest {
     }
 
     @Test
+    @DisplayName("SCR-C-001 사용자 앱 로그인 화면에는 회원가입 화면으로 가는 링크가 있다")
+    void loginPage_showsSignupLink() throws Exception {
+        mockMvc.perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/signup\"")))
+                .andExpect(content().string(containsString("회원가입")));
+    }
+
+    @Test
     @DisplayName("SCR-C-001 이미 로그인한 상태로 로그인 화면에 들어오면 통계 메인으로 이동한다")
     void loginPage_alreadyLoggedIn_redirectsToStats() throws Exception {
         Cookie session = accounts.loginAs("user07", "ACTIVE", false);

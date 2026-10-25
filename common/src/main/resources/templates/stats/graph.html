@@ -2,19 +2,23 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <!--
   통계 그래프 SCR-C-004(FNC-C-012), 두 앱이 함께 쓰는 화면. 대상·단위·기간은 주소 쿼리로 유지한다.
-  이동 경로·점 클릭 메뉴(FNC-C-013), 하위 비교(FNC-C-014), 시연용 점선(FNC-C-024), 기간 비교·엑셀 버튼(SCR-C-005·006)은 각 기능의 이슈 몫이라 두지 않는다.
+  엑셀 다운로드(SCR-C-006, FNC-C-023)는 현재 대상·단위·기간을 넘겨 창을 연다.
+  하위 비교(FNC-C-014)는 그래프 패널 머리의 토글로 켠다(대상이 지역일 때만).
+  이동 경로·점 클릭 메뉴(FNC-C-013), 시연용 점선(FNC-C-024), 기간 비교 버튼(SCR-C-005)은 각 기능의 이슈 몫이라 두지 않는다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('통계 그래프')}"/>
     <!-- 그래프가 필요한 화면만 Chart.js를 더한다. Chart.js 코드는 js/chart/ 안에서만 쓴다 -->
     <script src="https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js"></script>
     <link rel="stylesheet" th:href="@{/css/stats-graph.css}">
+    <link rel="stylesheet" th:href="@{/css/stats-export.css}">
 </head>
 <body class="we">
 <header th:replace="${admin} ? ~{fragments/layout :: adminHeader('stats')} : ~{fragments/layout :: userHeader('stats')}"></header>
 <main class="page">
     <div class="page-heading">
         <div><p class="eyebrow">STATISTICS</p><h1>통계 그래프</h1></div>
+        <button type="button" class="btn secondary" id="export-open">엑셀 다운로드</button>
     </div>
 
     <section class="panel graph-conditions" aria-label="조회 조건">
@@ -49,13 +53,32 @@
     </section>
 
     <section class="panel graph-panel" aria-label="통계 그래프">
+        <div class="panel-head graph-panel-head">
+            <!-- 왼쪽은 이동 경로(FNC-C-013) 자리 -->
+            <div></div>
+            <!-- 하위 비교(FNC-C-014): 대상이 지역일 때만 켤 수 있다. 켜면 고른 항목 하나를 하위 단위별 선으로 겹쳐 그린다 -->
+            <div class="compare-controls">
+                <select class="input" id="compare-item" aria-label="하위 비교 항목" hidden>
+                    <option value="COUNT">인원</option>
+                    <option value="DENSITY">밀집도</option>
+                    <option value="INFLOW">유입</option>
+                    <option value="OUTFLOW">유출</option>
+                    <option value="DWELL">평균 체류</option>
+                </select>
+                <label class="switch">하위 비교
+                    <input type="checkbox" role="switch" id="compare-toggle"><span aria-hidden="true"></span>
+                </label>
+            </div>
+        </div>
         <p class="alert graph-error" id="graph-error" role="alert" hidden></p>
         <div class="graph-canvas">
             <canvas id="series-chart" role="img" aria-label="통계 그래프"></canvas>
             <p class="muted graph-empty" id="graph-empty" hidden>데이터 없음</p>
         </div>
+        <p class="muted compare-omitted" id="compare-omitted" hidden></p>
     </section>
 </main>
+<th:block th:replace="~{fragments/layout :: statExportModal}"/>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/stats-graph.js}"></script>
 </body>

@@ -1,5 +1,6 @@
 package com.whiteeyes.admin.stat.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
@@ -102,6 +103,71 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(containsString("비정상 인원 변동")))
                 .andExpect(content().string(containsString("id=\"abnormal-list\"")))
                 .andExpect(content().string(containsString("id=\"abnormal-detail\" href=\"/stats/compare\"")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 검수 기준: 통계 패널에 보조 지표 접기 영역 6개가 처음엔 접힌 채로 있다")
+    void statsPage_hasAuxMetricFolds() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-flow\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-dwell\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-spread\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-level-time\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-top-zones\">")))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-observe\">")))
+                .andExpect(content().string(containsString("인원 변동폭")))
+                .andExpect(content().string(containsString("오늘 단계별 머문 시간")))
+                .andExpect(content().string(containsString("혼잡 구역 TOP 5")))
+                .andExpect(content().string(containsString("관측 상태")))
+                .andExpect(content().string(containsString("id=\"aux-observe-zones\"")))
+                .andExpect(content().string(containsString("id=\"aux-observe-rate\"")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 처리 순서 7: 관리자 앱 통계 패널에는 오늘 이벤트 종류별 건수 접기 영역이 관측 상태 앞에 접힌 채로 있다")
+    void statsPage_hasEventFold() throws Exception {
+        String html = mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-events\">")))
+                .andExpect(content().string(containsString("오늘 이벤트 종류별 건수")))
+                .andExpect(content().string(containsString("id=\"aux-events-body\"")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(html.indexOf("id=\"aux-events\"")).isLessThan(html.indexOf("id=\"aux-observe\""));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 처리 순서 7: 보조 지표 화면 모듈은 이벤트 요약 API를 종류 조건 없이 한 번 읽어 종류별 건수(byType)를 쓴다")
+    void auxMetricsModule_readsEventSummaryByType() throws Exception {
+        mockMvc.perform(get("/js/pages/stats-main/aux-metrics.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/events/summary")))
+                .andExpect(content().string(containsString("summary.byType[type]")))
+                .andExpect(content().string(not(containsString("types: type"))))
+                .andExpect(content().string(containsString("'CONGESTION'")))
+                .andExpect(content().string(containsString("'SURGE'")))
+                .andExpect(content().string(containsString("'CAM_FAULT'")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 업무 규칙: 유입·유출·체류 접기 영역 제목에 '추정'을 표기한다")
+    void statsPage_auxFlowAndDwell_markedEstimated() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("방향별 유입·유출 (추정)")))
+                .andExpect(content().string(containsString("평균 체류 시간 (추정)")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 보조 지표를 계산하는 화면 모듈을 관리자 앱이 내려 주고, 통계 메인 진입 파일이 불러온다")
+    void auxMetricsScript_isServed() throws Exception {
+        mockMvc.perform(get("/js/pages/stats-main/aux-metrics.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("export function createAuxMetricsPanel")))
+                .andExpect(content().string(containsString("/api/v1/stats/series")));
+        mockMvc.perform(get("/js/pages/stats-main.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("./stats-main/aux-metrics.js")));
     }
 
     @Test
