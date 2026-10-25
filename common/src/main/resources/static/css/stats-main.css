@@ -74,6 +74,7 @@
 .aux-rank .rank { width: 16px; flex: none; }
 .aux-rank .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aux-rate { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.aux-unchecked { color: #ff8a90; }
 
 /* 지도 위 구역 핀 */
 .zone-pin { background: none; border: 0; }

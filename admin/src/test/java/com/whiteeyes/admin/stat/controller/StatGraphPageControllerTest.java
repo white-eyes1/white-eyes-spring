@@ -68,13 +68,27 @@ class StatGraphPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-C-004 이 이슈 범위 밖인 이동 경로·하위 비교·기간 비교 버튼은 두지 않는다")
+    @DisplayName("SCR-C-004 이 이슈 범위 밖인 이동 경로·기간 비교 버튼은 두지 않는다")
     void graphPage_hasNoOutOfScopeElements() throws Exception {
-        // 머리 주석에는 이름이 나오므로 요소(속성·글자)만 본다. 엑셀 버튼은 #28에서 붙였다(graphAndStatsPage_haveExportButton)
+        // 머리 주석에는 이름이 나오므로 요소(속성·글자)만 본다. 엑셀 버튼은 #28, 하위 비교는 #57에서 붙였다
         mockMvc.perform(get("/stats/graph"))
                 .andExpect(content().string(not(containsString("aria-label=\"이동 경로\""))))
-                .andExpect(content().string(not(containsString(">하위 비교"))))
                 .andExpect(content().string(not(containsString(">기간 비교<"))));
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 그래프 패널 머리에 하위 비교 토글과 항목 선택(인원·밀집도·유입·유출·평균 체류)이 있다(FNC-C-014)")
+    void graphPage_hasChildrenCompare() throws Exception {
+        String[] expected = {
+            ">하위 비교", "id=\"compare-toggle\"", "role=\"switch\"", "id=\"compare-item\"", "id=\"compare-omitted\"",
+            "<option value=\"COUNT\">인원</option>", "<option value=\"DENSITY\">밀집도</option>",
+            "<option value=\"INFLOW\">유입</option>", "<option value=\"OUTFLOW\">유출</option>",
+            "<option value=\"DWELL\">평균 체류</option>"
+        };
+        var result = mockMvc.perform(get("/stats/graph")).andExpect(status().isOk());
+        for (String fragment : expected) {
+            result.andExpect(content().string(containsString(fragment)));
+        }
     }
 
     @ParameterizedTest
