@@ -14,6 +14,7 @@ import com.whiteeyes.common.region.repository.ZoneNeighborRepository;
 import com.whiteeyes.common.region.repository.ZoneRepository;
 import com.whiteeyes.common.security.LoginAccount;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -40,6 +41,20 @@ public class ZoneNeighborService {
     public Map<String, ZoneNeighborRef> find(Long zoneId) {
         requireActiveZone(zoneId);
         return toResponse(loadNeighborIds(zoneId));
+    }
+
+    /**
+     * 주어진 구역들의 방향별 이웃 번호를 구역 번호 → (방향 → 이웃 번호)로 돌려준다(시연용 통계의 구역 간 이동, FNC-A-051).
+     * 이웃이 하나도 없는 구역은 빠진다.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Map<ZoneDirection, Long>> findNeighborIds(Collection<Long> zoneIds) {
+        Map<Long, Map<ZoneDirection, Long>> result = new HashMap<>();
+        for (ZoneNeighbor neighbor : zoneNeighborRepository.findByZoneIdIn(zoneIds)) {
+            result.computeIfAbsent(neighbor.getZoneId(), zoneId -> new EnumMap<>(ZoneDirection.class))
+                    .put(neighbor.getDirection(), neighbor.getNeighborId());
+        }
+        return result;
     }
 
     /**

@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -56,6 +57,7 @@ class MapStatusIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
@@ -69,6 +71,7 @@ class MapStatusIntegrationTest {
     // 같은 H2를 쓰는 다른 테스트가 zone·region을 지울 수 있게 이 테스트가 넣은 통계와 구역을 지우고 끝낸다(FK)
     @AfterEach
     void tearDown() {
+        jdbcTemplate.update("DELETE FROM event");
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -180,6 +183,55 @@ class MapStatusIntegrationTest {
         mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
+    @DisplayName("FNC-C-017 단위별 오늘 이벤트 수: 혼잡·급증만, 캠 이상·어제 제외, 지역은 삭제된 구역까지 합산, 진행 중 표시는 아직 false")
+    void todayEventCount_perUnit() throws Exception {
+        LocalDateTime todayStart = LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay();
+        long sajik = insertZone("11110530", "사직동 1구역", "100.00");
+        long samcheong = insertZone("11110540", "삼청동 1구역", "100.00");
+        long deleted = insertZone("11110540", "삼청동 삭제된 구역", "100.00");
+        jdbcTemplate.update("UPDATE zone SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", deleted);
+        insertEvent(sajik, "CONGESTION", todayStart.plusSeconds(1));
+        insertEvent(sajik, "SURGE", todayStart.plusSeconds(2));
+        insertEvent(sajik, "CAM_FAULT", todayStart.plusSeconds(3));
+        insertEvent(sajik, "CONGESTION", todayStart.minusSeconds(1));
+        insertEvent(samcheong, "SURGE", todayStart.plusSeconds(4));
+        insertEvent(deleted, "CONGESTION", todayStart.plusSeconds(5));
+
+        // 시·도: 종로구 = 2 + 1 + 1(삭제된 구역), 중구 = 0
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].name").value("종로구"))
+                .andExpect(jsonPath("$.items[0].todayEventCount").value(4))
+                .andExpect(jsonPath("$.items[0].ongoingEvent").value(false))
+                .andExpect(jsonPath("$.items[1].name").value("중구"))
+                .andExpect(jsonPath("$.items[1].todayEventCount").value(0));
+        // 시·군·구: 사직동 2, 삼청동 1 + 1(삭제된 구역)
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11110")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].name").value("사직동"))
+                .andExpect(jsonPath("$.items[0].todayEventCount").value(2))
+                .andExpect(jsonPath("$.items[1].name").value("삼청동"))
+                .andExpect(jsonPath("$.items[1].todayEventCount").value(2));
+        // 구역 단위: 삭제된 구역은 목록에서 빠지고 구역마다 자기 것만 센다(통계가 없어도 센다)
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].id").value(sajik))
+                .andExpect(jsonPath("$.items[0].todayEventCount").value(2))
+                .andExpect(jsonPath("$.items[1].id").value(samcheong))
+                .andExpect(jsonPath("$.items[1].todayEventCount").value(1));
+    }
+
+    private void insertEvent(long zoneId, String type, LocalDateTime startedAt) {
+        jdbcTemplate.update(
+                "INSERT INTO event (type, zone_id, started_at, threshold_snapshot) VALUES (?, ?, ?, ?)",
+                type,
+                zoneId,
+                Timestamp.valueOf(startedAt),
+                "{\"warnDensity\":0.7,\"dangerDensity\":1.5}");
     }
 
     private String regionId(String code) {
