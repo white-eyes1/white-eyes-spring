@@ -13,6 +13,7 @@ import { createHourlyLevelsPanel } from './stats-main/hourly-levels.js';
 import { createVisitPatternPanel } from './stats-main/visit-pattern.js';
 import { createPeakHoursPanel } from './stats-main/peak-hours.js';
 import { createTrendPanel } from './stats-main/trend.js';
+import { createFlowTool } from './stats-main/flow-tool.js';
 import {
     renderGraphLink,
     renderLevelRules,
@@ -43,6 +44,7 @@ const hourlyLevelsPanel = createHourlyLevelsPanel();
 const visitPatternPanel = createVisitPatternPanel();
 const peakHoursPanel = createPeakHoursPanel();
 const trendPanel = createTrendPanel();
+const flowTool = createFlowTool();
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -247,6 +249,7 @@ async function loadRegion() {
         visitPatternPanel.setRegion(target.id);
         peakHoursPanel.setRegion(target.id);
         trendPanel.setRegion(target.id);
+        flowTool.setRegion(map, target.id, target.level === EMD);
         auxPanel.setRegion(target.id);
     }
     await refresh();
@@ -298,6 +301,8 @@ async function refresh() {
         );
     }
     layer.showPins(zoneItems);
+    // 이동 흐름(FNC-C-010): 켜져 있으면 구역 중심점으로 화살표를 다시 그린다
+    flowTool.refresh(zoneItems);
     if (isAdmin) {
         await loadCameras();
     }

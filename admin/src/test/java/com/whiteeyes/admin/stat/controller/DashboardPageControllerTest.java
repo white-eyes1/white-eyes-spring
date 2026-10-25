@@ -161,6 +161,21 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-010 지도 도구에 '이동 흐름 (추정)' 토글과 기간 선택(기본 최근 1시간)이 있고, 화면 모듈과 화살표 층을 내려 준다")
+    void statsPage_hasFlowTool() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("id=\"map-tools\"")))
+                .andExpect(content().string(containsString("id=\"flow-toggle\" aria-pressed=\"false\">이동 흐름 (추정)<")))
+                .andExpect(content().string(containsString("<option value=\"1h\" selected>최근 1시간</option>")));
+        mockMvc.perform(get("/js/pages/stats-main/flow-tool.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/map/flows")));
+        mockMvc.perform(get("/js/map/flow-layer.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("dashArray")));
+    }
+
+    @Test
     @DisplayName("FNC-C-030 검수 기준: 통계 패널에 보조 지표 접기 영역 6개가 처음엔 접힌 채로 있다")
     void statsPage_hasAuxMetricFolds() throws Exception {
         mockMvc.perform(get("/stats"))

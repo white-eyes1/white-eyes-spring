@@ -11,6 +11,7 @@
   방문 패턴(FNC-C-028)은 펼칠 때 어제까지 28일의 요일 × 시간 평균 인원을 읽는다.
   피크 시간 TOP 3(FNC-C-029)·증감 추세(FNC-C-019)는 한 접기 영역(peak-trend)을 함께 쓴다. 피크는 기간 탭(기본 주)의 상위 3개 시간대를,
   증감은 어제까지 7일을 지난주·지난달·지난해와 비교해 읽는다(펼칠 때).
+  지도 도구 이동 흐름(FNC-C-010)은 동 단계에서 켜면 기간의 구역 간 이동을 화살표로 그린다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
@@ -164,6 +165,19 @@
             <div class="map-canvas" id="dash-map"></div>
             <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
             <div class="map-legend legend" id="map-legend"></div>
+            <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 이동 흐름(FNC-C-010)은 동 단계에서만 켤 수 있다(stats-main/flow-tool.js) -->
+            <div class="map-tools" id="map-tools">
+                <div class="map-tool">
+                    <button type="button" class="btn secondary sm" id="flow-toggle" aria-pressed="false">이동 흐름 (추정)</button>
+                    <select class="input map-tool-select" id="flow-period" aria-label="이동 흐름 기간" hidden>
+                        <option value="1h" selected>최근 1시간</option>
+                        <option value="24h">최근 24시간</option>
+                        <option value="7d">최근 7일</option>
+                        <option value="30d">최근 30일</option>
+                    </select>
+                </div>
+                <span class="map-tool-status" id="flow-status" role="status" hidden></span>
+            </div>
         </section>
     </div>
 
