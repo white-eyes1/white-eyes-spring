@@ -11,6 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.whiteeyes.admin.support.AdminTestLogin;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -38,6 +41,7 @@ class ForceLogoutTest {
     private static final String ADMIN_LOGOUT_URL = "/admin/api/v1/admins/{id}/logout";
     private static final String PASSWORD = "test-password-1!";
     private static final long FAR_FUTURE_MILLIS = 4_102_444_800_000L;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     @Autowired
     private MockMvc mockMvc;
@@ -82,6 +86,42 @@ class ForceLogoutTest {
 
         assertThat(sessionsOf("SPRING_SESSION_USER", "hong01")).isZero();
         assertThat(sessionsOf("SPRING_SESSION_USER", "kim02")).isOne();
+    }
+
+    @Test
+    @DisplayName("#203 강제 로그아웃 직후 사용자 목록에서 '활동 중'이 꺼지고, '최근 활동'은 마지막 로그인 시각을 보인다")
+    void user_notActiveRightAfterForceLogout() throws Exception {
+        long hongId = insertUser("hong01");
+        // 1분 전에 로그인해 세션이 있는 사용자
+        jdbcTemplate.update(
+                "UPDATE user_account SET last_login_at = ? WHERE id = ?",
+                Timestamp.valueOf(LocalDateTime.now(KST).minusMinutes(1)),
+                hongId);
+        insertSession("SPRING_SESSION_USER", "hong01");
+        Cookie admin = login("admin01");
+        userList("hong01", admin).andExpect(jsonPath("$.items[0].active").value(true));
+
+        userLogout(hongId, admin).andExpect(status().isOk());
+
+        // 마지막 로그인은 30분 안이지만 세션이 없으므로 활동 중이 아니다(conventions.md '활동 중 판단')
+        userList("hong01", admin)
+                .andExpect(jsonPath("$.items[0].active").value(false))
+                .andExpect(jsonPath("$.items[0].lastActiveAt").isNotEmpty());
+        userList("hong01", admin, "true").andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    @DisplayName("#203 강제 로그아웃 직후 관리자 목록에서 '활동 중'이 꺼진다(방금 로그인했어도)")
+    void admin_notActiveRightAfterForceLogout() throws Exception {
+        login("admin01");
+        Cookie superSession = login("super01");
+        adminList("admin01", superSession).andExpect(jsonPath("$.items[0].active").value(true));
+
+        adminLogout(adminId, superSession).andExpect(status().isOk());
+
+        adminList("admin01", superSession)
+                .andExpect(jsonPath("$.items[0].active").value(false))
+                .andExpect(jsonPath("$.items[0].lastActiveAt").isNotEmpty());
     }
 
     @Test
@@ -290,6 +330,23 @@ class ForceLogoutTest {
     private ResultActions adminLogout(long targetId, Cookie session) throws Exception {
         return mockMvc.perform(
                 post(ADMIN_LOGOUT_URL, targetId).contextPath(CONTEXT_PATH).cookie(session).with(csrf()));
+    }
+
+    private ResultActions userList(String keyword, Cookie session) throws Exception {
+        return userList(keyword, session, null);
+    }
+
+    private ResultActions userList(String keyword, Cookie session, String active) throws Exception {
+        var request = get("/admin/api/v1/users").contextPath(CONTEXT_PATH).cookie(session).param("keyword", keyword);
+        return mockMvc.perform(active == null ? request : request.param("active", active)).andExpect(status().isOk());
+    }
+
+    private ResultActions adminList(String keyword, Cookie session) throws Exception {
+        return mockMvc.perform(get("/admin/api/v1/admins")
+                        .contextPath(CONTEXT_PATH)
+                        .cookie(session)
+                        .param("keyword", keyword))
+                .andExpect(status().isOk());
     }
 
     private Cookie login(String loginId) throws Exception {

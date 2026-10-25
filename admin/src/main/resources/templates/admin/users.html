@@ -91,6 +91,69 @@
     </div>
 </div>
 
+<!--
+  사용자 상세 창(SCR-A-002). 행을 누르면 user-detail.js가 연다. 이름·메일·연락처는 목록 행의 값을 읽기 전용으로 보여 주고
+  (수정·저장은 FNC-A-004), 여기서는 비밀번호 재설정(FNC-A-005)만 한다. 임시 비밀번호는 재설정 응답을 받은 뒤에만 채우고 창을 닫으면 지운다
+-->
+<div class="modal-stage user-modal-stage" id="user-detail-modal" hidden>
+    <div class="modal user-detail" role="dialog" aria-modal="true" aria-labelledby="user-detail-title">
+        <div class="modal-head">
+            <div>
+                <h2 id="user-detail-title"></h2>
+                <p class="muted user-detail-sub" id="user-detail-sub"></p>
+            </div>
+            <button class="icon-btn" type="button" aria-label="닫기" data-detail-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label for="user-detail-name">이름</label>
+                <input class="input" id="user-detail-name" type="text" readonly>
+            </div>
+            <div class="field">
+                <label for="user-detail-email">메일</label>
+                <input class="input" id="user-detail-email" type="text" readonly>
+            </div>
+            <div class="field">
+                <label for="user-detail-phone">연락처</label>
+                <input class="input" id="user-detail-phone" type="text" readonly>
+            </div>
+            <div class="user-temp-box" id="user-temp-password-box" hidden>
+                <strong>임시 비밀번호</strong>
+                <div class="user-temp-row">
+                    <code id="user-temp-password"></code>
+                    <button class="btn secondary" type="button" id="user-temp-copy">복사</button>
+                </div>
+                <span class="user-temp-note" role="status">이 창을 닫으면 다시 볼 수 없습니다. 다음 로그인 때 비밀번호 변경을 강제합니다.</span>
+            </div>
+        </div>
+        <div class="modal-foot user-detail-foot">
+            <button class="btn danger" type="button" id="user-detail-reset">비밀번호 재설정</button>
+            <button class="btn secondary" type="button" data-detail-close>닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 비밀번호 재설정 확인 창(FNC-A-005). 이전 비밀번호는 더 쓸 수 없고 열려 있는 세션이 끊긴다는 점을 알린다 -->
+<div class="modal-stage user-modal-stage" id="user-reset-confirm-modal" hidden>
+    <div class="modal user-confirm" role="alertdialog" aria-modal="true" aria-labelledby="user-reset-confirm-title">
+        <div class="modal-head">
+            <h2 id="user-reset-confirm-title">비밀번호 재설정</h2>
+            <button class="icon-btn" type="button" aria-label="닫기" data-reset-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="user-reset-confirm-message"></p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-reset-close>취소</button>
+            <button class="btn danger" type="button" id="user-reset-confirm-ok">재설정</button>
+        </div>
+    </div>
+</div>
+
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/users.js}"></script>
 </body>

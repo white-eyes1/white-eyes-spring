@@ -1,7 +1,8 @@
 // 관리자 관리 화면(SCR-A-003). 관리자 목록(FNC-A-003)을 GET /api/v1/admins로 불러와 아이디 정렬·페이지 이동한다.
 // 시안·screens.md에 검색 줄이 없어 조건 없이 부른다(API는 검색 조건을 받음). 기본 순서는 API 기본값(최근 생성 순)이다.
 // '관리자 추가' 창은 POST /api/v1/admins(FNC-A-009)로 계정을 만들고 임시 비밀번호를 한 번만 보여 준다.
-// 활동 중인 관리자 행의 '강제 로그아웃'(FNC-A-008)은 확인 창 뒤 POST /api/v1/admins/{id}/logout으로 보낸다.
+// 활동 중인 관리자 행의 '강제 로그아웃'(FNC-A-008)은 확인 창 뒤 POST /api/v1/admins/{id}/logout으로,
+// '비활성화·활성화'(FNC-A-011)는 확인 창 뒤 POST /api/v1/admins/{id}/disable·enable로 보낸다.
 import { ApiError, get, post } from '../../common/api.js';
 import { formatDateTime, formatNumber } from '../../common/format.js';
 import { showToast } from '../../common/toast.js';
@@ -94,7 +95,7 @@ function toRow(admin) {
 }
 
 // 최고 관리자 행에는 버튼이 없고(screens.md SCR-A-003), 본인 행에는 '본인 계정'만 보인다.
-// 수정·비밀번호 재설정(FNC-A-010)과 비활성화·활성화(FNC-A-011) 버튼은 각 기능의 이슈에서 이 칸에 더한다
+// 수정·비밀번호 재설정(FNC-A-010) 버튼은 그 기능의 이슈에서 이 칸에 더한다
 function actionsCell(admin) {
     const td = document.createElement('td');
     td.className = 'admin-actions';
@@ -107,9 +108,12 @@ function actionsCell(admin) {
             self.textContent = SELF_LABEL;
             wrap.append(self);
         }
-    } else if (admin.active) {
+    } else {
+        wrap.append(statusButton(admin));
         // 활동 중일 때만 보인다(screens.md SCR-A-003)
-        wrap.append(forceLogoutButton(admin));
+        if (admin.active) {
+            wrap.append(forceLogoutButton(admin));
+        }
     }
     td.append(wrap);
     return td;
@@ -125,11 +129,13 @@ const confirmOk = document.getElementById('admin-confirm-ok');
 let confirmAction = null;
 let confirming = false;
 
-function openConfirm({ title, message, okLabel, run }) {
+// danger가 false면 확인 버튼을 파란 기본 버튼으로 보인다(되살리는 '활성화')
+function openConfirm({ title, message, okLabel, run, danger = true }) {
     confirmAction = run;
     confirmTitle.textContent = title;
     confirmMessage.textContent = message;
     confirmOk.textContent = okLabel;
+    confirmOk.className = danger ? 'btn danger' : 'btn primary';
     confirmOk.disabled = false;
     confirmModal.hidden = false;
     confirmOk.focus();
@@ -162,6 +168,30 @@ async function runConfirmed() {
     if (succeeded) {
         loadAdmins();
     }
+}
+
+// 사용 중이면 '비활성화', 비활성화됐으면 '활성화'(FNC-A-011). 둘 다 확인 창을 거친다
+function statusButton(admin) {
+    const disabling = admin.status === 'ACTIVE';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = disabling ? 'btn danger sm' : 'btn primary sm';
+    button.textContent = disabling ? '비활성화' : '활성화';
+    button.addEventListener('click', () =>
+        openConfirm({
+            title: disabling ? '관리자 비활성화' : '관리자 활성화',
+            message: disabling
+                ? `'${admin.loginId}' 관리자를 비활성화할까요? 로그인 중인 세션이 바로 종료되고 다시 로그인할 수 없습니다.`
+                : `'${admin.loginId}' 관리자를 다시 사용하게 할까요?`,
+            okLabel: disabling ? '비활성화' : '활성화',
+            danger: disabling,
+            run: async () => {
+                await post(`${ADMINS_API}/${admin.id}/${disabling ? 'disable' : 'enable'}`, undefined, { toast: false });
+                return disabling ? `'${admin.loginId}' 관리자를 비활성화했습니다` : `'${admin.loginId}' 관리자를 활성화했습니다`;
+            },
+        }),
+    );
+    return button;
 }
 
 function forceLogoutButton(admin) {

@@ -27,6 +27,10 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
     @Query("select r from Region r left join fetch r.parent where r.id in :ids")
     List<Region> findAllWithParentByIdIn(@Param("ids") Collection<Long> ids);
 
+    /** 상위 두 단계(시·군·구, 시·도)까지 한 번에 불러온다. 읍·면·동의 시·도 / 시·군·구 / 읍·면·동 이름을 나눠 쓸 때 쓴다(FNC-A-039). */
+    @Query("select r from Region r left join fetch r.parent p left join fetch p.parent where r.id in :ids")
+    List<Region> findAllWithAncestorsByIdIn(@Param("ids") Collection<Long> ids);
+
     /**
      * 이름 또는 상위 지역 이름에 검색어가 들어 있는 한 단위의 지역 번호. 읍·면·동에 쓰면 "동 이름이나 소속 구 이름이 맞는 동"이다
      * (이벤트 목록 검색, FNC-A-036).

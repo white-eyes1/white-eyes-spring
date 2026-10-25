@@ -73,4 +73,23 @@ class EventPageControllerTest {
                 .andExpect(content().string(containsString("다시보기 화면에서 크게 보기")))
                 .andExpect(content().string(containsString("/css/admin/event-video.css")));
     }
+
+    @Test
+    @DisplayName("FNC-A-038 /events 표에 조치 열이 있고, 조치 완료 창(항목 5개·메모 200자·저장 버튼)이 들어 있다")
+    void eventsPage_rendersActionColumnAndModal() throws Exception {
+        mockMvc.perform(get("/events"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("columnheader\">조치<")))
+                .andExpect(content().string(containsString("id=\"action-modal\"")))
+                .andExpect(content().string(containsString("조치 완료 처리")))
+                .andExpect(content().string(containsString("value=\"ONSITE_OK\"")))
+                .andExpect(content().string(containsString("value=\"STAFF\"")))
+                .andExpect(content().string(containsString("value=\"FALSE_ALARM\"")))
+                .andExpect(content().string(containsString("value=\"CAM_CHECK\"")))
+                .andExpect(content().string(containsString("value=\"OTHER\"")))
+                .andExpect(content().string(containsString("id=\"action-note\"")))
+                .andExpect(content().string(containsString("maxlength=\"200\"")))
+                .andExpect(content().string(containsString("id=\"action-save\"")))
+                .andExpect(content().string(containsString("조치완료로 저장")));
+    }
 }
