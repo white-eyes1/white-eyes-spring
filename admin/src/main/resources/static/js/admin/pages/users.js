@@ -1,5 +1,6 @@
 // 사용자 관리 화면(SCR-A-001). 사용자 목록(FNC-A-002)을 검색·정렬·페이지 이동하며 GET /api/v1/users로 불러오고,
 // 미승인 행의 '승인'(FNC-A-006)은 POST /api/v1/users/{id}/approve로 보낸다.
+// 정상 행의 '승인 취소'(FNC-A-007)는 확인 창 뒤 POST /api/v1/users/{id}/unapprove로 보낸다.
 // 활동 중인 행의 '강제 로그아웃'(FNC-A-008)은 확인 창 뒤 POST /api/v1/users/{id}/logout으로 보낸다.
 // 행을 누르면 사용자 상세 창(SCR-A-002, user-detail.js)이 열리고 거기서 비밀번호 재설정(FNC-A-005)을 한다.
 import { ApiError, get, post } from '../../common/api.js';
@@ -43,13 +44,14 @@ const pagination = document.getElementById('user-pagination');
 const totalText = document.getElementById('user-total');
 
 const confirmModal = document.getElementById('user-confirm-modal');
+const confirmTitle = document.getElementById('user-confirm-title');
 const confirmMessage = document.getElementById('user-confirm-message');
 const confirmOk = document.getElementById('user-confirm-ok');
 
 const state = { filters: {}, size: 20, sortField: 'createdAt', sortDirection: 'desc', page: 0 };
-// 확인 창에서 고른 사용자와 요청 진행 중 여부
-let confirmTarget = null;
-let forcing = false;
+// 확인 창에서 누를 일(승인 취소·강제 로그아웃)과 요청 진행 중 여부
+let confirmAction = null;
+let confirming = false;
 // 조회를 빠르게 여러 번 누르면 마지막 요청의 결과만 그린다
 let latestRequestId = 0;
 
@@ -133,6 +135,7 @@ function render(page) {
 // 서버 값은 모두 textContent로 넣는다(code-conventions.md 5-3, XSS 방지)
 function toRow(user) {
     const row = document.createElement('tr');
+    row.dataset.userId = String(user.id);
     row.append(
         cell(user.loginId),
         cell(user.name),
@@ -151,7 +154,7 @@ function toRow(user) {
     return row;
 }
 
-// 승인 취소(FNC-A-007) 버튼은 그 기능의 이슈에서 이 칸에 더한다
+// PENDING이면 '승인', ACTIVE면 '승인 취소'(screens.md SCR-A-001)
 function actionsCell(user) {
     const td = document.createElement('td');
     td.className = 'user-actions';
@@ -159,6 +162,8 @@ function actionsCell(user) {
     wrap.className = 'row-actions';
     if (user.status === 'PENDING') {
         wrap.append(approveButton(user));
+    } else if (user.status === 'ACTIVE') {
+        wrap.append(unapproveButton(user));
     }
     // 활동 중일 때만 보인다(screens.md SCR-A-001)
     if (user.active) {
@@ -195,6 +200,38 @@ async function approve(button, user) {
     }
 }
 
+// ---- 승인 취소 (FNC-A-007) ----
+
+function unapproveButton(user) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn secondary sm';
+    button.textContent = '승인 취소';
+    button.addEventListener('click', () => openConfirm({
+        title: '승인 취소',
+        message: `'${user.loginId}' 사용자의 승인을 취소할까요? 미승인 상태로 돌아가고 열려 있는 모든 세션이 종료됩니다.`,
+        okLabel: '승인 취소',
+        run: () => unapprove(user),
+    }));
+    return button;
+}
+
+// 성공하면 미승인·세션 없음으로 행을 다시 그린다. 그 사이 상태가 바뀌었으면(409) 목록을 새로 읽는다
+async function unapprove(user) {
+    try {
+        await post(`${USERS_API}/${user.id}/unapprove`, undefined, { toast: false });
+        const row = [...tableBody.rows].find((candidate) => candidate.dataset.userId === String(user.id));
+        row?.replaceWith(toRow({ ...user, status: 'PENDING', active: false }));
+    } catch (error) {
+        if (error instanceof ApiError && error.code === 'INVALID_STATUS') {
+            showToast(STATUS_CHANGED_MESSAGE);
+            loadUsers();
+            return;
+        }
+        showToast(error instanceof ApiError ? error.message : DEFAULT_ERROR_MESSAGE);
+    }
+}
+
 // ---- 강제 로그아웃 (FNC-A-008) ----
 
 function forceLogoutButton(user) {
@@ -202,44 +239,54 @@ function forceLogoutButton(user) {
     button.type = 'button';
     button.className = 'btn secondary sm';
     button.textContent = '강제 로그아웃';
-    button.addEventListener('click', () => openConfirm(user));
+    button.addEventListener('click', () => openConfirm({
+        title: '강제 로그아웃',
+        message: `'${user.loginId}' 사용자를 로그아웃시킬까요? 열려 있는 모든 세션이 종료됩니다.`,
+        okLabel: '로그아웃',
+        run: () => forceLogout(user),
+    }));
     return button;
 }
 
-function openConfirm(user) {
-    confirmTarget = user;
-    confirmMessage.textContent = `'${user.loginId}' 사용자를 로그아웃시킬까요? 열려 있는 모든 세션이 종료됩니다.`;
+async function forceLogout(user) {
+    try {
+        const result = await post(`${USERS_API}/${user.id}/logout`, undefined, { toast: false });
+        showToast(`${result.deletedSessions}개 세션을 종료했습니다`);
+        loadUsers();
+    } catch (error) {
+        showToast(error instanceof ApiError ? error.message : DEFAULT_ERROR_MESSAGE);
+    }
+}
+
+// ---- 확인 창(승인 취소·강제 로그아웃이 함께 씀) ----
+
+function openConfirm(action) {
+    confirmAction = action;
+    confirmTitle.textContent = action.title;
+    confirmMessage.textContent = action.message;
+    confirmOk.textContent = action.okLabel;
     confirmOk.disabled = false;
     confirmModal.hidden = false;
     confirmOk.focus();
 }
 
 function closeConfirm() {
-    if (forcing) {
+    if (confirming) {
         return; // 요청이 끝나기 전에는 닫지 않는다(끝난 뒤 새로 연 창을 닫는 일을 막는다)
     }
     confirmModal.hidden = true;
-    confirmTarget = null;
+    confirmAction = null;
 }
 
-async function forceLogout() {
-    if (!confirmTarget || forcing) {
+async function runConfirm() {
+    if (!confirmAction || confirming) {
         return;
     }
-    const user = confirmTarget;
-    forcing = true;
+    const action = confirmAction;
+    confirming = true;
     confirmOk.disabled = true;
-    try {
-        const result = await post(`${USERS_API}/${user.id}/logout`, undefined, { toast: false });
-        showToast(`${result.deletedSessions}개 세션을 종료했습니다`);
-        forcing = false;
-        closeConfirm();
-        loadUsers();
-        return;
-    } catch (error) {
-        showToast(error instanceof ApiError ? error.message : DEFAULT_ERROR_MESSAGE);
-    }
-    forcing = false;
+    await action.run();
+    confirming = false;
     closeConfirm();
 }
 
@@ -249,7 +296,7 @@ confirmModal.addEventListener('mousedown', (event) => {
         closeConfirm();
     }
 });
-confirmOk.addEventListener('click', forceLogout);
+confirmOk.addEventListener('click', runConfirm);
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !confirmModal.hidden) {
         closeConfirm();
