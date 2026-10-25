@@ -118,6 +118,18 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-028 통계 패널에 방문 패턴 접기 영역(처음엔 접힘)과 요일×시간 표 자리가 있고, 화면 모듈을 내려 준다")
+    void statsPage_hasVisitPatternFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"visit-pattern\">")))
+                .andExpect(content().string(containsString("방문 패턴 (요일×시간)")))
+                .andExpect(content().string(containsString("id=\"visit-pattern-grid\"")));
+        mockMvc.perform(get("/js/pages/stats-main/visit-pattern.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/visit-pattern")));
+    }
+
+    @Test
     @DisplayName("FNC-C-029 통계 패널에 피크 시간 TOP 3 접기 영역(처음엔 접힘)과 기간 탭 일·주·월·연이 있고, 화면 모듈을 내려 준다")
     void statsPage_hasPeakHoursFold() throws Exception {
         mockMvc.perform(get("/stats"))
