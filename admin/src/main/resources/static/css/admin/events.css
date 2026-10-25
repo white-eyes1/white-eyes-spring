@@ -16,8 +16,9 @@
 .ev-keyword { min-width: 240px; justify-content: flex-start; }
 .ev-keyword::after { display: none; }
 
-.ev-table { --cols: 1.1fr .7fr 1.6fr 1.3fr .7fr .8fr; }
+.ev-table { --cols: 1.1fr .7fr 1.6fr 1.3fr .7fr .8fr 1.1fr; }
 .ev-table .tr > * { min-width: 0; }
+.ev-table .tr > :last-child { text-align: right; }
 .ev-table .tr.ev-row { cursor: pointer; }
 .ev-table .tr.ev-row:focus-visible { outline: 2px solid #5d95ef; outline-offset: -2px; }
 .ev-empty { padding: 36px 16px; text-align: center; font-size: 13px; }
@@ -41,3 +42,24 @@
 .ev-history-row { padding: 8px 10px; border-radius: 8px; background: #151e29; font-size: 12px; overflow-wrap: anywhere; }
 .ev-history-row + .ev-history-row { margin-top: 6px; }
 .ev-history-empty { padding: 8px 10px; font-size: 12px; }
+
+/* 조치 버튼 열(FNC-A-038) */
+.ev-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.ev-handled { font-size: 12px; }
+
+/* 조치 완료 창(SCR-A-011) */
+.ev-action-modal { max-width: 560px; }
+.ev-action-sub { margin-top: 2px; font-size: 12px; }
+.ev-action-field { margin: 0; padding: 0; border: 0; min-width: 0; }
+.ev-action-field legend { padding: 0; margin-bottom: 6px; }
+.ev-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ev-opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #253242; border-radius: 8px; font-size: 13px; color: var(--text); cursor: pointer; }
+.ev-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.ev-opt i { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 1.5px solid #4a5768; display: inline-block; }
+.ev-opt:has(input:checked) { border-color: #5d95ef; background: rgba(79, 140, 255, .08); }
+.ev-opt:has(input:checked) i { border: 5px solid #4f8cff; }
+.ev-opt:has(input:focus-visible) { outline: 2px solid #5d95ef; outline-offset: 2px; }
+.ev-action-modal textarea.ev-note { height: 76px; padding: 10px 12px; align-items: flex-start; resize: none; font: inherit; font-size: 13px; line-height: 1.5; }
+.ev-action-modal textarea.ev-note:focus { outline: none; border-color: var(--blue); }
+.ev-note-count { text-align: right; }
+.ev-action-help { font-size: 11px; }

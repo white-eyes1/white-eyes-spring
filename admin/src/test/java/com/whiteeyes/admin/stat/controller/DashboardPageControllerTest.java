@@ -1,5 +1,6 @@
 package com.whiteeyes.admin.stat.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
@@ -105,6 +106,18 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-018 통계 패널에 시간대별 혼잡 단계 접기 영역(처음엔 접힘)과 0~23시 막대 자리가 있고, 화면 모듈을 내려 준다")
+    void statsPage_hasHourlyLevelsFold() throws Exception {
+        mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"hourly-levels\">")))
+                .andExpect(content().string(containsString("시간대별 혼잡 단계")))
+                .andExpect(content().string(containsString("id=\"hourly-levels-bars\"")));
+        mockMvc.perform(get("/js/pages/stats-main/hourly-levels.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/dashboard/hourly-levels")));
+    }
+
+    @Test
     @DisplayName("FNC-C-010 지도 도구에 '이동 흐름 (추정)' 토글과 기간 선택(기본 최근 1시간)이 있고, 화면 모듈과 화살표 층을 내려 준다")
     void statsPage_hasFlowTool() throws Exception {
         mockMvc.perform(get("/stats"))
@@ -135,6 +148,33 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(containsString("관측 상태")))
                 .andExpect(content().string(containsString("id=\"aux-observe-zones\"")))
                 .andExpect(content().string(containsString("id=\"aux-observe-rate\"")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 처리 순서 7: 관리자 앱 통계 패널에는 오늘 이벤트 종류별 건수 접기 영역이 관측 상태 앞에 접힌 채로 있다")
+    void statsPage_hasEventFold() throws Exception {
+        String html = mockMvc.perform(get("/stats"))
+                .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"aux-events\">")))
+                .andExpect(content().string(containsString("오늘 이벤트 종류별 건수")))
+                .andExpect(content().string(containsString("id=\"aux-events-body\"")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(html.indexOf("id=\"aux-events\"")).isLessThan(html.indexOf("id=\"aux-observe\""));
+    }
+
+    @Test
+    @DisplayName("FNC-C-030 처리 순서 7: 보조 지표 화면 모듈은 이벤트 요약 API를 종류 조건 없이 한 번 읽어 종류별 건수(byType)를 쓴다")
+    void auxMetricsModule_readsEventSummaryByType() throws Exception {
+        mockMvc.perform(get("/js/pages/stats-main/aux-metrics.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/events/summary")))
+                .andExpect(content().string(containsString("summary.byType[type]")))
+                .andExpect(content().string(not(containsString("types: type"))))
+                .andExpect(content().string(containsString("'CONGESTION'")))
+                .andExpect(content().string(containsString("'SURGE'")))
+                .andExpect(content().string(containsString("'CAM_FAULT'")));
     }
 
     @Test

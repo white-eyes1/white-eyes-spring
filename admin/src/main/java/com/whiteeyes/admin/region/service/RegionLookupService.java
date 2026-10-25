@@ -1,5 +1,6 @@
 package com.whiteeyes.admin.region.service;
 
+import com.whiteeyes.admin.region.dto.RegionNames;
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
 import com.whiteeyes.common.region.exception.RegionNotFoundException;
@@ -52,6 +53,26 @@ public class RegionLookupService {
     public Map<Long, String> findPaths(Collection<Long> dongIds) {
         return regionRepository.findAllWithParentByIdIn(dongIds).stream()
                 .collect(Collectors.toMap(Region::getId, this::pathOf, (first, second) -> first));
+    }
+
+    /** 읍·면·동 번호 → 시·도 / 시·군·구 / 읍·면·동 이름(이벤트 엑셀 FNC-A-039). 상위 두 단계까지 쿼리 한 번으로 가져온다. */
+    @Transactional(readOnly = true)
+    public Map<Long, RegionNames> findNames(Collection<Long> dongIds) {
+        return regionRepository.findAllWithAncestorsByIdIn(dongIds).stream()
+                .collect(Collectors.toMap(Region::getId, this::namesOf, (first, second) -> first));
+    }
+
+    /** 지역(시·도, 시·군·구, 읍·면·동 아무거나)의 이름. 없는 지역이면 null이다. */
+    @Transactional(readOnly = true)
+    public String findName(Long regionId) {
+        return regionRepository.findById(regionId).map(Region::getName).orElse(null);
+    }
+
+    private RegionNames namesOf(Region dong) {
+        Region sigungu = dong.getParent();
+        Region sido = sigungu == null ? null : sigungu.getParent();
+        return new RegionNames(
+                sido == null ? null : sido.getName(), sigungu == null ? null : sigungu.getName(), dong.getName());
     }
 
     private String pathOf(Region dong) {

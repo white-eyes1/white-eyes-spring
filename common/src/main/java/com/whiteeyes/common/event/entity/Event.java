@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
  * 이벤트(tables.md 'event'). 혼잡 이벤트 판정(FNC-A-033), 급증 이벤트 판정(FNC-A-034), 캠 이상 감지(FNC-A-035)가
  * 만들고 갱신·종료한다.
  *
- * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 상세 조회(FNC-A-037)를 위해 읽기만 매핑했다.
- * 값을 바꾸는 메서드는 처리 상태 변경(FNC-A-038)에서 더한다. created_at·updated_at은 DB 기본값이 채운다.
+ * <p>처리 칼럼(action_code·action_note·handled_by·handled_at)은 처리 상태 변경(FNC-A-038)이
+ * {@link #markChecked}·{@link #resolve}로 바꾸고 상세 조회(FNC-A-037)가 읽는다. created_at·updated_at은 DB 기본값이 채운다.
  */
 @Entity
 @Table(name = "event")
@@ -187,5 +187,21 @@ public class Event {
 
     public void close(LocalDateTime endedAt) {
         this.endedAt = endedAt;
+    }
+
+    /** 미확인 이벤트를 확인 중으로 바꾼다(FNC-A-038). 앞으로만 바꿀 수 있는지는 부르는 쪽이 {@link EventStatus#canChangeTo}로 본다. */
+    public void markChecked(Long adminId, LocalDateTime handledAt) {
+        this.status = EventStatus.CHECKED;
+        this.handledBy = adminId;
+        this.handledAt = handledAt;
+    }
+
+    /** 조치완료로 바꾸고 조치 항목·메모를 남긴다(FNC-A-038). 메모가 없으면 null. */
+    public void resolve(EventActionCode actionCode, String actionNote, Long adminId, LocalDateTime handledAt) {
+        this.status = EventStatus.RESOLVED;
+        this.actionCode = actionCode.name();
+        this.actionNote = actionNote;
+        this.handledBy = adminId;
+        this.handledAt = handledAt;
     }
 }
