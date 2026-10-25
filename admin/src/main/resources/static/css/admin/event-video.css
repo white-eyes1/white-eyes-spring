@@ -1,0 +1,27 @@
+/* 이벤트 상세 창(SCR-A-011)의 발생 시점 영상(FNC-A-040) 전용 스타일. 공통 스타일은 we.css */
+.ev-video { display: flex; flex-direction: column; gap: 8px; }
+.ev-video[hidden] { display: none; }
+.ev-video-head { font-size: 13px; }
+.ev-video-feed { position: relative; height: 300px; border-radius: 10px; background: #05080c; overflow: hidden; display: grid; place-items: center; }
+.ev-video-player { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.ev-video-player[hidden] { display: none; }
+/* 탐지 박스 캔버스(FNC-A-046). 영상 칸 전체에 겹치고 클릭은 영상 컨트롤로 통과시킨다 */
+.ev-video-boxes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ev-video-notice { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: #c3ccd8; font-size: 14px; }
+.ev-video-notice[hidden] { display: none; }
+.ev-video-label, .ev-video-box-note { position: absolute; top: 12px; padding: 4px 8px; border-radius: 6px; background: rgba(5, 8, 12, .7); font-size: 11px; }
+.ev-video-label { left: 12px; }
+.ev-video-box-note { right: 12px; color: var(--muted); }
+.ev-video-label[hidden], .ev-video-box-note[hidden] { display: none; }
+
+.ev-video-chart { position: relative; height: 34px; border-radius: 6px; background: #151e29; overflow: hidden; }
+.ev-video-chart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ev-video-line { fill: none; stroke: #76a7ff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.ev-video-range { position: absolute; top: 0; bottom: 0; background: rgba(239, 77, 85, .18); }
+.ev-video-mark { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff; }
+.ev-video-chart-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-size: 11px; pointer-events: none; }
+.ev-video-chart-empty[hidden] { display: none; }
+.ev-video-axis { display: flex; justify-content: space-between; font-size: 10px; }
+
+/* 보관 기간을 지난 이벤트의 '다시보기 화면에서 크게 보기'는 비활성 */
+.btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }

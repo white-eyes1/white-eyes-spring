@@ -3,6 +3,7 @@
 <head>
     <th:block th:replace="~{fragments/layout :: head('이벤트 로그')}"/>
     <link rel="stylesheet" th:href="@{/css/admin/events.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/event-video.css}">
 </head>
 <body class="we">
 <header th:replace="~{fragments/layout :: adminHeader('events')}"></header>
@@ -93,6 +94,24 @@
             </button>
         </div>
         <div class="modal-body ev-modal-body">
+            <!-- 발생 시점 영상(FNC-A-040): 혼잡·급증이고 보관 기간 안일 때만 보인다 -->
+            <section class="ev-video" id="detail-video" aria-label="발생 시점 영상" hidden>
+                <strong class="ev-video-head">발생 시점 영상</strong>
+                <div class="ev-video-feed" id="detail-video-feed">
+                    <video class="ev-video-player" id="detail-video-player" controls playsinline preload="auto" hidden></video>
+                    <canvas class="ev-video-boxes" id="detail-video-boxes" aria-hidden="true"></canvas>
+                    <span class="ev-video-box-note" id="detail-video-box-note" role="status" hidden>박스 정보 없음</span>
+                    <div class="ev-video-notice" id="detail-video-notice" role="status">불러오는 중…</div>
+                    <span class="ev-video-label" id="detail-video-label" hidden></span>
+                </div>
+                <div class="ev-video-chart" id="detail-video-chart" role="img" aria-label="발생 전후 30분 인원">
+                    <span class="ev-video-range" id="detail-video-range"></span>
+                    <svg viewBox="0 0 600 34" preserveAspectRatio="none" aria-hidden="true"><path class="ev-video-line" id="detail-video-line" d=""></path></svg>
+                    <span class="ev-video-mark" id="detail-video-mark"></span>
+                    <p class="ev-video-chart-empty muted" id="detail-video-chart-empty" hidden>통계 없음</p>
+                </div>
+                <div class="ev-video-axis muted" id="detail-video-axis"></div>
+            </section>
             <dl class="kv" id="detail-info"></dl>
             <div class="ev-history">
                 <strong>처리 이력</strong>
@@ -100,6 +119,7 @@
             </div>
         </div>
         <div class="modal-foot">
+            <a class="btn secondary" id="detail-open-playback" href="#" hidden>다시보기 화면에서 크게 보기</a>
             <button class="btn primary" type="button" data-close>닫기</button>
         </div>
     </div>
