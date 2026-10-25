@@ -58,6 +58,11 @@ public final class UserListAssembler {
         return PageResponse.of(matched.subList(from, to), request.page(), request.size(), matched.size(), truncated);
     }
 
+    /** 한 계정의 목록 한 줄. 사용자 정보 수정(FNC-A-004)의 응답에 쓴다. */
+    public static UserListItem assembleOne(UserRow row, AccountActivities activities) {
+        return toItem(row, activities);
+    }
+
     private static UserListItem toItem(UserRow row, AccountActivities activities) {
         AccountActivity activity = activities.activityOf(row.loginId(), row.lastLoginAt());
         ZoneId zone = activities.zone();

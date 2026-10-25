@@ -19,7 +19,7 @@
 .user-detail { max-width: 600px; }
 .user-detail-sub { font-size: 12px; margin-top: 2px; }
 .user-detail-foot { justify-content: space-between; }
-.user-detail .field input.input[readonly] { cursor: default; }
+.user-detail-actions { display: flex; gap: 8px; }
 /* 임시 비밀번호 상자: 시안(노란 테두리)과 같은 색 */
 .user-temp-box { padding: 14px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #6b5520; border-radius: 10px; background: #241d0f; }
 .user-temp-box strong { font-size: 13px; color: #ffd27a; }
