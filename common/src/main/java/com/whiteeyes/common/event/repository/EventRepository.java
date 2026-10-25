@@ -7,8 +7,11 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventType;
@@ -36,6 +39,14 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     /** 종류별 열린 이벤트 전부(캠 이상 감지가 조건이 풀린 것을 닫을 때, FNC-A-035). */
     List<Event> findByTypeAndEndedAtIsNull(EventType type);
+
+    /**
+     * 처리 상태를 바꾸기 전에 행을 잠그고 읽는다(FNC-A-038). 관리자 두 명이 같은 이벤트를 동시에 처리하면
+     * 늦은 쪽은 앞의 커밋을 기다렸다가 바뀐 상태를 보고 거부된다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from Event e where e.id = :id")
+    Optional<Event> findByIdForUpdate(@Param("id") Long id);
 
     /** 구역별 이벤트 수를 한 번에 센다(FNC-C-017 오늘 이벤트 수). */
     @Query("""

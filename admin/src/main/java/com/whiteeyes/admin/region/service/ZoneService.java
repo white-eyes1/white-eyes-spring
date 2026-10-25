@@ -59,6 +59,14 @@ public class ZoneService {
         return zoneRepository.findIdsByNameContaining(keyword);
     }
 
+    /** 삭제되지 않은 모든 구역의 요약을 번호 순으로(시연용 통계 생성, FNC-A-051). */
+    @Transactional(readOnly = true)
+    public List<ZoneSummary> findActiveSummaries() {
+        return zoneRepository.findByDeletedAtIsNullOrderById().stream()
+                .map(ZoneSummary::from)
+                .toList();
+    }
+
     /** 주어진 읍·면·동들에 속한 삭제되지 않은 구역 번호(캠 목록 지역 필터, FNC-A-022). */
     @Transactional(readOnly = true)
     public List<Long> findActiveZoneIdsInDongs(Collection<Long> dongIds) {

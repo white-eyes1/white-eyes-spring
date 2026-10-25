@@ -39,7 +39,8 @@ public class EventListService {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final String DELETED_ZONE_PREFIX = "(삭제됨) ";
-    private static final Sort LATEST_FIRST = Sort.by(Sort.Order.desc("startedAt"), Sort.Order.desc("id"));
+    /** 발생 시각 내림차순, 같으면 번호가 큰 것이 먼저. 엑셀(FNC-A-039)도 같은 순서로 쓴다. */
+    public static final Sort LATEST_FIRST = Sort.by(Sort.Order.desc("startedAt"), Sort.Order.desc("id"));
 
     private final EventConditionService eventConditionService;
     private final EventRepository eventRepository;
@@ -67,7 +68,8 @@ public class EventListService {
         return toItems(List.of(event)).get(0);
     }
 
-    private List<EventListItem> toItems(List<Event> events) {
+    /** 이벤트들을 목록 행으로 바꾼다(엑셀 FNC-A-039도 사용). 이름은 한 번에 모아 읽는다. 입력 순서가 그대로 유지된다. */
+    public List<EventListItem> toItems(List<Event> events) {
         if (events.isEmpty()) {
             return List.of();
         }

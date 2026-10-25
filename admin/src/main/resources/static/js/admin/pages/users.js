@@ -1,9 +1,11 @@
 // 사용자 관리 화면(SCR-A-001). 사용자 목록(FNC-A-002)을 검색·정렬·페이지 이동하며 GET /api/v1/users로 불러오고,
 // 미승인 행의 '승인'(FNC-A-006)은 POST /api/v1/users/{id}/approve로 보낸다.
 // 활동 중인 행의 '강제 로그아웃'(FNC-A-008)은 확인 창 뒤 POST /api/v1/users/{id}/logout으로 보낸다.
+// 행을 누르면 사용자 상세 창(SCR-A-002, user-detail.js)이 열리고 거기서 비밀번호 재설정(FNC-A-005)을 한다.
 import { ApiError, get, post } from '../../common/api.js';
 import { formatDateTime, formatNumber } from '../../common/format.js';
 import { showToast } from '../../common/toast.js';
+import { openUserDetail } from '../user-detail.js';
 
 const USERS_API = '/api/v1/users';
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
@@ -140,6 +142,12 @@ function toRow(user) {
         activeCell(user.active),
         actionsCell(user),
     );
+    // 행의 버튼(승인·강제 로그아웃)을 누른 것은 상세 창을 열지 않는다
+    row.addEventListener('click', (event) => {
+        if (!event.target.closest('button')) {
+            openUserDetail(user, loadUsers);
+        }
+    });
     return row;
 }
 

@@ -1,10 +1,12 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -46,6 +48,17 @@ public class CameraQueryService {
     @Transactional(readOnly = true)
     public List<Long> findZoneIdsByCameraNameContaining(String keyword) {
         return cameraRepository.findZoneIdsByNameContaining(keyword);
+    }
+
+    /**
+     * 구역 번호 → 그 구역 캠 중 가장 먼저 가동된 시각. 삭제된 캠도 포함한다(FNC-A-051 처리 순서 1).
+     * 가동한 적이 있는 캠이 없는 구역은 빠진다.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, LocalDateTime> findFirstStartedAtByZone() {
+        return cameraRepository.findByFirstStartedAtIsNotNull().stream()
+                .collect(Collectors.toMap(
+                        Camera::getZoneId, Camera::getFirstStartedAt, BinaryOperator.minBy(LocalDateTime::compareTo)));
     }
 
     /**
