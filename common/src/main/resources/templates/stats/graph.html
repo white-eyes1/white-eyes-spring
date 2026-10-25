@@ -4,7 +4,9 @@
   통계 그래프 SCR-C-004(FNC-C-012), 두 앱이 함께 쓰는 화면. 대상·단위·기간은 주소 쿼리로 유지한다.
   엑셀 다운로드(SCR-C-006, FNC-C-023)는 현재 대상·단위·기간을 넘겨 창을 연다.
   하위 비교(FNC-C-014)는 그래프 패널 머리의 토글로 켠다(대상이 지역일 때만).
-  이동 경로·점 클릭 메뉴(FNC-C-013), 시연용 점선(FNC-C-024), 기간 비교 버튼(SCR-C-005)은 각 기능의 이슈 몫이라 두지 않는다.
+  단계별 들어가기(FNC-C-013): 점을 누르면 한 단계 아래 단위로 다시 그리고, 패널 머리 왼쪽에 이동 경로를 남긴다.
+  1시간 점은 관리자 앱에서 '1분 단위로 보기'·'다시보기' 작은 메뉴를 띄운다(stats-graph/drill.js, stats-graph.js).
+  시연용 점선(FNC-C-024), 기간 비교 버튼(SCR-C-005)은 각 기능의 이슈 몫이라 두지 않는다.
 -->
 <head>
     <th:block th:replace="~{fragments/layout :: head('통계 그래프')}"/>
@@ -54,8 +56,8 @@
 
     <section class="panel graph-panel" aria-label="통계 그래프">
         <div class="panel-head graph-panel-head">
-            <!-- 왼쪽은 이동 경로(FNC-C-013) 자리 -->
-            <div></div>
+            <!-- 이동 경로(FNC-C-013): 들어간 단계(연>월>일>시). 누르면 그 단계로 돌아간다. 들어가기 전에는 비어 있다 -->
+            <nav class="drill-path" id="drill-path" aria-label="이동 경로"></nav>
             <!-- 하위 비교(FNC-C-014): 대상이 지역일 때만 켤 수 있다. 켜면 고른 항목 하나를 하위 단위별 선으로 겹쳐 그린다 -->
             <div class="compare-controls">
                 <select class="input" id="compare-item" aria-label="하위 비교 항목" hidden>
@@ -74,6 +76,13 @@
         <div class="graph-canvas">
             <canvas id="series-chart" role="img" aria-label="통계 그래프"></canvas>
             <p class="muted graph-empty" id="graph-empty" hidden>데이터 없음</p>
+            <!-- 1시간 점 선택 창(FNC-C-013): 누른 점 옆에 띄운다. 버튼은 화면 JS가 앱에 맞게 채운다 -->
+            <div class="point-menu" id="point-menu" role="dialog" aria-label="점 선택" hidden>
+                <b id="point-menu-title"></b>
+                <div class="muted" id="point-menu-summary"></div>
+                <div class="point-menu-actions" id="point-menu-actions"></div>
+                <div class="muted" id="point-menu-notice" hidden></div>
+            </div>
         </div>
         <p class="muted compare-omitted" id="compare-omitted" hidden></p>
     </section>

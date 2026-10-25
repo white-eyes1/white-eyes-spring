@@ -42,3 +42,16 @@
 .compare-omitted { padding: 0 24px 16px; font-size: 12px; }
 .compare-omitted[hidden] { display: none; }
 .graph-items.is-disabled { opacity: .45; pointer-events: none; }
+
+/* 단계별 들어가기(FNC-C-013): 이동 경로와 1시간 점 선택 창(시안 SCR-C-004 그래프 패널) */
+.drill-path { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: #8b98a9; }
+.drill-path button { padding: 0; border: 0; background: none; color: #8b98a9; font: inherit; cursor: pointer; }
+.drill-path button:hover { color: #c3cdd9; text-decoration: underline; }
+.drill-path button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.drill-path b { color: #edf2f8; }
+.point-menu { position: absolute; z-index: 5; padding: 10px 12px; border: 1px solid #2d3b4d; border-radius: 8px; background: #0f1720; font-size: 12px; box-shadow: 0 10px 24px rgba(0, 0, 0, .4); }
+.point-menu[hidden] { display: none; }
+.point-menu-actions { display: flex; gap: 6px; margin-top: 8px; }
+.point-menu-actions:empty { display: none; }
+.point-menu .btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+#point-menu-notice { margin-top: 6px; }
