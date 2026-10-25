@@ -6,6 +6,7 @@
 import { download, get } from '../../common/api.js';
 import { formatDateTime, formatDecimal, formatNumber } from '../../common/format.js';
 import { openActionDialog, requestStatusChange } from '../event-action.js';
+import { closeEventVideo, openEventVideo } from '../event-video.js';
 
 const PAGE_SIZE = 20;
 const KEYWORD_DEBOUNCE_MS = 300;
@@ -399,6 +400,7 @@ async function openDetail(eventId) {
         // 그 사이 다른 행을 눌렀거나 창을 닫았으면 이 응답은 버린다
         if (seq === detailSeq) {
             renderDetail(detail);
+            openEventVideo(detail);
             detailModal.hidden = false;
             detailModal.querySelector('.modal').focus();
         }
@@ -409,6 +411,7 @@ async function openDetail(eventId) {
 
 function closeDetail() {
     detailSeq++;
+    closeEventVideo();
     detailModal.hidden = true;
     // 열었던 행으로 포커스를 돌려준다(목록이 다시 그려져 행이 사라졌으면 건너뛴다)
     if (detailOpener?.isConnected) {
