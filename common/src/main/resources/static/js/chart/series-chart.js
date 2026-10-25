@@ -1,9 +1,13 @@
-// 통계 시계열 선 그래프(SCR-C-004, FNC-C-012·013·014). Chart.js(전역 Chart, graph.html이 불러옴) 코드는 이 파일에만 둔다.
+// 통계 시계열 선 그래프(SCR-C-004, FNC-C-012·013·014·024). Chart.js(전역 Chart, graph.html이 불러옴) 코드는 이 파일에만 둔다.
 // 값이 없는 점(sampleSec=0·통계 없음)은 null이라 선과 띠가 끊긴다(spanGaps 끔).
+// 시연용 점(isDemo)이 낀 구간은 점선·연한 색으로 그린다(FNC-C-024 업무 규칙).
 import { formatDecimal, formatNumber } from '../common/format.js';
 
 const GRID_COLOR = '#1e2a38';
 const TICK_COLOR = '#8b98a9';
+const DEMO_DASH = [6, 5];
+// 시연용 구간 선의 불투명도(연한 색)
+const DEMO_ALPHA = 0.5;
 // 하위 비교 선 색(최대 10개, FNC-C-014). 어두운 배경에서 서로 구분되는 색
 const COMPARE_COLORS = ['#4f8cff', '#f59e0b', '#3bc99b', '#ef4d55', '#a78bfa', '#22c3e6', '#f472b6', '#facc15', '#94a3b8', '#fb923c'];
 
@@ -41,13 +45,14 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
      * @param {string[]} titles 툴팁 제목(점마다 하나, 예: '17:00 ~ 18:00')
      * @param {Object<string, {values: (number|null)[], high?: (number|null)[], low?: (number|null)[]}>} seriesByItem
      *     고른 항목만, SERIES_ITEMS의 키 → 점마다 값. 띠를 그리는 항목은 high(최대)·low(최소)도 넘긴다
+     * @param {boolean[]} [demo] 점마다 시연용 여부(FNC-C-024). 시연용 점이 낀 구간은 점선·연한 색
      */
-    function update(labels, titles, seriesByItem) {
+    function update(labels, titles, seriesByItem, demo = []) {
         const keys = Object.keys(seriesByItem);
         const datasets = keys.flatMap((key) => {
             const item = SERIES_ITEMS[key];
             const series = seriesByItem[key];
-            const line = lineDataset(key, item.label, series.values, item.color, item.width);
+            const line = lineDataset(key, item.label, series.values, item.color, item.width, demo);
             if (!item.bandColor || !series.high || !series.low) {
                 return [line];
             }
@@ -60,7 +65,8 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
             ];
         });
         const usedAxes = new Set(keys.map((key) => SERIES_ITEMS[key].axis));
-        draw(labels, titles, datasets, usedAxes, (context) => {
+        const demoTitles = titles.map((title, index) => (demo[index] ? `${title} · 시연용` : title));
+        draw(labels, demoTitles, datasets, usedAxes, (context) => {
             const key = context.dataset.itemKey;
             const series = seriesByItem[key];
             const index = context.dataIndex;
@@ -85,7 +91,9 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
         );
     }
 
-    function lineDataset(key, label, data, color, width) {
+    function lineDataset(key, label, data, color, width, demo = []) {
+        // 구간 양 끝 점 중 하나라도 시연용이면 그 구간을 점선·연한 색으로
+        const isDemoSegment = (context) => Boolean(demo[context.p0DataIndex] || demo[context.p1DataIndex]);
         return {
             itemKey: key,
             label,
@@ -98,6 +106,10 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
             pointHoverRadius: 5,
             spanGaps: false,
             tension: 0.2,
+            segment: {
+                borderDash: (context) => (isDemoSegment(context) ? DEMO_DASH : undefined),
+                borderColor: (context) => (isDemoSegment(context) ? withAlpha(color, DEMO_ALPHA) : undefined),
+            },
         };
     }
 
@@ -195,6 +207,12 @@ function tooltipLine(key, value, high, low) {
 function valueText(key, value) {
     const item = SERIES_ITEMS[key];
     return value === null || value === undefined ? '데이터 없음' : `${formatValue(item, value)}${item.unit}`;
+}
+
+// '#4f8cff' → 'rgba(79, 140, 255, a)'
+function withAlpha(hex, alpha) {
+    const value = Number.parseInt(hex.slice(1), 16);
+    return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
 }
 
 function formatValue(item, number) {

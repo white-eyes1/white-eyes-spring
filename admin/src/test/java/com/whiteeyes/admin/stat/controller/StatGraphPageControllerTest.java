@@ -68,6 +68,16 @@ class StatGraphPageControllerTest {
     }
 
     @Test
+    @DisplayName("FNC-C-024 제목 옆에 '시연용 데이터 포함' 배지 자리가 있고 처음엔 숨겨져 있다(시연용 점이 있을 때 화면 JS가 보임)")
+    void graphPage_hasDemoBadge() throws Exception {
+        mockMvc.perform(get("/stats/graph"))
+                .andExpect(content().string(containsString(
+                        "<span class=\"chip demo\" id=\"demo-badge\" hidden>시연용 데이터 포함</span>")));
+        mockMvc.perform(get("/js/chart/series-chart.js"))
+                .andExpect(content().string(containsString("DEMO_DASH")));
+    }
+
+    @Test
     @DisplayName("SCR-C-004 이 이슈 범위 밖인 기간 비교 버튼은 두지 않는다")
     void graphPage_hasNoOutOfScopeElements() throws Exception {
         // 머리 주석에는 이름이 나오므로 요소(글자)만 본다. 엑셀 버튼은 #28, 하위 비교는 #57, 이동 경로는 #56에서 붙였다
