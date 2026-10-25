@@ -10,6 +10,9 @@ import { createAbnormalPanel } from './stats-main/abnormal.js';
 import { createAuxMetricsPanel } from './stats-main/aux-metrics.js';
 import { createDeck } from './stats-main/deck.js';
 import { createHourlyLevelsPanel } from './stats-main/hourly-levels.js';
+import { createVisitPatternPanel } from './stats-main/visit-pattern.js';
+import { createPeakHoursPanel } from './stats-main/peak-hours.js';
+import { createTrendPanel } from './stats-main/trend.js';
 import {
     renderGraphLink,
     renderLevelRules,
@@ -37,6 +40,9 @@ let layer = null;
 let deck = null;
 const abnormalPanel = createAbnormalPanel();
 const hourlyLevelsPanel = createHourlyLevelsPanel();
+const visitPatternPanel = createVisitPatternPanel();
+const peakHoursPanel = createPeakHoursPanel();
+const trendPanel = createTrendPanel();
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -238,6 +244,9 @@ async function loadRegion() {
         connectStream(target.id);
         abnormalPanel.setRegion(target.id);
         hourlyLevelsPanel.setRegion(target.id);
+        visitPatternPanel.setRegion(target.id);
+        peakHoursPanel.setRegion(target.id);
+        trendPanel.setRegion(target.id);
         auxPanel.setRegion(target.id);
     }
     await refresh();

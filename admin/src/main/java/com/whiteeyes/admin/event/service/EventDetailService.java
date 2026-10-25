@@ -1,5 +1,6 @@
 package com.whiteeyes.admin.event.service;
 
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
 import com.whiteeyes.admin.event.dto.EventDetailResponse;
 import com.whiteeyes.admin.event.dto.EventHistoryItem;
 import com.whiteeyes.admin.event.exception.EventNotFoundException;
@@ -16,6 +17,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
@@ -24,18 +26,18 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * 이벤트 상세(FNC-A-037): 이벤트 1건과 그 처리 이력(작업 기록의 EVENT_STATUS)을 돌려준다.
  * 처리 이력은 이벤트 전용 테이블이 아니라 work_history에서 찾는다(histwr-002).
+ * 응답의 playbackAvailable은 상세 창의 발생 시점 영상·다시보기 이동(FNC-A-040)이 쓴다.
  */
 @Service
+@EnableConfigurationProperties(RetentionProperties.class)
 @RequiredArgsConstructor
 public class EventDetailService {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-    // 녹화 보관 기간. RECORDING_RETENTION_DAYS 설정과 같은 값(상수)이며 설정을 읽지는 않는다. 다시보기 이동은 이 안의 이벤트만 된다(evt-004)
-    private static final int PLAYBACK_RETENTION_DAYS = 30;
-
     private final EventRepository eventRepository;
     private final EventListService eventListService;
     private final WorkHistoryService workHistoryService;
+    private final RetentionProperties retentionProperties;
     private final JsonMapper jsonMapper;
 
     @Transactional(readOnly = true)
@@ -57,10 +59,11 @@ public class EventDetailService {
                 isPlaybackAvailable(event));
     }
 
-    // 혼잡·급증만, 발생이 보관 기간 안일 때만(screens.md SCR-A-011). 녹화 파일이 있는지는 다시보기(FNC-A-040·043)가 안내한다
-    private static boolean isPlaybackAvailable(Event event) {
+    // 혼잡·급증만, 발생이 녹화 보관 기간(RECORDING_RETENTION_DAYS) 안일 때만(FNC-A-040, screens.md SCR-A-011, evt-004).
+    // 다시보기 녹화 찾기(FNC-A-043)와 같은 설정을 쓴다. 녹화 파일이 있는지는 다시보기가 안내한다
+    private boolean isPlaybackAvailable(Event event) {
         return event.getType() != EventType.CAM_FAULT
-                && !event.getStartedAt().isBefore(LocalDateTime.now(KST).minusDays(PLAYBACK_RETENTION_DAYS));
+                && !event.getStartedAt().isBefore(LocalDateTime.now(KST).minusDays(retentionProperties.recordingDays()));
     }
 
     private EventHistoryItem toHistoryItem(WorkHistory history) {

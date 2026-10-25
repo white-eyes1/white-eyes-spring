@@ -2,10 +2,14 @@
 // 대상·단위·기간은 주소 쿼리(targetType·targetId·interval·from·to)로 유지한다. 기본은 1h, 오늘(screens.md SCR-C-004).
 // 시각은 브라우저 시각을 오프셋 없이 주고받는다(서버가 KST로 읽음). 끝 칸은 to에서 1분 뺀 시각을 보인다(#25에서 정함).
 // 하위 비교(FNC-C-014)를 켜면 GET /api/v1/stats/children으로 고른 항목 하나를 하위 단위별 선으로 겹쳐 그린다(대상이 지역일 때만).
-import { ApiError, get } from '../common/api.js';
-import { formatDateTime } from '../common/format.js';
+// 단계별 들어가기(FNC-C-013): 점을 누르면 한 단계 아래 단위·기간으로 다시 그리고 이동 경로를 남긴다.
+// 1시간 점은 1분 통계가 있을 때만 1분으로 내려간다(보관 기간 지남·시연용이면 '1분 데이터 없음'). 관리자 앱은 '1분 단위로 보기'·'다시보기'
+// 중 고르고, 1분 점은 바로 다시보기(SCR-A-009)로 간다. 다시보기는 구역 영상이라 대상이 구역일 때만 열 수 있다.
+import { ApiError, get, url } from '../common/api.js';
+import { formatDateTime, formatDecimal, formatNumber } from '../common/format.js';
 import { SERIES_ITEMS, createSeriesChart } from '../chart/series-chart.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
+import { crumbLabel, drillDown } from './stats-graph/drill.js';
 
 const SERIES_API = '/api/v1/stats/series';
 const CHILDREN_API = '/api/v1/stats/children';
@@ -33,6 +37,11 @@ const FIELD_LABELS = {
     to: '끝',
 };
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+const NO_MINUTE_MESSAGE = '1분 데이터 없음';
+const PLAYBACK_ZONE_ONLY_MESSAGE = '다시보기는 구역을 골랐을 때만 볼 수 있습니다.';
+const LOAD_FAILED_MESSAGE = '불러오지 못했습니다.';
+// 관리자 앱만 다시보기를 연결한다(공통 헤더와 같은 판단)
+const IS_ADMIN = document.querySelector('[data-header="admin"]') !== null;
 
 const byId = (id) => document.getElementById(id);
 const regionSelects = ['target-sido', 'target-sigungu', 'target-emd'].map(byId);
@@ -47,7 +56,14 @@ const fromInput = byId('period-from');
 const endInput = byId('period-end');
 const errorNotice = byId('graph-error');
 const emptyNotice = byId('graph-empty');
-const chart = createSeriesChart(byId('series-chart'));
+const drillPath = byId('drill-path');
+const pointMenu = byId('point-menu');
+const canvas = byId('series-chart');
+const chart = createSeriesChart(canvas, {
+    onPointClick,
+    // 사용자 앱의 1분 점은 누를 수 없다(FNC-C-013 처리 순서 6)
+    clickable: () => IS_ADMIN || interval !== '1m',
+});
 
 const childrenCache = new Map(); // parentId(없으면 'root') -> 하위 지역 목록
 const zonesCache = new Map(); // dongId -> 구역 목록
@@ -59,8 +75,13 @@ let to = null;
 let items = [];
 let comparing = false;
 let compareResult = { series: [], omitted: 0 };
+// 지금 그린 점들의 구간 시작 시각(응답의 at 그대로). 점을 누르면 이 값으로 아래 단계를 정한다
+let pointTimes = [];
+// 이동 경로: 들어가기 전 화면부터 지금 화면까지 {interval, from, to, label, clickedInterval}. 들어가기 전에는 비어 있다
+let trail = [];
 // 조건을 빠르게 여러 번 바꾸면 마지막 요청의 결과만 그린다
 let latestRequestId = 0;
+let latestMenuRequestId = 0;
 
 start();
 
@@ -82,6 +103,7 @@ async function start() {
     byId('period-apply').addEventListener('click', applyPeriod);
     initExportModal();
     byId('export-open').addEventListener('click', openExport);
+    initPointMenu();
     renderTabs();
     renderPeriod();
     await load();
@@ -205,6 +227,7 @@ async function onRegionChange(depth, value) {
     }
     path = base;
     zone = null;
+    clearTrail();
     await renderTargetSelects();
     await load();
 }
@@ -216,6 +239,7 @@ async function onZoneChange(zones, value) {
         // 삭제된 구역을 떠나면 선택 칸에서 '(삭제됨)' 항목을 뺀다
         await renderTargetSelects();
     }
+    clearTrail();
     renderCompareAvailability();
     await load();
 }
@@ -250,6 +274,7 @@ function initTabs() {
             interval = tab.dataset.interval;
             // 단위를 바꾸면 기간을 그 단위의 기본값으로(screens.md SCR-C-004 단위)
             setDefaultPeriod();
+            clearTrail();
             renderTabs();
             renderPeriod();
             load();
@@ -316,6 +341,7 @@ function applyPeriod() {
     }
     from = newFrom;
     to = new Date(end.getTime() + MINUTE_MS);
+    clearTrail();
     load();
 }
 
@@ -369,6 +395,224 @@ function renderCompareControls() {
     omittedNotice.hidden = true;
 }
 
+// ---- 단계별 들어가기(FNC-C-013) ---------------------------------------------------------------
+
+async function onPointClick(index, position) {
+    const atText = pointTimes[index];
+    if (!atText) {
+        return;
+    }
+    const at = new Date(atText);
+    if (interval === '1m') {
+        // 사용자 앱은 동작 없음, 관리자 앱은 다시보기(처리 순서 6)
+        if (!IS_ADMIN) {
+            return;
+        }
+        if (zone) {
+            window.location.href = playbackUrl(atText);
+        } else {
+            showPointMenu(index, position, [], PLAYBACK_ZONE_ONLY_MESSAGE);
+        }
+        return;
+    }
+    if (interval !== '1h') {
+        drillInto(at);
+        return;
+    }
+    // 1시간 점: 1분 통계가 있어야 내려간다(업무 규칙: 보관 기간 지남·시연용 구간은 1분 데이터 없음)
+    const requestId = ++latestMenuRequestId;
+    if (!IS_ADMIN) {
+        const available = await hasMinuteData(at);
+        if (requestId !== latestMenuRequestId) {
+            return;
+        }
+        if (available) {
+            drillInto(at);
+        } else {
+            showPointMenu(index, position, [], available === null ? LOAD_FAILED_MESSAGE : NO_MINUTE_MESSAGE);
+        }
+        return;
+    }
+    // 관리자 앱: '1분 단위로 보기' / '다시보기'(1시간 점 선택 창). 1분 버튼은 1분 통계를 확인한 뒤 켠다
+    const minuteButton = menuButton('1분 단위로 보기', () => drillInto(at));
+    minuteButton.setAttribute('aria-disabled', 'true');
+    const playbackLink = menuLink('다시보기', zone ? playbackUrl(atText) : null);
+    showPointMenu(index, position, [minuteButton, playbackLink], zone ? null : PLAYBACK_ZONE_ONLY_MESSAGE);
+    const available = await hasMinuteData(at);
+    if (requestId !== latestMenuRequestId || pointMenu.hidden) {
+        return;
+    }
+    if (available) {
+        minuteButton.removeAttribute('aria-disabled');
+    } else {
+        addMenuNotice(available === null ? LOAD_FAILED_MESSAGE : NO_MINUTE_MESSAGE);
+    }
+}
+
+// 누른 점의 한 단계 아래로 들어가고 이동 경로에 남긴다
+function drillInto(at) {
+    const next = drillDown(interval, at);
+    if (!next) {
+        return;
+    }
+    if (trail.length === 0) {
+        trail.push({ interval, from, to, label: `${INTERVALS[interval].label} 단위`, clickedInterval: null });
+    }
+    const parent = trail[trail.length - 1];
+    trail.push({ ...next, label: crumbLabel(interval, at, parent.clickedInterval), clickedInterval: interval });
+    showView(next);
+}
+
+// 이동 경로의 한 칸을 누르면 그 단계로 돌아간다(후속 동작). 맨 앞 칸이면 경로를 지운다
+function backTo(index) {
+    const view = trail[index];
+    trail = index === 0 ? [] : trail.slice(0, index + 1);
+    showView(view);
+}
+
+function showView(view) {
+    interval = view.interval;
+    from = view.from;
+    to = view.to;
+    renderTrail();
+    renderTabs();
+    renderPeriod();
+    load();
+}
+
+// 단위·기간·대상을 직접 바꾸면 들어간 단계 기록은 끝난다
+function clearTrail() {
+    trail = [];
+    renderTrail();
+}
+
+// '1년 단위 › 2026년 › 10월 › 21일 › 17시'(마지막 칸이 지금 화면, 굵게)
+function renderTrail() {
+    const parts = [];
+    trail.forEach((step, index) => {
+        if (index > 0) {
+            const separator = document.createElement('span');
+            separator.setAttribute('aria-hidden', 'true');
+            separator.textContent = '›';
+            parts.push(separator);
+        }
+        if (index === trail.length - 1) {
+            const current = document.createElement('b');
+            current.setAttribute('aria-current', 'page');
+            current.textContent = step.label;
+            parts.push(current);
+        } else {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = step.label;
+            button.addEventListener('click', () => backTo(index));
+            parts.push(button);
+        }
+    });
+    drillPath.replaceChildren(...parts);
+}
+
+// 그 시간에 받은 1분 통계가 하나라도 있으면 true, 없으면 false, 읽지 못하면 null
+async function hasMinuteData(at) {
+    const hour = drillDown('1h', at);
+    try {
+        const response = await get(
+            SERIES_API,
+            { ...currentTarget(), interval: '1m', from: toInputValue(hour.from), to: toInputValue(hour.to) },
+            { toast: false },
+        );
+        return response.items.some((point) => point.sampleSec > 0);
+    } catch {
+        return null;
+    }
+}
+
+function playbackUrl(atText) {
+    return `${url('/playback')}?zoneId=${zone.id}&at=${encodeURIComponent(atText)}`;
+}
+
+function menuButton(label, onClick) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn secondary sm';
+    button.textContent = label;
+    button.addEventListener('click', () => {
+        if (button.getAttribute('aria-disabled') !== 'true') {
+            onClick();
+        }
+    });
+    return button;
+}
+
+// 주소가 없으면(대상이 지역) 누를 수 없는 링크로 둔다
+function menuLink(label, href) {
+    const link = document.createElement('a');
+    link.className = 'btn secondary sm';
+    link.textContent = label;
+    if (href) {
+        link.href = href;
+    } else {
+        link.setAttribute('aria-disabled', 'true');
+    }
+    return link;
+}
+
+function initPointMenu() {
+    // 그래프 밖을 누르거나 Esc를 누르면 닫는다. 그래프 안을 누르면 점 클릭이 새로 띄운다
+    document.addEventListener('click', (event) => {
+        if (!pointMenu.hidden && !pointMenu.contains(event.target) && event.target !== canvas) {
+            hidePointMenu();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            hidePointMenu();
+        }
+    });
+}
+
+// 누른 점 옆에 구간·값 요약과 버튼(또는 안내)을 띄운다. 오른쪽 끝에서는 점 왼쪽에 띄운다
+function showPointMenu(index, position, actions, notice) {
+    byId('point-menu-title').textContent = tooltipTitle(pointTimes[index]);
+    const summary = byId('point-menu-summary');
+    summary.textContent = comparing ? '' : pointSummary(items[index]);
+    summary.hidden = summary.textContent === '';
+    byId('point-menu-actions').replaceChildren(...actions);
+    const noticeLine = byId('point-menu-notice');
+    noticeLine.textContent = notice ?? '';
+    noticeLine.hidden = !notice;
+    pointMenu.hidden = false;
+    const box = pointMenu.parentElement;
+    const x = canvas.offsetLeft + position.x;
+    const y = canvas.offsetTop + position.y;
+    const gap = 12;
+    const left = x + gap + pointMenu.offsetWidth > box.clientWidth ? x - gap - pointMenu.offsetWidth : x + gap;
+    pointMenu.style.left = `${Math.max(left, 0)}px`;
+    pointMenu.style.top = `${Math.max(Math.min(y - pointMenu.offsetHeight / 2, box.clientHeight - pointMenu.offsetHeight), 0)}px`;
+}
+
+function addMenuNotice(text) {
+    const noticeLine = byId('point-menu-notice');
+    noticeLine.textContent = noticeLine.hidden ? text : `${noticeLine.textContent} ${text}`;
+    noticeLine.hidden = false;
+}
+
+function hidePointMenu() {
+    latestMenuRequestId++;
+    pointMenu.hidden = true;
+}
+
+// '인원 평균 1,204명 · 밀집도 0.32'(시안). 값이 없으면 '데이터 없음'
+function pointSummary(point) {
+    const count = point ? valueOf(point, 'countAvg') : null;
+    if (count === null) {
+        return '데이터 없음';
+    }
+    const density = valueOf(point, 'density');
+    const densityText = density === null ? '' : ` · 밀집도 ${formatDecimal(density, 2)}`;
+    return `인원 평균 ${formatNumber(Math.round(count))}명${densityText}`;
+}
+
 // ---- 조회·그리기 ----------------------------------------------------------------------------------
 
 /** 화면에서 먼저 검사한다. 틀리면 문구를 보이고 조회하지 않는다. */
@@ -400,6 +644,7 @@ async function load() {
 
     const requestId = ++latestRequestId;
     hideError();
+    hidePointMenu();
     try {
         // 오류는 그래프 위 문구로 보이므로 api.js의 토스트는 끈다
         if (comparing) {
@@ -450,6 +695,7 @@ function render() {
             }
             : { values: items.map((point) => valueOf(point, key)) };
     });
+    pointTimes = items.map((point) => point.at);
     chart.update(items.map((point) => axisLabel(point.at)), items.map((point) => tooltipTitle(point.at)), seriesByItem);
     // 오류 문구가 보이는 동안에는 '데이터 없음'을 같이 보이지 않는다
     emptyNotice.hidden = !errorNotice.hidden || items.some((point) => point.sampleSec > 0);
@@ -459,6 +705,7 @@ function render() {
 function renderCompare() {
     const { series, omitted } = compareResult;
     const points = series.length > 0 ? series[0].points : [];
+    pointTimes = points.map((point) => point.at);
     chart.compare(
         points.map((point) => axisLabel(point.at)),
         points.map((point) => tooltipTitle(point.at)),
