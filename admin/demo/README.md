@@ -5,8 +5,10 @@
 
 ```bash
 set -a; source .env; set +a
-./gradlew :admin:bootRun --args='--spring.profiles.active=local --job=generate-demo --config=deploy/demo/generate-demo.example.json'
+DB_USERNAME=white_eyes_admin DB_PASSWORD=$ADMIN_DB_PASSWORD ./gradlew :admin:bootRun --args='--spring.profiles.active=local --job=generate-demo --config=demo/generate-demo.example.json'
 ```
+`bootRun`은 admin 모듈 폴더에서 돌아서 `--config`는 그 폴더 기준 경로다(`demo/…` = `admin/demo/…`). DB 계정은 CLAUDE.md '명령'과 같이 관리자 앱 계정을 쓴다.
+전체를 컨테이너로 띄웠다면 white-eyes-deploy에서 `docker compose run --rm generate-demo`(설정 파일은 그쪽 `demo/generate-demo.json`).
 
 - 실행하면 기존 시연용 데이터(is_demo=1)를 먼저 지우고 다시 만든다. 실제 데이터(is_demo=0)는 그대로 둔다.
 - 구역마다 `startDate`부터 그 구역 캠이 처음 가동된 날의 전날(가동한 적이 없으면 어제)까지 시간별·일별 통계를 만든다. 1분 통계는 만들지 않는다.
