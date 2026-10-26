@@ -14,6 +14,7 @@ import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.event.entity.EventType;
 import java.io.IOException;
@@ -81,6 +82,7 @@ class NotificationStreamTest {
     @BeforeEach
     void setUp() {
         broadcaster.stop();
+        AdminTestLogin.loginForDirectCalls();
         clearAll();
         regionLoadService.load(REGION_FILE);
         zoneId = zoneRegisterService.register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE)).id();
@@ -88,6 +90,7 @@ class NotificationStreamTest {
 
     @AfterEach
     void tearDown() {
+        AdminTestLogin.clear();
         broadcaster.stop();
         clearAll();
     }
@@ -143,7 +146,7 @@ class NotificationStreamTest {
                     .contains("event:event-created")
                     .contains("\"id\":" + eventId)
                     .contains("\"type\":\"CONGESTION\"")
-                    .contains("\"zoneName\":\"알림 시험 1구역\"")
+                    .contains("\"zoneName\":\"삼청동 1구역\"")
                     .contains("\"level\":3")
                     .contains("\"startedAt\":\"2026-10-12T09:00:00+09:00\""));
         }
