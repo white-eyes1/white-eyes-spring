@@ -255,6 +255,9 @@ class MapStatusIntegrationTest {
                 .andExpect(jsonPath("$.items[?(@.id==" + open + ")].ongoingEvent").value(true))
                 .andExpect(jsonPath("$.items[?(@.id==" + surge + ")].ongoingEvent").value(true))
                 .andExpect(jsonPath("$.items[?(@.id==" + noStat + ")].ongoingEvent").value(true))
+                // 핀 배지 숫자는 같은 항목의 todayEventCount다
+                .andExpect(jsonPath("$.items[?(@.id==" + open + ")].todayEventCount").value(1))
+                .andExpect(jsonPath("$.items[?(@.id==" + surge + ")].todayEventCount").value(1))
                 .andExpect(jsonPath("$.items[?(@.id==" + closed + ")].ongoingEvent").value(false))
                 .andExpect(jsonPath("$.items[?(@.id==" + camFault + ")].ongoingEvent").value(false))
                 .andExpect(jsonPath("$.items[?(@.id==" + deleted + ")]").isEmpty());
