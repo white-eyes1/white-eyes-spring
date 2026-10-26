@@ -1,7 +1,14 @@
 package com.whiteeyes.admin.event;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,6 +52,9 @@ class SurgeEventServiceTest {
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
+    @MockitoSpyBean
+    private NotificationPublisher notificationPublisher;
+
     @Autowired
     private SurgeEventService surgeEventService;
 
@@ -78,6 +88,31 @@ class SurgeEventServiceTest {
         surgeEventService.judge(zoneId, T0, bd("10"), bd("0.1000"), FULL_SAMPLE_SEC, bd("5"), FULL_SAMPLE_SEC);
 
         assertThat(eventRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FNC-A-034 새 급증 이벤트를 열면 관리자 화면 알림을 보내고, 같은 이벤트 갱신에는 보내지 않는다")
+    void notifiesOnlyWhenNewSurgeEventIsOpened() {
+        Long zoneId = saveZone("테스트 알림 급증 구역", "10");
+
+        surgeEventService.judge(zoneId, T0, bd("10"), bd("1.0000"), FULL_SAMPLE_SEC, bd("5"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(1), bd("20"), bd("2.0000"), FULL_SAMPLE_SEC, bd("5"), FULL_SAMPLE_SEC);
+
+        Event event = eventRepository.findAll().get(0);
+        verify(notificationPublisher, times(1))
+                .eventCreated(eq(event.getId()), eq(EventType.SURGE), eq(zoneId), isNull(), eq(T0));
+        verify(notificationPublisher, times(1)).uncheckedCountChanged();
+    }
+
+    @Test
+    @DisplayName("FNC-A-034 이벤트를 열지 않으면 알림을 보내지 않는다")
+    void doesNotNotifyWithoutSurgeEvent() {
+        Long zoneId = saveZone("테스트 무알림 급증 구역", "100");
+
+        surgeEventService.judge(zoneId, T0, bd("10"), bd("0.1000"), FULL_SAMPLE_SEC, bd("5"), FULL_SAMPLE_SEC);
+
+        verify(notificationPublisher, never()).uncheckedCountChanged();
     }
 
     @Test

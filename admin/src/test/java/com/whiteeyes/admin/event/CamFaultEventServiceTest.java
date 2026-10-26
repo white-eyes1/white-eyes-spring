@@ -1,7 +1,14 @@
 package com.whiteeyes.admin.event;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +41,9 @@ class CamFaultEventServiceTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2099, 1, 1, 10, 0, 0);
     private static final int TIMEOUT_SEC = 60;
+
+    @MockitoSpyBean
+    private NotificationPublisher notificationPublisher;
 
     @Autowired
     private CamFaultEventService camFaultEventService;
@@ -73,6 +83,21 @@ class CamFaultEventServiceTest {
         assertThat(event.getPeakValue()).isNull();
         assertThat(event.getPeakCount()).isNull();
         assertThat(event.getThresholdSnapshot()).contains("\"timeoutSec\"").contains(String.valueOf(TIMEOUT_SEC));
+    }
+
+    @Test
+    @DisplayName("FNC-A-035 새 캠 이상 이벤트를 열면 관리자 화면 알림을 보내고, 이미 열려 있으면 다시 보내지 않는다")
+    void notifiesOnlyWhenNewFaultEventIsOpened() {
+        Long zoneId = saveZone("캠이상 알림 구역", "1");
+        long cameraId = insertCamera(zoneId, "ERROR", true, false);
+
+        camFaultEventService.detect(NOW);
+        camFaultEventService.detect(NOW.plusSeconds(10));
+
+        Event event = openFaults(cameraId).get(0);
+        verify(notificationPublisher, times(1))
+                .eventCreated(eq(event.getId()), eq(EventType.CAM_FAULT), eq(zoneId), isNull(), eq(NOW));
+        verify(notificationPublisher, times(1)).uncheckedCountChanged();
     }
 
     @Test
