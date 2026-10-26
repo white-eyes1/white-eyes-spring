@@ -118,6 +118,16 @@ public class AdminAccount {
         this.mustChangePassword = false;
     }
 
+    /**
+     * 최고 관리자가 임시 비밀번호로 재설정한다(FNC-A-010). 다음 로그인 때 비밀번호 변경을 강제한다.
+     *
+     * @param encodedPassword 임시 비밀번호를 bcrypt로 바꾼 값. 평문을 넘기지 않는다
+     */
+    public void resetPassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.mustChangePassword = true;
+    }
+
     /** 본인이 이름·메일·연락처를 고친다(FNC-C-006). 아이디·역할·상태는 이 메서드로 바꿀 수 없다. */
     public void updateProfile(String name, String email, String phone) {
         this.name = name;
