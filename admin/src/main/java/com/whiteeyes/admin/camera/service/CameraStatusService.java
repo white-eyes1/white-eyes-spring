@@ -4,6 +4,7 @@ import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStatusUpdateRequest;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
 import com.whiteeyes.admin.event.service.CamFaultEventService;
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
@@ -21,7 +22,8 @@ import org.springframework.web.client.RestClientException;
  * <p>정지 지시를 되돌려 보내는 분석 서버 호출(최대 15초)을 DB 트랜잭션 안에 넣지 않으려고 메서드 전체를
  * {@code @Transactional}로 묶지 않는다. 상태 갱신만 {@link TransactionTemplate}으로 감싼다.
  * 캠 이상 이벤트 열기·닫기(처리 순서 3·4, FNC-A-035)는 상태 갱신 트랜잭션이 끝난 뒤에 따로 하고, 실패하면
- * 로그만 남긴다(이벤트 저장 실패로 상태 갱신이 롤백되지 않게). 알림 SSE(처리 순서 2)는 하지 않는다.
+ * 로그만 남긴다(이벤트 저장 실패로 상태 갱신이 롤백되지 않게). 알림 SSE의 camera-status(처리 순서 2)는 상태 갱신이
+ * 커밋된 뒤에 보낸다(FNC-A-048).
  */
 @Service
 @RequiredArgsConstructor
@@ -34,6 +36,7 @@ public class CameraStatusService {
     private final AnalyzerClient analyzerClient;
     private final TransactionTemplate transactionTemplate;
     private final CamFaultEventService camFaultEventService;
+    private final NotificationPublisher notificationPublisher;
 
     public void reportStatus(Long cameraId, CameraStatusUpdateRequest request) {
         // 정지를 원하는 캠(run_requested=0)의 RUNNING 보고는 반영하지 않고 분석 서버에 정지를 다시 지시한다(엇갈림 정리)
@@ -64,6 +67,9 @@ public class CameraStatusService {
         } else {
             log.debug("캠 상태 보고 cameraId={} status={} progress={}", cameraId, request.status(), request.progress());
         }
+        // 처리 순서 2: 알림 SSE로 camera-status 전송(진행률만 바뀐 보고도 보낸다)
+        notificationPublisher.cameraStatusChanged(
+                cameraId, camera.getStatus(), camera.getProgress(), camera.getErrorMessage());
         return new AppliedReport(false, previous);
     }
 

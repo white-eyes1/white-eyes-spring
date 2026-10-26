@@ -5,6 +5,7 @@ import com.whiteeyes.admin.event.dto.EventStatusUpdateRequest;
 import com.whiteeyes.admin.event.exception.EventNotFoundException;
 import com.whiteeyes.admin.event.exception.EventStatusConflictException;
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.admin.region.dto.ZoneSummary;
 import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.event.entity.Event;
@@ -29,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 이벤트 처리 상태 변경(FNC-A-038): 미확인 → 확인 중 → 조치완료. 상태 저장과 작업 기록은 한 트랜잭션이다.
  * 이벤트 행을 잠그고 읽어서 두 관리자가 동시에 처리하면 한 명만 성공한다.
- * 처리 순서 6(알림 SSE로 미확인 수 갱신)은 알림 스트림(FNC-A-048, #46)이 맡는다.
+ * 처리 순서 6: 알림 SSE로 미확인 수를 갱신한다(FNC-A-048). 커밋된 뒤에 보낸다.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,6 +42,7 @@ public class EventStatusService {
     private final ZoneService zoneService;
     private final AdminWorkRecorder workRecorder;
     private final EventDetailService eventDetailService;
+    private final NotificationPublisher notificationPublisher;
 
     @Transactional
     public EventDetailResponse changeStatus(Long eventId, EventStatusUpdateRequest request) {
@@ -76,6 +78,8 @@ public class EventStatusService {
                 eventId,
                 targetNameOf(event),
                 detailOf(from, request, actionNote));
+        // 처리 순서 6: 알림 SSE로 미확인 수 갱신
+        notificationPublisher.uncheckedCountChanged();
         return eventDetailService.find(eventId);
     }
 
