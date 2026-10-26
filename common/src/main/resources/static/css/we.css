@@ -153,6 +153,7 @@ body.we { margin: 0; min-height: 100vh; }
 .legend .dot.l1 { background: var(--lv1); } .legend .dot.l2 { background: var(--lv2); } .legend .dot.l3 { background: var(--lv3); }
 
 /* 토스트 */
+.toast-stack-top { top: 80px; bottom: auto; }
 .toast-link { color: inherit; text-decoration: none; }
 .dot.surge { background: var(--surge); }
 .toast-stack { position: fixed; right: 24px; bottom: 24px; z-index: 3000; display: flex; flex-direction: column; gap: 8px; max-width: 360px; }

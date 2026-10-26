@@ -1,6 +1,8 @@
 // 화면 아래 오른쪽에 잠깐 보이는 알림(we.css .toast). 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
 const CONTAINER_ID = 'toast-stack';
+// 새 이벤트 알림은 시안(SCR-A-010)처럼 헤더 아래 오른쪽 위에 쌓는다. 오류 안내 토스트(아래 오른쪽)와 섞이지 않게 따로 둔다
+const NOTICE_CONTAINER_ID = 'notice-stack';
 const DEFAULT_DURATION_MS = 5000;
 
 /** 토스트를 보인다. durationMs 뒤에 사라진다. */
@@ -31,17 +33,17 @@ export function showLinkToast({ href, dotClass, title, note }, durationMs = DEFA
     small.className = 'muted';
     small.textContent = note;
     toast.append(dot, strong, small);
-    getContainer().append(toast);
+    getContainer(NOTICE_CONTAINER_ID, 'toast-stack toast-stack-top').append(toast);
     window.setTimeout(() => toast.remove(), durationMs);
     return toast;
 }
 
-function getContainer() {
-    let container = document.getElementById(CONTAINER_ID);
+function getContainer(id = CONTAINER_ID, className = 'toast-stack') {
+    let container = document.getElementById(id);
     if (!container) {
         container = document.createElement('div');
-        container.id = CONTAINER_ID;
-        container.className = 'toast-stack';
+        container.id = id;
+        container.className = className;
         document.body.append(container);
     }
     return container;
