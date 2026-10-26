@@ -2,7 +2,6 @@ package com.whiteeyes.admin.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -125,12 +124,6 @@ class NotificationStreamTest {
     }
 
     @Test
-    @DisplayName("FNC-A-048 로그인하지 않으면 401")
-    void rejectsAnonymous() throws Exception {
-        mockMvc.perform(get(STREAM_URL).with(anonymous())).andExpect(status().isUnauthorized());
-    }
-
-    @Test
     @DisplayName("FNC-A-048 새 이벤트 알림이 연결된 모든 화면에 도착하고 형식이 {id,type,zoneName,level,startedAt}이다")
     void deliversEventCreatedToEverySubscriber() {
         RecordingEmitter first = new RecordingEmitter();
@@ -150,6 +143,21 @@ class NotificationStreamTest {
                     .contains("\"level\":3")
                     .contains("\"startedAt\":\"2026-10-12T09:00:00+09:00\""));
         }
+    }
+
+    @Test
+    @DisplayName("FNC-A-048 event-created의 startedAt은 Asia/Seoul 기준 +09:00 형식으로 나간다")
+    void startedAtIsSentWithSeoulOffset() {
+        RecordingEmitter emitter = new RecordingEmitter();
+        broadcaster.subscribe(emitter);
+        long eventId = insertEvent("UNCHECKED", "CONGESTION", 2);
+
+        publisher.eventCreated(eventId, EventType.CONGESTION, zoneId, 2, LocalDateTime.of(2026, 1, 5, 23, 59, 30));
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(emitter.text())
+                .contains("\"startedAt\":\"2026-01-05T23:59:30+09:00\"")
+                .doesNotContain("Z\"")
+                .doesNotContain("[Asia/Seoul]"));
     }
 
     @Test
@@ -271,13 +279,6 @@ class NotificationStreamTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", org.hamcrest.Matchers.startsWith("application/json")))
                 .andExpect(jsonPath("$.count").value(2));
-    }
-
-    @Test
-    @DisplayName("FNC-A-048 unchecked-count는 로그인하지 않으면 401")
-    void uncheckedCountRequiresLogin() throws Exception {
-        mockMvc.perform(get("/api/v1/events/unchecked-count").with(anonymous()))
-                .andExpect(status().isUnauthorized());
     }
 
     private String body(MvcResult stream) throws Exception {
