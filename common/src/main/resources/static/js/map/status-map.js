@@ -99,7 +99,7 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
             applyPaint();
         },
 
-        /** 구역 핀: 중심점에 단계 색, 진행 중 이벤트가 있으면 배지. */
+        /** 구역 핀: 중심점에 단계 색, 진행 중 이벤트가 있으면 오늘 이벤트 수 배지. */
         showPins(items) {
             pins.clearLayers();
             zonePoints = items
@@ -135,7 +135,10 @@ function pinIcon(item) {
     pin.innerHTML = PIN_ICON;
     if (item.ongoingEvent) {
         const badge = document.createElement('b');
-        badge.textContent = '1';
+        // 어제 시작해 계속 열린 이벤트만 있으면 오늘 이벤트 수가 0이라, 숫자 없이 배지만 보인다
+        if (item.todayEventCount > 0) {
+            badge.textContent = formatNumber(item.todayEventCount);
+        }
         pin.append(badge);
     }
     return L.divIcon({ html: pin, className: 'zone-pin', iconSize: [0, 0] });
