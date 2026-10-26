@@ -186,7 +186,7 @@ class MapStatusIntegrationTest {
     }
 
     @Test
-    @DisplayName("FNC-C-017 단위별 오늘 이벤트 수: 혼잡·급증만, 캠 이상·어제 제외, 지역은 삭제된 구역까지 합산, 진행 중 표시는 아직 false")
+    @DisplayName("FNC-C-017 단위별 오늘 이벤트 수: 혼잡·급증만, 캠 이상·어제 제외, 지역은 삭제된 구역까지 합산")
     void todayEventCount_perUnit() throws Exception {
         LocalDateTime todayStart = LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay();
         long sajik = insertZone("11110530", "사직동 1구역", "100.00");
@@ -205,7 +205,6 @@ class MapStatusIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].name").value("종로구"))
                 .andExpect(jsonPath("$.items[0].todayEventCount").value(4))
-                .andExpect(jsonPath("$.items[0].ongoingEvent").value(false))
                 .andExpect(jsonPath("$.items[1].name").value("중구"))
                 .andExpect(jsonPath("$.items[1].todayEventCount").value(0));
         // 시·군·구: 사직동 2, 삼청동 1 + 1(삭제된 구역)
@@ -223,6 +222,56 @@ class MapStatusIntegrationTest {
                 .andExpect(jsonPath("$.items[0].todayEventCount").value(2))
                 .andExpect(jsonPath("$.items[1].id").value(samcheong))
                 .andExpect(jsonPath("$.items[1].todayEventCount").value(1));
+    }
+
+    @Test
+    @DisplayName("FNC-C-009 진행 중 이벤트: 열린 혼잡·급증이 있는 구역·지역만 true, 종료·캠 이상·삭제된 구역은 false")
+    void ongoingEvent_perUnit() throws Exception {
+        LocalDateTime todayStart = LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay();
+        long open = insertZone("11110530", "사직동 열림", "100.00");
+        long surge = insertZone("11110530", "사직동 급증", "100.00");
+        long closed = insertZone("11110540", "삼청동 종료", "100.00");
+        long camFault = insertZone("11110540", "삼청동 캠 이상", "100.00");
+        long deleted = insertZone("11140520", "소공동 삭제", "100.00");
+        long noStat = insertZone("11110530", "사직동 통계 없음", "100.00");
+        jdbcTemplate.update("UPDATE zone SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", deleted);
+        insertStat(open, latestMinute, "10.00", "0.1000");
+        insertEvent(open, "CONGESTION", todayStart.plusSeconds(1));
+        insertEvent(surge, "SURGE", todayStart.plusSeconds(2));
+        insertEvent(noStat, "CONGESTION", todayStart.plusSeconds(3));
+        insertEvent(closed, "CONGESTION", todayStart.plusSeconds(4));
+        jdbcTemplate.update(
+                "UPDATE event SET ended_at = ? WHERE zone_id = ?",
+                Timestamp.valueOf(todayStart.plusMinutes(5)),
+                closed);
+        insertEvent(camFault, "CAM_FAULT", todayStart.plusSeconds(5));
+        insertEvent(deleted, "CONGESTION", todayStart.plusSeconds(6));
+        // 조치완료여도 아직 닫히지 않았으면 진행 중이다(처리 상태는 보지 않는다)
+        jdbcTemplate.update("UPDATE event SET status = 'RESOLVED' WHERE zone_id = ?", surge);
+
+        // 구역 단위: 열린 혼잡·급증은 true(통계가 없어도), 종료·캠 이상은 false. 삭제된 구역은 목록에 없다
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id==" + open + ")].ongoingEvent").value(true))
+                .andExpect(jsonPath("$.items[?(@.id==" + surge + ")].ongoingEvent").value(true))
+                .andExpect(jsonPath("$.items[?(@.id==" + noStat + ")].ongoingEvent").value(true))
+                .andExpect(jsonPath("$.items[?(@.id==" + closed + ")].ongoingEvent").value(false))
+                .andExpect(jsonPath("$.items[?(@.id==" + camFault + ")].ongoingEvent").value(false))
+                .andExpect(jsonPath("$.items[?(@.id==" + deleted + ")]").isEmpty());
+        // 시·도: 종로구는 소속 구역에 열린 이벤트가 있어 true, 중구는 삭제된 구역의 열린 이벤트만 있어 false
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].name").value("종로구"))
+                .andExpect(jsonPath("$.items[0].ongoingEvent").value(true))
+                .andExpect(jsonPath("$.items[1].name").value("중구"))
+                .andExpect(jsonPath("$.items[1].ongoingEvent").value(false));
+        // 시·군·구: 사직동은 true, 삼청동은 종료·캠 이상뿐이라 false
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11110")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].name").value("사직동"))
+                .andExpect(jsonPath("$.items[0].ongoingEvent").value(true))
+                .andExpect(jsonPath("$.items[1].name").value("삼청동"))
+                .andExpect(jsonPath("$.items[1].ongoingEvent").value(false));
     }
 
     private void insertEvent(long zoneId, String type, LocalDateTime startedAt) {
