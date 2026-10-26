@@ -31,6 +31,11 @@
 .tab.on { color: #f3f7fc; }
 .tab.on::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px 2px 0 0; background: var(--blue); }
 .badge-count { min-width: 18px; height: 18px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: 9px; background: var(--lv3); color: #fff; font-size: 10px; font-weight: 700; }
+/* 이벤트 로그 탭과 미확인 배지는 서로 다른 링크다(탭은 필터 없이, 배지는 미확인 필터로). 배지는 탭 오른쪽 여백 안에 겹쳐 놓고 밑줄은 둘 위로 긋는다 */
+.tab-group { position: relative; display: flex; }
+.tab-group > .badge-count { align-self: center; margin-left: -10px; margin-right: 16px; text-decoration: none; }
+.tab-group > .tab.on::after { content: none; }
+.tab-group:has(> .tab.on)::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px 2px 0 0; background: var(--blue); }
 .head-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .legend { display: flex; align-items: center; gap: 12px; color: #a3afbf; font-size: 11px; }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }

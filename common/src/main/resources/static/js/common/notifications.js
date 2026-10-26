@@ -8,6 +8,8 @@ const TYPE_LABEL = { CONGESTION: '혼잡', SURGE: '급증', CAM_FAULT: '캠 이�
 const LEVEL_LABEL = { 2: '주의', 3: '위험' };
 const LEVEL_DOT = { 2: 'l2', 3: 'l3' };
 const MAX_BADGE = 99;
+// 새 이벤트 토스트는 10초 동안 보인다(screens.md SCR-A-013 '새 이벤트 토스트'). 토스트 기본값(5초)을 쓰지 않는다
+export const EVENT_TOAST_MS = 10000;
 
 const badge = document.getElementById('unchecked-badge');
 
@@ -16,7 +18,7 @@ export function startNotifications() {
     connectStream('/api/v1/notifications/stream', {
         'unchecked-count': ({ count }) => renderBadge(count),
         'event-created': (event) => {
-            showLinkToast(toastOf(event));
+            showLinkToast(toastOf(event), EVENT_TOAST_MS);
             window.dispatchEvent(new CustomEvent('we:event-created', { detail: event }));
         },
         'camera-status': (status) => window.dispatchEvent(new CustomEvent('we:camera-status', { detail: status })),

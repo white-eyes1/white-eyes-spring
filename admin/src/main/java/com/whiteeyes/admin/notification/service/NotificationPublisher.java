@@ -9,7 +9,7 @@ import com.whiteeyes.common.event.entity.EventType;
 import com.whiteeyes.common.event.service.UncheckedEventCountService;
 import jakarta.annotation.PreDestroy;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,7 +32,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Service
 public class NotificationPublisher {
 
-    private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final ObjectProvider<NotificationBroadcaster> broadcasterProvider;
     private final ZoneService zoneService;
@@ -66,8 +66,8 @@ public class NotificationPublisher {
      */
     public void eventCreated(long eventId, EventType type, long zoneId, Integer level, LocalDateTime startedAt) {
         afterCommit(() -> {
-            EventCreatedMessage message =
-                    new EventCreatedMessage(eventId, type, zoneNameOf(zoneId), level, startedAt.atOffset(KST_OFFSET));
+            EventCreatedMessage message = new EventCreatedMessage(
+                    eventId, type, zoneNameOf(zoneId), level, startedAt.atZone(KST).toOffsetDateTime());
             broadcaster().broadcast("event-created", message);
         });
     }
