@@ -15,5 +15,5 @@
 이어서 같은 시험에서 비튼 주소(`/admin/live/1/../2/snapshot`, `/admin/live/%31/snapshot`)는 확인한 번호(원래 주소에서 뽑음)와 분석 서버로 보낼 번호(정리된 주소에서 뽑음)가 어긋날 수 있음을 확인해, 두 값이 다르면 `if (...) { return 403; }`으로 막았다.
 
 ## 재발 방지
-- nginx 설정은 `nginx -t`(문법)만으로 끝내지 말고, 권한이 있을 때와 없을 때를 모두 요청해 보는 시험을 한다(`deploy/nginx/verify/run.sh`). 특히 권한 확인은 '막혀야 할 요청이 막히는지'를 본다.
+- nginx 설정은 `nginx -t`(문법)만으로 끝내지 말고, 권한이 있을 때와 없을 때를 모두 요청해 보는 시험을 한다(white-eyes1/white-eyes-deploy `nginx/verify/run.sh`, 설정은 2026-10-26에 그 저장소로 옮김). 특히 권한 확인은 '막혀야 할 요청이 막히는지'를 본다.
 - 위치에 `proxy_set_header`가 하나라도 있으면 서버 수준 `proxy_set_header`를 물려받지 못한다(같은 시험에서 `Host`가 사라진 것으로 발견). 공통 헤더는 `proxy.inc`로 모아 위치마다 include 한다.

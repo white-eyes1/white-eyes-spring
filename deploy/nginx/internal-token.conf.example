@@ -1,5 +1,0 @@
-# 이 파일을 /etc/nginx/internal-token.conf 로 복사해 값을 채운다. 진짜 값이 든 파일은 저장소에 올리지 않는다.
-# 값은 관리자 앱·분석 서버와 같은 환경변수 INTERNAL_API_TOKEN 의 값(32자 이상 임의 문자열)이다.
-map $host $internal_api_token {
-    default "여기에_INTERNAL_API_TOKEN_값";
-}
