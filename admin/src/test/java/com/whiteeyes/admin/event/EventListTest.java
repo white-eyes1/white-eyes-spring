@@ -209,6 +209,48 @@ class EventListTest {
     }
 
     @Test
+    @DisplayName("FNC-A-036 overlap=true면 기간 앞에서 시작해 기간 안에서 이어진 이벤트도 포함하고, 기간 앞에서 끝난 것·기간 뒤에 시작한 것은 뺀다(#198)")
+    void list_overlap_includesEventsContinuingIntoPeriod() throws Exception {
+        // 기간: 10:00 이상 12:00 미만(T0는 09:00)
+        // 07:00 시작, 08:30 종료: 기간 앞에서 끝났다 → overlap에서도 뺀다
+        insertEvent("CONGESTION", samcheongZoneId, null, T0.minusHours(2), T0.minusMinutes(30), 2, "0.8000", 10, "UNCHECKED");
+        // 08:00 시작, 10:30 종료: 기간 앞에서 시작해 기간 안에서 끝났다 → overlap에서 포함
+        long endsAfterFrom = insertEvent("CONGESTION", samcheongZoneId, null, T0.minusHours(1), T0.plusMinutes(90), 2, "0.8000", 10, "UNCHECKED");
+        // 06:00 시작, 진행 중: 기간 앞에서 시작해 이어지는 중이다 → overlap에서 포함
+        long ongoing = insertEvent("SURGE", samcheongZoneId, null, T0.minusHours(3), null, null, "150.0000", 10, "UNCHECKED");
+        // 11:00 시작, 11:05 종료: 기간 안 → 기본·overlap 모두 포함
+        long inside = insertEvent("CONGESTION", samcheongZoneId, null, T0.plusHours(2), T0.plusHours(2).plusMinutes(5), 2, "0.8000", 10, "UNCHECKED");
+        // 12:00 시작(to 정각): 기간 끝에 시작했다 → 기본·overlap 모두 뺀다
+        insertEvent("CONGESTION", samcheongZoneId, null, T0.plusHours(3), null, 2, "0.8000", 10, "UNCHECKED");
+        // 08:00 시작, 10:00 종료(from 정각): 끝이 정확히 from이라 겹치지 않는다 → overlap에서 뺀다
+        insertEvent("CONGESTION", samcheongZoneId, null, T0.minusHours(1), T0.plusHours(1), 2, "0.8000", 10, "UNCHECKED");
+
+        // 기본(overlap 없음)은 발생 시각이 기간 안인 것만: inside 하나(발생이 10:00~12:00 사이인 것)
+        list(param("from", "2026-10-12T10:00:00+09:00"), param("to", "2026-10-12T12:00:00+09:00"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(inside));
+
+        // overlap=true: 기간 앞에서 시작해 이어진 것(endsAfterFrom, ongoing)과 기간 안(inside)만 준다. 08:30에 끝난 것, 10:00에 끝난 것,
+        // 12:00에 시작한 것은 뺀다. 발생 시각 내림차순
+        list(param("from", "2026-10-12T10:00:00+09:00"), param("to", "2026-10-12T12:00:00+09:00"), param("overlap", "true"))
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.items[*].id").value(contains((int) inside, (int) endsAfterFrom, (int) ongoing)));
+
+        // 요약도 같은 조건을 쓴다
+        mockMvc.perform(get(EVENTS_URL + "/summary")
+                        .param("from", "2026-10-12T10:00:00+09:00")
+                        .param("to", "2026-10-12T12:00:00+09:00")
+                        .param("overlap", "true"))
+                .andExpect(jsonPath("$.total").value(3));
+    }
+
+    @Test
+    @DisplayName("FNC-A-036 overlap은 true·false만 받고 잘못된 값은 400이다")
+    void list_overlap_invalid_400() throws Exception {
+        list(param("overlap", "maybe")).andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("FNC-A-036 from만 또는 to만 주면 그쪽만 거른다")
     void list_period_oneSided() throws Exception {
         insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");

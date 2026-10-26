@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.admin.stat.service.LastResultTimeStore;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.service.WatchedCameraService;
@@ -23,7 +24,7 @@ import com.whiteeyes.common.event.repository.EventRepository;
 /**
  * 캠 이상 감지(FNC-A-035). 가동 중이어야 하는 캠이 오류이거나 결과가 끊기면 이벤트를 열고,
  * 복구·정지되면 닫는다. 10초마다 전체를 훑는 {@link #detect}와 상태 보고·정지 때 바로 처리하는 메서드로 나뉜다.
- * 알림(SSE)은 여기서 하지 않는다.
+ * 새 이벤트를 열면 관리자 화면 알림(FNC-A-048)으로 알린다.
  */
 @Service
 public class CamFaultEventService {
@@ -33,6 +34,7 @@ public class CamFaultEventService {
     private final WatchedCameraService watchedCameraService;
     private final EventRepository eventRepository;
     private final LastResultTimeStore lastResultTimeStore;
+    private final NotificationPublisher notificationPublisher;
     private final long timeoutSec;
     private final Duration timeout;
 
@@ -40,11 +42,13 @@ public class CamFaultEventService {
             WatchedCameraService watchedCameraService,
             EventRepository eventRepository,
             LastResultTimeStore lastResultTimeStore,
+            NotificationPublisher notificationPublisher,
             // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본값 conventions.md)
             @Value("${CAM_FAULT_TIMEOUT_SEC:60}") long timeoutSec) {
         this.watchedCameraService = watchedCameraService;
         this.eventRepository = eventRepository;
         this.lastResultTimeStore = lastResultTimeStore;
+        this.notificationPublisher = notificationPublisher;
         this.timeoutSec = timeoutSec;
         this.timeout = Duration.ofSeconds(timeoutSec);
     }
@@ -129,6 +133,9 @@ public class CamFaultEventService {
         }
         Event created = eventRepository.save(Event.openCamFault(zoneId, cameraId, now, toSnapshotJson()));
         log.info("캠 이상 이벤트 생성 cameraId={} zoneId={} eventId={}", cameraId, zoneId, created.getId());
+        // 새 이벤트는 열려 있는 관리자 화면에 알린다(FNC-A-048)
+        notificationPublisher.eventCreated(created.getId(), EventType.CAM_FAULT, zoneId, null, now);
+        notificationPublisher.uncheckedCountChanged();
     }
 
     private void closeOpenEvents(Long cameraId, LocalDateTime now) {

@@ -11,13 +11,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventType;
 import com.whiteeyes.common.event.repository.EventRepository;
 
 /**
  * 급증 이벤트 판정(FNC-A-034). 1분 통계를 저장한 직후 비교 시간 전보다 인원이 기준 증가율 이상 늘었으면 이벤트를
- * 열거나 갱신하고, 기준 아래로 일정 시간 유지되면 닫는다. 새 이벤트의 관리자 알림(SSE)은 FNC-A-048이 맡는다.
+ * 열거나 갱신하고, 기준 아래로 일정 시간 유지되면 닫는다. 새 이벤트는 관리자 화면 알림(FNC-A-048)으로 알린다.
  */
 @Service
 public class SurgeEventService {
@@ -30,6 +31,7 @@ public class SurgeEventService {
     private static final BigDecimal MAX_RATE = new BigDecimal("999999.9999");
 
     private final EventRepository eventRepository;
+    private final NotificationPublisher notificationPublisher;
     private final int minSampleSec;
     private final Duration closeHold;
     private final int windowMin;
@@ -38,6 +40,7 @@ public class SurgeEventService {
 
     public SurgeEventService(
             EventRepository eventRepository,
+            NotificationPublisher notificationPublisher,
             // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본값 conventions.md)
             @Value("${EVENT_MIN_SAMPLE_SEC:30}") int minSampleSec,
             @Value("${EVENT_CLOSE_HOLD_MIN:5}") long closeHoldMin,
@@ -45,6 +48,7 @@ public class SurgeEventService {
             @Value("${SURGE_RATE_PCT:50}") BigDecimal ratePct,
             @Value("${SURGE_MIN_DENSITY:0.2}") BigDecimal minDensity) {
         this.eventRepository = eventRepository;
+        this.notificationPublisher = notificationPublisher;
         this.minSampleSec = minSampleSec;
         this.closeHold = Duration.ofMinutes(closeHoldMin);
         this.windowMin = windowMin;
@@ -126,6 +130,9 @@ public class SurgeEventService {
         }
         Event created = eventRepository.save(Event.openSurge(zoneId, statAt, rate, peakCount, toSnapshotJson()));
         log.info("급증 이벤트 생성 zoneId={} eventId={}", zoneId, created.getId());
+        // 새 이벤트는 열려 있는 관리자 화면에 알린다(FNC-A-048)
+        notificationPublisher.eventCreated(created.getId(), EventType.SURGE, zoneId, null, statAt);
+        notificationPublisher.uncheckedCountChanged();
     }
 
     // 기준 미만 또는 조건 미충족: 처음 내려간 시각을 남기고, 그 뒤 EVENT_CLOSE_HOLD_MIN 이상 유지되면 닫는다(FNC-A-034 처리 순서 4)

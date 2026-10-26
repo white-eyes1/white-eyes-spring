@@ -1,5 +1,9 @@
 package com.whiteeyes.admin.camera;
 
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -9,6 +13,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
+import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.admin.event.service.CamFaultEventService;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
@@ -79,6 +85,9 @@ class CameraStatusReportTest {
     @MockitoSpyBean
     private CamFaultEventService camFaultEventService;
 
+    @MockitoSpyBean
+    private NotificationPublisher notificationPublisher;
+
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
     private long zoneId;
@@ -125,6 +134,22 @@ class CameraStatusReportTest {
         assertThat(row.get("STATUS")).isEqualTo("PREPARING");
         assertThat(((Number) row.get("PROGRESS")).intValue()).isEqualTo(45);
         assertThat(ANALYZER.callCount).isZero();
+    }
+
+    @Test
+    @DisplayName("FNC-A-025 상태 보고를 반영하면 알림 SSE(camera-status)로 상태·진행률·오류 내용을 보낸다")
+    void report_notifiesCameraStatus() throws Exception {
+        long cameraId = insertCamera("PREPARING", 0, null, true);
+
+        report(cameraId, "{\"status\":\"PREPARING\",\"progress\":45,\"errorMessage\":null}")
+                .andExpect(status().isNoContent());
+        report(cameraId, "{\"status\":\"ERROR\",\"progress\":45,\"errorMessage\":\"연결 실패\"}")
+                .andExpect(status().isNoContent());
+
+        verify(notificationPublisher, times(1))
+                .cameraStatusChanged(eq(cameraId), eq(CameraStatus.PREPARING), eq(45), isNull());
+        verify(notificationPublisher, times(1))
+                .cameraStatusChanged(eq(cameraId), eq(CameraStatus.ERROR), eq(45), eq("연결 실패"));
     }
 
     @Test

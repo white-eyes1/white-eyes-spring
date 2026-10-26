@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventType;
 import com.whiteeyes.common.event.repository.EventRepository;
@@ -21,7 +22,7 @@ import com.whiteeyes.common.level.service.LevelThresholds;
 
 /**
  * 혼잡 이벤트 판정(FNC-A-033). 1분 통계를 저장한 직후 구역이 '주의' 이상이면 이벤트를 열거나 갱신하고,
- * 내려가 일정 시간 유지되면 닫는다. 새 이벤트의 관리자 알림(SSE)은 FNC-A-048이 맡는다.
+ * 내려가 일정 시간 유지되면 닫는다. 새 이벤트는 관리자 화면 알림(FNC-A-048)으로 알린다.
  */
 @Service
 public class CongestionEventService {
@@ -30,17 +31,20 @@ public class CongestionEventService {
 
     private final LevelService levelService;
     private final EventRepository eventRepository;
+    private final NotificationPublisher notificationPublisher;
     private final int minSampleSec;
     private final Duration closeHold;
 
     public CongestionEventService(
             LevelService levelService,
             EventRepository eventRepository,
+            NotificationPublisher notificationPublisher,
             // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본값 conventions.md)
             @Value("${EVENT_MIN_SAMPLE_SEC:30}") int minSampleSec,
             @Value("${EVENT_CLOSE_HOLD_MIN:5}") long closeHoldMin) {
         this.levelService = levelService;
         this.eventRepository = eventRepository;
+        this.notificationPublisher = notificationPublisher;
         this.minSampleSec = minSampleSec;
         this.closeHold = Duration.ofMinutes(closeHoldMin);
     }
@@ -99,6 +103,10 @@ public class CongestionEventService {
                 peakCount,
                 toSnapshotJson(levelService.findThresholds(target))));
         log.info("혼잡 이벤트 생성 zoneId={} eventId={}", zoneId, created.getId());
+        // 새 이벤트는 열려 있는 관리자 화면에 알린다(FNC-A-048)
+        notificationPublisher.eventCreated(
+                created.getId(), EventType.CONGESTION, zoneId, created.getPeakLevel(), statAt);
+        notificationPublisher.uncheckedCountChanged();
     }
 
     // 주의 미만: 처음 내려간 시각을 남기고, 그 뒤 EVENT_CLOSE_HOLD_MIN 이상 유지되면 닫는다(FNC-A-033 처리 순서 4)

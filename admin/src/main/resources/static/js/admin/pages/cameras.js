@@ -7,6 +7,7 @@ import { showToast } from '../../common/toast.js';
 import { initLiveView, openLiveView, updateLiveView } from '../../live/live-view.js';
 
 const POLL_INTERVAL_MS = 3000;
+const STREAM_DEBOUNCE_MS = 300;
 
 const STATUS = {
     STOPPED: { label: '정지', chip: 'off' },
@@ -38,12 +39,19 @@ const deleteConfirm = document.getElementById('camera-delete-confirm');
 
 let pollTimer = null;
 let loading = false;
+let streamTimer = null;
 // 수정 창이 열려 있는 캠(등록 창이면 null)
 let editing = null;
 let deleteTarget = null;
 let deleting = false;
 
 // ---- 목록 ----
+
+// 알림 스트림의 캠 상태 소식(FNC-A-048)이 오면 목록을 다시 읽는다. 연달아 오는 진행률은 한 번에 모은다
+window.addEventListener('we:camera-status', () => {
+    window.clearTimeout(streamTimer);
+    streamTimer = window.setTimeout(loadCameras, STREAM_DEBOUNCE_MS);
+});
 
 async function loadCameras() {
     if (loading) {
