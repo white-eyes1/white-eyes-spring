@@ -35,6 +35,6 @@ public record EventExportRequest(
 
     /** 조건을 만드는 {@code EventConditionService}가 받는 형태로 바꾼다(page·size는 쓰이지 않는다). */
     public EventSearchRequest toSearchRequest() {
-        return new EventSearchRequest(from, to, regionId, zoneId, types, statuses, keyword, null, null);
+        return new EventSearchRequest(from, to, regionId, zoneId, types, statuses, keyword, null, null, null);
     }
 }

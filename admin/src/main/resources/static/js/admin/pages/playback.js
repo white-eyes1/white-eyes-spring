@@ -501,13 +501,34 @@ function updateEventButtons(ms) {
 
 // ---- 통계 시간축 ----
 
+// 시간축 범위의 이벤트를 100건씩 끝까지 이어서 읽는다(이전엔 100건만 읽어 뒤쪽이 빠졌다, #198). overlap=true라 범위 앞에서 시작해
+// 범위 안에서 이어진 이벤트도 온다. 반복이 끝없이 돌지 않게 상한(20쪽=2000건)을 둔다
+const EVENT_PAGE_SIZE = 100;
+const MAX_EVENT_PAGES = 20;
+
+async function loadAllEvents(query) {
+    const items = [];
+    for (let page = 0; page < MAX_EVENT_PAGES; page++) {
+        const response = await get(
+            '/api/v1/events',
+            { zoneId, ...query, types: PLAYBACK_EVENT_TYPES, overlap: true, page, size: EVENT_PAGE_SIZE },
+            { toast: false },
+        );
+        items.push(...(response?.items ?? []));
+        if (page + 1 >= (response?.totalPages ?? 1)) {
+            break;
+        }
+    }
+    return { items };
+}
+
 async function loadTimeline(center) {
     const request = ++timelineRequest;
     timeWindow = windowFor(range, center);
     const query = { from: toKstIso(timeWindow.from), to: toKstIso(timeWindow.to) };
     const [seriesResult, eventsResult, rangesResult] = await Promise.allSettled([
         get('/api/v1/stats/series', { targetType: 'ZONE', targetId: zoneId, interval: '1m', ...query }, { toast: false }),
-        get('/api/v1/events', { zoneId, ...query, types: PLAYBACK_EVENT_TYPES, size: 100 }, { toast: false }),
+        loadAllEvents(query),
         get('/api/v1/playback/ranges', { zoneId, ...query }, { toast: false }),
     ]);
     if (request !== timelineRequest) {
