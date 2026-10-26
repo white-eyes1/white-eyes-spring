@@ -16,6 +16,17 @@
 .admin-temp-password { display: flex; align-items: center; gap: 8px; }
 .admin-temp-password code { flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: #0f1720; font-size: 16px; letter-spacing: .08em; user-select: all; }
 
+/* 관리자 수정 창(FNC-A-010): 사용자 상세 창(users.css .user-detail)과 같은 모양 */
+.admin-detail { max-width: 600px; }
+.admin-detail-sub { font-size: 12px; margin-top: 2px; }
+.admin-detail-foot { justify-content: space-between; }
+.admin-detail-actions { display: flex; gap: 8px; }
+.admin-temp-box { padding: 14px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #6b5520; border-radius: 10px; background: #241d0f; }
+.admin-temp-box strong { font-size: 13px; color: #ffd27a; }
+.admin-temp-row { display: flex; gap: 8px; }
+.admin-temp-row code { flex: 1; height: 38px; display: flex; align-items: center; padding: 0 12px; border: 1px solid #253242; border-radius: 7px; background: #0f1720; font-size: 14px; letter-spacing: .08em; user-select: all; }
+.admin-temp-note { font-size: 11px; color: #ffd27a; }
+
 .sort-btn { padding: 0; border: 0; background: none; color: inherit; font-weight: inherit; cursor: pointer; }
 .sort-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
