@@ -12,6 +12,7 @@ import {
     fraction,
     minuteStart,
     nextEvent,
+    eventsStartedIn,
     normalizeEvents,
     normalizeRanges,
     normalizeSeries,
@@ -494,12 +495,49 @@ function renderStat(ms) {
 const PLAYBACK_EVENT_TYPES = 'CONGESTION,SURGE';
 const EVENT_TYPE_LABELS = { CONGESTION: '혼잡', SURGE: '급증', CAM_FAULT: '캠 이상' };
 
+// 이전·다음 이벤트 버튼은 시간축의 ▼와 같은 기준(범위 안에서 시작한 이벤트)만 대상으로 한다. 범위 앞에서 시작해 이어진 이벤트는
+// 구간만 그려지고 ▼가 없어, 거기로 가면 시간축 밖으로 나간다(FNC-A-047)
+function buttonEvents() {
+    return timeWindow ? eventsStartedIn(events, timeWindow.from, timeWindow.to) : events;
+}
+
 function updateEventButtons(ms) {
-    prevEventButton.disabled = previousEvent(events, ms) === null;
-    nextEventButton.disabled = nextEvent(events, ms) === null;
+    prevEventButton.disabled = previousEvent(buttonEvents(), ms) === null;
+    nextEventButton.disabled = nextEvent(buttonEvents(), ms) === null;
 }
 
 // ---- 통계 시간축 ----
+
+// 시간축 범위의 이벤트를 100건씩 끝까지 이어서 읽는다(이전엔 100건만 읽어 뒤쪽이 빠졌다, #198). overlap=true라 범위 앞에서 시작해
+// 범위 안에서 이어진 이벤트도 온다. 반복이 끝없이 돌지 않게 상한(20쪽=2000건)을 둔다
+const EVENT_PAGE_SIZE = 100;
+const MAX_EVENT_PAGES = 20;
+
+// 이 함수는 거부되지 않는다. 중간 쪽이 실패하면 그때까지 받은 이벤트는 돌려주고 failed=true로 알린다. 범위를 바꿔 이 요청이 낡아지면
+// (timelineRequest가 바뀜) 남은 쪽을 요청하지 않고 멈춘다(stale=true)
+async function loadAllEvents(query, request) {
+    const items = [];
+    for (let page = 0; page < MAX_EVENT_PAGES; page++) {
+        let response;
+        try {
+            response = await get(
+                '/api/v1/events',
+                { zoneId, ...query, types: PLAYBACK_EVENT_TYPES, overlap: true, page, size: EVENT_PAGE_SIZE },
+                { toast: false },
+            );
+        } catch {
+            return { items, failed: true, stale: request !== timelineRequest };
+        }
+        if (request !== timelineRequest) {
+            return { items, failed: false, stale: true };
+        }
+        items.push(...(response?.items ?? []));
+        if (page + 1 >= (response?.totalPages ?? 1)) {
+            break;
+        }
+    }
+    return { items, failed: false, stale: false };
+}
 
 async function loadTimeline(center) {
     const request = ++timelineRequest;
@@ -507,14 +545,19 @@ async function loadTimeline(center) {
     const query = { from: toKstIso(timeWindow.from), to: toKstIso(timeWindow.to) };
     const [seriesResult, eventsResult, rangesResult] = await Promise.allSettled([
         get('/api/v1/stats/series', { targetType: 'ZONE', targetId: zoneId, interval: '1m', ...query }, { toast: false }),
-        get('/api/v1/events', { zoneId, ...query, types: PLAYBACK_EVENT_TYPES, size: 100 }, { toast: false }),
+        loadAllEvents(query, request),
         get('/api/v1/playback/ranges', { zoneId, ...query }, { toast: false }),
     ]);
     if (request !== timelineRequest) {
         return;
     }
     series = seriesResult.status === 'fulfilled' ? normalizeSeries(seriesResult.value?.items ?? []) : [];
-    events = eventsResult.status === 'fulfilled' ? normalizeEvents(eventsResult.value?.items ?? []) : [];
+    // 이벤트는 받은 만큼 그린다. 일부(또는 전부)를 못 받았으면 안내한다(그냥 '이벤트 없음'처럼 보이지 않게)
+    const loaded = eventsResult.status === 'fulfilled' ? eventsResult.value : { items: [], failed: true };
+    events = normalizeEvents(loaded.items);
+    if (loaded.failed) {
+        showToast('일부 이벤트를 불러오지 못했습니다.');
+    }
     recordingRanges = rangesResult.status === 'fulfilled' ? normalizeRanges(rangesResult.value?.ranges ?? []) : null;
     shownMinute = null;
     renderTimeline();
@@ -701,13 +744,13 @@ document.querySelectorAll('#pb-speed button').forEach((button) => {
 });
 
 prevEventButton.addEventListener('click', () => {
-    const target = previousEvent(events, playheadMs());
+    const target = previousEvent(buttonEvents(), playheadMs());
     if (target) {
         seekToTime(target.startedAt);
     }
 });
 nextEventButton.addEventListener('click', () => {
-    const target = nextEvent(events, playheadMs());
+    const target = nextEvent(buttonEvents(), playheadMs());
     if (target) {
         seekToTime(target.startedAt);
     }

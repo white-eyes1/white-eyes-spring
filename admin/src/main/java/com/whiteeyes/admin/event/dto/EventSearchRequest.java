@@ -18,6 +18,8 @@ import org.springframework.format.annotation.DateTimeFormat;
  * @param types 종류(복수)
  * @param statuses 처리 상태(복수). 요약에서는 쓰지 않는다
  * @param keyword 캠·구역·소속 구·동 이름 검색어
+ * @param overlap true면 기간을 발생 시각이 아니라 [from, to)와 겹치는 이벤트로 본다(발생이 from 앞이어도 종료가 from 뒤거나
+ *     진행 중이면 포함). 비우면 false. 다시보기 시간축이 쓴다(#198)
  * @param page 0부터
  * @param size 1~100
  */
@@ -29,6 +31,7 @@ public record EventSearchRequest(
         List<EventType> types,
         List<EventStatus> statuses,
         String keyword,
+        Boolean overlap,
         @Min(value = 0, message = PAGE_MESSAGE) Integer page,
         @Min(value = 1, message = SIZE_MESSAGE) @Max(value = MAX_SIZE, message = SIZE_MESSAGE) Integer size) {
 
@@ -43,6 +46,7 @@ public record EventSearchRequest(
         types = types == null ? List.of() : List.copyOf(types);
         statuses = statuses == null ? List.of() : List.copyOf(statuses);
         keyword = keyword == null || keyword.isBlank() ? null : keyword.strip();
+        overlap = overlap != null && overlap;
         page = page == null ? 0 : page;
         size = size == null ? DEFAULT_SIZE : size;
     }

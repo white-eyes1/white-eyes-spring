@@ -54,7 +54,10 @@ public class EventConditionService {
         }
 
         List<Specification<Event>> conditions = new ArrayList<>();
-        conditions.add(EventSpecifications.startedBetween(toKst(request.from()), toKst(request.to())));
+        // overlap=true면 기간과 겹치는 이벤트(발생이 기간 앞이어도 이어진 것 포함), 아니면 발생 시각이 기간 안인 것(명세 기본)
+        conditions.add(request.overlap()
+                ? EventSpecifications.overlapping(toKst(request.from()), toKst(request.to()))
+                : EventSpecifications.startedBetween(toKst(request.from()), toKst(request.to())));
         conditions.add(EventSpecifications.ofTypes(request.types()));
         if (zoneIds != null) {
             conditions.add(EventSpecifications.inZones(zoneIds));
