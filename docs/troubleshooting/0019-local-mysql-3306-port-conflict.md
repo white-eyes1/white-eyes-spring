@@ -35,3 +35,6 @@ Get-NetTCPConnection -LocalPort 3306 -State Listen   # 3306을 듣는 프로세�
 Get-Service MySQL*                                    # Windows MySQL 서비스 상태
 Test-NetConnection localhost -Port 3306               # 실제로 붙는지
 ```
+
+## 이후 바뀐 점
+2026-10-26부터 local MySQL은 이 저장소의 `docker-compose.yml`이 아니라 white-eyes-deploy에서 띄운다. 포트를 바꿀 때는 덮어쓰기 파일 대신 그쪽 `.env`의 `MYSQL_PORT`를 바꾸고 `DB_URL`도 같은 포트로 맞춘다.
