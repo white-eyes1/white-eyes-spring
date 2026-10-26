@@ -16,14 +16,14 @@ import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.admin.support.ThreadStatementCounter;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import org.hibernate.SessionFactory;
-import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,7 +40,10 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** 이벤트 목록(FNC-A-036) GET /api/v1/events. 이벤트 행은 처리 상태·종류가 다양해야 해서 SQL로 직접 넣는다. */
 @Import(AdminTestUserConfig.class)
-@SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
+// 요청을 보낸 스레드가 실행한 쿼리만 센다. 같은 앱의 예약 작업(캠 이상 감지 등)이 다른 스레드에서 도는 쿼리는 세지 않는다
+@SpringBootTest(
+        properties =
+                "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.whiteeyes.admin.support.ThreadStatementCounter")
 @AutoConfigureMockMvc
 class EventListTest {
 
@@ -496,10 +499,28 @@ class EventListTest {
     }
 
     private long countStatementsOfList() throws Exception {
-        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
-        statistics.clear();
+        ThreadStatementCounter.reset();
         list().andExpect(status().isOk());
-        return statistics.getPrepareStatementCount();
+        return ThreadStatementCounter.count();
+    }
+
+    @Test
+    @DisplayName("FNC-A-036 SQL 수 시험은 다른 스레드(예약 작업)가 실행한 쿼리를 세지 않는다")
+    void statementCounter_ignoresOtherThreads() throws Exception {
+        ThreadStatementCounter.reset();
+        Thread scheduler = new Thread(this::runEventCountQuery, "scheduler-like");
+        scheduler.start();
+        scheduler.join();
+        assertThat(ThreadStatementCounter.count()).isZero();
+
+        runEventCountQuery();
+        assertThat(ThreadStatementCounter.count()).isEqualTo(1);
+    }
+
+    private void runEventCountQuery() {
+        try (EntityManager entityManager = entityManagerFactory.createEntityManager()) {
+            entityManager.createQuery("select count(e) from Event e", Long.class).getSingleResult();
+        }
     }
 
     private ResultActions list(ParamPair... params) throws Exception {

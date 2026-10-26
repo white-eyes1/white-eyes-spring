@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 import com.whiteeyes.common.event.entity.Event;
+import com.whiteeyes.common.event.entity.EventStatus;
 import com.whiteeyes.common.event.entity.EventType;
 
 /**
@@ -47,6 +48,9 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Event e where e.id = :id")
     Optional<Event> findByIdForUpdate(@Param("id") Long id);
+
+    /** 처리 상태별 이벤트 수(헤더 배지의 미확인 수, FNC-A-048). */
+    long countByStatus(EventStatus status);
 
     /** 구역별 이벤트 수를 한 번에 센다(FNC-C-017 오늘 이벤트 수). */
     @Query("""

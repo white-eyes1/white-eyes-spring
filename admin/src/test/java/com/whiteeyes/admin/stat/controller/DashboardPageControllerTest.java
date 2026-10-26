@@ -53,6 +53,18 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("SCR-A-013 이벤트 로그 탭은 /events로, 미확인 필터(status=UNCHECKED)는 배지 링크에만 걸린다")
+    void statsPage_eventsTabHasNoFilter_badgeLinksToUnchecked() throws Exception {
+        String html = mockMvc.perform(get("/stats")).andReturn().getResponse().getContentAsString();
+
+        assertThat(html).containsPattern("<a class=\"tab[^\"]*\"[^>]*href=\"/events\">\\s*이벤트 로그");
+        assertThat(html).containsPattern("<a[^>]*href=\"/events\\?status=UNCHECKED\"[^>]*id=\"unchecked-badge\"");
+        // 탭 링크 안에 배지 링크를 넣지 않는다(a 안의 a는 잘못된 HTML)
+        assertThat(html).doesNotContainPattern("이벤트 로그\\s*<a");
+        assertThat(html.split("status=UNCHECKED", -1)).hasSize(2);
+    }
+
+    @Test
     @DisplayName("SCR-A-013 사용자 메뉴에 로그인 아이디와 내 정보, CSRF가 붙은 로그아웃(POST) 폼이 있다")
     void statsPage_userMenu_hasLogoutForm() throws Exception {
         mockMvc.perform(get("/stats"))

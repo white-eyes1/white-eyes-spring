@@ -66,6 +66,25 @@ async function init() {
     bindDetail();
     await loadLevelNames();
     await refresh();
+    openRequestedEvent();
+    bindNotifications();
+}
+
+// 새 이벤트 토스트를 눌러 들어오면(?eventId=) 그 이벤트의 상세 창을 바로 연다(FNC-A-048)
+function openRequestedEvent() {
+    const eventId = Number(new URLSearchParams(window.location.search).get('eventId'));
+    if (Number.isInteger(eventId) && eventId > 0) {
+        openDetail(eventId);
+    }
+}
+
+// 알림 스트림에서 새 이벤트가 오면 첫 쪽을 다시 읽어 맨 위에 보이게 한다. 다른 쪽을 보는 중이면 보던 쪽을 흐트리지 않는다
+function bindNotifications() {
+    window.addEventListener('we:event-created', () => {
+        if (page === 0) {
+            refresh();
+        }
+    });
 }
 
 // ---- 필터 ----
