@@ -3,8 +3,11 @@ package com.whiteeyes.common.event.repository;
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventStatus;
 import com.whiteeyes.common.event.entity.EventType;
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
 
 /** 이벤트 목록·요약(FNC-A-036)의 조회 조건. 조건마다 하나씩 만들어 {@link Specification#allOf}로 묶어 쓴다. */
@@ -26,6 +29,23 @@ public final class EventSpecifications {
                 return cb.lessThan(root.get("startedAt"), to);
             }
             return cb.conjunction();
+        };
+    }
+
+    /**
+     * 기간 [from, to)와 겹치는 이벤트: 발생이 to 앞이고, 종료가 없거나(진행 중) from 뒤인 것. 발생이 from 앞이어도
+     * 그 기간 안에서 이어진 이벤트를 포함한다(다시보기 시간축, #198). 비운 쪽은 거르지 않는다.
+     */
+    public static Specification<Event> overlapping(LocalDateTime from, LocalDateTime to) {
+        return (root, query, cb) -> {
+            List<Predicate> conditions = new ArrayList<>();
+            if (to != null) {
+                conditions.add(cb.lessThan(root.get("startedAt"), to));
+            }
+            if (from != null) {
+                conditions.add(cb.or(cb.isNull(root.get("endedAt")), cb.greaterThan(root.get("endedAt"), from)));
+            }
+            return conditions.isEmpty() ? cb.conjunction() : cb.and(conditions.toArray(Predicate[]::new));
         };
     }
 
