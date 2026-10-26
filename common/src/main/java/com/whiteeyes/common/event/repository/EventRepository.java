@@ -59,6 +59,14 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
             @Param("types") Collection<EventType> types,
             @Param("from") LocalDateTime from);
 
+    /** 열린(종료 시각 없는) 이벤트가 있는 구역 번호(FNC-C-009 진행 중 이벤트). 처리 상태는 보지 않는다. */
+    @Query("""
+            select distinct e.zoneId from Event e
+            where e.endedAt is null and e.type in :types and e.zoneId in :zoneIds
+            """)
+    List<Long> findZoneIdsWithOpenEvent(
+            @Param("zoneIds") Collection<Long> zoneIds, @Param("types") Collection<EventType> types);
+
     /** 구역 하나의 이벤트 수. */
     interface ZoneEventCount {
 

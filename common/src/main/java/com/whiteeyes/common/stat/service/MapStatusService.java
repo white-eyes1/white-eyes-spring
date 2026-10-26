@@ -6,11 +6,13 @@ import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.whiteeyes.common.event.service.OngoingEventService;
 import com.whiteeyes.common.event.service.TodayEventCountService;
 import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.level.service.LevelTarget;
@@ -27,7 +29,6 @@ import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
 /**
  * 지도 혼잡 단계 색 표시(FNC-C-009). 대상 지역의 하위 단위별 최근 1분 통계와 혼잡 단계를 돌려준다.
  */
-// TODO(진행 중 이벤트 표시, 이슈 #211): ongoingEvent는 아직 false다. 오늘 이벤트 수는 FNC-C-017로 채웠다(이슈 #58)
 @Service
 public class MapStatusService {
 
@@ -38,16 +39,19 @@ public class MapStatusService {
     private final RecentZoneStatReader recentZoneStatReader;
     private final LevelService levelService;
     private final TodayEventCountService todayEventCountService;
+    private final OngoingEventService ongoingEventService;
 
     public MapStatusService(
             RegionQueryService regionQueryService,
             RecentZoneStatReader recentZoneStatReader,
             LevelService levelService,
-            TodayEventCountService todayEventCountService) {
+            TodayEventCountService todayEventCountService,
+            OngoingEventService ongoingEventService) {
         this.regionQueryService = regionQueryService;
         this.recentZoneStatReader = recentZoneStatReader;
         this.levelService = levelService;
         this.todayEventCountService = todayEventCountService;
+        this.ongoingEventService = ongoingEventService;
     }
 
     /**
@@ -71,10 +75,14 @@ public class MapStatusService {
                 : regionQueryService.findAllZonesInDongs(emdCodeById.keySet());
         Map<Long, Integer> eventCountByZone = todayEventCountService.countByZone(
                 allZones.stream().map(Zone::getId).toList(), now.toLocalDate().atStartOfDay());
+        // 진행 중 이벤트는 지도에 보이는(삭제되지 않은) 구역만 본다(FNC-C-009 처리 순서 5)
+        Set<Long> ongoingZoneIds =
+                ongoingEventService.findZoneIdsWithOngoingEvent(zones.stream().map(Zone::getId).toList());
 
         if (unit == MapUnit.ZONE || region.getLevel() == RegionLevel.EMD) {
             List<MapStatusItem> items = zones.stream()
-                    .map(zone -> toZoneItem(zone, latestStatByZone.get(zone.getId()), eventCountByZone))
+                    .map(zone -> toZoneItem(
+                            zone, latestStatByZone.get(zone.getId()), eventCountByZone, ongoingZoneIds))
                     .toList();
             return new MapStatusResponse(ZONE_UNIT_TYPE, items);
         }
@@ -83,15 +91,24 @@ public class MapStatusService {
                         child,
                         zonesUnder(child, zones, emdCodeById),
                         sumEventCount(zonesUnder(child, allZones, emdCodeById), eventCountByZone),
+                        hasOngoingEvent(zonesUnder(child, zones, emdCodeById), ongoingZoneIds),
                         latestStatByZone))
                 .toList();
         return new MapStatusResponse(childLevelOf(region.getLevel()).name(), items);
     }
 
-    private MapStatusItem toZoneItem(Zone zone, ZoneStatMinute stat, Map<Long, Integer> eventCountByZone) {
+    private MapStatusItem toZoneItem(
+            Zone zone, ZoneStatMinute stat, Map<Long, Integer> eventCountByZone, Set<Long> ongoingZoneIds) {
         int todayEventCount = eventCountByZone.getOrDefault(zone.getId(), 0);
+        boolean ongoingEvent = ongoingZoneIds.contains(zone.getId());
         if (stat == null) {
-            return noDataItem(zone.getId(), zone.getName(), zone.getCenterLat(), zone.getCenterLng(), todayEventCount);
+            return noDataItem(
+                    zone.getId(),
+                    zone.getName(),
+                    zone.getCenterLat(),
+                    zone.getCenterLng(),
+                    todayEventCount,
+                    ongoingEvent);
         }
         int level = levelService
                 .judgeLevel(LevelTarget.zone(zone.getId()), stat.getDensity())
@@ -106,18 +123,24 @@ public class MapStatusService {
                 level,
                 stat.getStatAt().atOffset(KST_OFFSET),
                 todayEventCount,
-                false);
+                ongoingEvent);
     }
 
     private MapStatusItem toRegionItem(
-            Region child, List<Zone> zones, int todayEventCount, Map<Long, ZoneStatMinute> latestStatByZone) {
+            Region child,
+            List<Zone> zones,
+            int todayEventCount,
+            boolean ongoingEvent,
+            Map<Long, ZoneStatMinute> latestStatByZone) {
         return recentZoneStatReader
                 .sumAtLatestMinute(zones, latestStatByZone)
-                .map(sum -> toRegionItem(child, sum, todayEventCount))
-                .orElseGet(() -> noDataItem(child.getId(), child.getName(), null, null, todayEventCount));
+                .map(sum -> toRegionItem(child, sum, todayEventCount, ongoingEvent))
+                .orElseGet(
+                        () -> noDataItem(child.getId(), child.getName(), null, null, todayEventCount, ongoingEvent));
     }
 
-    private MapStatusItem toRegionItem(Region child, LatestMinuteSum sum, int todayEventCount) {
+    private MapStatusItem toRegionItem(
+            Region child, LatestMinuteSum sum, int todayEventCount, boolean ongoingEvent) {
         int level = levelService
                 .judgeLevel(LevelTarget.region(child.getId()), sum.density())
                 .getLevel();
@@ -131,12 +154,22 @@ public class MapStatusService {
                 level,
                 sum.statAt().atOffset(KST_OFFSET),
                 todayEventCount,
-                false);
+                ongoingEvent);
     }
 
     private MapStatusItem noDataItem(
-            long id, String name, BigDecimal centerLat, BigDecimal centerLng, int todayEventCount) {
-        return new MapStatusItem(id, name, centerLat, centerLng, null, null, null, null, todayEventCount, false);
+            long id,
+            String name,
+            BigDecimal centerLat,
+            BigDecimal centerLng,
+            int todayEventCount,
+            boolean ongoingEvent) {
+        return new MapStatusItem(
+                id, name, centerLat, centerLng, null, null, null, null, todayEventCount, ongoingEvent);
+    }
+
+    private boolean hasOngoingEvent(List<Zone> zones, Set<Long> ongoingZoneIds) {
+        return zones.stream().anyMatch(zone -> ongoingZoneIds.contains(zone.getId()));
     }
 
     private int sumEventCount(List<Zone> zones, Map<Long, Integer> eventCountByZone) {
