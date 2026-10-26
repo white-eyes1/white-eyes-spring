@@ -20,10 +20,12 @@
 
 ## 명령
 - 빌드·테스트: `./gradlew build`
-- local DB: `cp .env.example .env` 후 값을 채우고 `docker compose up -d` (MySQL 8.4)
-- 환경변수 불러오기: `set -a; source .env; set +a`
-- 사용자 앱: `./gradlew :user:bootRun --args='--spring.profiles.active=local'`
-- 관리자 앱: `./gradlew :admin:bootRun --args='--spring.profiles.active=local'`
+- local DB: white-eyes-deploy 폴더에서 `docker compose up -d mysql` (MySQL 8.4, 앱별 계정. 그 README '개발할 때')
+- 환경변수: `cp .env.example .env` 후 값을 채우고 `set -a; source .env; set +a`
+- 관리자 앱(먼저, Flyway): `DB_USERNAME=white_eyes_admin DB_PASSWORD=$ADMIN_DB_PASSWORD ./gradlew :admin:bootRun --args='--spring.profiles.active=local'`
+- 사용자 앱 계정 표 권한: 관리자 앱이 표를 만든 뒤 white-eyes-deploy에서 `docker compose run --rm --no-deps db-grants` (새 표가 생길 때마다)
+- 사용자 앱: `DB_USERNAME=white_eyes_user DB_PASSWORD=$USER_DB_PASSWORD ./gradlew :user:bootRun --args='--spring.profiles.active=local'`
+- 전체를 컨테이너로 띄우기(화면 연동 시험·시연): white-eyes-deploy `docker compose up -d --build`
 
 ## 규칙
 - 키·비밀번호는 환경변수로만. 새 변수는 .env.example에 이름만 추가한다.

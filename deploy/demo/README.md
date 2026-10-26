@@ -5,7 +5,7 @@
 
 ```bash
 set -a; source .env; set +a
-./gradlew :admin:bootRun --args='--spring.profiles.active=local --job=generate-demo --config=deploy/demo/generate-demo.example.json'
+DB_USERNAME=white_eyes_admin DB_PASSWORD=$ADMIN_DB_PASSWORD ./gradlew :admin:bootRun --args='--spring.profiles.active=local --job=generate-demo --config=deploy/demo/generate-demo.example.json'
 ```
 
 - 실행하면 기존 시연용 데이터(is_demo=1)를 먼저 지우고 다시 만든다. 실제 데이터(is_demo=0)는 그대로 둔다.
@@ -28,3 +28,5 @@ set -a; source .env; set +a
 
 시간마다 인원 = 기본 인원 × 시간대 × 요일 × 계절 × 특정일 가중치 × 무작위(±10%).
 설정에 모르는 항목이 있거나 값이 빠지면 아무것도 지우지 않고 멈춘다.
+
+전체를 컨테이너로 띄웠다면 white-eyes-deploy에서 `docker compose run --rm generate-demo`(설정 파일은 그쪽 `demo/generate-demo.json`).
