@@ -35,8 +35,8 @@
     <nav class="tabs" aria-label="주요 메뉴">
         <a class="tab" th:classappend="${active == 'dashboard'} ? 'on'" th:href="@{/stats}">대시보드</a>
         <a class="tab" th:classappend="${active == 'stats'} ? 'on'" th:href="@{/stats/compare}">통계·기간 비교</a>
-        <a class="tab" th:classappend="${active == 'events'} ? 'on'" th:href="@{/events}">이벤트 로그
-            <!-- 미확인 이벤트 배지 자리(FNC-A-048, 2단계). 지금은 숨김 -->
+        <a class="tab" th:classappend="${active == 'events'} ? 'on'" th:href="@{/events(status='UNCHECKED')}">이벤트 로그
+            <!-- 미확인 이벤트 배지(FNC-A-048). 숫자는 알림 스트림이 채우고, 0이면 숨긴다 -->
             <span class="badge-count" id="unchecked-badge" hidden></span></a>
         <div class="menu-wrap" data-menu>
             <button type="button" class="tab" th:classappend="${active == 'manage'} ? 'on'"

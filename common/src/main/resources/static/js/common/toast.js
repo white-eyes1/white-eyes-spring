@@ -14,6 +14,28 @@ export function showToast(message, durationMs = DEFAULT_DURATION_MS) {
     return toast;
 }
 
+/**
+ * 누르면 href로 가는 알림(SCR-A-010 시안의 새 이벤트 토스트): 색 점 + 제목 + 보조 문구.
+ * dotClass는 we.css .dot 의 단계 클래스(l1·l2·l3·off)나 surge.
+ */
+export function showLinkToast({ href, dotClass, title, note }, durationMs = DEFAULT_DURATION_MS) {
+    const toast = document.createElement('a');
+    toast.className = 'toast toast-link';
+    toast.href = href;
+    toast.setAttribute('role', 'alert');
+    const dot = document.createElement('span');
+    dot.className = `dot ${dotClass}`;
+    const strong = document.createElement('b');
+    strong.textContent = title;
+    const small = document.createElement('span');
+    small.className = 'muted';
+    small.textContent = note;
+    toast.append(dot, strong, small);
+    getContainer().append(toast);
+    window.setTimeout(() => toast.remove(), durationMs);
+    return toast;
+}
+
 function getContainer() {
     let container = document.getElementById(CONTAINER_ID);
     if (!container) {
