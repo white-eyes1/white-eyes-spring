@@ -1,5 +1,10 @@
 package com.whiteeyes.admin.event;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
@@ -10,6 +15,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.support.AdminTestLogin;
@@ -61,6 +68,9 @@ class EventStatusChangeTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @MockitoSpyBean
+    private NotificationPublisher notificationPublisher;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -111,6 +121,18 @@ class EventStatusChangeTest {
         assertThat(row.get("HANDLED_BY")).isEqualTo(AdminTestLogin.ADMIN_ID);
         assertThat(row.get("HANDLED_AT")).isNotNull();
         assertThat(row.get("ACTION_CODE")).isNull();
+    }
+
+    @Test
+    @DisplayName("FNC-A-038 처리 상태가 바뀌면 알림 SSE로 미확인 수 갱신을 요청하고, 실패한 변경에는 보내지 않는다")
+    void notifiesUncheckedCountOnlyOnSuccessfulChange() throws Exception {
+        long eventId = insertEvent("CONGESTION", null, "UNCHECKED");
+
+        change(eventId, "CHECKED", "RESOLVED", "STAFF", "인력 배치").andExpect(status().isConflict());
+        verify(notificationPublisher, never()).uncheckedCountChanged();
+
+        change(eventId, "UNCHECKED", "CHECKED", null, null).andExpect(status().isOk());
+        verify(notificationPublisher, times(1)).uncheckedCountChanged();
     }
 
     @Test

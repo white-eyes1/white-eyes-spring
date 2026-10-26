@@ -1,11 +1,17 @@
 // 공통 헤더(layout.html adminHeader·userHeader)의 동작: 혼잡 단계 범례, 메뉴 열고 닫기.
 // 템플릿 끝에서 fragments/layout :: scripts 로 불러온다.
 import { get } from './api.js';
+import { loadUncheckedCount, startNotifications } from './notifications.js';
 
 const LEGEND_UNIT = '명/㎡';
 
 initMenus();
 loadLegend();
+// 관리자 헤더에서만 알림(미확인 배지·새 이벤트 토스트)을 받는다(FNC-A-048)
+if (document.querySelector('[data-header="admin"]') !== null) {
+    loadUncheckedCount();
+    startNotifications();
+}
 
 // 혼잡 단계 범례(FNC-C-025, SCR-A-013). 단계 이름·색·기준은 GET /api/v1/meta/levels 값
 async function loadLegend() {

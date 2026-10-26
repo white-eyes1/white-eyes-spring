@@ -1,7 +1,15 @@
 package com.whiteeyes.admin.event;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,6 +51,9 @@ class CongestionEventServiceTest {
     private static final int MIN_SAMPLE_SEC = 30;
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
+
+    @MockitoSpyBean
+    private NotificationPublisher notificationPublisher;
 
     @Autowired
     private CongestionEventService congestionEventService;
@@ -268,6 +279,31 @@ class CongestionEventServiceTest {
         assertThat(events.get(0).getStartedAt()).isEqualTo(T0);
         assertThat(events.get(0).getPeakValue()).isEqualByComparingTo("0.8000");
         assertThat(events.get(0).getPeakCount()).isEqualTo(40);
+    }
+
+    @Test
+    @DisplayName("FNC-A-033 새 이벤트를 열면 관리자 화면 알림(event-created·unchecked-count)을 한 번 보내고, 갱신에는 보내지 않는다")
+    void notifiesOnlyWhenNewEventIsOpened() {
+        Long zoneId = saveZone("테스트 알림 구역", "1");
+
+        judge(zoneId, 0, "0.80", FULL_SAMPLE_SEC);
+        judge(zoneId, 1, "1.60", FULL_SAMPLE_SEC);
+
+        Event event = eventRepository.findAll().get(0);
+        verify(notificationPublisher, times(1))
+                .eventCreated(eq(event.getId()), eq(EventType.CONGESTION), eq(zoneId), eq(2), eq(T0));
+        verify(notificationPublisher, times(1)).uncheckedCountChanged();
+    }
+
+    @Test
+    @DisplayName("FNC-A-033 주의 미만이라 이벤트를 만들지 않으면 알림을 보내지 않는다")
+    void doesNotNotifyWithoutNewEvent() {
+        Long zoneId = saveZone("테스트 무알림 구역", "1");
+
+        judge(zoneId, 0, "0.10", FULL_SAMPLE_SEC);
+
+        verify(notificationPublisher, never()).eventCreated(anyLong(), any(), anyLong(), any(), any());
+        verify(notificationPublisher, never()).uncheckedCountChanged();
     }
 
     private void judge(Long zoneId, int minuteOffset, String density, short sampleSec) {
