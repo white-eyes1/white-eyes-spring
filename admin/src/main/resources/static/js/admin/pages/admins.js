@@ -6,6 +6,7 @@
 import { ApiError, get, post } from '../../common/api.js';
 import { formatDateTime, formatNumber } from '../../common/format.js';
 import { showToast } from '../../common/toast.js';
+import { openAdminDetail } from '../admin-detail.js';
 
 const ADMINS_API = '/api/v1/admins';
 const PAGE_SIZE = 20;
@@ -95,7 +96,7 @@ function toRow(admin) {
 }
 
 // 최고 관리자 행에는 버튼이 없고(screens.md SCR-A-003), 본인 행에는 '본인 계정'만 보인다.
-// 수정·비밀번호 재설정(FNC-A-010) 버튼은 그 기능의 이슈에서 이 칸에 더한다
+// 수정·비밀번호 재설정(FNC-A-010) 버튼은 같은 수정 창을 연다(SCR-A-002와 같은 창)
 function actionsCell(admin) {
     const td = document.createElement('td');
     td.className = 'admin-actions';
@@ -109,6 +110,7 @@ function actionsCell(admin) {
             wrap.append(self);
         }
     } else {
+        wrap.append(detailButton(admin, '수정', false), detailButton(admin, '비밀번호 재설정', true));
         wrap.append(statusButton(admin));
         // 활동 중일 때만 보인다(screens.md SCR-A-003)
         if (admin.active) {
@@ -168,6 +170,16 @@ async function runConfirmed() {
     if (succeeded) {
         loadAdmins();
     }
+}
+
+// '수정'과 '비밀번호 재설정'(FNC-A-010)은 같은 수정 창을 연다. 재설정은 곧바로 확인 창을 띄운다. 저장·재설정을 했으면 창을 닫을 때 목록을 새로 읽는다
+function detailButton(admin, label, askReset) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn secondary sm';
+    button.textContent = label;
+    button.addEventListener('click', () => openAdminDetail(admin, loadAdmins, askReset));
+    return button;
 }
 
 // 사용 중이면 '비활성화', 비활성화됐으면 '활성화'(FNC-A-011). 둘 다 확인 창을 거친다

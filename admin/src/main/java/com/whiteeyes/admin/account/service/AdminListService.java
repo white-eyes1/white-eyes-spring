@@ -58,7 +58,8 @@ public class AdminListService {
         return PageResponse.of(matched.subList(from, to), request.page(), request.size(), matched.size(), truncated);
     }
 
-    private static AdminListItem toItem(AdminRow row, AccountActivities activities) {
+    // 관리자 정보 수정(FNC-A-010)이 수정된 계정을 목록 한 줄 모양으로 돌려줄 때도 쓴다
+    static AdminListItem toItem(AdminRow row, AccountActivities activities) {
         AccountActivity activity = activities.activityOf(row.loginId(), row.lastLoginAt());
         ZoneId zone = activities.zone();
         return new AdminListItem(

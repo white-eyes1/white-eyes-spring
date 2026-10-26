@@ -9,7 +9,7 @@
 <!--
   SCR-A-003 관리자 관리(최고 관리자 전용). 목록은 화면 JS(js/admin/pages/admins.js)가 GET /api/v1/admins(FNC-A-003)로 받아 채우고,
   관리자 추가 창은 POST /api/v1/admins(FNC-A-009)로 계정을 만들고, 행의 강제 로그아웃(FNC-A-008)은 확인 창 뒤 POST /api/v1/admins/{id}/logout으로 보낸다.
-  행의 비활성화·활성화(FNC-A-011)도 같은 확인 창을 거쳐 POST /api/v1/admins/{id}/disable·enable로 보낸다. FNC-A-010의 행 버튼은 그 기능의 이슈에서 붙인다.
+  행의 비활성화·활성화(FNC-A-011)도 같은 확인 창을 거쳐 POST /api/v1/admins/{id}/disable·enable로 보낸다. 행의 수정·비밀번호 재설정(FNC-A-010)은 수정 창(js/admin/admin-detail.js)을 연다.
 -->
 <main class="page">
     <div class="page-heading">
@@ -122,6 +122,77 @@
         <div class="modal-foot">
             <button class="btn secondary" type="button" data-confirm-close>취소</button>
             <button class="btn danger" type="button" id="admin-confirm-ok"></button>
+        </div>
+    </div>
+</div>
+
+<!--
+  관리자 수정 창(FNC-A-010, SCR-A-002와 같은 창). 행의 '수정'·'비밀번호 재설정' 버튼을 누르면 admin-detail.js가 연다. 아이디는 제목에 읽기 전용으로 보이고,
+  이름·메일·연락처를 고쳐 '저장'하면 PATCH /api/v1/admins/{id} 뒤 창을 닫고 목록을 다시 읽는다. 형식 오류는 칸 아래에 보인다.
+  '비밀번호 재설정'의 임시 비밀번호는 재설정 응답을 받은 뒤에만 채우고 창을 닫으면 지운다
+-->
+<div class="modal-stage admin-modal-stage" id="admin-detail-modal" hidden>
+    <form class="modal admin-detail" id="admin-detail-form" role="dialog" aria-modal="true" aria-labelledby="admin-detail-title" novalidate>
+        <div class="modal-head">
+            <div>
+                <h2 id="admin-detail-title"></h2>
+                <p class="muted admin-detail-sub" id="admin-detail-sub"></p>
+            </div>
+            <button class="icon-btn" type="button" aria-label="닫기" data-detail-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="alert" id="admin-detail-error" role="alert" hidden></p>
+            <div class="field">
+                <label for="admin-detail-name">이름</label>
+                <input class="input" id="admin-detail-name" name="name" type="text" maxlength="50" autocomplete="off">
+                <span class="hint err" data-error-for="name" hidden></span>
+            </div>
+            <div class="field">
+                <label for="admin-detail-email">메일</label>
+                <input class="input" id="admin-detail-email" name="email" type="email" maxlength="100" autocomplete="off">
+                <span class="hint err" data-error-for="email" hidden></span>
+            </div>
+            <div class="field">
+                <label for="admin-detail-phone">연락처</label>
+                <input class="input" id="admin-detail-phone" name="phone" type="tel" maxlength="20" autocomplete="off">
+                <span class="hint err" data-error-for="phone" hidden></span>
+            </div>
+            <div class="admin-temp-box" id="admin-temp-password-box" hidden>
+                <strong>임시 비밀번호</strong>
+                <div class="admin-temp-row">
+                    <code id="admin-detail-temp-password"></code>
+                    <button class="btn secondary" type="button" id="admin-detail-temp-copy">복사</button>
+                </div>
+                <span class="admin-temp-note" role="status">이 창을 닫으면 다시 볼 수 없습니다. 다음 로그인 때 비밀번호 변경을 강제합니다.</span>
+            </div>
+        </div>
+        <div class="modal-foot admin-detail-foot">
+            <button class="btn danger" type="button" id="admin-detail-reset">비밀번호 재설정</button>
+            <div class="admin-detail-actions">
+                <button class="btn secondary" type="button" data-detail-close>취소</button>
+                <button class="btn primary" type="submit" id="admin-detail-save">저장</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- 비밀번호 재설정 확인 창(FNC-A-010). 이전 비밀번호는 더 쓸 수 없고 열려 있는 세션이 끊긴다는 점을 알린다 -->
+<div class="modal-stage admin-modal-stage" id="admin-reset-confirm-modal" hidden>
+    <div class="modal admin-confirm" role="alertdialog" aria-modal="true" aria-labelledby="admin-reset-confirm-title">
+        <div class="modal-head">
+            <h2 id="admin-reset-confirm-title">비밀번호 재설정</h2>
+            <button class="icon-btn" type="button" aria-label="닫기" data-reset-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="admin-reset-confirm-message"></p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-reset-close>취소</button>
+            <button class="btn danger" type="button" id="admin-reset-confirm-ok">재설정</button>
         </div>
     </div>
 </div>

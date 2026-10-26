@@ -53,7 +53,7 @@ public class AdminStatusService {
 
         // 업무 규칙: 최고 관리자 계정은 대상 불가
         if (admin.getRole() == AdminRole.SUPER_ADMIN) {
-            throw new SuperAdminTargetException();
+            throw new SuperAdminTargetException("비활성화");
         }
         if (admin.getStatus() != AdminStatus.ACTIVE) {
             throw new InvalidAdminStatusException(adminId, admin.getStatus(), "비활성화");
