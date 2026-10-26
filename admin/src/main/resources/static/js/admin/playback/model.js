@@ -131,6 +131,14 @@ export function normalizeEvents(items) {
         .sort((first, second) => first.startedAt - second.startedAt);
 }
 
+/**
+ * 시간축 범위 [from, to] 안에서 시작한 이벤트. 시간축의 시작 표시(▼)와 같은 기준이라, 이전·다음 이벤트 버튼은 이 이벤트들로만
+ * 이동한다(FNC-A-047). 범위 앞에서 시작해 이어진 이벤트(overlap)는 구간만 그려지고 ▼가 없으므로 뺀다.
+ */
+export function eventsStartedIn(events, from, to) {
+    return events.filter((event) => event.startedAt >= from && event.startedAt <= to);
+}
+
 /** 그 시각이 걸쳐 있는 이벤트(시작 ≤ 시각, 끝이 없거나 시각 < 끝). 없으면 null. */
 export function eventAt(events, ms) {
     return events.find((event) => event.startedAt <= ms && (event.endedAt === null || ms < event.endedAt)) ?? null;
