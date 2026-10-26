@@ -277,6 +277,20 @@ class MapStatusIntegrationTest {
                 .andExpect(jsonPath("$.items[1].ongoingEvent").value(false));
     }
 
+    @Test
+    @DisplayName("FNC-C-009 진행 중 이벤트: 어제 시작해 자정을 넘겨 열려 있으면 ongoingEvent true, todayEventCount 0")
+    void ongoingEvent_openSinceYesterday_trueWithZeroTodayCount() throws Exception {
+        LocalDateTime todayStart = LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay();
+        long zone = insertZone("11110530", "사직동 어제부터 열림", "100.00");
+        insertEvent(zone, "CONGESTION", todayStart.minusHours(1));
+
+        // 배지는 붙지만(true) 오늘 0시 이후 시작한 이벤트가 없어 숫자는 0이다. 화면은 0이면 숫자 없는 배지를 그린다
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id==" + zone + ")].ongoingEvent").value(true))
+                .andExpect(jsonPath("$.items[?(@.id==" + zone + ")].todayEventCount").value(0));
+    }
+
     private void insertEvent(long zoneId, String type, LocalDateTime startedAt) {
         jdbcTemplate.update(
                 "INSERT INTO event (type, zone_id, started_at, threshold_snapshot) VALUES (?, ?, ?, ?)",
