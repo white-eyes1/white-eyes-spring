@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 class DemoConfigReaderTest {
 
     // 테스트는 admin 모듈 폴더에서 돈다
-    private static final Path EXAMPLE = Paths.get("../deploy/demo/generate-demo.example.json");
+    private static final Path EXAMPLE = Paths.get("demo/generate-demo.example.json");
 
     @Test
     @DisplayName("FNC-A-051 저장소의 설정 견본을 그대로 읽을 수 있다")
