@@ -135,7 +135,10 @@ function pinIcon(item) {
     pin.innerHTML = PIN_ICON;
     if (item.ongoingEvent) {
         const badge = document.createElement('b');
-        badge.textContent = formatNumber(item.todayEventCount);
+        // 어제 시작해 계속 열린 이벤트만 있으면 오늘 이벤트 수가 0이라, 숫자 없이 배지만 보인다
+        if (item.todayEventCount > 0) {
+            badge.textContent = formatNumber(item.todayEventCount);
+        }
         pin.append(badge);
     }
     return L.divIcon({ html: pin, className: 'zone-pin', iconSize: [0, 0] });
