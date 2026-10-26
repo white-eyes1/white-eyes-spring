@@ -109,10 +109,20 @@ class AdminPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-A-003 이 이슈 밖의 행 버튼(수정·비밀번호 재설정)과 시안 표시용 속성은 옮기지 않는다")
-    void noOtherFeaturesOrAnnotations() throws Exception {
+    @DisplayName("FNC-A-010 SCR-A-003 수정 창과 비밀번호 재설정 확인 창이 있다")
+    void detailAndResetConfirmModals() throws Exception {
         mockMvc.perform(get(PAGE_URL).contextPath(CONTEXT_PATH).cookie(login("super01")))
-                .andExpect(content().string(not(containsString("비밀번호 재설정"))))
+                .andExpect(content().string(containsString("id=\"admin-detail-modal\" hidden")))
+                .andExpect(content().string(containsString("id=\"admin-detail-save\"")))
+                .andExpect(content().string(containsString("id=\"admin-detail-reset\"")))
+                .andExpect(content().string(containsString("id=\"admin-reset-confirm-modal\" hidden")))
+                .andExpect(content().string(containsString("id=\"admin-reset-confirm-ok\"")));
+    }
+
+    @Test
+    @DisplayName("SCR-A-003 시안 표시용 속성은 옮기지 않는다")
+    void noAnnotations() throws Exception {
+        mockMvc.perform(get(PAGE_URL).contextPath(CONTEXT_PATH).cookie(login("super01")))
                 .andExpect(content().string(not(containsString("data-api"))))
                 .andExpect(content().string(not(containsString("data-fnc"))))
                 .andExpect(content().string(not(containsString("anno"))));
