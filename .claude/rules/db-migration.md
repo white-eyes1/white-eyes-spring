@@ -15,7 +15,8 @@ paths:
 
 ## prod 첫 배포 전까지(배포하면 이 절을 지우고 아래 '배포 후'만 남긴다)
 - 이미 dev에 합쳐진 V파일도 고칠 수 있다. 바꿀 내용은 새 파일로 쌓지 말고 그 테이블을 만드는 V파일에 직접 반영한다.
-- 합쳐진 V파일을 고친 PR은 본문에 고친 파일을 적는다. 머지 뒤 각자 로컬 DB를 다시 만든다: `docker compose down -v` 후 `docker compose up -d`(행정구역 등 적재 작업도 다시 실행).
+- 합쳐진 V파일을 고친 PR은 본문에 고친 파일을 적는다. 머지 뒤 각자 로컬 DB를 다시 만든다: white-eyes-deploy에서 `docker compose down -v` 후 `docker compose up -d mysql`, 관리자 앱을 띄운 뒤 `docker compose run --rm --no-deps db-grants`(행정구역 등 적재 작업도 다시 실행).
+- 새 표를 만드는 V파일을 머지한 뒤에는 각자 `db-grants`를 다시 돌린다. 사용자 앱 계정은 표마다 권한을 받기 때문이다(conventions.md 'DB 계정', 관리자 전용 표는 받지 않음).
 - 공용 dev 서버 DB가 있으면 그 DB도 같이 다시 만든다. 그대로 두면 체크섬이 달라 admin 앱이 뜨지 않는다.
 - 배포 직전에 모든 V파일을 `V1__init.sql` 하나로 합칠 수 있다(선택). FK 순서대로 이어 붙이고, 빈 DB에서 실행해 `ddl-auto: validate`가 통과하는지 확인한 뒤 dev 서버 DB를 다시 만든다. 합친 뒤에도 새 파일은 시각 버전으로 만든다(`V2`, `V3`… 순서 번호로 돌아가지 않는다).
 
