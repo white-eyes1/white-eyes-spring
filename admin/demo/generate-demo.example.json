@@ -1,6 +1,5 @@
 {
   "seed": 20261024,
-  "startDate": "2025-10-24",
   "defaultZone": {"baseCount": 30, "avgDwellSec": 600},
   "zones": [],
   "hourWeights": [

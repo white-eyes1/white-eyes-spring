@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 시연용 통계 생성 설정 파일(--config)의 내용(FNC-A-051 입력 항목).
- * 설정: seed, 시작일, 구역별 기본 인원·평균 체류(초), 패턴 가중치(시간대·요일·계절), 특정일 급증 날짜 목록.
+ * 시연용 통계 생성 설정(FNC-A-051 입력 항목). 기본값은 {@link #defaults()}이고, 설정 파일(--config, 선택)에 적은 항목만 덮어쓴다.
+ * 설정: seed, 구역별 기본 인원·평균 체류(초), 패턴 가중치(시간대·요일·계절), 특정일 급증 날짜 목록.
+ * 시작일은 설정하지 않는다. 구역마다 끝 시각의 1년 전 날짜 0시부터 만든다.
  *
  * @param seed 무작위 변동의 시작값. 같은 seed면 같은 결과
- * @param startDate 만들기 시작하는 날짜(KST). 끝 날짜는 구역마다 캠 가동 시작 전날(없으면 어제)
- * @param defaultZone {@code zones}에 없는 구역에 쓸 값. 비우면 모든 구역을 {@code zones}에 적어야 한다
+ * @param defaultZone {@code zones}에 없는 구역에 쓸 값
  * @param zones 구역별 기본 인원·평균 체류
  * @param hourWeights 0~23시 가중치(24개)
  * @param dayOfWeekWeights 요일 가중치(MONDAY~SUNDAY 7개)
@@ -21,7 +21,6 @@ import java.util.Map;
  */
 public record DemoGenerateConfig(
         Long seed,
-        LocalDate startDate,
         ZoneSetting defaultZone,
         List<ZoneSetting> zones,
         List<Double> hourWeights,
@@ -30,6 +29,23 @@ public record DemoGenerateConfig(
         List<SurgeDay> surgeDays) {
 
     static final int HOURS_PER_DAY = 24;
+
+    /**
+     * 설정 파일이 없을 때 쓰는 값. 가중치는 출퇴근·점심·저녁과 주말·가을이 붐비는 모양이고, 특정일 급증은 없다.
+     * 설정 견본(admin/demo/generate-demo.example.json)도 같은 값을 적어 둔다.
+     */
+    static DemoGenerateConfig defaults() {
+        return new DemoGenerateConfig(
+                20261024L,
+                new ZoneSetting(null, 30.0, 600),
+                List.of(),
+                List.of(0.2, 0.1, 0.1, 0.1, 0.1, 0.2, 0.4, 0.9, 1.4, 1.0, 0.8, 1.0,
+                        1.4, 1.2, 0.9, 0.9, 1.0, 1.2, 1.6, 1.5, 1.2, 0.9, 0.6, 0.4),
+                Map.of(DayOfWeek.MONDAY, 1.0, DayOfWeek.TUESDAY, 1.0, DayOfWeek.WEDNESDAY, 1.0,
+                        DayOfWeek.THURSDAY, 1.0, DayOfWeek.FRIDAY, 1.1, DayOfWeek.SATURDAY, 1.4, DayOfWeek.SUNDAY, 1.3),
+                Map.of(Season.SPRING, 1.1, Season.SUMMER, 0.9, Season.AUTUMN, 1.2, Season.WINTER, 0.7),
+                List.of());
+    }
 
     /**
      * @param zoneId 구역 번호. {@code defaultZone}에서는 비워 둔다
@@ -70,11 +86,9 @@ public record DemoGenerateConfig(
      */
     void validate() {
         require(seed != null, "seed가 필요합니다");
-        require(startDate != null, "startDate가 필요합니다");
-        if (defaultZone != null) {
-            require(defaultZone.zoneId() == null, "defaultZone에는 zoneId를 쓰지 않습니다");
-            validateZoneValues(defaultZone, "defaultZone");
-        }
+        require(defaultZone != null, "defaultZone이 필요합니다");
+        require(defaultZone.zoneId() == null, "defaultZone에는 zoneId를 쓰지 않습니다");
+        validateZoneValues(defaultZone, "defaultZone");
         if (zones != null) {
             for (ZoneSetting zone : zones) {
                 require(zone.zoneId() != null, "zones의 각 항목에 zoneId가 필요합니다");

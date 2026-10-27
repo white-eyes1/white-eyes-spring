@@ -4,6 +4,9 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -39,11 +42,35 @@ public class DemoStatRepository {
      * @return 지운 건수. limit보다 작으면 더 지울 행이 없다
      */
     public int deleteDemoRows(String table, int limit) {
+        requireDemoTable(table);
+        // DELETE … LIMIT은 MySQL과 H2(MySQL 모드) 모두 지원한다
+        return jdbcTemplate.update("DELETE FROM " + table + " WHERE is_demo = 1 LIMIT ?", limit);
+    }
+
+    /**
+     * 정해진 구역의 시연용 행만 최대 limit건 지운다(--zone). 문장마다 바로 커밋된다.
+     *
+     * @param table {@link #HOURLY_TABLE} 또는 {@link #DAILY_TABLE}
+     * @param zoneIds 지울 구역 번호. 비어 있으면 안 된다
+     * @return 지운 건수. limit보다 작으면 더 지울 행이 없다
+     */
+    public int deleteDemoRows(String table, Collection<Long> zoneIds, int limit) {
+        requireDemoTable(table);
+        if (zoneIds.isEmpty()) {
+            throw new IllegalArgumentException("지울 구역이 없습니다");
+        }
+        String placeholders = String.join(", ", Collections.nCopies(zoneIds.size(), "?"));
+        List<Object> args = new ArrayList<>(zoneIds);
+        args.add(limit);
+        return jdbcTemplate.update(
+                "DELETE FROM " + table + " WHERE is_demo = 1 AND zone_id IN (" + placeholders + ") LIMIT ?",
+                args.toArray());
+    }
+
+    private static void requireDemoTable(String table) {
         if (!HOURLY_TABLE.equals(table) && !DAILY_TABLE.equals(table)) {
             throw new IllegalArgumentException("시연용 통계 표가 아닙니다: " + table);
         }
-        // DELETE … LIMIT은 MySQL과 H2(MySQL 모드) 모두 지원한다
-        return jdbcTemplate.update("DELETE FROM " + table + " WHERE is_demo = 1 LIMIT ?", limit);
     }
 
     /** 시연용 시간별 통계를 is_demo=1로 넣는다. */
