@@ -2,12 +2,17 @@
 // '저장'(FNC-A-004)은 PATCH /api/v1/users/{id}로 보내고, 성공하면 창을 닫고 목록을 다시 읽는다. 형식 오류는 칸 아래에 보인다.
 // '비밀번호 재설정'(FNC-A-005)은 확인 창 뒤 POST /api/v1/users/{id}/reset-password로 보내고,
 // 돌려받은 임시 비밀번호를 복사 버튼과 함께 한 번만 보여 준다. 창을 닫으면 값을 지워 다시 볼 수 없다.
+// 상태가 '탈퇴'인 계정은 입력을 읽기 전용으로 하고 저장·비밀번호 재설정을 끄며 안내 문구를 보인다(API도 409로 거부한다).
 import { ApiError, patch, post } from '../common/api.js';
 import { showToast } from '../common/toast.js';
 
 const USERS_API = '/api/v1/users';
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 const NOT_FOUND_MESSAGE = '사용자를 찾을 수 없습니다';
+const WITHDRAWN_STATUS = 'WITHDRAWN';
+// 다른 관리자가 그 사이 탈퇴 처리한 계정에 보내면 409 INVALID_STATUS가 온다(api/public.md)
+const WITHDRAWN_SAVE_MESSAGE = '탈퇴한 계정은 수정할 수 없습니다';
+const WITHDRAWN_RESET_MESSAGE = '탈퇴한 계정은 비밀번호를 재설정할 수 없습니다';
 const EMPTY_VALUE = '';
 const COPY_LABEL = '복사';
 const COPIED_LABEL = '복사됨';
@@ -18,6 +23,8 @@ const detailModal = document.getElementById('user-detail-modal');
 const detailForm = document.getElementById('user-detail-form');
 const formError = document.getElementById('user-detail-error');
 const saveButton = document.getElementById('user-detail-save');
+const withdrawnNotice = document.getElementById('user-detail-withdrawn');
+const closeButton = detailModal.querySelector('[data-detail-close]');
 const title = document.getElementById('user-detail-title');
 const subtitle = document.getElementById('user-detail-sub');
 const nameInput = document.getElementById('user-detail-name');
@@ -52,10 +59,21 @@ export function openUserDetail(user, onChanged) {
     phoneInput.value = user.phone ?? EMPTY_VALUE;
     clearFormErrors();
     hideTempPassword();
-    resetButton.disabled = false;
-    saveButton.disabled = false;
+    // 다른 상태(미승인·승인됨)는 그대로 켠다
+    const withdrawn = user.status === WITHDRAWN_STATUS;
+    applyWithdrawn(withdrawn);
     detailModal.hidden = false;
-    nameInput.focus();
+    (withdrawn ? closeButton : nameInput).focus();
+}
+
+// 탈퇴 계정은 로그인할 수 없고 정보도 더 쓰이지 않아, 입력은 읽기 전용이고 저장·비밀번호 재설정은 끈다(FNC-A-004·005)
+function applyWithdrawn(withdrawn) {
+    [nameInput, emailInput, phoneInput].forEach((input) => {
+        input.readOnly = withdrawn;
+    });
+    resetButton.disabled = withdrawn;
+    saveButton.disabled = withdrawn;
+    withdrawnNotice.hidden = !withdrawn;
 }
 
 function closeDetail() {
@@ -96,6 +114,11 @@ async function save(event) {
             error.fieldErrors.forEach(({ field, message }) => showFieldError(field, message));
         } else if (error instanceof ApiError && error.status === 404) {
             handleError(error);
+        } else if (error instanceof ApiError && error.status === 409) {
+            changed = true; // 상태가 바뀐 계정이라 닫을 때 목록을 다시 읽는다
+            applyWithdrawn(true);
+            showFieldError('', WITHDRAWN_SAVE_MESSAGE);
+            return;
         } else {
             if (!(error instanceof ApiError)) {
                 console.error(error);
@@ -172,6 +195,12 @@ function handleError(error) {
         resetting = false;
         confirmModal.hidden = true;
         closeDetail();
+        return;
+    }
+    if (error instanceof ApiError && error.status === 409) {
+        changed = true;
+        applyWithdrawn(true);
+        showToast(WITHDRAWN_RESET_MESSAGE);
         return;
     }
     showToast(error instanceof ApiError ? error.message : DEFAULT_ERROR_MESSAGE);

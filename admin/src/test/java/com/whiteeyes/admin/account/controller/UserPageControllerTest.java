@@ -93,6 +93,19 @@ class UserPageControllerTest {
                 .andExpect(content().string(containsString("<th scope=\"col\" class=\"user-actions\">동작</th>")));
     }
 
+    @Test
+    @DisplayName("SCR-A-002 사용자 상세 창에 탈퇴 계정 안내 문구가 숨겨진 채 있고, JS는 탈퇴 상태에서만 켠다")
+    void users_hasWithdrawnNotice() throws Exception {
+        mockMvc.perform(get("/users"))
+                .andExpect(content().string(containsString("id=\"user-detail-withdrawn\"")))
+                .andExpect(content().string(containsString("탈퇴한 계정은 정보를 수정하거나 비밀번호를 재설정할 수 없습니다.")));
+        // 안내를 켜고 끄는 규칙(탈퇴만 저장·재설정 비활성)은 user-detail.js에 있다
+        mockMvc.perform(get("/js/admin/user-detail.js"))
+                .andExpect(content().string(containsString("user.status === WITHDRAWN_STATUS")))
+                .andExpect(content().string(containsString("saveButton.disabled = withdrawn")))
+                .andExpect(content().string(containsString("resetButton.disabled = withdrawn")));
+    }
+
     // common/api.js가 이 두 meta로 컨텍스트 경로(/admin)와 CSRF 토큰을 읽는다
     @Test
     @DisplayName("SCR-A-001 사용자 관리 화면은 목록 JS와 api.js가 읽을 meta를 갖는다")
