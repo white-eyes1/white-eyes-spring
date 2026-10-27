@@ -151,6 +151,22 @@ class AccessControlTest {
                 .andExpect(header().string("Location", LOGIN_REDIRECT));
     }
 
+    @Test
+    @DisplayName("FNC-C-003 세션 없이 앱 주소(/admin/)를 열면 로그인 화면으로 이동한다")
+    void anonymous_root_redirectsToLogin() throws Exception {
+        mockMvc.perform(get("/"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", LOGIN_REDIRECT));
+    }
+
+    @Test
+    @DisplayName("로그인한 관리자가 앱 주소(/admin/)를 열면 대시보드(/admin/stats)로 이동한다")
+    void admin_root_redirectsToStats() throws Exception {
+        mockMvc.perform(get("/").with(asAdmin()))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", "/admin/stats"));
+    }
+
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"/api/v1/manage/zones/1", "/api/v1/admins", "/api/v1/histories", "/api/v1/me"})
     @DisplayName("FNC-C-003 세션 없이 API를 요청하면 공통 오류 형식의 401을 돌려준다")

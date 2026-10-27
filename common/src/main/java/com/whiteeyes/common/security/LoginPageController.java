@@ -61,6 +61,12 @@ public class LoginPageController {
         return LOGIN_VIEW;
     }
 
+    // 앱 주소만 입력해도(/, 관리자 앱 /admin/) 통계 메인으로 보낸다. 로그인 전이면 보안 설정이 로그인 화면으로 보낸다
+    @GetMapping("/")
+    public String root() {
+        return STATS_REDIRECT;
+    }
+
     private boolean isLoggedIn(Authentication authentication) {
         return authentication != null
                 && authentication.isAuthenticated()
