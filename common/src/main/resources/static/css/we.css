@@ -140,6 +140,8 @@ body.we { margin: 0; min-height: 100vh; }
 .we input.input:focus, .we select.input:focus { outline: none; border-color: var(--blue); }
 .field .input.err, .we input.input.err { border-color: var(--lv3); }
 .alert { padding: 10px 12px; border: 1px solid #6b2a31; border-radius: 8px; background: #2a151a; color: #ffb3b7; font-size: 12px; }
+/* 스크립트가 문구를 채우기 전의 빈 오류 자리는 보이지 않게 한다 */
+.alert:empty, .field .hint:empty { display: none; }
 .btn { cursor: pointer; }
 .btn[disabled] { cursor: not-allowed; }
 [hidden] { display: none !important; }
