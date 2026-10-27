@@ -129,6 +129,18 @@ class StatExportReaderIntegrationTest {
     }
 
     @Test
+    @DisplayName("FNC-C-023 처리 순서 3: 지역 합산 줄은 합산한 지역보다 아래 단계 칸에만 '(지역 합산)'(시·도는 구·동·구역, 동은 구역)")
+    void planRegionSum_labelsBelowLevel() throws BindException {
+        StatExportPlan sido = statExportReader.plan(request(StatExportScope.REGION, regionId("11"), false));
+        StatExportPlan dong = statExportReader.plan(request(StatExportScope.REGION, regionId("11110540"), false));
+
+        assertThat(sido.series()).containsExactly(
+                new StatExportSeries(null, "서울특별시", "(지역 합산)", "(지역 합산)", "(지역 합산)"));
+        assertThat(dong.series()).containsExactly(
+                new StatExportSeries(null, "서울특별시", "종로구", "삼청동", "(지역 합산)"));
+    }
+
+    @Test
     @DisplayName("FNC-C-023 지역 구역별 펼치기: 삭제되지 않은 소속 구역마다 한 줄(동 코드 순, 같은 동은 구역 번호 순)")
     void planRegionExpanded() throws BindException {
         StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), true));

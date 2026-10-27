@@ -119,7 +119,7 @@ class StatGraphPageControllerTest {
     void graphAndStatsPage_haveExportButton(String path) throws Exception {
         String[] expected = {
             "id=\"export-open\"", ">엑셀 다운로드<", "id=\"export-modal\"", "id=\"export-scope\"",
-            "id=\"export-expand\"", "id=\"export-from\"", "id=\"export-end\"", "id=\"export-interval\"",
+            "id=\"export-expand\"", ">체크하지 않으면 지역 합산 한 줄로 받습니다<", "id=\"export-from\"", "id=\"export-end\"", "id=\"export-interval\"",
             "value=\"COUNT\"", "value=\"DENSITY\"", "value=\"INFLOW\"", "value=\"OUTFLOW\"", "value=\"DWELL\"",
             "id=\"export-submit\"", "href=\"/css/stats-export.css\""
         };
