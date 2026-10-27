@@ -354,7 +354,7 @@ function formatMinutes(total) {
 
 // ---- 혼잡 구역 TOP 5 ------------------------------------------------------------------------
 
-// 최근 1분 통계가 없는 구역(level null)은 빼고 밀집도 내림차순 상위 5개
+// 최근 1분 통계가 없는 구역(level null)은 빼고 밀집도 내림차순 상위 5개. 한 줄에 이름·평균 인원·밀집도
 function renderTopZones(items) {
     const ranked = items
         .filter((item) => item.level !== null && item.density !== null)
@@ -374,10 +374,18 @@ function renderTopZones(items) {
             const name = document.createElement('span');
             name.className = 'name';
             name.textContent = item.name;
+            row.append(rank, name);
+            // 구역이 넓으면 밀집도가 모두 0.00이 되므로 평균 인원도 같이 적는다
+            if (item.countAvg !== null) {
+                const count = document.createElement('span');
+                count.className = 'count muted';
+                count.textContent = `${formatNumber(Math.round(Number(item.countAvg)))}명`;
+                row.append(count);
+            }
             const chip = document.createElement('span');
             chip.className = `chip l${item.level}`;
             chip.textContent = formatDecimal(item.density, 2);
-            row.append(rank, name, chip);
+            row.append(chip);
             return row;
         }),
     );
