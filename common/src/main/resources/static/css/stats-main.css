@@ -5,11 +5,16 @@
 .row-between { display: flex; justify-content: space-between; align-items: baseline; }
 .filter-select { width: 150px; height: 34px; }
 
+.dash-split { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 0; }
+/* 오른쪽 칸: 지도 아래에 캠 패널을 같은 폭으로 쌓는다. 왼쪽 통계 패널은 이 둘 옆에서 맨 아래까지 이어진다 */
+.dash-main { display: flex; flex-direction: column; flex: 999 1 560px; min-width: 0; min-height: 0; }
 .dash-body { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 560px; }
-/* 넓은 화면: 본문 높이를 화면에서 정한다. 통계 패널 내용이 길어도 지도 칸이 따라 늘지 않고(패널이 안에서 스크롤), 캠 수에 따라 캠 패널 높이가 바뀌어도 지도가 흔들리지 않는다 */
+/* 넓은 화면: 지도 높이를 화면에서 정한다(헤더·필터 줄·캠 패널 몫을 뺀 나머지). 통계 패널은 자기 높이를 정하지 않고 오른쪽 칸 높이를 따라가며, 내용이 길면 안에서 스크롤된다.
+   캠 수에 따라 캠 패널 높이가 바뀌어도 지도가 흔들리지 않는다 */
 @media (min-width: 860px) {
-    .dash-body { flex: none; height: max(560px, calc(100vh - 500px)); }
-    .dash-body > .stat-panel { height: 0; min-height: 100%; overflow-y: auto; }
+    .dash-body { flex: none; height: max(360px, calc(100vh - 495px)); min-height: 0; }
+    .dash[data-admin="false"] .dash-body { flex: 1 1 auto; height: auto; min-height: 560px; }
+    .dash-split > .stat-panel { contain: size; overflow: hidden; }
 }
 .dash.expanded .dash-body { flex: none; min-height: 0; height: 64px; flex-wrap: nowrap; overflow: hidden; }
 .dash-map { flex: 999 1 560px; min-width: 0; min-height: 0; }
