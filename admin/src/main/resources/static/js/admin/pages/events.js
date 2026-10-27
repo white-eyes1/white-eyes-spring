@@ -61,21 +61,23 @@ let detailOpener = null;
 init();
 
 async function init() {
+    // refresh()가 주소를 필터 값으로 다시 쓰면 ?eventId=가 사라지므로, 그 전에 읽어 둔다
+    const requestedEventId = readRequestedEventId();
     restoreFilters();
     bindFilters();
     bindDetail();
     await loadLevelNames();
     await refresh();
-    openRequestedEvent();
+    if (requestedEventId !== null) {
+        openDetail(requestedEventId);
+    }
     bindNotifications();
 }
 
-// 새 이벤트 토스트를 눌러 들어오면(?eventId=) 그 이벤트의 상세 창을 바로 연다(FNC-A-048)
-function openRequestedEvent() {
+// 새 이벤트 토스트나 다시보기의 '이벤트 상세 보기'를 눌러 들어오면(?eventId=) 그 이벤트의 상세 창을 바로 연다(FNC-A-048)
+function readRequestedEventId() {
     const eventId = Number(new URLSearchParams(window.location.search).get('eventId'));
-    if (Number.isInteger(eventId) && eventId > 0) {
-        openDetail(eventId);
-    }
+    return Number.isInteger(eventId) && eventId > 0 ? eventId : null;
 }
 
 // 알림 스트림에서 새 이벤트가 오면 첫 쪽을 다시 읽어 맨 위에 보이게 한다. 다른 쪽을 보는 중이면 보던 쪽을 흐트리지 않는다

@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,9 +31,10 @@ public class UserSecurityConfig {
 
     static final String PENDING_PATH = "/pending";
     private static final String LOGIN_PATH = "/login";
+    private static final String SIGNUP_PATH = "/signup";
     // 권한 표(FNC-C-003)의 공개 경로와 정적 파일, 오류 화면
     private static final String[] PUBLIC_PATHS = {
-        LOGIN_PATH, "/signup", "/api/v1/signup/**", "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error"
+        LOGIN_PATH, SIGNUP_PATH, "/api/v1/signup/**", "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error"
     };
 
     @Bean
@@ -44,6 +46,10 @@ public class UserSecurityConfig {
             throws Exception {
         http.authenticationProvider(userAuthenticationProvider)
                 .authorizeHttpRequests(requests -> requests
+                        // 승인 대기 중에는 가입 화면도 열 수 없다(SCR-U-003). 거부되면 PendingAccessDeniedHandler가 /pending으로 보낸다
+                        .requestMatchers(SIGNUP_PATH).access((authentication, context) -> new AuthorizationDecision(
+                                authentication.get().getAuthorities().stream()
+                                        .noneMatch(a -> UserRoles.PENDING_AUTHORITY.equals(a.getAuthority()))))
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         // /logout은 로그아웃 필터가 권한 검사 전에 처리하므로 PENDING도 쓸 수 있다
                         .requestMatchers(PENDING_PATH).hasRole(UserRoles.PENDING)

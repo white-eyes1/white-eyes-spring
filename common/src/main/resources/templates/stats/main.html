@@ -37,7 +37,7 @@
         <a class="btn secondary" th:if="${admin}" th:href="@{/zones}" style="margin-left: auto">지역 등록·수정</a>
     </div>
 
-    <div class="dash-body" id="dash-body">
+    <div class="dash-split">
         <aside class="stat-panel" id="stat-panel">
             <div class="stat-head">
                 <span><b>통계</b> <span class="target" id="stat-target"></span></span>
@@ -162,6 +162,8 @@
             </div>
         </aside>
 
+        <div class="dash-main">
+        <div class="dash-body" id="dash-body">
         <section class="map dash-map" aria-label="지도">
             <div class="map-canvas" id="dash-map"></div>
             <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
@@ -210,7 +212,7 @@
                 </div>
             </div>
         </section>
-    </div>
+        </div>
 
     <section class="deck" id="deck" th:if="${admin}">
         <div class="deck-grip" id="deck-grip" role="separator" tabindex="0"
@@ -228,6 +230,8 @@
         </div>
         <div class="deck-cards" id="deck-cards"></div>
     </section>
+        </div>
+    </div>
 </div>
 <!-- SCR-A-008 실시간 보기 창(관리자 앱만) -->
 <th:block th:if="${admin}">

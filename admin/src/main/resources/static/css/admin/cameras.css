@@ -2,10 +2,11 @@
 .cam-panel { overflow: hidden; }
 .cam-panel .filterbar { border-radius: 12px 12px 0 0; }
 .cam-summary { font-size: 12px; margin-left: auto; }
-.cam-table { --cols: 1.3fr 1.4fr .7fr .8fr 1fr 1.3fr 1.6fr; }
+.cam-table { --cols: 1.2fr 1.2fr .6fr .8fr .8fr 1.1fr 2.4fr; }
 .cam-table .tr > * { min-width: 0; }
 .cam-right { text-align: right; }
-.cam-table .row-actions { justify-content: flex-end; }
+/* 버튼이 4~5개라 한 줄에 다 들어가지 않으면 줄바꿈한다(셀이 넘친 글자를 자르므로) */
+.cam-table .row-actions { justify-content: flex-end; flex-wrap: wrap; }
 .cam-error { color: #ff8c91; }
 .cam-pending { display: block; white-space: normal; font-size: 11px; line-height: 1.4; }
 .cam-progress { display: flex; align-items: center; gap: 8px; }

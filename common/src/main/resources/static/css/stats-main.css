@@ -5,7 +5,17 @@
 .row-between { display: flex; justify-content: space-between; align-items: baseline; }
 .filter-select { width: 150px; height: 34px; }
 
+.dash-split { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 0; }
+/* 오른쪽 칸: 지도 아래에 캠 패널을 같은 폭으로 쌓는다. 왼쪽 통계 패널은 이 둘 옆에서 맨 아래까지 이어진다 */
+.dash-main { display: flex; flex-direction: column; flex: 999 1 560px; min-width: 0; min-height: 0; }
 .dash-body { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 560px; }
+/* 넓은 화면: 지도 높이를 화면에서 정한다(헤더·필터 줄·캠 패널 몫을 뺀 나머지). 통계 패널은 자기 높이를 정하지 않고 오른쪽 칸 높이를 따라가며, 내용이 길면 안에서 스크롤된다.
+   캠 수에 따라 캠 패널 높이가 바뀌어도 지도가 흔들리지 않는다 */
+@media (min-width: 860px) {
+    .dash-body { flex: none; height: max(360px, calc(100vh - 495px)); min-height: 0; }
+    .dash[data-admin="false"] .dash-body { flex: 1 1 auto; height: auto; min-height: 560px; }
+    .dash-split > .stat-panel { contain: size; overflow: hidden; }
+}
 .dash.expanded .dash-body { flex: none; min-height: 0; height: 64px; flex-wrap: nowrap; overflow: hidden; }
 .dash-map { flex: 999 1 560px; min-width: 0; min-height: 0; }
 .map-canvas { position: absolute; inset: 0; }
@@ -122,6 +132,12 @@
 /* 지도 위 구역 핀 */
 .zone-pin { background: none; border: 0; }
 .pin { position: absolute; left: -15px; top: -15px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 2px solid rgba(255,255,255,.85); color: #0b1118; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+/* 사용자 앱 구역 정보 팝업(SCR-C-003): 칩 색이 어두운 바탕용이라 팝업도 어둡게 */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); }
+.zone-popup { min-width: 150px; font-size: 13px; line-height: 1.45; }
+.zone-popup b { display: block; margin-bottom: 6px; }
+.zone-popup > div { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.zone-popup > div > span:first-child { color: var(--muted); }
 .pin.l3 { color: #fff; }
 .pin.off { color: #dfe6ee; }
 .pin b { position: absolute; top: -7px; right: -7px; min-width: 16px; height: 16px; padding: 0 3px; display: grid; place-items: center; border-radius: 8px; background: #fff; color: #0b1118; font-size: 9px; }

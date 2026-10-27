@@ -19,6 +19,7 @@
     <section style="flex: 1 1 520px; display: grid; place-items: center; padding: 48px">
         <form class="panel" th:action="@{/login}" method="post" style="width: 100%; max-width: 400px; padding: 32px; display: flex; flex-direction: column; gap: 18px">
             <h2 style="font-size: 22px" th:text="|${appName} 로그인|">white-eyes 로그인</h2>
+            <p class="alert" th:if="${signupDone}" role="status" style="border-color: #2f7f64; background: #12281f; color: #63d7ae">가입 신청이 완료되었습니다. 관리자 승인 후 이용할 수 있습니다.</p>
             <p class="alert" th:if="${errorMessage != null}" th:text="${errorMessage}" role="alert">오류 문구</p>
             <label class="field">아이디
                 <input class="input" type="text" name="username" maxlength="20" required autofocus th:value="${loginId}">
