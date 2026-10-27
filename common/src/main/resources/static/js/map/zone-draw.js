@@ -64,7 +64,13 @@ export function createZoneMap(element, { onZoneClick, onDrawn }) {
 
         addZone(zone) {
             const layer = L.geoJSON(zone.boundary, { style: ZONE_STYLE });
-            layer.on('click', () => onZoneClick(zone.id));
+            layer.on('click', () => {
+                // 그리는 중이나 꼭짓점을 고치는 중에 구역을 누르면 선택(지도 맞춤)이 되어 지도가 축소되므로 무시한다
+                if (editing || map.pm.globalDrawModeEnabled()) {
+                    return;
+                }
+                onZoneClick(zone.id);
+            });
             layer.bindTooltip(zone.name, { sticky: true });
             layer.addTo(map);
             zoneLayers.set(zone.id, layer);
