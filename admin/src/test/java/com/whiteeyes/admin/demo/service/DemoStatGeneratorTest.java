@@ -6,12 +6,15 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,11 +32,14 @@ class DemoStatGeneratorTest {
     private static final LocalDate MONDAY = LocalDate.of(2026, 1, 5);
     private static final LocalDate END = MONDAY.plusDays(6);
 
+    private static final LocalDateTime START_AT = MONDAY.atStartOfDay();
+    private static final LocalDateTime END_AT = END.plusDays(1).atStartOfDay();
+
     // 1번 구역의 동쪽 이웃이 2번(2번의 서쪽 이웃이 1번)
     private static final DemoZone WEST = new DemoZone(
-            1L, new BigDecimal("100.00"), 40, 600, END, Map.of(ZoneDirection.E, 2L));
+            1L, new BigDecimal("100.00"), 40, 600, START_AT, END_AT, Map.of(ZoneDirection.E, 2L));
     private static final DemoZone EAST = new DemoZone(
-            2L, new BigDecimal("50.00"), 20, 300, END, Map.of(ZoneDirection.W, 1L));
+            2L, new BigDecimal("50.00"), 20, 300, START_AT, END_AT, Map.of(ZoneDirection.W, 1L));
 
     @Test
     @DisplayName("FNC-A-051 같은 seed면 같은 결과, 다른 seed면 다른 결과")
@@ -69,7 +75,7 @@ class DemoStatGeneratorTest {
     @DisplayName("FNC-A-051 이웃 구역이 그날 데이터를 만들지 않으면 그 방향 유입은 바깥 유입으로 만든다")
     void neighborWithoutDataIsTreatedAsOutside() {
         DemoZone eastEndedEarlier = new DemoZone(
-                2L, new BigDecimal("50.00"), 20, 300, MONDAY.minusDays(1), Map.of(ZoneDirection.W, 1L));
+                2L, new BigDecimal("50.00"), 20, 300, START_AT.minusDays(7), START_AT, Map.of(ZoneDirection.W, 1L));
         List<DemoHourlyStat> rows = new DemoStatGenerator(
                         config(7L, flatHours(), List.of()), List.of(WEST, eastEndedEarlier))
                 .generateDay(MONDAY);
@@ -120,12 +126,50 @@ class DemoStatGeneratorTest {
     }
 
     @Test
-    @DisplayName("FNC-A-051 시작일 전과 종료일 뒤에는 만들지 않는다")
+    @DisplayName("FNC-A-051 시작 시각 전과 끝 시각부터는 만들지 않는다(끝 시각이 13시면 그날 0~12시만)")
     void onlyBetweenStartAndEnd() {
-        DemoStatGenerator generator = new DemoStatGenerator(config(7L, flatHours(), List.of()), List.of(WEST, EAST));
+        DemoZone endsAt13 = new DemoZone(
+                3L, new BigDecimal("10.00"), 10, 600, START_AT, END.atTime(13, 0), Map.of());
+        DemoStatGenerator generator =
+                new DemoStatGenerator(config(7L, flatHours(), List.of()), List.of(WEST, EAST, endsAt13));
 
         assertThat(generator.generateDay(MONDAY.minusDays(1))).isEmpty();
         assertThat(generator.generateDay(END.plusDays(1))).isEmpty();
+        assertThat(generator.generateDay(END))
+                .filteredOn(row -> row.zoneId() == 3L)
+                .extracting(row -> row.statAt().getHour())
+                .containsExactlyElementsOf(IntStream.range(0, 13).boxed().toList());
+    }
+
+    @Test
+    @DisplayName("FNC-A-051 난수는 (seed, 구역, 절대 시각)으로 정해져 시작일이나 만드는 순서와 상관없이 같은 시각의 값이 같다")
+    void sameValuesRegardlessOfStartAndOrder() {
+        DemoGenerateConfig config = config(7L, flatHours(), List.of());
+        DemoZone westFromEarlier = new DemoZone(
+                1L, WEST.areaM2(), WEST.baseCount(), WEST.avgDwellSec(), START_AT.minusDays(30), END_AT,
+                WEST.neighborIds());
+        DemoZone eastFromEarlier = new DemoZone(
+                2L, EAST.areaM2(), EAST.baseCount(), EAST.avgDwellSec(), START_AT.minusDays(30), END_AT,
+                EAST.neighborIds());
+        DemoStatGenerator later = new DemoStatGenerator(config, List.of(WEST, EAST));
+        DemoStatGenerator earlier = new DemoStatGenerator(config, List.of(westFromEarlier, eastFromEarlier));
+
+        List<DemoHourlyStat> laterWednesday = later.generateDay(MONDAY.plusDays(2));
+        earlier.generateDay(MONDAY.minusDays(10));
+
+        assertThat(earlier.generateDay(MONDAY.plusDays(2))).isEqualTo(laterWednesday);
+    }
+
+    @Test
+    @DisplayName("FNC-A-051 일부 구역만 만들어도 만들지 않는 이웃의 유출을 같은 규칙으로 계산해 유입을 맞추고, 이웃 행은 돌려주지 않는다")
+    void pairsWithNeighborOutsideTargets() {
+        DemoGenerateConfig config = config(7L, flatHours(), List.of());
+        List<DemoHourlyStat> both = new DemoStatGenerator(config, List.of(WEST, EAST)).generateDay(MONDAY);
+        List<DemoHourlyStat> westOnly =
+                new DemoStatGenerator(config, List.of(WEST, EAST), Set.of(1L)).generateDay(MONDAY);
+
+        assertThat(westOnly).extracting(DemoHourlyStat::zoneId).containsOnly(1L);
+        assertThat(westOnly).isEqualTo(both.stream().filter(row -> row.zoneId() == 1L).toList());
     }
 
     private static List<DemoHourlyStat> generateWeek(DemoGenerateConfig config) {
@@ -145,7 +189,8 @@ class DemoStatGeneratorTest {
             season.put(value, value == Season.WINTER ? 0.5 : 1.0);
         }
         DemoGenerateConfig config =
-                new DemoGenerateConfig(seed, MONDAY, null, List.of(), hourWeights, dayOfWeek, season, surgeDays);
+                new DemoGenerateConfig(seed, new DemoGenerateConfig.ZoneSetting(null, 1.0, 600), List.of(), hourWeights,
+                        dayOfWeek, season, surgeDays);
         config.validate();
         return config;
     }

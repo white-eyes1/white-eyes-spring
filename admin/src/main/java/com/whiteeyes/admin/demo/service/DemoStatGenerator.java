@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SplittableRandom;
 import java.util.stream.Collectors;
 
@@ -26,8 +27,9 @@ import com.whiteeyes.common.stat.entity.StatValues;
  * 구역을 떠나는 인원은 평균 인원 × 3600 ÷ 평균 체류(시간당 드나드는 인원)를 네 방향에 나눈 값이다.
  * 이웃 쌍은 A의 d 방향 유출을 B의 반대 방향 유입으로 그대로 쓰고, 이웃이 없는 방향은 바깥에서 들어오는 인원을 따로 만든다.
  *
- * <p>무작위 값은 구역마다 seed와 구역 번호로 정한 난수열에서 날짜·시각 순서대로 꺼낸다.
- * 그래서 같은 seed·같은 구역이면 결과가 같고, 이웃 유무와 상관없이 시간마다 같은 개수를 꺼낸다.
+ * <p>무작위 값은 (seed, 구역, 시각)으로 정한 난수에서 꺼낸다. 그래서 언제 실행하든, 어느 날짜부터 만들든
+ * 같은 seed·같은 구역·같은 시각이면 값이 같다. 만들지 않는 이웃 구역(--zone 밖)도 같은 규칙으로 유출을 계산해
+ * 유입을 맞추고, 그 이웃의 행은 돌려주지 않는다.
  */
 final class DemoStatGenerator {
 
@@ -42,60 +44,71 @@ final class DemoStatGenerator {
     private static final BigDecimal COUNT_MIN_RATIO = new BigDecimal("0.7");
     private static final ZoneDirection[] DIRECTIONS = ZoneDirection.values();
     private static final long ZONE_SEED_MULTIPLIER = 31;
+    // 구역마다 시각 번호가 겹치지 않게 벌린다(100년 치 시간 수보다 크다)
+    private static final long HOUR_SEED_MULTIPLIER = 1_000_003;
 
     private final DemoGenerateConfig config;
     private final List<DemoZone> zones;
-    private final Map<Long, SplittableRandom> randoms = new HashMap<>();
+    private final Set<Long> targetIds;
     private final Map<LocalDate, Double> surgeWeights;
 
+    /** 모든 구역의 행을 만든다. */
     DemoStatGenerator(DemoGenerateConfig config, List<DemoZone> zones) {
+        this(config, zones, zones.stream().map(DemoZone::id).collect(Collectors.toSet()));
+    }
+
+    /**
+     * @param zones 이웃 짝을 맞출 때 볼 모든 구역
+     * @param targetIds 행을 만들 구역 번호
+     */
+    DemoStatGenerator(DemoGenerateConfig config, List<DemoZone> zones, Set<Long> targetIds) {
         this.config = config;
         this.zones = zones.stream().sorted(Comparator.comparingLong(DemoZone::id)).toList();
-        for (DemoZone zone : this.zones) {
-            randoms.put(zone.id(), new SplittableRandom(config.seed() * ZONE_SEED_MULTIPLIER + zone.id()));
-        }
+        this.targetIds = Set.copyOf(targetIds);
         this.surgeWeights = config.surgeDays() == null
                 ? Map.of()
                 : config.surgeDays().stream().collect(Collectors.toMap(SurgeDay::date, SurgeDay::weight));
     }
 
     /**
-     * 그날 데이터를 만들 모든 구역의 0~23시 통계를 만든다. 날짜는 앞에서부터 하루씩 차례로 불러야 같은 seed에서 같은 결과가 나온다.
+     * 그날 만들 구역(targetIds 중 그 시각이 시작~끝 안인 구역)의 시간별 통계를 만든다. 날짜는 어떤 순서로 불러도 된다.
      *
      * @return 구역 번호·시각 순. 그날 만들 구역이 없으면 빈 목록
      */
     List<DemoHourlyStat> generateDay(LocalDate date) {
-        List<DemoZone> activeZones = zones.stream()
-                .filter(zone -> zone.covers(config.startDate(), date))
-                .toList();
-        Map<Long, DrawnHour[]> drawn = new HashMap<>();
-        for (DemoZone zone : activeZones) {
-            drawn.put(zone.id(), drawDay(zone, date));
-        }
-
+        double dayWeight = config.dayOfWeekWeights().get(date.getDayOfWeek())
+                * config.seasonWeights().get(Season.of(date.getMonth()))
+                * surgeWeights.getOrDefault(date, 1.0);
         List<DemoHourlyStat> result = new ArrayList<>();
         for (int hour = 0; hour < DemoGenerateConfig.HOURS_PER_DAY; hour++) {
-            Map<Long, int[]> pairedInflows = pairInflows(activeZones, drawn, hour);
+            LocalDateTime statAt = date.atTime(hour, 0);
+            List<DemoZone> activeZones =
+                    zones.stream().filter(zone -> zone.covers(statAt)).toList();
+            if (activeZones.stream().noneMatch(zone -> targetIds.contains(zone.id()))) {
+                continue;
+            }
+            double weight = dayWeight * config.hourWeights().get(hour);
+            Map<Long, DrawnHour> drawn = new HashMap<>();
             for (DemoZone zone : activeZones) {
-                DrawnHour drawnHour = drawn.get(zone.id())[hour];
-                StatValues values = toValues(zone, drawnHour, pairedInflows.get(zone.id()));
-                result.add(new DemoHourlyStat(zone.id(), date.atTime(hour, 0), values));
+                drawn.put(zone.id(), drawHour(zone, weight, random(zone, statAt)));
+            }
+            Map<Long, int[]> pairedInflows = pairInflows(activeZones, drawn);
+            for (DemoZone zone : activeZones) {
+                if (targetIds.contains(zone.id())) {
+                    StatValues values = toValues(zone, drawn.get(zone.id()), pairedInflows.get(zone.id()));
+                    result.add(new DemoHourlyStat(zone.id(), statAt, values));
+                }
             }
         }
         result.sort(Comparator.comparingLong(DemoHourlyStat::zoneId).thenComparing(DemoHourlyStat::statAt));
         return result;
     }
 
-    private DrawnHour[] drawDay(DemoZone zone, LocalDate date) {
-        SplittableRandom random = randoms.get(zone.id());
-        double dayWeight = config.dayOfWeekWeights().get(date.getDayOfWeek())
-                * config.seasonWeights().get(Season.of(date.getMonth()))
-                * surgeWeights.getOrDefault(date, 1.0);
-        DrawnHour[] hours = new DrawnHour[DemoGenerateConfig.HOURS_PER_DAY];
-        for (int hour = 0; hour < hours.length; hour++) {
-            hours[hour] = drawHour(zone, dayWeight * config.hourWeights().get(hour), random);
-        }
-        return hours;
+    // 실행 시점·시작일과 상관없이 (seed, 구역, 절대 시각)만으로 정해지는 난수
+    private SplittableRandom random(DemoZone zone, LocalDateTime statAt) {
+        long hourNumber = statAt.toLocalDate().toEpochDay() * DemoGenerateConfig.HOURS_PER_DAY + statAt.getHour();
+        long zoneSeed = config.seed() * ZONE_SEED_MULTIPLIER + zone.id();
+        return new SplittableRandom(zoneSeed * HOUR_SEED_MULTIPLIER + hourNumber);
     }
 
     // 꺼내는 순서: 인원 1개 → 방향별 유출 4개 → 방향별 바깥 유입 4개 → 체류 1개
@@ -116,14 +129,14 @@ final class DemoStatGenerator {
 
     /**
      * 이웃 쌍의 유입을 맞춘다(FNC-A-051 처리 순서 3): A의 d 방향 이웃이 B면 A의 d 유출이 B의 반대 방향 유입이다.
-     * 이웃 구역이 그날 데이터를 만들지 않으면(캠 가동 뒤 등) 짝을 짓지 않는다.
+     * 이웃 구역이 그 시각에 시연용 구간이 아니면(캠 가동 뒤, 삭제됨 등) 짝을 짓지 않는다.
      *
-     * @return 구역 번호 → 방향별 유입. 짝지어진 방향이 없으면 그 칸은 null
+     * @return 구역 번호 → 방향별 유입. 짝지어진 방향이 없으면 그 칸은 -1
      */
-    private static Map<Long, int[]> pairInflows(List<DemoZone> activeZones, Map<Long, DrawnHour[]> drawn, int hour) {
+    private static Map<Long, int[]> pairInflows(List<DemoZone> activeZones, Map<Long, DrawnHour> drawn) {
         Map<Long, int[]> inflows = new HashMap<>();
         for (DemoZone from : activeZones) {
-            int[] outflows = drawn.get(from.id())[hour].outflows();
+            int[] outflows = drawn.get(from.id()).outflows();
             from.neighborIds().forEach((direction, toId) -> {
                 if (!drawn.containsKey(toId)) {
                     return;

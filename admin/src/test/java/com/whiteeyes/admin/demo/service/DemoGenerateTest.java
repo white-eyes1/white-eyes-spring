@@ -11,7 +11,9 @@ import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -25,6 +27,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -38,10 +43,31 @@ import com.whiteeyes.admin.region.service.RegionLoadService;
 class DemoGenerateTest {
 
     private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    // 실행 시각 2026-10-21 14:20 → 캠이 없는 구역의 끝 시각은 14시(13시까지 만든다)
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 21, 14, 20);
+    private static final LocalDate TODAY = NOW.toLocalDate();
+    // 1구역 캠의 첫 가동 2026-10-19 13:37 → 1구역의 끝 시각은 그날 13시(12시까지 만든다)
+    private static final LocalDateTime FIRST_STARTED_AT = LocalDateTime.of(2026, 10, 19, 13, 37);
+    private static final LocalDate START_DAY = FIRST_STARTED_AT.toLocalDate();
+    // 1구역: 2025-10-19 0시 ~ 2026-10-19 13시, 2구역: 2025-10-21 0시 ~ 2026-10-21 14시(1년 = 365일)
+    private static final int CAMERA_ZONE_HOURS = 365 * 24 + 13;
+    private static final int NO_CAMERA_ZONE_HOURS = 365 * 24 + 14;
+    // 1구역: 꽉 찬 365일 + 첫 가동일(시연용 0~12시를 일별 집계로 묶음), 2구역: 꽉 찬 365일(오늘은 자정 집계가 만듦)
+    private static final int CAMERA_ZONE_DAYS = 365 + 1;
+    private static final int NO_CAMERA_ZONE_DAYS = 365;
     private static final LocalDateTime FAR_HOUR = LocalDateTime.of(2099, 1, 1, 0, 0);
-    // 관리자 앱의 Clock(ClockConfig)과 같은 시간대로 어제를 구한다
-    private static final LocalDate YESTERDAY = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1);
-    private static final LocalDate START = YESTERDAY.minusDays(4);
+
+    @TestConfiguration
+    static class FixedClockConfig {
+
+        // 끝 시각이 실행 시각에 따라 바뀌지 않게 현재 시각을 고정한다
+        @Bean
+        @Primary
+        Clock fixedClock() {
+            return Clock.fixed(NOW.atZone(KST).toInstant(), KST);
+        }
+    }
 
     @Autowired
     private RegionLoadService regionLoadService;
@@ -76,8 +102,7 @@ class DemoGenerateTest {
         // 1구역의 동쪽 이웃이 2구역(FNC-A-016은 반대쪽도 함께 저장한다)
         insertNeighbor(cameraZoneId, "E", noCameraZoneId);
         insertNeighbor(noCameraZoneId, "W", cameraZoneId);
-        // 1구역 캠은 어제 낮에 처음 가동 → 시연용은 그 전날(그제)까지
-        insertCamera(cameraZoneId, YESTERDAY.atTime(13, 0));
+        insertCamera(cameraZoneId, FIRST_STARTED_AT);
     }
 
     @AfterEach
@@ -88,7 +113,7 @@ class DemoGenerateTest {
     @Test
     @DisplayName("FNC-A-051 일별 = 시간별 합과 일치")
     void dailyMatchesHourlySum() throws IOException {
-        demoGenerateService.generate(writeConfig(validConfig()));
+        demoGenerateService.generate(writeConfig(validConfig()), null);
 
         List<Map<String, Object>> mismatches = jdbcTemplate.queryForList("""
                 SELECT d.zone_id, d.stat_date FROM zone_stat_daily d
@@ -108,24 +133,34 @@ class DemoGenerateTest {
                    OR ABS(d.density - h.weighted_density / h.sample_sec) > 0.00005
                 """);
 
+        // 시간별이 있는 (구역, 날짜) 중 2구역의 오늘만 일별이 없다
         assertThat(count("zone_stat_daily")).isEqualTo(count("SELECT COUNT(DISTINCT zone_id || '@' || CAST(stat_at AS DATE))"
-                + " FROM zone_stat_hourly"));
+                + " FROM zone_stat_hourly") - 1);
         assertThat(mismatches).isEmpty();
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_daily WHERE sample_sec <> 86400")).isZero();
+        // 24시간이 안 되는 일별은 1구역의 첫 가동일(0~12시) 하나뿐
+        assertThat(jdbcTemplate.queryForList(
+                        "SELECT zone_id, stat_date, sample_sec FROM zone_stat_daily WHERE sample_sec <> 86400"))
+                .singleElement()
+                .satisfies(row -> {
+                    assertThat(((Number) row.get("zone_id")).longValue()).isEqualTo(cameraZoneId);
+                    assertThat(row.get("stat_date").toString()).isEqualTo(START_DAY.toString());
+                    assertThat(((Number) row.get("sample_sec")).intValue()).isEqualTo(13 * 3600);
+                });
     }
 
     @Test
-    @DisplayName("FNC-A-051 구역마다 시작일부터 캠 가동 전날(캠이 없으면 어제)까지 시간별을 만들고, 삭제된 구역과 1분 통계는 만들지 않는다")
-    void generatesUntilDayBeforeFirstStart() throws IOException {
-        DemoGenerateResult result = demoGenerateService.generate(writeConfig(validConfig()));
+    @DisplayName("FNC-A-051 구역마다 끝 시각(첫 가동이 속한 정시, 캠이 없으면 실행 시각의 정시) 직전까지, 그 1년 전 날짜 0시부터 만든다")
+    void generatesUntilHourBeforeEnd() throws IOException {
+        DemoGenerateResult result = demoGenerateService.generate(writeConfig(validConfig()), null);
 
-        // 1구역: 시작일 ~ 그제(4일), 2구역: 시작일 ~ 어제(5일)
         assertThat(result.zones()).isEqualTo(2);
-        assertThat(result.hourly()).isEqualTo((4 + 5) * 24);
-        assertThat(result.daily()).isEqualTo(4 + 5);
-        assertThat(lastHour(cameraZoneId)).isEqualTo(YESTERDAY.minusDays(1).atTime(23, 0));
-        assertThat(lastHour(noCameraZoneId)).isEqualTo(YESTERDAY.atTime(23, 0));
-        assertThat(firstHour(noCameraZoneId)).isEqualTo(START.atStartOfDay());
+        assertThat(result.hourly()).isEqualTo(CAMERA_ZONE_HOURS + NO_CAMERA_ZONE_HOURS);
+        assertThat(result.daily()).isEqualTo(CAMERA_ZONE_DAYS + NO_CAMERA_ZONE_DAYS);
+        assertThat(firstHour(cameraZoneId)).isEqualTo(LocalDateTime.of(2025, 10, 19, 0, 0));
+        assertThat(lastHour(cameraZoneId)).isEqualTo(START_DAY.atTime(12, 0));
+        assertThat(firstHour(noCameraZoneId)).isEqualTo(LocalDateTime.of(2025, 10, 21, 0, 0));
+        assertThat(lastHour(noCameraZoneId)).isEqualTo(TODAY.atTime(13, 0));
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_daily WHERE stat_date = '" + TODAY + "'")).isZero();
         assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE zone_id = " + deletedZoneId)).isZero();
         assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo <> 1")).isZero();
         assertThat(count("SELECT COUNT(*) FROM zone_stat_daily WHERE is_demo <> 1")).isZero();
@@ -133,16 +168,75 @@ class DemoGenerateTest {
     }
 
     @Test
+    @DisplayName("FNC-A-051 설정 파일이 없으면 기본 설정으로 만든다")
+    void generatesWithoutConfigFile() {
+        DemoGenerateResult result = demoGenerateService.generate(null, null);
+
+        assertThat(result.zones()).isEqualTo(2);
+        assertThat(result.hourly()).isEqualTo(CAMERA_ZONE_HOURS + NO_CAMERA_ZONE_HOURS);
+    }
+
+    @Test
     @DisplayName("FNC-A-051 이웃 쌍은 1구역의 동쪽 유출 = 2구역의 서쪽 유입")
     void neighborFlowsMatch() throws IOException {
-        demoGenerateService.generate(writeConfig(validConfig()));
+        demoGenerateService.generate(writeConfig(validConfig()), null);
 
-        long pairedHours = count("""
-                SELECT COUNT(*) FROM zone_stat_hourly a JOIN zone_stat_hourly b ON a.stat_at = b.stat_at
-                WHERE a.zone_id = %d AND b.zone_id = %d AND a.out_e = b.in_w AND b.out_w = a.in_e
-                """.formatted(cameraZoneId, noCameraZoneId));
+        // 두 구역이 모두 시연용인 시각: 2025-10-21 0시 ~ 2026-10-19 13시(363일 + 13시간)
+        assertThat(pairedHours()).isEqualTo(363 * 24 + 13);
+    }
 
-        assertThat(pairedHours).isEqualTo(4 * 24);
+    @Test
+    @DisplayName("FNC-A-051 --zone이면 그 구역의 시연용 행만 지우고 다시 만들며, 다른 구역과 실제 데이터는 그대로이고 이웃 짝도 맞는다")
+    void zoneOptionRegeneratesOnlyThatZone() throws IOException {
+        insertFarHourly(false);
+        Path config = writeConfig(validConfig());
+        demoGenerateService.generate(config, null);
+        List<Map<String, Object>> before = demoRows();
+
+        DemoGenerateResult result = demoGenerateService.generate(config, List.of(noCameraZoneId));
+
+        assertThat(result.zones()).isEqualTo(1);
+        assertThat(result.deleted().hourly()).isEqualTo(NO_CAMERA_ZONE_HOURS);
+        assertThat(result.deleted().daily()).isEqualTo(NO_CAMERA_ZONE_DAYS);
+        assertThat(result.hourly()).isEqualTo(NO_CAMERA_ZONE_HOURS);
+        assertThat(demoRows()).isEqualTo(before);
+        assertThat(pairedHours()).isEqualTo(363 * 24 + 13);
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 0")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-051 --zone에 없거나 삭제된 구역이 있으면 기존 시연 데이터를 지우지 않고 멈춘다")
+    void unknownZoneStops() throws IOException {
+        insertFarHourly(true);
+        Path config = writeConfig(validConfig());
+
+        assertThatThrownBy(() -> demoGenerateService.generate(config, List.of(noCameraZoneId, deletedZoneId)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(String.valueOf(deletedZoneId));
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 1")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-051 첫 가동일의 일별이 이미 있으면(실제, is_demo=0) 건드리지 않는다")
+    void keepsExistingRealDailyOfFirstStartDay() throws IOException {
+        jdbcTemplate.update(
+                "INSERT INTO zone_stat_daily (zone_id, stat_date, count_avg, count_max, count_min, density, sample_sec, is_demo)"
+                        + " VALUES (?, ?, 7.00, 9, 5, 0, 39600, 0)",
+                cameraZoneId,
+                Date.valueOf(START_DAY));
+
+        DemoGenerateResult result = demoGenerateService.generate(writeConfig(validConfig()), null);
+
+        assertThat(result.daily()).isEqualTo(CAMERA_ZONE_DAYS - 1 + NO_CAMERA_ZONE_DAYS);
+        assertThat(jdbcTemplate.queryForMap(
+                        "SELECT count_avg, sample_sec, is_demo FROM zone_stat_daily WHERE zone_id = ? AND stat_date = ?",
+                        cameraZoneId,
+                        Date.valueOf(START_DAY)))
+                .satisfies(row -> {
+                    assertThat((BigDecimal) row.get("count_avg")).isEqualByComparingTo("7.00");
+                    assertThat(((Number) row.get("sample_sec")).intValue()).isEqualTo(39600);
+                    assertThat(row.get("is_demo")).isIn(false, 0, (byte) 0);
+                });
     }
 
     @Test
@@ -152,9 +246,9 @@ class DemoGenerateTest {
         insertFarHourly(false);
         Path config = writeConfig(validConfig());
 
-        DemoGenerateResult first = demoGenerateService.generate(config);
+        DemoGenerateResult first = demoGenerateService.generate(config, null);
         List<Map<String, Object>> firstRows = demoRows();
-        DemoGenerateResult second = demoGenerateService.generate(config);
+        DemoGenerateResult second = demoGenerateService.generate(config, null);
 
         assertThat(first.deleted().hourly()).isEqualTo(1);
         assertThat(second.deleted().hourly()).isEqualTo(first.hourly());
@@ -168,7 +262,8 @@ class DemoGenerateTest {
     @Test
     @DisplayName("FNC-A-051 같은 날의 일별 저장이 실패하면 그날 시간별도 남지 않고, 앞선 날은 일별 = 시간별 그대로 남는다")
     void dailyFailureRollsBackSameDayHourly() throws IOException {
-        LocalDate failDate = START.plusDays(2);
+        // 2025-10-19·20은 1구역만, 21일부터 두 구역
+        LocalDate failDate = LocalDate.of(2025, 10, 21);
         doAnswer(invocation -> {
                     List<DemoDailyStat> rows = invocation.getArgument(0);
                     if (!rows.isEmpty() && rows.get(0).statDate().equals(failDate)) {
@@ -180,11 +275,10 @@ class DemoGenerateTest {
                 .insertDaily(anyList());
         Path config = writeConfig(validConfig());
 
-        assertThatThrownBy(() -> demoGenerateService.generate(config)).hasMessageContaining("일별 저장 실패(시험)");
+        assertThatThrownBy(() -> demoGenerateService.generate(config, null)).hasMessageContaining("일별 저장 실패(시험)");
 
-        // 시작일·다음 날(2일 × 2구역)만 남는다
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly")).isEqualTo(2 * 2 * 24);
-        assertThat(count("zone_stat_daily")).isEqualTo(2 * 2);
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly")).isEqualTo(2 * 24);
+        assertThat(count("zone_stat_daily")).isEqualTo(2);
         assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE stat_at >= '" + failDate + " 00:00:00'"))
                 .isZero();
     }
@@ -193,35 +287,20 @@ class DemoGenerateTest {
     @DisplayName("FNC-A-051 설정이 틀리면 기존 시연 데이터를 지우지 않고 멈춘다")
     void invalidConfigKeepsExistingRows() throws IOException {
         insertFarHourly(true);
-        Path noSeed = writeConfig(validConfig().replace("\"seed\": 42,", ""));
         Path shortHours = writeConfig(validConfig().replace("\"hourWeights\": [1,", "\"hourWeights\": ["));
         Path typo = writeConfig(validConfig().replace("\"seed\"", "\"sead\""));
 
-        assertThatThrownBy(() -> demoGenerateService.generate(noSeed)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> demoGenerateService.generate(shortHours))
+        assertThatThrownBy(() -> demoGenerateService.generate(shortHours, null))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> demoGenerateService.generate(typo)).isInstanceOf(IllegalArgumentException.class);
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 1")).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("FNC-A-051 설정이 없는 구역이 있고 defaultZone도 없으면 기존 시연 데이터를 지우지 않고 멈춘다")
-    void zoneWithoutSettingStops() throws IOException {
-        insertFarHourly(true);
-        String onlyFirstZone = validConfig()
-                .replace("\"defaultZone\": {\"baseCount\": 20, \"avgDwellSec\": 300},", "");
-        Path config = writeConfig(onlyFirstZone);
-
-        assertThatThrownBy(() -> demoGenerateService.generate(config))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("zoneId=" + noCameraZoneId);
+        assertThatThrownBy(() -> demoGenerateService.generate(typo, null)).isInstanceOf(IllegalArgumentException.class);
         assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 1")).isEqualTo(1);
     }
 
     @Test
     @DisplayName("FNC-A-051 구역별 기본 인원을 따른다(가중치가 모두 1이면 평균 인원은 기본 인원의 ±10%)")
     void followsZoneBaseCount() throws IOException {
-        demoGenerateService.generate(writeConfig(validConfig()));
+        demoGenerateService.generate(writeConfig(validConfig()), null);
+        Timestamp firstHour = Timestamp.valueOf(LocalDateTime.of(2025, 10, 19, 0, 0));
 
         BigDecimal min = jdbcTemplate.queryForObject(
                 "SELECT MIN(count_avg) FROM zone_stat_hourly WHERE zone_id = ?", BigDecimal.class, cameraZoneId);
@@ -231,12 +310,12 @@ class DemoGenerateTest {
                 "SELECT density FROM zone_stat_hourly WHERE zone_id = ? AND stat_at = ?",
                 BigDecimal.class,
                 cameraZoneId,
-                Timestamp.valueOf(START.atStartOfDay()));
+                firstHour);
         BigDecimal avg = jdbcTemplate.queryForObject(
                 "SELECT count_avg FROM zone_stat_hourly WHERE zone_id = ? AND stat_at = ?",
                 BigDecimal.class,
                 cameraZoneId,
-                Timestamp.valueOf(START.atStartOfDay()));
+                firstHour);
 
         assertThat(min.doubleValue()).isGreaterThanOrEqualTo(45.0);
         assertThat(max.doubleValue()).isLessThanOrEqualTo(55.0);
@@ -248,7 +327,6 @@ class DemoGenerateTest {
         return """
                 {
                   "seed": 42,
-                  "startDate": "%s",
                   "defaultZone": {"baseCount": 20, "avgDwellSec": 300},
                   "zones": [{"zoneId": %d, "baseCount": 50, "avgDwellSec": 600}],
                   "hourWeights": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -257,13 +335,21 @@ class DemoGenerateTest {
                   "seasonWeights": {"SPRING": 1, "SUMMER": 1, "AUTUMN": 1, "WINTER": 1},
                   "surgeDays": []
                 }
-                """.formatted(START, cameraZoneId);
+                """.formatted(cameraZoneId);
     }
 
     private Path writeConfig(String content) throws IOException {
         Path file = Files.createTempFile(tempDir, "generate-demo", ".json");
         Files.writeString(file, content);
         return file;
+    }
+
+    // 1구역의 동쪽 유출 = 2구역의 서쪽 유입이고 반대도 맞는 시각 수
+    private long pairedHours() {
+        return count("""
+                SELECT COUNT(*) FROM zone_stat_hourly a JOIN zone_stat_hourly b ON a.stat_at = b.stat_at
+                WHERE a.zone_id = %d AND b.zone_id = %d AND a.out_e = b.in_w AND b.out_w = a.in_e
+                """.formatted(cameraZoneId, noCameraZoneId));
     }
 
     private List<Map<String, Object>> demoRows() {

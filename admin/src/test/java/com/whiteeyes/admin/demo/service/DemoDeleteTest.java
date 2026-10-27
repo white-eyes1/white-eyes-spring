@@ -9,6 +9,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,6 +102,25 @@ class DemoDeleteTest {
     }
 
     @Test
+    @DisplayName("FNC-A-051 --zone으로 다시 만들 때는 그 구역의 시연용 행만 나눠 지우고 다른 구역과 실제 데이터는 남긴다")
+    void deletesOnlyGivenZones() {
+        insertHourly(0, 4, true);
+        insertDaily(0, 1, true);
+        long otherZoneId = insertOtherZone();
+        jdbcTemplate.update(
+                "UPDATE zone_stat_hourly SET zone_id = ? WHERE stat_at < ?", otherZoneId, Timestamp.valueOf(FIRST_HOUR.plusHours(2)));
+        insertHourly(4, 1, false);
+
+        DemoDeleteResult result = new DemoDeleteService(demoStatRepository, 1).deleteZones(List.of(zoneId));
+
+        // 시간별: 이 구역 시연용 2건(2·3시) 삭제, 다른 구역 2건과 실제 1건은 남음 / 일별: 이 구역 1건 삭제
+        assertThat(result.hourly()).isEqualTo(2);
+        assertThat(result.daily()).isEqualTo(1);
+        assertThat(count("zone_stat_hourly", true)).isEqualTo(2);
+        assertThat(count("zone_stat_hourly", false)).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("FNC-A-052 시연용 데이터가 없으면 0건으로 끝난다")
     void nothingToDelete() {
         insertHourly(0, 2, false);
@@ -109,6 +129,15 @@ class DemoDeleteTest {
 
         assertThat(result.total()).isZero();
         assertThat(count("zone_stat_hourly", false)).isEqualTo(2);
+    }
+
+    private long insertOtherZone() {
+        long dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '11110530'", Long.class);
+        jdbcTemplate.update(
+                "INSERT INTO zone (dong_id, name, area_m2, boundary, center_lat, center_lng)"
+                        + " VALUES (?, '사직동 2구역', 100.00, '{}', 37.600000, 127.002000)",
+                dongId);
+        return jdbcTemplate.queryForObject("SELECT MAX(id) FROM zone", Long.class);
     }
 
     private void deleteRows() {
