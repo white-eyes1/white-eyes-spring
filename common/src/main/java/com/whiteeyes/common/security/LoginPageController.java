@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * 로그인 화면(SCR-C-001, FNC-C-001). 두 앱이 같은 템플릿을 쓰고 앱 이름만 다르게 보인다.
@@ -23,6 +24,7 @@ public class LoginPageController {
 
     private static final String STATS_REDIRECT = "redirect:/stats";
     private static final String LOGIN_VIEW = "login";
+    private static final String SIGNUP_DONE = "done";
 
     private final String appName;
     private final boolean signupLink;
@@ -35,13 +37,19 @@ public class LoginPageController {
     }
 
     @GetMapping("/login")
-    public String loginPage(Authentication authentication, HttpServletRequest request, Model model) {
+    public String loginPage(
+            Authentication authentication,
+            HttpServletRequest request,
+            @RequestParam(name = "signup", required = false) String signup,
+            Model model) {
         // 로그인한 상태로 들어오면 통계 메인으로 보낸다
         if (isLoggedIn(authentication)) {
             return STATS_REDIRECT;
         }
         model.addAttribute("appName", appName);
         model.addAttribute("signupLink", signupLink);
+        // 가입을 마치고 넘어온 경우(?signup=done)에만 완료 안내를 보인다. 회원가입이 있는 사용자 앱에서만
+        model.addAttribute("signupDone", signupLink && SIGNUP_DONE.equals(signup));
         // 실패 직후 한 번만 보이도록 꺼내면서 지운다
         HttpSession session = request.getSession(false);
         if (session != null) {
