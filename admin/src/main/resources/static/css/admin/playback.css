@@ -6,7 +6,8 @@
 .pb-top { display: flex; gap: 16px; flex-wrap: wrap; }
 .pb-player-panel { flex: 999 1 640px; min-width: 0; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .pb-feed { position: relative; height: 420px; border-radius: 10px; background: #05080c; overflow: hidden; display: grid; place-items: center; }
-.pb-video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+/* 칸에 딱 맞춘다. 그리드 안에 두면 height:100%가 영상 원래 비율의 높이로 커져 칸 밖으로 잘리고, 칸(canvas) 기준으로 그리는 탐지 박스와 어긋난다 */
+.pb-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
 .pb-notice { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: #c3ccd8; font-size: 14px; }
 .pb-notice[hidden] { display: none; }
 /* 탐지 박스 캔버스(FNC-A-046). 영상 칸 전체에 겹치고 클릭은 영상으로 통과시킨다 */
