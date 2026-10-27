@@ -1,5 +1,5 @@
 // 통계 메인 아래 캠 패널(관리자 앱만, SCR-C-003, FNC-A-022·020·021).
-// 지도 화면 안 구역의 캠 카드, 정렬, 접기(가로 한 줄)/펼치기(세로 여러 줄) 전환, 분석 시작·중단을 맡는다.
+// 지도 화면 안 구역의 캠 카드, 정렬, 접기(가로 한 줄)/펼치기(세로 여러 줄) 전환, 가동·정지를 맡는다.
 // 영상 칸은 가동 중이고 화면에 보이는 카드만 최신 화면을 2초마다 갱신하고(FNC-A-042, live/preview.js), 누르면 실시간 보기 창을 연다.
 import { post } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
@@ -24,7 +24,7 @@ const byId = (id) => document.getElementById(id);
 
 /**
  * @param {{levels: object[], onReload: () => Promise<void>, onResize: () => void, onOpenLive: (camera: object) => void}} options
- *   onReload: 시작·중단 뒤 캠 목록을 다시 읽는 함수, onResize: 패널 높이가 바뀌어 지도 칸이 달라졌을 때,
+ *   onReload: 가동·정지 뒤 캠 목록을 다시 읽는 함수, onResize: 패널 높이가 바뀌어 지도 칸이 달라졌을 때,
  *   onOpenLive: 영상 칸을 눌렀을 때(실시간 보기 창 열기)
  */
 export function createDeck({ levels, onReload, onResize, onOpenLive }) {
@@ -228,16 +228,16 @@ function sparkline(recent) {
     return svg;
 }
 
-// STOPPED → 분석 시작 / PREPARING·RUNNING → 중단 / ERROR → 다시 시작·중단 둘 다(FNC-A-020·021)
+// STOPPED → 가동 / PREPARING·RUNNING → 정지 / ERROR → 다시 시작·정지 둘 다(FNC-A-020·021). 캠 관리 표(SCR-A-006)와 같은 낱말
 function actions(camera, onReload) {
     const footer = document.createElement('footer');
     const canStart = camera.status === 'STOPPED' || camera.status === 'ERROR';
     const canStop = camera.status !== 'STOPPED';
     if (canStart) {
-        footer.append(actionButton(camera.status === 'ERROR' ? '다시 시작' : '분석 시작', camera.id, 'start', onReload));
+        footer.append(actionButton(camera.status === 'ERROR' ? '다시 시작' : '가동', camera.id, 'start', onReload));
     }
     if (canStop) {
-        footer.append(actionButton('중단', camera.id, 'stop', onReload));
+        footer.append(actionButton('정지', camera.id, 'stop', onReload));
     }
     return footer;
 }
