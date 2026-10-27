@@ -6,6 +6,11 @@
 .filter-select { width: 150px; height: 34px; }
 
 .dash-body { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 560px; }
+/* 넓은 화면: 본문 높이를 화면에서 정한다. 통계 패널 내용이 길어도 지도 칸이 따라 늘지 않고(패널이 안에서 스크롤), 캠 수에 따라 캠 패널 높이가 바뀌어도 지도가 흔들리지 않는다 */
+@media (min-width: 860px) {
+    .dash-body { flex: none; height: max(560px, calc(100vh - 500px)); }
+    .dash-body > .stat-panel { height: 0; min-height: 100%; overflow-y: auto; }
+}
 .dash.expanded .dash-body { flex: none; min-height: 0; height: 64px; flex-wrap: nowrap; overflow: hidden; }
 .dash-map { flex: 999 1 560px; min-width: 0; min-height: 0; }
 .map-canvas { position: absolute; inset: 0; }
