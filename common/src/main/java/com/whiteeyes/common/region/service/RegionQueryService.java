@@ -2,6 +2,8 @@ package com.whiteeyes.common.region.service;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,8 @@ import com.whiteeyes.common.region.repository.ZoneRepository;
  */
 @Service
 public class RegionQueryService {
+
+    private static final String PATH_SEPARATOR = " · ";
 
     private final RegionRepository regionRepository;
     private final ZoneRepository zoneRepository;
@@ -86,5 +90,17 @@ public class RegionQueryService {
     @Transactional(readOnly = true)
     public List<Long> findAllZoneIdsInDongs(Collection<Long> dongIds) {
         return zoneRepository.findByDongIdIn(dongIds).stream().map(Zone::getId).toList();
+    }
+
+    /** 읍·면·동 번호 → 지역 경로("유성구 · 궁동"). 상위(시·군·구)까지 쿼리 한 번으로 가져온다(지도 구역 핀 툴팁, 캠·이벤트 목록). */
+    @Transactional(readOnly = true)
+    public Map<Long, String> findPaths(Collection<Long> dongIds) {
+        return regionRepository.findAllWithParentByIdIn(dongIds).stream()
+                .collect(Collectors.toMap(Region::getId, RegionQueryService::pathOf, (first, second) -> first));
+    }
+
+    private static String pathOf(Region dong) {
+        Region parent = dong.getParent();
+        return parent == null ? dong.getName() : parent.getName() + PATH_SEPARATOR + dong.getName();
     }
 }

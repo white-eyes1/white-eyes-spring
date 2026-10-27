@@ -80,9 +80,17 @@ public class MapStatusService {
                 ongoingEventService.findZoneIdsWithOngoingEvent(zones.stream().map(Zone::getId).toList());
 
         if (unit == MapUnit.ZONE || region.getLevel() == RegionLevel.EMD) {
+            // 구역 핀 툴팁의 구·동 이름(SCR-C-003)
+            Map<Long, String> regionPathByDong = zones.isEmpty()
+                    ? Map.of()
+                    : regionQueryService.findPaths(zones.stream().map(Zone::getDongId).collect(Collectors.toSet()));
             List<MapStatusItem> items = zones.stream()
                     .map(zone -> toZoneItem(
-                            zone, latestStatByZone.get(zone.getId()), eventCountByZone, ongoingZoneIds))
+                            zone,
+                            regionPathByDong.get(zone.getDongId()),
+                            latestStatByZone.get(zone.getId()),
+                            eventCountByZone,
+                            ongoingZoneIds))
                     .toList();
             return new MapStatusResponse(ZONE_UNIT_TYPE, items);
         }
@@ -98,13 +106,18 @@ public class MapStatusService {
     }
 
     private MapStatusItem toZoneItem(
-            Zone zone, ZoneStatMinute stat, Map<Long, Integer> eventCountByZone, Set<Long> ongoingZoneIds) {
+            Zone zone,
+            String regionPath,
+            ZoneStatMinute stat,
+            Map<Long, Integer> eventCountByZone,
+            Set<Long> ongoingZoneIds) {
         int todayEventCount = eventCountByZone.getOrDefault(zone.getId(), 0);
         boolean ongoingEvent = ongoingZoneIds.contains(zone.getId());
         if (stat == null) {
             return noDataItem(
                     zone.getId(),
                     zone.getName(),
+                    regionPath,
                     zone.getCenterLat(),
                     zone.getCenterLng(),
                     todayEventCount,
@@ -116,6 +129,7 @@ public class MapStatusService {
         return new MapStatusItem(
                 zone.getId(),
                 zone.getName(),
+                regionPath,
                 zone.getCenterLat(),
                 zone.getCenterLng(),
                 stat.getCountAvg(),
@@ -136,7 +150,8 @@ public class MapStatusService {
                 .sumAtLatestMinute(zones, latestStatByZone)
                 .map(sum -> toRegionItem(child, sum, todayEventCount, ongoingEvent))
                 .orElseGet(
-                        () -> noDataItem(child.getId(), child.getName(), null, null, todayEventCount, ongoingEvent));
+                        () -> noDataItem(
+                                child.getId(), child.getName(), null, null, null, todayEventCount, ongoingEvent));
     }
 
     private MapStatusItem toRegionItem(
@@ -147,6 +162,7 @@ public class MapStatusService {
         return new MapStatusItem(
                 child.getId(),
                 child.getName(),
+                null,
                 null,
                 null,
                 sum.countAvg(),
@@ -160,12 +176,13 @@ public class MapStatusService {
     private MapStatusItem noDataItem(
             long id,
             String name,
+            String regionPath,
             BigDecimal centerLat,
             BigDecimal centerLng,
             int todayEventCount,
             boolean ongoingEvent) {
         return new MapStatusItem(
-                id, name, centerLat, centerLng, null, null, null, null, todayEventCount, ongoingEvent);
+                id, name, regionPath, centerLat, centerLng, null, null, null, null, todayEventCount, ongoingEvent);
     }
 
     private boolean hasOngoingEvent(List<Zone> zones, Set<Long> ongoingZoneIds) {

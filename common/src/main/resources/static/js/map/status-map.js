@@ -204,15 +204,21 @@ function textTooltip(name, text) {
     return box;
 }
 
-// 이름 + 인원·밀집도 (통계가 없으면 '데이터 없음')
+// 이름 + (구역이면) 구·동 + 인원·밀집도 (통계가 없으면 '데이터 없음')
 function tooltip(name, item) {
     const box = document.createElement('div');
     const title = document.createElement('b');
     title.textContent = name;
+    box.append(title);
+    if (item?.regionPath) {
+        const path = document.createElement('div');
+        path.textContent = item.regionPath;
+        box.append(path);
+    }
     const body = document.createElement('div');
     body.textContent = item?.level
         ? `${formatNumber(Math.round(Number(item.countAvg)))}명 · ${formatDecimal(item.density, 2)}명/㎡`
         : '데이터 없음';
-    box.append(title, body);
+    box.append(body);
     return box;
 }
