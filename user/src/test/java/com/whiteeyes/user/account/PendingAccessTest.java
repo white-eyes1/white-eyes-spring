@@ -90,6 +90,15 @@ class PendingAccessTest {
 
     @Test
     @WithMockUser(roles = "PENDING")
+    @DisplayName("FNC-U-003 승인 대기 화면에 승인 뒤 로그아웃하고 다시 로그인하라는 안내가 있다 (#249)")
+    void pending_pendingPage_showsReloginNotice() throws Exception {
+        mockMvc.perform(get("/pending"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("승인이 완료되면 로그아웃한 뒤 다시 로그인해 주세요.")));
+    }
+
+    @Test
+    @WithMockUser(roles = "PENDING")
     @DisplayName("FNC-U-003 승인 대기 화면은 공통 화면 틀(head·scripts)을 쓴다")
     void pending_pendingPage_usesCommonLayout() throws Exception {
         mockMvc.perform(get("/pending"))
