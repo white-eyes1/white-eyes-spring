@@ -5,6 +5,7 @@ import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
 import com.whiteeyes.common.region.exception.RegionNotFoundException;
 import com.whiteeyes.common.region.repository.RegionRepository;
+import com.whiteeyes.common.region.service.RegionQueryService;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -19,9 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RegionLookupService {
 
-    private static final String PATH_SEPARATOR = " · ";
-
     private final RegionRepository regionRepository;
+    private final RegionQueryService regionQueryService;
 
     /** 지역(시·도, 시·군·구, 읍·면·동 아무거나) 아래의 읍·면·동 번호. 읍·면·동을 주면 자기 자신이다. */
     @Transactional(readOnly = true)
@@ -48,11 +48,10 @@ public class RegionLookupService {
         return regionRepository.findIdsOfLevelByNameOrParentNameContaining(keyword, RegionLevel.EMD);
     }
 
-    /** 읍·면·동 번호 → 지역 경로("유성구 · 궁동"). 상위(시·군·구)까지 쿼리 한 번으로 가져온다. */
+    /** 읍·면·동 번호 → 지역 경로("유성구 · 궁동"). 지도 현황(common)과 같은 기준을 쓰도록 RegionQueryService에 맡긴다. */
     @Transactional(readOnly = true)
     public Map<Long, String> findPaths(Collection<Long> dongIds) {
-        return regionRepository.findAllWithParentByIdIn(dongIds).stream()
-                .collect(Collectors.toMap(Region::getId, this::pathOf, (first, second) -> first));
+        return regionQueryService.findPaths(dongIds);
     }
 
     /** 읍·면·동 번호 → 시·도 / 시·군·구 / 읍·면·동 이름(이벤트 엑셀 FNC-A-039). 상위 두 단계까지 쿼리 한 번으로 가져온다. */
@@ -73,10 +72,5 @@ public class RegionLookupService {
         Region sido = sigungu == null ? null : sigungu.getParent();
         return new RegionNames(
                 sido == null ? null : sido.getName(), sigungu == null ? null : sigungu.getName(), dong.getName());
-    }
-
-    private String pathOf(Region dong) {
-        Region parent = dong.getParent();
-        return parent == null ? dong.getName() : parent.getName() + PATH_SEPARATOR + dong.getName();
     }
 }

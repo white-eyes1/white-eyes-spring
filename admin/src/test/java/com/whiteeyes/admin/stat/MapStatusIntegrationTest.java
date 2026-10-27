@@ -154,6 +154,29 @@ class MapStatusIntegrationTest {
     }
 
     @Test
+    @DisplayName("FNC-C-009 구역 항목에만 소속 '시·군·구 · 읍·면·동'(regionPath)이 있다(구역 핀 툴팁, SCR-C-003)")
+    void zoneItems_haveRegionPath_regionItemsDoNot() throws Exception {
+        long sajik = insertZone("11110530", "사직동 1구역", "100.00");
+        long sogong = insertZone("11140520", "소공동 1구역", "100.00");
+        insertStat(sajik, latestMinute, "50.00", "0.5000");
+
+        // 시·도 아래 모든 구역: 구가 달라도 각자 자기 구·동. 통계가 없는 구역에도 있다
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(sajik))
+                .andExpect(jsonPath("$.items[0].regionPath").value("종로구 · 사직동"))
+                .andExpect(jsonPath("$.items[1].id").value(sogong))
+                .andExpect(jsonPath("$.items[1].level").isEmpty())
+                .andExpect(jsonPath("$.items[1].regionPath").value("중구 · 소공동"));
+
+        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unitType").value("SIGUNGU"))
+                .andExpect(jsonPath("$.items[0].regionPath").doesNotExist())
+                .andExpect(jsonPath("$.items[1].regionPath").doesNotExist());
+    }
+
+    @Test
     @DisplayName("FNC-C-009 최근 5분 안에 통계가 없으면 데이터 없음(level 등 null)")
     void staleStat_isNoData() throws Exception {
         long zone = insertZone("11110540", "삼청동 1구역", "100.00");
