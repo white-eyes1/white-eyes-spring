@@ -155,6 +155,30 @@ class StatExportApiTest {
     }
 
     @Test
+    @DisplayName("FNC-C-023 처리 순서 3: 지역 합산 파일(펼치기 안 함)은 읍·면·동·구역 칸에 '(지역 합산)'이 있고 값은 합산")
+    void exportRegionSum_labelsSumRow() throws Exception {
+        insertHourly(sajik, H0, "100.00", false);
+        long jongno = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '11110'", Long.class);
+
+        byte[] body = mockMvc.perform(exportRequest("REGION", jongno, "1h", "2099-01-01T10:00", "2099-01-01T11:00")
+                        .param("items", "COUNT")
+                        .with(AdminTestLogin.admin()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
+            Row row = workbook.getSheet("인원").getRow(1);
+            assertThat(row.getCell(1).getStringCellValue()).isEqualTo("서울특별시");
+            assertThat(row.getCell(2).getStringCellValue()).isEqualTo("종로구");
+            assertThat(row.getCell(3).getStringCellValue()).isEqualTo("(지역 합산)");
+            assertThat(row.getCell(4).getStringCellValue()).isEqualTo("(지역 합산)");
+            assertThat(row.getCell(5).getNumericCellValue()).isEqualTo(100.0);
+        }
+    }
+
+    @Test
     @DisplayName("FNC-C-023 처리 순서 4: 내려받으면 work_history에 EXCEL_DOWNLOAD 1행(행동한 관리자·대상·detail)")
     void exportZone_recordsHistory() throws Exception {
         mockMvc.perform(exportRequest("ZONE", sajik, "1h", "2099-01-01T10:00", "2099-01-01T12:00")

@@ -33,7 +33,8 @@ class StatExcelWriterTest {
     private static final LocalDateTime T0 = LocalDateTime.of(2099, 1, 1, 10, 0);
     private static final StatExportSeries SAJIK =
             new StatExportSeries(1L, "서울특별시", "종로구", "사직동", "사직동 1구역");
-    private static final StatExportSeries JONGNO = new StatExportSeries(null, "서울특별시", "종로구", null, null);
+    private static final StatExportSeries JONGNO =
+            new StatExportSeries(null, "서울특별시", "종로구", "(지역 합산)", "(지역 합산)");
 
     @Test
     @DisplayName("FNC-C-023 처리 순서 2·3: 항목마다 시트 하나(고른 순서), 열은 시각·시·구·동·구역·항목 값·시연용")
@@ -53,7 +54,7 @@ class StatExcelWriterTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 처리 순서 3: 행마다 시각(날짜 칸)·이름·값을 쓰고, 지역 합산은 아래 단계 이름 칸이 빈다")
+    @DisplayName("FNC-C-023 처리 순서 3: 행마다 시각(날짜 칸)·이름·값을 쓰고, 지역 합산은 아래 단계 칸에 '(지역 합산)'")
     void rows() throws Exception {
         StatExportPlan plan = plan("1h", List.of("COUNT", "DENSITY", "INFLOW", "DWELL"));
         List<Line> lines = List.of(
@@ -69,8 +70,7 @@ class StatExcelWriterTest {
             assertThat(count.getCell(8).getStringCellValue()).isEqualTo("아니오");
 
             Row regionRow = workbook.getSheet("인원").getRow(2);
-            assertThat(regionRow.getCell(3)).isNull();
-            assertThat(regionRow.getCell(4)).isNull();
+            assertThat(texts(regionRow).subList(1, 5)).containsExactly("서울특별시", "종로구", "(지역 합산)", "(지역 합산)");
             assertThat(regionRow.getCell(8).getStringCellValue()).isEqualTo("예");
 
             Row density = workbook.getSheet("밀집도").getRow(1);

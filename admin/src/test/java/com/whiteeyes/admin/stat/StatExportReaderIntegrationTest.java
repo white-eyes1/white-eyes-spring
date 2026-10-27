@@ -117,14 +117,27 @@ class StatExportReaderIntegrationTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 지역 합산(기본): 줄 하나에 지역 경로만, 원본 구역은 삭제된 구역까지 센다")
+    @DisplayName("FNC-C-023 지역 합산(기본): 줄 하나에 지역 경로와 아래 단계 칸 '(지역 합산)', 원본 구역은 삭제된 구역까지 센다")
     void planRegionSum() throws BindException {
         StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
 
         assertThat(plan.targetName()).isEqualTo("종로구");
-        assertThat(plan.series()).containsExactly(new StatExportSeries(null, "서울특별시", "종로구", null, null));
+        assertThat(plan.series()).containsExactly(
+                new StatExportSeries(null, "서울특별시", "종로구", "(지역 합산)", "(지역 합산)"));
         assertThat(plan.sourceZoneCount()).isEqualTo(4);
         assertThat(plan.perZone()).isFalse();
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 처리 순서 3: 지역 합산 줄은 합산한 지역보다 아래 단계 칸에만 '(지역 합산)'(시·도는 구·동·구역, 동은 구역)")
+    void planRegionSum_labelsBelowLevel() throws BindException {
+        StatExportPlan sido = statExportReader.plan(request(StatExportScope.REGION, regionId("11"), false));
+        StatExportPlan dong = statExportReader.plan(request(StatExportScope.REGION, regionId("11110540"), false));
+
+        assertThat(sido.series()).containsExactly(
+                new StatExportSeries(null, "서울특별시", "(지역 합산)", "(지역 합산)", "(지역 합산)"));
+        assertThat(dong.series()).containsExactly(
+                new StatExportSeries(null, "서울특별시", "종로구", "삼청동", "(지역 합산)"));
     }
 
     @Test
