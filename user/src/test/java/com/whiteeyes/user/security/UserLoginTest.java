@@ -2,6 +2,7 @@ package com.whiteeyes.user.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -274,6 +275,23 @@ class UserLoginTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("href=\"/signup\"")))
                 .andExpect(content().string(containsString("회원가입")));
+    }
+
+    @Test
+    @DisplayName("SCR-U-001 가입을 마치고 넘어온 로그인 화면(?signup=done)에는 가입 완료 안내가 화면 안에 보인다")
+    void loginPage_afterSignup_showsDoneNotice() throws Exception {
+        mockMvc.perform(get("/login").param("signup", "done"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("가입 신청이 완료되었습니다. 관리자 승인 후 이용할 수 있습니다.")));
+    }
+
+    @Test
+    @DisplayName("SCR-U-001 그냥 연 로그인 화면이나 다른 값(?signup=x)에는 가입 완료 안내가 없다")
+    void loginPage_withoutSignupDone_hidesDoneNotice() throws Exception {
+        mockMvc.perform(get("/login"))
+                .andExpect(content().string(not(containsString("가입 신청이 완료되었습니다"))));
+        mockMvc.perform(get("/login").param("signup", "x"))
+                .andExpect(content().string(not(containsString("가입 신청이 완료되었습니다"))));
     }
 
     @Test

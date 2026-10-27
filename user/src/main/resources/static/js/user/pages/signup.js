@@ -3,7 +3,6 @@ import { ApiError, get, post, url } from '../../common/api.js';
 
 const AVAILABLE_MESSAGE = '사용할 수 있습니다';
 const TAKEN_MESSAGE = '이미 사용 중입니다';
-const SIGNUP_DONE_MESSAGE = '가입 신청이 완료되었습니다. 관리자 승인 후 이용할 수 있습니다.';
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 const FIELDS = ['loginId', 'password', 'passwordConfirm', 'name', 'email', 'phone'];
 
@@ -55,8 +54,8 @@ form.addEventListener('submit', async (event) => {
     submitButton.disabled = true;
     try {
         await post('/api/v1/signup', readForm(), { toast: false });
-        window.alert(SIGNUP_DONE_MESSAGE);
-        window.location.href = url('/login');
+        // 완료 안내는 로그인 화면이 signup=done 으로 받아 화면 안에 보인다(alert는 막히거나 놓칠 수 있다)
+        window.location.href = url('/login?signup=done');
     } catch (error) {
         // 확인한 뒤 다른 사람이 먼저 가입한 경우라 다시 확인해야 한다
         if (error instanceof ApiError && error.code === 'DUPLICATE_LOGIN_ID') {
