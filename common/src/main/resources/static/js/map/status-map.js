@@ -5,6 +5,8 @@ import { formatDecimal, formatNumber } from '../common/format.js';
 
 const FALLBACK_ZOOM = 12;
 const OFF_PAINT = '#4a5768';
+// 핀 아이콘(지름 30px) 위쪽에서 팝업 꼬리가 시작하도록 올린다
+const POPUP_OFFSET = [0, -18];
 // 고정 문자열이라 innerHTML에 넣어도 안전하다(서버 값이 아님)
 const PIN_ICON =
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
@@ -32,13 +34,16 @@ export function createRegionMap(element, region, previous) {
 /**
  * 지도 위에 올리는 경계·핀 층.
  * @param map createRegionMap의 지도
- * @param {{onSelectRegion: (id: number) => void, onViewChange: () => void, onPinClick?: (zoneId: number) => void}} handlers
- *   onPinClick: 구역 핀을 눌렀을 때(관리자 앱은 실시간 보기 창). 없으면 눌러도 아무 일도 하지 않는다
+ * @param {{onSelectRegion: (id: number) => void, onViewChange: () => void, onPinClick?: (zoneId: number) => void, levels?: object[]}} handlers
+ *   onPinClick: 구역 핀을 눌렀을 때(관리자 앱은 실시간 보기 창). 없으면 구역 정보 팝업을 연다(사용자 앱, FNC-C-009)
+ *   levels: GET /meta/levels. 팝업의 혼잡 단계 이름에 쓴다
  */
-export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClick }) {
+export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClick, levels = [] }) {
     const boundaries = L.layerGroup().addTo(map);
     const pins = L.layerGroup().addTo(map);
     let zonePoints = [];
+    // 열려 있는 팝업의 구역. 새 1분 통계로 핀을 다시 그려도 같은 팝업을 다시 연다
+    let openPopupZoneId = null;
     // 경계 층과 그 단계 색 모양. 히트맵(FNC-C-011)이 켜져 있으면 paint로 덮어 칠한다
     let boundaryLayers = [];
     let paint = null;
@@ -101,6 +106,7 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
 
         /** 구역 핀: 중심점에 단계 색, 진행 중 이벤트가 있으면 오늘 이벤트 수 배지. */
         showPins(items) {
+            const reopenZoneId = openPopupZoneId;
             pins.clearLayers();
             zonePoints = items
                 .filter((item) => item.centerLat !== null && item.centerLat !== undefined)
@@ -110,8 +116,19 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
                 marker.bindTooltip(tooltip(item.name, item));
                 if (onPinClick) {
                     marker.on('click', () => onPinClick(item.id));
+                } else {
+                    marker.bindPopup(zonePopup(item, levels), { offset: POPUP_OFFSET });
+                    marker.on('popupopen', () => {
+                        openPopupZoneId = item.id;
+                    });
+                    marker.on('popupclose', () => {
+                        openPopupZoneId = null;
+                    });
                 }
                 pins.addLayer(marker);
+                if (!onPinClick && item.id === reopenZoneId) {
+                    marker.openPopup();
+                }
             });
         },
 
@@ -142,6 +159,39 @@ function pinIcon(item) {
         pin.append(badge);
     }
     return L.divIcon({ html: pin, className: 'zone-pin', iconSize: [0, 0] });
+}
+
+// 구역 정보 팝업: 이름, 현재 인원, 밀집도, 혼잡 단계 (통계가 없으면 '데이터 없음')
+function zonePopup(item, levels) {
+    const box = document.createElement('div');
+    box.className = 'zone-popup';
+    const title = document.createElement('b');
+    title.textContent = item.name;
+    box.append(title);
+    if (!item.level) {
+        const empty = document.createElement('div');
+        empty.textContent = '데이터 없음';
+        box.append(empty);
+        return box;
+    }
+    const found = levels.find((candidate) => candidate.level === item.level);
+    const chip = document.createElement('span');
+    chip.className = 'chip l' + item.level;
+    chip.textContent = found ? found.name : '단계 ' + item.level;
+    box.append(
+        popupRow('현재 인원', document.createTextNode(`${formatNumber(Math.round(Number(item.countAvg)))}명`)),
+        popupRow('밀집도', document.createTextNode(`${formatDecimal(item.density, 2)}명/㎡`)),
+        popupRow('혼잡 단계', chip),
+    );
+    return box;
+}
+
+function popupRow(label, value) {
+    const row = document.createElement('div');
+    const name = document.createElement('span');
+    name.textContent = label;
+    row.append(name, value);
+    return row;
 }
 
 function textTooltip(name, text) {
