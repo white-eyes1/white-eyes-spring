@@ -94,7 +94,8 @@
 <!--
   사용자 상세 창(SCR-A-002). 행을 누르면 user-detail.js가 연다. 아이디는 제목에 읽기 전용으로 보이고,
   이름·메일·연락처를 고쳐 '저장'하면 PATCH /api/v1/users/{id}(FNC-A-004) 뒤 창을 닫고 목록을 다시 읽는다. 형식 오류는 칸 아래에 보인다.
-  '비밀번호 재설정'(FNC-A-005)의 임시 비밀번호는 재설정 응답을 받은 뒤에만 채우고 창을 닫으면 지운다
+  '비밀번호 재설정'(FNC-A-005)의 임시 비밀번호는 재설정 응답을 받은 뒤에만 채우고 창을 닫으면 지운다.
+  상태가 '탈퇴'인 계정은 입력을 읽기 전용으로 하고 저장·비밀번호 재설정을 끄며 안내 문구(user-detail-withdrawn)를 보인다
 -->
 <div class="modal-stage user-modal-stage" id="user-detail-modal" hidden>
     <form class="modal user-detail" id="user-detail-form" role="dialog" aria-modal="true" aria-labelledby="user-detail-title" novalidate>
@@ -109,6 +110,7 @@
         </div>
         <div class="modal-body">
             <p class="alert" id="user-detail-error" role="alert" hidden></p>
+            <p class="muted" id="user-detail-withdrawn" role="status" hidden>탈퇴한 계정은 정보를 수정하거나 비밀번호를 재설정할 수 없습니다.</p>
             <div class="field">
                 <label for="user-detail-name">이름</label>
                 <input class="input" id="user-detail-name" name="name" type="text" maxlength="50" autocomplete="off">

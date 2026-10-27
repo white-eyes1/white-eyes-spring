@@ -168,6 +168,20 @@ class UserUpdateTest {
     }
 
     @Test
+    @DisplayName("FNC-A-004 탈퇴 계정은 409 INVALID_STATUS이고 값·기록이 그대로다")
+    void withdrawn_conflict() throws Exception {
+        long hongId = insertUser("hong01", "WITHDRAWN");
+
+        update(hongId, Map.of("name", "홍길순"), login("admin01"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVALID_STATUS"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT name FROM user_account WHERE id = ?", String.class, hongId))
+                .isEqualTo("홍길동");
+        assertThat(count("work_history")).isZero();
+    }
+
+    @Test
     @DisplayName("FNC-A-004 없는 사용자는 404 NOT_FOUND이고 기록이 없다")
     void unknownUser_notFound() throws Exception {
         update(999_999L, Map.of("name", "홍길순"), login("admin01"))

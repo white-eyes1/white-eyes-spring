@@ -2,11 +2,13 @@ package com.whiteeyes.admin.account.service;
 
 import com.whiteeyes.admin.account.dto.UserListItem;
 import com.whiteeyes.admin.account.dto.UserUpdateRequest;
+import com.whiteeyes.admin.account.exception.InvalidUserStatusException;
 import com.whiteeyes.admin.account.exception.UserNotFoundException;
 import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
 import com.whiteeyes.admin.account.repository.UserRow;
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.common.account.entity.UserAccount;
+import com.whiteeyes.common.account.entity.UserAccountStatus;
 import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
@@ -32,16 +34,20 @@ public class UserUpdateService {
 
     private static final Logger log = LoggerFactory.getLogger(UserUpdateService.class);
 
+    // 409 오류 문구에 들어가는 하려던 일
+    private static final String ACTION = "수정";
+
     private final UserAccountRepository userAccountRepository;
     private final AccountActivityService accountActivityService;
     private final AdminWorkRecorder workRecorder;
 
     /**
      * 보낸 필드만 고친다. 보내지 않은(null) 필드는 저장된 값을 그대로 두고, 메일·연락처를 빈 문자열로 보내면 비운다(NULL 저장).
-     * 명세에 상태 제한이 없어 미승인·탈퇴 계정도 고친다(비밀번호 재설정 FNC-A-005와 같음).
+     * 미승인·정상 계정은 고치고, 탈퇴 계정은 고칠 수 없다(비밀번호 재설정 FNC-A-005와 같음).
      *
      * @return 수정된 사용자(목록 한 줄과 같은 모양)
      * @throws UserNotFoundException 없는 사용자일 때(404)
+     * @throws InvalidUserStatusException 탈퇴 계정일 때(409 INVALID_STATUS)
      */
     @Transactional
     public UserListItem update(Long userId, UserUpdateRequest request) {
@@ -51,6 +57,9 @@ public class UserUpdateService {
         UserAccount user = userAccountRepository
                 .findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+        if (user.getStatus() == UserAccountStatus.WITHDRAWN) {
+            throw new InvalidUserStatusException(userId, user.getStatus(), ACTION);
+        }
 
         // 처리 순서 2: 검증(요청 검사)한 값을 저장
         String name = request.name() != null ? request.name() : user.getName();

@@ -132,9 +132,9 @@ class UserPasswordResetTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"PENDING", "WITHDRAWN"})
-    @DisplayName("FNC-A-005 명세에 상태 제한이 없어 미승인·탈퇴 계정도 재설정된다")
-    void anyStatus_ok(String userStatus) throws Exception {
+    @ValueSource(strings = {"PENDING", "ACTIVE"})
+    @DisplayName("FNC-A-005 미승인·정상 계정은 재설정된다")
+    void pendingAndActive_ok(String userStatus) throws Exception {
         long id = insertUser("hong01", userStatus);
 
         resetRequest(id, login("admin01")).andExpect(status().isOk());
@@ -142,6 +142,24 @@ class UserPasswordResetTest {
         assertThat(jdbcTemplate.queryForObject(
                         "SELECT must_change_password FROM user_account WHERE id = ?", Integer.class, id))
                 .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FNC-A-005 탈퇴 계정은 409 INVALID_STATUS이고 비밀번호·기록이 그대로다")
+    void withdrawn_conflict() throws Exception {
+        long id = insertUser("hong01", "WITHDRAWN");
+        String before = jdbcTemplate.queryForObject("SELECT password FROM user_account WHERE id = ?", String.class, id);
+
+        resetRequest(id, login("admin01"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVALID_STATUS"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT password FROM user_account WHERE id = ?", String.class, id))
+                .isEqualTo(before);
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT must_change_password FROM user_account WHERE id = ?", Integer.class, id))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM work_history", Long.class)).isZero();
     }
 
     @Test
