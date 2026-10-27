@@ -117,12 +117,13 @@ class StatExportReaderIntegrationTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 지역 합산(기본): 줄 하나에 지역 경로만, 원본 구역은 삭제된 구역까지 센다")
+    @DisplayName("FNC-C-023 지역 합산(기본): 줄 하나에 지역 경로와 아래 단계 칸 '(지역 합산)', 원본 구역은 삭제된 구역까지 센다")
     void planRegionSum() throws BindException {
         StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
 
         assertThat(plan.targetName()).isEqualTo("종로구");
-        assertThat(plan.series()).containsExactly(new StatExportSeries(null, "서울특별시", "종로구", null, null));
+        assertThat(plan.series()).containsExactly(
+                new StatExportSeries(null, "서울특별시", "종로구", "(지역 합산)", "(지역 합산)"));
         assertThat(plan.sourceZoneCount()).isEqualTo(4);
         assertThat(plan.perZone()).isFalse();
     }

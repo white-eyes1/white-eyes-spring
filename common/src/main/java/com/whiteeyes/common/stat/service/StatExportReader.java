@@ -43,6 +43,8 @@ public class StatExportReader {
     private static final String ALL_TARGET_NAME = "전체";
     // 삭제된 구역 이름 뒤에 붙인다(FNC-A-017 업무 규칙, 통계 그래프 화면과 같은 표기)
     private static final String DELETED_SUFFIX = " (삭제됨)";
+    // 지역 합산 줄에서 합산한 지역보다 아래 단계 칸에 쓴다(FNC-C-023 처리 순서 3)
+    static final String REGION_SUM_LABEL = "(지역 합산)";
 
     private final RegionQueryService regionQueryService;
     private final RegionRepository regionRepository;
@@ -125,9 +127,24 @@ public class StatExportReader {
                     request, region.getName(), series, series.size(), request.checkRowLimit(series.size()));
         }
         int sourceZoneCount = dongIds.isEmpty() ? 0 : regionQueryService.findAllZonesInDongs(dongIds).size();
-        StatExportSeries series = named(null, region.getId(), null, regions);
         return new StatExportPlan(
-                request, region.getName(), List.of(series), sourceZoneCount, request.checkRowLimit(1));
+                request,
+                region.getName(),
+                List.of(regionSumSeries(region, regions)),
+                sourceZoneCount,
+                request.checkRowLimit(1));
+    }
+
+    // 합산한 지역보다 아래 단계의 지역 칸과 구역 칸은 비우지 않고 '(지역 합산)'을 쓴다. 위 단계 칸은 그대로 둔다
+    private static StatExportSeries regionSumSeries(Region region, Map<Long, Region> regions) {
+        StatExportSeries path = named(null, region.getId(), null, regions);
+        RegionLevel level = region.getLevel();
+        return new StatExportSeries(
+                null,
+                path.sido(),
+                level.compareTo(RegionLevel.SIGUNGU) < 0 ? REGION_SUM_LABEL : path.sigungu(),
+                level.compareTo(RegionLevel.EMD) < 0 ? REGION_SUM_LABEL : path.emd(),
+                REGION_SUM_LABEL);
     }
 
     // 구역 줄은 읍·면·동 코드 순, 같은 동 안에서는 구역 번호 순
