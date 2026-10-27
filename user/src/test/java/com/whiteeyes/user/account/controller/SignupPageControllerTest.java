@@ -1,6 +1,7 @@
 package com.whiteeyes.user.account.controller;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,9 +31,20 @@ class SignupPageControllerTest {
                 .andExpect(view().name("user/signup"))
                 .andExpect(content().string(containsString("id=\"signup-form\"")))
                 .andExpect(content().string(containsString("id=\"check-login-id\"")))
-                .andExpect(content().string(containsString("<button type=\"submit\" id=\"signup-submit\" disabled>")))
+                .andExpect(content().string(matchesPattern("(?s).*<button[^>]*id=\"signup-submit\"[^>]*disabled>.*")))
                 .andExpect(content().string(containsString("<meta name=\"context-path\" content=\"/\">")))
                 .andExpect(content().string(containsString("src=\"/js/user/pages/signup.js\"")));
+    }
+
+    // 스타일시트 링크가 빠져 화면이 깨졌던 문제(#247)를 막는다
+    @Test
+    @DisplayName("SCR-U-001 화면은 공통 스타일시트(we.css)를 달고, 사용자 앱이 그 파일을 내려준다")
+    void signupPage_stylesheetLinked() throws Exception {
+        mockMvc.perform(get("/signup"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/css/we.css\"")))
+                .andExpect(content().string(containsString("<body class=\"we\">")));
+        mockMvc.perform(get("/css/we.css")).andExpect(status().isOk());
     }
 
     // signup.js는 user 모듈, api.js는 common 모듈에 있어 두 곳 모두 사용자 앱에서 내려가는지 본다
