@@ -14,7 +14,13 @@
 @media (min-width: 860px) {
     .dash-body { flex: none; height: max(360px, calc(100vh - 495px)); min-height: 0; }
     .dash[data-admin="false"] .dash-body { flex: 1 1 auto; height: auto; min-height: 560px; }
+    /* 줄바꿈 없이 한 줄로 두어야 오른쪽 칸 높이가 화면 높이에 묶인다(펼친 모양에서 캠 패널이 안에서 스크롤된다) */
+    .dash-split { flex-wrap: nowrap; }
     .dash-split > .stat-panel { contain: size; overflow: hidden; }
+}
+/* 좁은 화면: 지도와 캠 패널을 위에, 통계 패널을 그 아래에 전체 폭으로 둔다 */
+@media (max-width: 859px) {
+    .dash-split > .stat-panel { order: 1; flex: 1 1 100%; border-right: 0; border-top: 1px solid var(--line); }
 }
 .dash.expanded .dash-body { flex: none; min-height: 0; height: 64px; flex-wrap: nowrap; overflow: hidden; }
 .dash-map { flex: 999 1 560px; min-width: 0; min-height: 0; }
