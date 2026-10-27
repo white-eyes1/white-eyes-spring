@@ -486,8 +486,8 @@ function renderStat(ms) {
     if (event) {
         document.getElementById('pb-event-chip').textContent = EVENT_TYPE_LABELS[event.type] ?? '혼잡';
         document.getElementById('pb-event-text').textContent = `${formatHm(event.startedAt)} ~ ${event.endedAt ? formatHm(event.endedAt) : '진행 중'} 이벤트 안`;
-        // 이벤트 상세 창(SCR-A-011)은 이벤트 로그 화면 안에 있어 일단 이벤트 로그로 연결한다
-        document.getElementById('pb-event-link').href = url('/events');
+        // 이벤트 상세 창(SCR-A-011)은 이벤트 로그 화면 안에 있어, ?eventId= 로 그 이벤트의 상세 창을 바로 연다
+        document.getElementById('pb-event-link').href = url(`/events?eventId=${event.id}`);
     }
 }
 
