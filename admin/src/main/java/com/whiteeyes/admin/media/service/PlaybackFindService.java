@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.domain.Limit;
@@ -54,12 +55,24 @@ public class PlaybackFindService {
         if (cameraIds.isEmpty()) {
             throw new RecordingNotFoundException();
         }
-        Recording recording = recordingRepository.findContaining(cameraIds, at, Limit.of(1)).stream()
-                .findFirst()
-                .orElseThrow(RecordingNotFoundException::new);
-        // 처리 순서 4: 재생 시작 위치 = at − started_at
-        double seekSec = Duration.between(recording.getStartedAt(), at).toMillis() / 1000.0;
-        return toResponse(recording, seekSec, basePath);
+        Optional<Recording> containing =
+                recordingRepository.findContaining(cameraIds, at, Limit.of(1)).stream().findFirst();
+        if (containing.isPresent()) {
+            // 처리 순서 4: 재생 시작 위치 = at − started_at
+            double seekSec = Duration.between(containing.get().getStartedAt(), at).toMillis() / 1000.0;
+            return toResponse(containing.get(), seekSec, basePath);
+        }
+        // 분 시작 시각(이벤트 시작·1분 통계 점)은 그 1분 전체를 뜻한다. 그 1분 안에서 녹화가 시작했으면(캠 가동 직후)
+        // 가장 이른 녹화의 처음으로 보낸다(#260). 분 중간 시각은 이 규칙을 쓰지 않아 녹화 없는 구간은 '영상 없음'이다
+        if (at.getSecond() == 0 && at.getNano() == 0) {
+            Recording startedInMinute = recordingRepository
+                    .findStartedBetween(cameraIds, at, at.plusMinutes(1), Limit.of(1))
+                    .stream()
+                    .findFirst()
+                    .orElseThrow(RecordingNotFoundException::new);
+            return toResponse(startedInMinute, 0, basePath);
+        }
+        throw new RecordingNotFoundException();
     }
 
     /**
