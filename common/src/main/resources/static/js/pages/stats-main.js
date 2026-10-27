@@ -242,7 +242,9 @@ async function loadRegion() {
             onSelectRegion: selectChildRegion,
             onViewChange: updateVisibleZones,
             // 관리자 앱: 구역 핀을 누르면 그 구역 캠의 실시간 보기 창(SCR-A-008)
+            // 사용자 앱: onPinClick이 없으면 구역 정보 팝업(인원·밀집도·단계, SCR-C-003)
             onPinClick: isAdmin ? openLiveForZone : undefined,
+            levels,
         });
         renderedRegionId = target.id;
         connectStream(target.id);
