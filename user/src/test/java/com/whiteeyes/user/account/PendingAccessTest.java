@@ -57,6 +57,28 @@ class PendingAccessTest {
 
     @Test
     @WithMockUser(roles = "PENDING")
+    @DisplayName("SCR-U-003 PENDING 계정이 /signup으로 가면 승인 대기 화면으로 보낸다")
+    void pending_signupPage_redirectsToPending() throws Exception {
+        mockMvc.perform(get("/signup"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/pending"));
+    }
+
+    @Test
+    @DisplayName("FNC-U-002 로그인하지 않은 사용자는 /signup을 열 수 있다")
+    void anonymous_signupPage_allowed() throws Exception {
+        mockMvc.perform(get("/signup")).andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "PENDING")
+    @DisplayName("FNC-U-003 승인 대기 화면에 PENDING 계정이 다시 들어와도 되돌림(루프) 없이 열린다")
+    void pending_pendingPage_noLoop() throws Exception {
+        mockMvc.perform(get("/pending")).andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "PENDING")
     @DisplayName("FNC-U-003 승인 대기 화면에 안내 문구와 로그아웃 버튼이 있다")
     void pending_pendingPage_showsNoticeAndLogout() throws Exception {
         mockMvc.perform(get("/pending"))
