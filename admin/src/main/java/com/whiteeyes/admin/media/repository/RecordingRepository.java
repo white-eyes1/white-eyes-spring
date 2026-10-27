@@ -41,6 +41,18 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
             @Param("cameraIds") Collection<Long> cameraIds, @Param("at") LocalDateTime at, Limit limit);
 
     /**
+     * 주어진 캠들의 녹화 중 [from, to) 안에서 시작한 것을 시작이 빠른 순으로(FNC-A-043, 분 시작 시각 조회).
+     * 첫 줄만 쓰면 started_at이 가장 이른 녹화다.
+     */
+    @Query("select r from Recording r where r.cameraId in :cameraIds and r.startedAt >= :from"
+            + " and r.startedAt < :to order by r.startedAt asc, r.id asc")
+    List<Recording> findStartedBetween(
+            @Param("cameraIds") Collection<Long> cameraIds,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Limit limit);
+
+    /**
      * started_at이 cutoff보다 앞선 녹화 기록을 최대 limit건 지운다(FNC-A-032). 파일은 지우지 않는다.
      *
      * @return 지운 건수

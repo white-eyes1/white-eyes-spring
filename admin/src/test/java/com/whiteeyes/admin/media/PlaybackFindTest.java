@@ -206,6 +206,59 @@ class PlaybackFindTest {
     }
 
     @Test
+    @DisplayName("FNC-A-043 at이 분 시작이고 그 1분 안에서 녹화가 시작했으면 그 녹화의 처음(seekSec 0)으로 보낸다(#260)")
+    void findAt_minuteStart_recordingStartedLaterInMinute_returnsRecordingStart() throws Exception {
+        LocalDateTime minuteStart = now.minusHours(2).withSecond(0);
+        long first = insertRecording(cameraId, minuteStart.plusSeconds(27), minuteStart.plusSeconds(87));
+
+        playback(zoneId, minuteStart)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recordingId").value(first))
+                .andExpect(jsonPath("$.seekSec").value(0.0))
+                .andExpect(jsonPath("$.startedAt").value(minuteStart
+                        .plusSeconds(27)
+                        .atOffset(ZoneOffset.ofHours(9))
+                        .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
+    }
+
+    @Test
+    @DisplayName("FNC-A-043 분 시작 at의 1분 안에서 시작한 녹화가 여럿이면 시작이 가장 빠른 것을 고른다(#260)")
+    void findAt_minuteStart_picksEarliestStartedInMinute() throws Exception {
+        LocalDateTime minuteStart = now.minusHours(2).withSecond(0);
+        long otherCameraInZone = insertCamera(zoneId, false);
+        long earlier = insertRecording(otherCameraInZone, minuteStart.plusSeconds(10), minuteStart.plusSeconds(70));
+        insertRecording(cameraId, minuteStart.plusSeconds(27), minuteStart.plusSeconds(87));
+
+        playback(zoneId, minuteStart)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recordingId").value(earlier))
+                .andExpect(jsonPath("$.seekSec").value(0.0));
+    }
+
+    @Test
+    @DisplayName("FNC-A-043 분 시작 at이라도 다음 분에 시작한 녹화나 다른 구역 녹화는 찾지 않는다(#260)")
+    void findAt_minuteStart_recordingOutsideMinuteOrZone_notFound() throws Exception {
+        LocalDateTime minuteStart = now.minusHours(2).withSecond(0);
+        insertRecording(cameraId, minuteStart.plusMinutes(1), minuteStart.plusMinutes(2));
+        insertRecording(otherCameraId, minuteStart.plusSeconds(27), minuteStart.plusSeconds(87));
+
+        playback(zoneId, minuteStart)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECORDING_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("FNC-A-043 at이 분 중간(초가 0이 아님)이면 이후에 시작하는 녹화가 있어도 '영상 없음'이다(#260)")
+    void findAt_midMinute_recordingStartsLater_notFound() throws Exception {
+        LocalDateTime minuteStart = now.minusHours(2).withSecond(0);
+        insertRecording(cameraId, minuteStart.plusSeconds(27), minuteStart.plusSeconds(87));
+
+        playback(zoneId, minuteStart.plusSeconds(10))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECORDING_NOT_FOUND"));
+    }
+
+    @Test
     @DisplayName("FNC-A-043 latest=true면 구역에서 가장 늦게 시작한 녹화를 seekSec 0으로 돌려준다")
     void findLatest_returnsLatestStarted() throws Exception {
         insertRecording(cameraId, now.minusHours(5), now.minusHours(5).plusMinutes(1));
