@@ -37,7 +37,7 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(containsString("<meta name=\"context-path\"")))
                 .andExpect(content().string(containsString("/css/we.css")))
                 .andExpect(content().string(containsString("대시보드")))
-                .andExpect(content().string(containsString("통계·기간 비교")))
+                .andExpect(content().string(containsString("href=\"/stats/graph\">통계</a>")))
                 .andExpect(content().string(containsString("이벤트 로그")))
                 .andExpect(content().string(containsString("관리")))
                 .andExpect(content().string(containsString("id=\"level-legend\"")))
@@ -114,7 +114,7 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(containsString("<details class=\"acc fold\" id=\"abnormal-box\">")))
                 .andExpect(content().string(containsString("비정상 인원 변동")))
                 .andExpect(content().string(containsString("id=\"abnormal-list\"")))
-                .andExpect(content().string(containsString("id=\"abnormal-detail\" href=\"/stats/compare\"")));
+                .andExpect(content().string(containsString("id=\"abnormal-detail\" href=\"/stats/graph\"")));
     }
 
     @Test
@@ -168,8 +168,8 @@ class DashboardPageControllerTest {
         mockMvc.perform(get("/js/pages/stats-main/trend.js"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/api/v1/dashboard/trend")))
-                .andExpect(content().string(containsString("/stats/compare?")))
-                .andExpect(content().string(containsString("baseFrom")));
+                .andExpect(content().string(containsString("/stats/graph?")))
+                .andExpect(content().string(not(containsString("/stats/compare"))));
     }
 
     @Test

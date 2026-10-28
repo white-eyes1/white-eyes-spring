@@ -1,26 +1,23 @@
-// 통계 시계열 선 그래프(SCR-C-004, FNC-C-012·013·014·024). Chart.js(전역 Chart, graph.html이 불러옴) 코드는 이 파일에만 둔다.
+// 통계 시계열 선 그래프(SCR-C-004 통합 그래프, FNC-C-012·013·014·024). Chart.js(전역 Chart, graph.html이 불러옴) 코드는 js/chart/ 안에만 둔다.
 // 값이 없는 점(sampleSec=0·통계 없음)은 null이라 선과 띠가 끊긴다(spanGaps 끔).
-// 시연용 점(isDemo)이 낀 구간은 점선·연한 색으로 그린다(FNC-C-024 업무 규칙).
+// 시연용 점(isDemo)은 그 점의 칸을 옅은 배경으로 칠한다(FNC-C-024 업무 규칙). 점선은 밀집도 선에만 쓴다(결정 0016).
 import { formatDecimal, formatNumber } from '../common/format.js';
+import { DEMO_FILL, GRID_COLOR, TICK_COLOR, shadePlugin } from './chart-theme.js';
 
-const GRID_COLOR = '#1e2a38';
-const TICK_COLOR = '#8b98a9';
-const DEMO_DASH = [6, 5];
-// 시연용 구간 선의 불투명도(연한 색)
-const DEMO_ALPHA = 0.5;
+// 밀집도 선 점선(인원 선과 구분, 결정 0016)
+const DENSITY_DASH = [5, 4];
 // 하위 비교 선 색(최대 10개, FNC-C-014). 어두운 배경에서 서로 구분되는 색
 const COMPARE_COLORS = ['#4f8cff', '#f59e0b', '#3bc99b', '#ef4d55', '#a78bfa', '#22c3e6', '#f472b6', '#facc15', '#94a3b8', '#fb923c'];
 
 /**
- * 항목 정의. axis: count(명) | density(명/㎡) | dwell(초). 색은 시안(인원 파랑, 밀집도 주황)을 따른다.
- * 점선은 시연용 구간 표시(FNC-C-024)에 쓰므로 항목 선은 모두 실선이다.
- * bandColor가 있는 항목은 최대~최소를 그 색 띠로 함께 그린다(인원, 다시보기 시간축과 같은 표현).
+ * 항목 정의. axis: count(명) | density(명/㎡) | dwell(초). 색은 결정 0016(인원 인디고, 유입 라벤더, 유출 짙은 인디고, 밀집도 연한 점선).
+ * bandColor가 있는 항목은 최대~최소를 그 색 띠로 함께 그릴 수 있다(인원, '최대·최소 띠'를 켰을 때).
  */
 export const SERIES_ITEMS = {
-    count: { label: '인원', axis: 'count', color: '#4f8cff', width: 3, unit: '명', bandColor: 'rgba(79, 140, 255, .16)' },
-    density: { label: '밀집도', axis: 'density', color: '#f59e0b', width: 2, unit: '명/㎡', decimals: 2 },
-    inflow: { label: '유입', axis: 'count', color: '#3bc99b', width: 2, unit: '명' },
-    outflow: { label: '유출', axis: 'count', color: '#ef4d55', width: 2, unit: '명' },
+    count: { label: '인원', axis: 'count', color: '#818cf8', width: 3, unit: '명', bandColor: 'rgba(129, 140, 248, .16)' },
+    density: { label: '밀집도', axis: 'density', color: '#e0e7ff', width: 2, unit: '명/㎡', decimals: 2, dash: DENSITY_DASH },
+    inflow: { label: '유입', axis: 'count', color: '#a5b4fc', width: 2, unit: '명' },
+    outflow: { label: '유출', axis: 'count', color: '#4f46e5', width: 2, unit: '명' },
     dwellAvgSec: { label: '평균 체류', axis: 'dwell', color: '#a78bfa', width: 2, unit: '초', decimals: 1 },
 };
 
@@ -45,14 +42,14 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
      * @param {string[]} titles 툴팁 제목(점마다 하나, 예: '17:00 ~ 18:00')
      * @param {Object<string, {values: (number|null)[], high?: (number|null)[], low?: (number|null)[]}>} seriesByItem
      *     고른 항목만, SERIES_ITEMS의 키 → 점마다 값. 띠를 그리는 항목은 high(최대)·low(최소)도 넘긴다
-     * @param {boolean[]} [demo] 점마다 시연용 여부(FNC-C-024). 시연용 점이 낀 구간은 점선·연한 색
+     * @param {boolean[]} [demo] 점마다 시연용 여부(FNC-C-024). 시연용 점의 칸은 옅은 배경
      */
     function update(labels, titles, seriesByItem, demo = []) {
         const keys = Object.keys(seriesByItem);
         const datasets = keys.flatMap((key) => {
             const item = SERIES_ITEMS[key];
             const series = seriesByItem[key];
-            const line = lineDataset(key, item.label, series.values, item.color, item.width, demo);
+            const line = lineDataset(key, item.label, series.values, item.color, item.width);
             if (!item.bandColor || !series.high || !series.low) {
                 return [line];
             }
@@ -66,7 +63,7 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
         });
         const usedAxes = new Set(keys.map((key) => SERIES_ITEMS[key].axis));
         const demoTitles = titles.map((title, index) => (demo[index] ? `${title} · 시연용` : title));
-        draw(labels, demoTitles, datasets, usedAxes, (context) => {
+        draw(labels, demoTitles, datasets, usedAxes, demo, (context) => {
             const key = context.dataset.itemKey;
             const series = seriesByItem[key];
             const index = context.dataIndex;
@@ -86,14 +83,12 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
         const datasets = seriesList.map((series, index) =>
             lineDataset(key, series.name, series.values, COMPARE_COLORS[index % COMPARE_COLORS.length], 2),
         );
-        draw(labels, titles, datasets, new Set([item.axis]), (context) =>
+        draw(labels, titles, datasets, new Set([item.axis]), [], (context) =>
             `${context.dataset.label} ${valueText(key, context.parsed.y)}`,
         );
     }
 
-    function lineDataset(key, label, data, color, width, demo = []) {
-        // 구간 양 끝 점 중 하나라도 시연용이면 그 구간을 점선·연한 색으로
-        const isDemoSegment = (context) => Boolean(demo[context.p0DataIndex] || demo[context.p1DataIndex]);
+    function lineDataset(key, label, data, color, width) {
         return {
             itemKey: key,
             label,
@@ -106,14 +101,11 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
             pointHoverRadius: 5,
             spanGaps: false,
             tension: 0.2,
-            segment: {
-                borderDash: (context) => (isDemoSegment(context) ? DEMO_DASH : undefined),
-                borderColor: (context) => (isDemoSegment(context) ? withAlpha(color, DEMO_ALPHA) : undefined),
-            },
+            borderDash: SERIES_ITEMS[key].dash ?? [],
         };
     }
 
-    function draw(labels, titles, datasets, usedAxes, tooltipLabel) {
+    function draw(labels, titles, datasets, usedAxes, demo, tooltipLabel) {
         const scales = { x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, maxTicksLimit: 12 } } };
         Object.entries(AXES).forEach(([id, axis]) => {
             scales[id] = {
@@ -129,6 +121,7 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
         const config = {
             type: 'line',
             data: { labels, datasets },
+            plugins: [shadePlugin(demo, DEMO_FILL)],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -207,12 +200,6 @@ function tooltipLine(key, value, high, low) {
 function valueText(key, value) {
     const item = SERIES_ITEMS[key];
     return value === null || value === undefined ? '데이터 없음' : `${formatValue(item, value)}${item.unit}`;
-}
-
-// '#4f8cff' → 'rgba(79, 140, 255, a)'
-function withAlpha(hex, alpha) {
-    const value = Number.parseInt(hex.slice(1), 16);
-    return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
 }
 
 function formatValue(item, number) {

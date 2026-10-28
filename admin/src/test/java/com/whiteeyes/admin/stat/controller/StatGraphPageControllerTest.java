@@ -28,14 +28,20 @@ class StatGraphPageControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    @DisplayName("SCR-C-004 /stats/graph는 공통 틀 위에 '통계·기간 비교' 탭을 켜고, Chart.js는 고정 버전을 이 화면에서만 불러온다")
+    @DisplayName("SCR-C-005 기간 비교 화면은 없앴다(결정 0016): /stats/compare는 404")
+    void comparePage_removed() throws Exception {
+        mockMvc.perform(get("/stats/compare")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 /stats/graph는 공통 틀 위에 '통계' 탭을 켜고, Chart.js는 고정 버전을 이 화면에서만 불러온다")
     void graphPage_rendersFrameAndChartLibrary() throws Exception {
         mockMvc.perform(get("/stats/graph"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("stats/graph"))
                 .andExpect(content().string(containsString("<title>통계 그래프 - White Eyes</title>")))
                 .andExpect(content().string(containsString("data-header=\"admin\"")))
-                .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/compare\"")))
+                .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/graph\"")))
                 .andExpect(content().string(containsString("src=\"https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js\"")))
                 .andExpect(content().string(containsString("href=\"/css/stats-graph.css\"")))
                 .andExpect(content().string(containsString("src=\"/js/common/header.js\"")))
@@ -73,8 +79,40 @@ class StatGraphPageControllerTest {
         mockMvc.perform(get("/stats/graph"))
                 .andExpect(content().string(containsString(
                         "<span class=\"chip demo\" id=\"demo-badge\" hidden>시연용 데이터 포함</span>")));
+        // 시연용 점은 점선이 아니라 칸 배경으로 칠한다(결정 0016)
         mockMvc.perform(get("/js/chart/series-chart.js"))
-                .andExpect(content().string(containsString("DEMO_DASH")));
+                .andExpect(content().string(containsString("shadePlugin(demo, DEMO_FILL)")));
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 통합 그래프 아래에 혼잡 단계 막대·인원·유입·유출·방향별 흐름 칸과 최대·최소 띠 토글이 있다(결정 0016)")
+    void graphPage_hasPanelsBelowMainChart() throws Exception {
+        String[] expected = {
+            "id=\"band-toggle\"", ">최대·최소 띠", "id=\"graph-panels\"",
+            "<h2>시간별 인원 · 혼잡 단계</h2>", "id=\"level-chart\"",
+            "<h2>인원 · 유입·유출</h2>", "id=\"count-chart\"", "id=\"flow-chart\"",
+            "<h2>방향별 흐름 <span class=\"muted\">선택한 기간 합계</span></h2>", "id=\"direction-chart\"", "id=\"direction-empty\""
+        };
+        var result = mockMvc.perform(get("/stats/graph")).andExpect(status().isOk());
+        for (String fragment : expected) {
+            result.andExpect(content().string(containsString(fragment)));
+        }
+        // 띠 토글은 항목 체크박스 묶음 밖에 있다(항목 선택에 끼지 않음)
+        String html = result.andReturn().getResponse().getContentAsString();
+        int itemsEnd = html.indexOf("</div>", html.indexOf("id=\"graph-items\""));
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"band-toggle\"")).isGreaterThan(itemsEnd);
+        // 띠 토글은 기본 끔(checked 없음)
+        String bandInput = html.substring(html.lastIndexOf("<input", html.indexOf("id=\"band-toggle\"")), html.indexOf(">", html.indexOf("id=\"band-toggle\"")));
+        org.assertj.core.api.Assertions.assertThat(bandInput).doesNotContain("checked");
+        // 하위 비교 중에는 아래 세 칸을 숨기고, 인원을 끄거나 하위 비교 중이면 띠 토글을 비활성으로
+        mockMvc.perform(get("/js/pages/stats-graph.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("panelsBox.hidden = true")))
+                .andExpect(content().string(containsString("bandToggle.disabled = !bandUsable")));
+        // 혼잡 단계 색은 서버가 판정한 point.level을 쓴다(화면에서 다시 판정하지 않음)
+        mockMvc.perform(get("/js/chart/panel-charts.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("point.level")));
     }
 
     @Test
@@ -143,7 +181,8 @@ class StatGraphPageControllerTest {
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 관리자 앱에서 내려가는지 본다
     @ParameterizedTest
     @ValueSource(strings = {
-        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js", "/css/stats-graph.css",
+        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js",
+        "/js/chart/chart-theme.js", "/js/chart/panel-charts.js", "/css/stats-graph.css",
         "/js/export/export-modal.js", "/css/stats-export.css"
     })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 관리자 앱이 내려준다")
