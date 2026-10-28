@@ -197,6 +197,7 @@ class StatExportApiTest {
 
         // H2는 JSON 칼럼을 바이트로 돌려준다
         JsonNode detail = jsonMapper.readTree(new String((byte[]) row.get("DETAIL"), StandardCharsets.UTF_8));
+        assertThat(detail.get("kind").asString()).isEqualTo("STATS");
         assertThat(detail.get("scope").asString()).isEqualTo("ZONE");
         assertThat(detail.get("targetId").asLong()).isEqualTo(sajik);
         assertThat(detail.get("from").asString()).isEqualTo("2099-01-01T10:00");

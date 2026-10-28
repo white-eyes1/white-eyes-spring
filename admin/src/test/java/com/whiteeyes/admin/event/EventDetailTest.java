@@ -205,13 +205,13 @@ class EventDetailTest {
     }
 
     @Test
-    @DisplayName("FNC-A-037 삭제된 구역은 이름 앞에 (삭제됨)이 붙는다")
+    @DisplayName("FNC-A-037 삭제된 구역은 이름 뒤에 (삭제됨)이 붙는다")
     void detail_deletedZone() throws Exception {
         long eventId = insertEvent("CONGESTION", null, T0, null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "UNCHECKED");
         jdbcTemplate.update("UPDATE zone SET deleted_at = NOW() WHERE id = ?", zoneId);
 
         detail(eventId)
-                .andExpect(jsonPath("$.zoneName").value("(삭제됨) 삼청동 1구역"))
+                .andExpect(jsonPath("$.zoneName").value("삼청동 1구역 (삭제됨)"))
                 .andExpect(jsonPath("$.zoneDeleted").value(true));
     }
 
