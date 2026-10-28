@@ -14,8 +14,10 @@ import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -80,7 +82,54 @@ class StatExcelWriterTest {
             assertThat(workbook.getSheet("유입").getRow(1).getCell(5).getNumericCellValue()).isEqualTo(7.0);
             assertThat(workbook.getSheet("평균 체류").getRow(1).getCell(5).getNumericCellValue()).isEqualTo(312.5);
             // 체류를 잰 사람이 없으면 빈 칸
-            assertThat(workbook.getSheet("평균 체류").getRow(2).getCell(5)).isNull();
+            assertThat(workbook.getSheet("평균 체류").getRow(2).getCell(5).getCellType()).isEqualTo(CellType.BLANK);
+        }
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 처리 순서 2: 시각 묶음마다 행 배경색을 #d1d1d1, #ffffff로 번갈아 칠한다(행마다가 아님, 모든 칸·모든 시트)")
+    void rowColorAlternatesPerTimeGroup() throws Exception {
+        StatExportPlan plan = plan("1h", List.of("COUNT", "DENSITY"));
+        StatExportSeries other = new StatExportSeries(2L, "서울특별시", "종로구", "삼청동", "삼청동 1구역");
+        List<Line> lines = new ArrayList<>();
+        for (int hour = 0; hour < 3; hour++) {
+            lines.add(new Line(SAJIK, point(T0.plusHours(hour), "1.00", 1, 1, "0.1000", Map.of(), null, false)));
+            lines.add(new Line(other, StatSeriesPoint.empty(T0.plusHours(hour).atOffset(ZoneOffset.ofHours(9)))));
+        }
+
+        try (XSSFWorkbook workbook = write(plan, lines)) {
+            for (String sheetName : List.of("인원", "밀집도")) {
+                Sheet sheet = workbook.getSheet(sheetName);
+                // 1~2행 10시, 3~4행 11시, 5~6행 12시
+                String[] expected = {"D1D1D1", "D1D1D1", "FFFFFF", "FFFFFF", "D1D1D1", "D1D1D1"};
+                for (int rowIndex = 1; rowIndex <= 6; rowIndex++) {
+                    Row row = sheet.getRow(rowIndex);
+                    for (int column = 0; column < row.getLastCellNum(); column++) {
+                        assertThat(fillRgb(row.getCell(column)))
+                                .as("%s %d행 %d열", sheetName, rowIndex, column)
+                                .isEqualTo(expected[rowIndex - 1]);
+                    }
+                }
+                // 머리글 행에는 칠하지 않는다
+                assertThat(sheet.getRow(0).getCell(0).getCellStyle().getFillPattern()).isEqualTo(FillPatternType.NO_FILL);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 구역이 하나뿐이어도(구역·지역 합산) 시각마다 배경색을 번갈아 칠한다")
+    void rowColorAlternatesWithSingleSeries() throws Exception {
+        StatExportPlan plan = plan("1h", List.of("COUNT"));
+        List<Line> lines = List.of(
+                new Line(JONGNO, point(T0, "1.00", 1, 1, "0.1000", Map.of(), null, false)),
+                new Line(JONGNO, point(T0.plusHours(1), "1.00", 1, 1, "0.1000", Map.of(), null, false)),
+                new Line(JONGNO, point(T0.plusHours(2), "1.00", 1, 1, "0.1000", Map.of(), null, false)));
+
+        try (XSSFWorkbook workbook = write(plan, lines)) {
+            Sheet sheet = workbook.getSheet("인원");
+            assertThat(fillRgb(sheet.getRow(1).getCell(0))).isEqualTo("D1D1D1");
+            assertThat(fillRgb(sheet.getRow(2).getCell(0))).isEqualTo("FFFFFF");
+            assertThat(fillRgb(sheet.getRow(3).getCell(8))).isEqualTo("D1D1D1");
         }
     }
 
@@ -94,9 +143,10 @@ class StatExcelWriterTest {
             Row row = workbook.getSheet("인원").getRow(1);
             assertThat(row.getCell(0).getLocalDateTimeCellValue()).isEqualTo(T0);
             assertThat(row.getCell(4).getStringCellValue()).isEqualTo("사직동 1구역");
-            assertThat(row.getCell(5)).isNull();
-            assertThat(row.getCell(6)).isNull();
-            assertThat(row.getCell(7)).isNull();
+            // 배경색을 칠하려고 빈 칸도 칸은 있고 값만 비어 있다
+            assertThat(row.getCell(5).getCellType()).isEqualTo(CellType.BLANK);
+            assertThat(row.getCell(6).getCellType()).isEqualTo(CellType.BLANK);
+            assertThat(row.getCell(7).getCellType()).isEqualTo(CellType.BLANK);
             assertThat(row.getCell(8).getStringCellValue()).isEqualTo("아니오");
         }
     }
@@ -203,6 +253,13 @@ class StatExcelWriterTest {
                     : cell.getStringCellValue());
         }
         return texts;
+    }
+
+    // 칸 배경색(RGB 16진수 대문자)
+    private static String fillRgb(Cell cell) {
+        XSSFCellStyle style = (XSSFCellStyle) cell.getCellStyle();
+        assertThat(style.getFillPattern()).isEqualTo(FillPatternType.SOLID_FOREGROUND);
+        return style.getFillForegroundXSSFColor().getARGBHex().substring(2);
     }
 
     private static List<Double> numbers(Row row, int from, int to) {
