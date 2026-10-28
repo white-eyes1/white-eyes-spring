@@ -233,7 +233,8 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             entry.editing = true;
             entry.layer.setStyle(EDIT_STYLE);
             entry.layer.bringToFront();
-            polygon.pm.enable({ allowSelfIntersection: false });
+            // 꼭짓점을 지워 3점 아래로 내려가면 구역 모양이 사라지므로, 3점 아래로는 지울 수 없게 한다
+            polygon.pm.enable({ allowSelfIntersection: false, removeLayerBelowMinVertexCount: false });
             const handler = () => onChange(polygon.toGeoJSON().geometry);
             polygon.on('pm:edit', handler);
             zoneEditing = { entry, polygon, handler };

@@ -14,11 +14,12 @@ const ERROR_MESSAGES = {
 };
 
 /**
- * @param {{getLayer: () => object|null, dongName: () => string, onChanged: () => Promise<void>|void}} handlers
+ * @param {{getLayer: () => object|null, dongName: () => string, onChanged: () => Promise<void>|void, onActiveChange?: (active: boolean) => void}} handlers
  *   getLayer: 지금 지도의 상태 층(startZoneEdit·stopZoneEdit을 가진다), dongName: 지금 보는 동 이름,
  *   onChanged: 저장하거나 취소한 뒤 지도·통계를 다시 읽는다(취소하면 원래 모양으로 다시 그려진다)
+ *   onActiveChange: 수정을 시작·끝낼 때(수정 중에는 하단 안내 문구를 숨기는 데 쓴다)
  */
-export function createZoneEdit({ getLayer, dongName, onChanged }) {
+export function createZoneEdit({ getLayer, dongName, onChanged, onActiveChange }) {
     const panel = document.getElementById('zone-edit');
     const form = document.getElementById('zone-edit-form');
     const title = document.getElementById('zone-edit-title');
@@ -54,6 +55,7 @@ export function createZoneEdit({ getLayer, dongName, onChanged }) {
         showError('');
         setNameError('');
         panel.hidden = false;
+        onActiveChange?.(true);
         updateSubmit();
         getLayer().startZoneEdit(zone.id, onShapeEdited);
     }
@@ -108,6 +110,7 @@ export function createZoneEdit({ getLayer, dongName, onChanged }) {
             body.boundary = edit.boundary;
         }
         if (Object.keys(body).length === 0) {
+            showToast('바뀐 내용이 없습니다.');
             cancel();
             return;
         }
@@ -141,11 +144,16 @@ export function createZoneEdit({ getLayer, dongName, onChanged }) {
         getLayer()?.stopZoneEdit();
         edit = null;
         panel.hidden = true;
+        onActiveChange?.(false);
     }
 
     // 서버 오류 코드는 화면 문구로, 그 밖의 오류는 토스트(api.js는 toast:false라 직접 띄운다)
     function reportFailure(failure, show, showName) {
-        if (!(failure instanceof ApiError) || failure.status === 401) {
+        if (!(failure instanceof ApiError)) {
+            showToast('요청을 보내지 못했습니다. 연결을 확인하고 다시 시도해 주세요.');
+            return;
+        }
+        if (failure.status === 401) {
             return;
         }
         const fieldMessage = failure.fieldErrors.find((item) => item.field === 'name')?.message;
@@ -184,6 +192,7 @@ export function createZoneEdit({ getLayer, dongName, onChanged }) {
             previewRequest++;
             edit = null;
             panel.hidden = true;
+            onActiveChange?.(false);
         },
     };
 }

@@ -59,7 +59,13 @@ const mapMenu = isAdmin ? createMapMenu({ onClose: () => layer?.releaseZone() })
 const zoneRegister = isAdmin ? createZoneRegister({ onRegistered: onZoneRegistered }) : null;
 // 구역 수정(관리자 앱만, 동 단계): 저장하거나 취소하면 지도·통계를 다시 읽는다(취소하면 원래 모양)
 const zoneEdit = isAdmin
-    ? createZoneEdit({ getLayer: () => layer, dongName: () => path[path.length - 1].name, onChanged: () => refresh() })
+    ? createZoneEdit({
+          getLayer: () => layer,
+          dongName: () => path[path.length - 1].name,
+          onChanged: () => refresh(),
+          // 구역을 수정하는 동안에는 하단 안내 문구('빈 곳을 우클릭하면 구역을 등록할 수 있습니다')를 숨긴다
+          onActiveChange: (active) => zoneRegister?.setSuppressed(active),
+      })
     : null;
 // 동 단계에서 지도에 그려진 구역(GET /zones). 우클릭 메뉴가 구역 이름·면적을 쓴다
 let zoneShapeList = [];
