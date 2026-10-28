@@ -8,11 +8,11 @@ import { formatSigned } from '../../common/format.js';
 const TREND_API = '/api/v1/dashboard/trend';
 const DAYS = 7;
 const LOAD_ERROR = '불러오지 못했습니다.';
-// 응답 필드, 이름, 기준 기간이 대상 기간보다 며칠 앞인지(FNC-C-019 처리 순서 2)
+// 응답 필드, 이름(세 줄 모두 같은 통계 그래프로 연결)
 const RATES = [
-    ['weekRate', '지난주 대비', 7],
-    ['monthRate', '지난달 대비', 28],
-    ['yearRate', '지난해 대비', 364],
+    ['weekRate', '지난주 대비'],
+    ['monthRate', '지난달 대비'],
+    ['yearRate', '지난해 대비'],
 ];
 
 const byId = (id) => document.getElementById(id);
@@ -54,7 +54,7 @@ export function createTrendPanel() {
                 return; // 더 늦게 보낸 요청이 있다(지역 변경 등)
             }
             loadedRegionId = requestedRegionId;
-            list.replaceChildren(...RATES.map(([field, label, daysAgo]) =>
+            list.replaceChildren(...RATES.map(([field, label]) =>
                 row(label, trend[field], graphLink(requestedRegionId))));
         } catch {
             if (requestId === latestRequestId) {
