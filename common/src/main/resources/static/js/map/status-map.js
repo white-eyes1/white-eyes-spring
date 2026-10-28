@@ -6,7 +6,8 @@ import { formatDecimal, formatNumber } from '../common/format.js';
 const FALLBACK_ZOOM = 12;
 const OFF_PAINT = '#4a5768';
 // 하위 단위로 내려가도 남기는 윤곽선: 지금 보는 지역은 실선, 같은 단계의 이웃 지역은 옅은 점선
-const OUTLINE_TARGET = { color: '#1f3a5f', weight: 3, fill: false };
+// 지금 보는 지역은 굵은 실선과 옅은 채움으로 강조한다(지역 밖을 어둡게 덮지는 않는다)
+const OUTLINE_TARGET = { color: '#1f3a5f', weight: 3.5, fill: true, fillColor: '#4f8cff', fillOpacity: 0.07 };
 const OUTLINE_SIBLING = { color: '#4a5d78', weight: 2, dashArray: '6 4', fill: false };
 // 마우스를 올렸을 때: 칠 진하기를 이만큼 올리되 이 값을 넘기지 않는다(지도가 가려지지 않게)
 const HOVER_FILL_BOOST = 0.2;
