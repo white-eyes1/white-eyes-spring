@@ -2,6 +2,7 @@
 // 지역은 주소 쿼리 regionId로 유지한다. 새 1분 통계는 통계 SSE(FNC-C-022)가 알려 주면 화면 값을 새로 읽고,
 // 연결이 끊겨 있거나 한참 소식이 없으면 60초마다 읽는다.
 import { get, url } from '../common/api.js';
+import { initCameraForm } from '../camera/camera-form.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 import { initLiveView, openLiveView, updateLiveView } from '../live/live-view.js';
 import { showToast } from '../common/toast.js';
@@ -37,6 +38,7 @@ const EMD = 'EMD';
 
 const isAdmin = document.getElementById('dash').dataset.admin === 'true';
 const selects = ['filter-sido', 'filter-sigungu', 'filter-emd'].map((id) => document.getElementById(id));
+const backButton = document.getElementById('map-back');
 
 let levels = [];
 let path = []; // 시·도부터 고른 지역 목록. 마지막이 통계 대상
@@ -61,6 +63,8 @@ const zoneEdit = isAdmin
     : null;
 // 동 단계에서 지도에 그려진 구역(GET /zones). 우클릭 메뉴가 구역 이름·면적을 쓴다
 let zoneShapeList = [];
+// 캠 등록 창(관리자 앱만): 캠이 없는 구역의 핀을 누르면 연다. 저장하면 지도·캠 패널을 다시 읽는다
+const cameraForm = isAdmin ? initCameraForm({ onSaved: () => refresh() }) : null;
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -248,6 +252,7 @@ function openExport() {
 
 async function loadRegion() {
     const target = path[path.length - 1];
+    renderBackButton();
     renderGraphLink(target.id);
     const resetView = renderedRegionId !== target.id;
     if (resetView) {
@@ -280,6 +285,21 @@ async function loadRegion() {
         auxPanel.setRegion(target.id);
     }
     await refresh();
+}
+
+// 지도 뒤로가기: 누르면 한 단계 위 지역으로 올라간다(동 → 구 → 시). 가장 위 단계에서는 숨긴다
+backButton.addEventListener('click', () => {
+    if (path.length > 1) {
+        applyPath(path.slice(0, -1), true);
+    }
+});
+
+function renderBackButton() {
+    const parent = path.length > 1 ? path[path.length - 2] : null;
+    backButton.hidden = parent === null;
+    if (parent) {
+        backButton.textContent = `← ${parent.name}`;
+    }
 }
 
 async function selectChildRegion(id) {
@@ -417,7 +437,8 @@ function openLiveForZone(zoneId) {
     }
     const camera = deck?.cameraByZone(zoneId);
     if (!camera) {
-        showToast('이 구역에는 캠이 없습니다.');
+        // 캠 관리로 이동하지 않고 대시보드 위에서 그 구역을 고른 캠 등록 창을 연다(SCR-A-007)
+        cameraForm.openRegister(zoneId);
     } else if (camera.status !== 'RUNNING') {
         showToast('가동 중인 캠이 아니라 실시간 영상을 볼 수 없습니다.');
     } else {
