@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FillPatternType;
@@ -259,6 +260,10 @@ class StatExcelWriterTest {
     private static String fillRgb(Cell cell) {
         XSSFCellStyle style = (XSSFCellStyle) cell.getCellStyle();
         assertThat(style.getFillPattern()).isEqualTo(FillPatternType.SOLID_FOREGROUND);
+        // 배경색을 칠하면 엑셀 기본 눈금선이 가려지므로 칸마다 가는 테두리를 둔다
+        assertThat(List.of(style.getBorderTop(), style.getBorderBottom(), style.getBorderLeft(), style.getBorderRight()))
+                .containsOnly(BorderStyle.THIN);
+        assertThat(style.getTopBorderXSSFColor().getARGBHex().substring(2)).isEqualTo("BFBFBF");
         return style.getFillForegroundXSSFColor().getARGBHex().substring(2);
     }
 
