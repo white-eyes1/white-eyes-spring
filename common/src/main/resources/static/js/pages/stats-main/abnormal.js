@@ -1,5 +1,6 @@
 // 통계 패널의 비정상 인원 변동 접기 영역(SCR-C-003, FNC-C-020).
 // 펼칠 때 GET /api/v1/compare(어제까지 최근 7일, basePreset=LAST_MONTH)로 읽고, 비정상 칸 수와 |증감률|이 큰 칸 3개를 보인다.
+// '자세히'는 같은 지역·같은 7일의 통계 그래프(1시간 단위, SCR-C-004)를 연다(기간 비교 화면은 결정 0016으로 없앰).
 // 시간별 통계라 1분마다 바뀌지 않으므로 새 1분 통계(SSE)에는 다시 읽지 않고, 지역이 바뀌거나 다시 펼칠 때 읽는다.
 import { get, url } from '../../common/api.js';
 import { formatNumber, formatSigned } from '../../common/format.js';
@@ -32,10 +33,22 @@ export function createAbnormalPanel() {
     /** 통계 대상 지역이 바뀌면 부른다. 펼쳐 있으면 바로 다시 읽는다 */
     function setRegion(id) {
         regionId = id;
-        detail.href = url(`/stats/compare?${new URLSearchParams(params()).toString()}`);
+        detail.href = url(`/stats/graph?${new URLSearchParams(graphParams()).toString()}`);
         if (box.open && loadedRegionId !== id) {
             load();
         }
+    }
+
+    // 그래프의 to는 끝을 빼므로 오늘 0시(비교의 to는 어제 날짜를 포함)
+    function graphParams() {
+        const today = new Date();
+        return {
+            targetType: 'REGION',
+            targetId: String(regionId),
+            interval: '1h',
+            from: toDateText(addDays(today, -DAYS)),
+            to: toDateText(today),
+        };
     }
 
     function params() {

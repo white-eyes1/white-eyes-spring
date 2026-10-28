@@ -73,7 +73,7 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(containsString("id=\"dash-map\"")))
                 .andExpect(content().string(containsString("id=\"stream-status\"")))
                 .andExpect(content().string(containsString("id=\"graph-link\" href=\"/stats/graph\"")))
-                .andExpect(content().string(containsString("id=\"abnormal-detail\" href=\"/stats/compare\"")))
+                .andExpect(content().string(containsString("id=\"abnormal-detail\" href=\"/stats/graph\"")))
                 .andExpect(content().string(containsString("/js/pages/stats-main.js")))
                 .andExpect(content().string(containsString("/css/stats-main.css")));
     }
@@ -147,7 +147,7 @@ class DashboardPageControllerTest {
                 .andExpect(content().string(containsString("data-header=\"user\"")))
                 .andExpect(content().string(not(containsString("data-header=\"admin\""))))
                 .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats\"")))
-                .andExpect(content().string(containsString("class=\"tab\" href=\"/stats/compare\"")))
+                .andExpect(content().string(containsString("class=\"tab\" href=\"/stats/graph\"")))
                 .andExpect(content().string(not(containsString("이벤트 로그"))))
                 .andExpect(content().string(not(containsString("id=\"unchecked-badge\""))))
                 .andExpect(content().string(containsString("id=\"level-legend\"")))
