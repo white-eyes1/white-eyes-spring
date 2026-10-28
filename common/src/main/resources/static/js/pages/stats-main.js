@@ -240,6 +240,7 @@ async function loadRegion() {
         map = createRegionMap(document.getElementById('dash-map'), target, map);
         layer = createStatusLayer(map, {
             onSelectRegion: selectChildRegion,
+            onSelectSibling: selectSiblingRegion,
             onViewChange: updateVisibleZones,
             // 관리자 앱: 구역 핀을 누르면 그 구역 캠의 실시간 보기 창(SCR-A-008)
             // 사용자 앱: onPinClick이 없으면 구역 정보 팝업(인원·밀집도·단계, SCR-C-003)
@@ -265,6 +266,15 @@ async function selectChildRegion(id) {
     const child = (await children(target.id)).find((region) => region.id === id);
     if (child) {
         await applyPath([...path, child], true);
+    }
+}
+
+// 동 단계에서 이웃 동 윤곽선을 누르면 그 동으로 이동한다
+async function selectSiblingRegion(id) {
+    const parent = path.length >= 2 ? path[path.length - 2] : null;
+    const sibling = parent ? (await children(parent.id)).find((region) => region.id === id) : null;
+    if (sibling) {
+        await applyPath([...path.slice(0, -1), sibling], true);
     }
 }
 
@@ -295,8 +305,8 @@ async function refresh() {
     if (isDong) {
         // 동이면 하위 단위가 구역이라 구역 경계를 칠한다
         layer.showBoundaries(
-            zoneShapes.map((zone) => ({ id: zone.id, name: zone.name, boundary: zone.boundary, item: statusById.get(zone.id) })),
-            false,
+            zoneShapes.map((zone) => ({ id: zone.id, name: zone.name, boundary: zone.boundary, item: statusById.get(zone.id), zoom: true })),
+            true,
         );
     } else {
         const kids = await children(target.id);
@@ -305,6 +315,13 @@ async function refresh() {
             true,
         );
     }
+    // 하위 단위로 내려가도 지역 경계가 남도록, 지금 지역(동이면 이웃 동도)의 윤곽선을 함께 그린다
+    const parent = path.length >= 2 ? path[path.length - 2] : null;
+    const siblings = isDong && parent ? (await children(parent.id)).filter((region) => region.id !== target.id) : [];
+    if (target !== path[path.length - 1]) {
+        return; // 이웃 동 목록을 읽는 동안 지역이 바뀌었다(새 지도에 옛 윤곽선을 그리지 않는다)
+    }
+    layer.showOutlines(target, siblings);
     layer.showPins(zoneItems);
     // 이동 흐름(FNC-C-010): 켜져 있으면 구역 중심점으로 화살표를 다시 그린다
     flowTool.refresh(zoneItems);

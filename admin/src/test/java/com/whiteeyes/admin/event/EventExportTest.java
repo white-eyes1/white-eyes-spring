@@ -177,6 +177,33 @@ class EventExportTest {
     }
 
     @Test
+    @DisplayName("FNC-A-039 overlap=true면 기간과 겹치는 이벤트를 포함하고, 목록과 같은 건수가 나온다(#310)")
+    void export_overlap_sameAsList() throws Exception {
+        // 기간 09:00~10:00. 발생이 앞이어도 기간 안에서 이어진 이벤트(종료가 from 뒤이거나 진행 중)는 겹침
+        insertEvent("CONGESTION", samcheongZoneId, T0.minusMinutes(30), T0.plusMinutes(10), 2, "0.8000", 10, "RESOLVED");
+        insertEvent("CONGESTION", samcheongZoneId, T0.minusMinutes(30), null, 2, "0.8000", 10, "UNCHECKED");
+        insertEvent("CONGESTION", samcheongZoneId, T0.minusHours(2), T0.minusHours(1), 2, "0.8000", 10, "RESOLVED");
+        insertEvent("CONGESTION", samcheongZoneId, T0.plusMinutes(30), null, 2, "0.8000", 10, "UNCHECKED");
+        insertEvent("CONGESTION", samcheongZoneId, T0.plusHours(2), null, 2, "0.8000", 10, "UNCHECKED");
+        ParamPair from = param("from", "2026-10-12T09:00:00+09:00");
+        ParamPair to = param("to", "2026-10-12T10:00:00+09:00");
+
+        int exported = rowCount(from, to, param("overlap", "true"));
+
+        assertThat(exported).isEqualTo(3);
+        mockMvc.perform(get("/api/v1/events")
+                        .with(AdminTestLogin.admin())
+                        .param("from", from.value())
+                        .param("to", to.value())
+                        .param("overlap", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(exported));
+        // 비우면 기본(false)이라 발생 시각 기준으로 거른다
+        assertThat(rowCount(from, to)).isEqualTo(1);
+        assertThat(rowCount(from, to, param("overlap", "false"))).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("FNC-A-039 종류·처리 상태·구역·지역·검색어 조건을 목록과 같이 적용한다")
     void export_filters_sameAsList() throws Exception {
         insertEvent("CONGESTION", samcheongZoneId, T0, null, 2, "0.8000", 10, "UNCHECKED");
@@ -285,7 +312,25 @@ class EventExportTest {
     }
 
     @Test
-    @DisplayName("FNC-A-039 작업 기록의 대상 이름: 구역 조건이면 구역 이름, 지역 조건이면 지역 이름, 없으면 '전체'")
+    @DisplayName("FNC-A-039 작업 기록 detail의 필터에는 overlap=true일 때만 overlap이 남는다(#310)")
+    void export_recordsOverlapOnlyWhenTrue() throws Exception {
+        export(param("overlap", "true")).andExpect(status().isOk());
+        export(param("overlap", "false")).andExpect(status().isOk());
+        export().andExpect(status().isOk());
+
+        List<byte[]> details = jdbcTemplate.queryForList("SELECT detail FROM work_history ORDER BY id", byte[].class);
+        assertThat(details).hasSize(3);
+        assertThat(filterOf(details.get(0)).get("overlap").asBoolean()).isTrue();
+        assertThat(filterOf(details.get(1)).has("overlap")).isFalse();
+        assertThat(filterOf(details.get(2)).has("overlap")).isFalse();
+    }
+
+    private JsonNode filterOf(byte[] detail) {
+        return jsonMapper.readTree(new String(detail, StandardCharsets.UTF_8)).get("filter");
+    }
+
+    @Test
+    @DisplayName("FNC-A-039 작업 기록의 대상 이름:구역 조건이면 구역 이름, 지역 조건이면 지역 이름, 없으면 '전체'")
     void export_recordsTargetName() throws Exception {
         insertEvent("CONGESTION", samcheongZoneId, T0, null, 2, "0.8000", 10, "UNCHECKED");
 
