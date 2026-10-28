@@ -33,7 +33,7 @@ import com.whiteeyes.common.stat.dto.StatSeriesPoint;
  * 임시 파일로 내린다. 항목마다 시트 하나, 행 = 대상 줄 × 시각. 시각이 같은 행끼리 한 묶음이고, 묶음마다 행
  * 배경색을 #d1d1d1, #ffffff로 번갈아 칠한다(FNC-C-023 처리 순서 2).
  *
- * <p>열: 시각, 시·도, 시·군·구, 읍·면·동, 구역, 항목 값, 시연용. 인원은 평균·최대·최소 3열.
+ * <p>열: 시각, 시·도, 시·군·구, 읍·면·동, 구역, 항목 값. 인원은 평균·최대·최소 3열. 시연용 여부 열은 없다(FNC-C-023).
  * 통계가 없는 시각은 값 칸을 비운다(색을 칠하려고 빈 칸도 칸은 둔다). 다 쓰면 {@link #close()}로 임시 파일을 지운다.
  */
 public class StatExcelWriter implements AutoCloseable {
@@ -41,7 +41,6 @@ public class StatExcelWriter implements AutoCloseable {
     // 메모리에 둘 행 수(SXSSF 기본값)
     private static final int WINDOW_SIZE = 100;
     private static final String[] NAME_HEADERS = {"시각", "시·도", "시·군·구", "읍·면·동", "구역"};
-    private static final String DEMO_HEADER = "시연용";
     // 시각 묶음의 배경색: 첫 묶음부터 번갈아
     private static final byte[][] GROUP_COLORS = {
         {(byte) 0xD1, (byte) 0xD1, (byte) 0xD1}, {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF}
@@ -80,10 +79,9 @@ public class StatExcelWriter implements AutoCloseable {
             for (Column value : columns(item)) {
                 header.createCell(column++).setCellValue(value.header());
             }
-            header.createCell(column).setCellValue(DEMO_HEADER);
             header.forEach(cell -> cell.setCellStyle(headerStyle));
             sheet.createFreezePane(0, 1);
-            setWidths(sheet, column + 1);
+            setWidths(sheet, column);
             sheets.put(item, sheet);
             nextRows.put(item, 1);
         }
@@ -120,9 +118,6 @@ public class StatExcelWriter implements AutoCloseable {
                 cell.setCellStyle(style(StyleKey.decimal(value.decimals(), color)));
                 column++;
             }
-            // 1분 통계에는 시연용 데이터가 없어 항상 '아니오'(tables.md zone_stat_minute)
-            row.createCell(column).setCellValue(point.isDemo() ? "예" : "아니오");
-            row.getCell(column).setCellStyle(style(StyleKey.text(color)));
         });
     }
 
