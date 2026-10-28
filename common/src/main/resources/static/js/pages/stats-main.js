@@ -2,6 +2,7 @@
 // 지역은 주소 쿼리 regionId로 유지한다. 새 1분 통계는 통계 SSE(FNC-C-022)가 알려 주면 화면 값을 새로 읽고,
 // 연결이 끊겨 있거나 한참 소식이 없으면 60초마다 읽는다.
 import { get, url } from '../common/api.js';
+import { initCameraForm } from '../camera/camera-form.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 import { initLiveView, openLiveView, updateLiveView } from '../live/live-view.js';
 import { showToast } from '../common/toast.js';
@@ -34,6 +35,7 @@ const EMD = 'EMD';
 
 const isAdmin = document.getElementById('dash').dataset.admin === 'true';
 const selects = ['filter-sido', 'filter-sigungu', 'filter-emd'].map((id) => document.getElementById(id));
+const backButton = document.getElementById('map-back');
 
 let levels = [];
 let path = []; // 시·도부터 고른 지역 목록. 마지막이 통계 대상
@@ -47,6 +49,8 @@ const peakHoursPanel = createPeakHoursPanel();
 const trendPanel = createTrendPanel();
 const flowTool = createFlowTool();
 const heatmapTool = createHeatmapTool();
+// 캠 등록 창(관리자 앱만): 캠이 없는 구역의 핀을 누르면 연다. 저장하면 지도·캠 패널을 다시 읽는다
+const cameraForm = isAdmin ? initCameraForm({ onSaved: () => refresh() }) : null;
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -234,12 +238,14 @@ function openExport() {
 
 async function loadRegion() {
     const target = path[path.length - 1];
+    renderBackButton();
     renderGraphLink(target.id);
     const resetView = renderedRegionId !== target.id;
     if (resetView) {
         map = createRegionMap(document.getElementById('dash-map'), target, map);
         layer = createStatusLayer(map, {
             onSelectRegion: selectChildRegion,
+            onSelectSibling: selectSiblingRegion,
             onViewChange: updateVisibleZones,
             // 관리자 앱: 구역 핀을 누르면 그 구역 캠의 실시간 보기 창(SCR-A-008)
             // 사용자 앱: onPinClick이 없으면 구역 정보 팝업(인원·밀집도·단계, SCR-C-003)
@@ -260,11 +266,35 @@ async function loadRegion() {
     await refresh();
 }
 
+// 지도 뒤로가기: 누르면 한 단계 위 지역으로 올라간다(동 → 구 → 시). 가장 위 단계에서는 숨긴다
+backButton.addEventListener('click', () => {
+    if (path.length > 1) {
+        applyPath(path.slice(0, -1), true);
+    }
+});
+
+function renderBackButton() {
+    const parent = path.length > 1 ? path[path.length - 2] : null;
+    backButton.hidden = parent === null;
+    if (parent) {
+        backButton.textContent = `← ${parent.name}`;
+    }
+}
+
 async function selectChildRegion(id) {
     const target = path[path.length - 1];
     const child = (await children(target.id)).find((region) => region.id === id);
     if (child) {
         await applyPath([...path, child], true);
+    }
+}
+
+// 동 단계에서 이웃 동 윤곽선을 누르면 그 동으로 이동한다
+async function selectSiblingRegion(id) {
+    const parent = path.length >= 2 ? path[path.length - 2] : null;
+    const sibling = parent ? (await children(parent.id)).find((region) => region.id === id) : null;
+    if (sibling) {
+        await applyPath([...path.slice(0, -1), sibling], true);
     }
 }
 
@@ -295,8 +325,8 @@ async function refresh() {
     if (isDong) {
         // 동이면 하위 단위가 구역이라 구역 경계를 칠한다
         layer.showBoundaries(
-            zoneShapes.map((zone) => ({ id: zone.id, name: zone.name, boundary: zone.boundary, item: statusById.get(zone.id) })),
-            false,
+            zoneShapes.map((zone) => ({ id: zone.id, name: zone.name, boundary: zone.boundary, item: statusById.get(zone.id), zoom: true })),
+            true,
         );
     } else {
         const kids = await children(target.id);
@@ -305,6 +335,13 @@ async function refresh() {
             true,
         );
     }
+    // 하위 단위로 내려가도 지역 경계가 남도록, 지금 지역(동이면 이웃 동도)의 윤곽선을 함께 그린다
+    const parent = path.length >= 2 ? path[path.length - 2] : null;
+    const siblings = isDong && parent ? (await children(parent.id)).filter((region) => region.id !== target.id) : [];
+    if (target !== path[path.length - 1]) {
+        return; // 이웃 동 목록을 읽는 동안 지역이 바뀌었다(새 지도에 옛 윤곽선을 그리지 않는다)
+    }
+    layer.showOutlines(target, siblings);
     layer.showPins(zoneItems);
     // 이동 흐름(FNC-C-010): 켜져 있으면 구역 중심점으로 화살표를 다시 그린다
     flowTool.refresh(zoneItems);
@@ -327,7 +364,8 @@ async function loadCameras() {
 function openLiveForZone(zoneId) {
     const camera = deck?.cameraByZone(zoneId);
     if (!camera) {
-        showToast('이 구역에는 캠이 없습니다.');
+        // 캠 관리로 이동하지 않고 대시보드 위에서 그 구역을 고른 캠 등록 창을 연다(SCR-A-007)
+        cameraForm.openRegister(zoneId);
     } else if (camera.status !== 'RUNNING') {
         showToast('가동 중인 캠이 아니라 실시간 영상을 볼 수 없습니다.');
     } else {

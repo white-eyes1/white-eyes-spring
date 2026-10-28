@@ -59,7 +59,13 @@ class StatGraphPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-C-004 사용자 앱 /stats/graph는 사용자 헤더(SCR-U-004)의 '통계·기간 비교' 탭을 켜고 그래프 조건·차트 자리를 그린다")
+    @DisplayName("SCR-C-005 기간 비교 화면은 없앴다(결정 0016): 사용자 앱 /stats/compare는 404")
+    void comparePage_removed() throws Exception {
+        mockMvc.perform(get("/stats/compare").with(user("user01").roles("USER"))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 사용자 앱 /stats/graph는 사용자 헤더(SCR-U-004)의 '통계' 탭을 켜고 그래프 조건·차트 자리를 그린다")
     void graphPage_user_rendersUserHeaderAndConditions() throws Exception {
         mockMvc.perform(get("/stats/graph").with(user("user01").roles("USER")))
                 .andExpect(status().isOk())
@@ -67,7 +73,7 @@ class StatGraphPageControllerTest {
                 .andExpect(content().string(containsString("<title>통계 그래프 - White Eyes</title>")))
                 .andExpect(content().string(containsString("data-header=\"user\"")))
                 .andExpect(content().string(not(containsString("data-header=\"admin\""))))
-                .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/compare\"")))
+                .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/graph\"")))
                 .andExpect(content().string(containsString("id=\"target-sido\"")))
                 .andExpect(content().string(containsString("id=\"target-zone\"")))
                 .andExpect(content().string(containsString("data-interval=\"1m\"")))
