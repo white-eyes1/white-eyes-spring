@@ -2,6 +2,7 @@
 // Leaflet 코드는 map/ 폴더 안에만 둔다(code-conventions 5-3). 서버 값은 textContent로만 넣는다.
 import { createMap, levelColor } from './map-view.js';
 import { formatDecimal, formatNumber } from '../common/format.js';
+import { bindNowCount } from '../common/now-count.js';
 
 const FALLBACK_ZOOM = 12;
 const OFF_PAINT = '#4a5768';
@@ -134,7 +135,7 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             } else if (paint) {
                 layer.setTooltipContent(textTooltip(name, '데이터 없음'));
             } else {
-                layer.setTooltipContent(tooltip(name, item));
+                layer.setTooltipContent(() => tooltip(name, item));
             }
         });
     }
@@ -161,7 +162,7 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
                         fillOpacity: item?.level ? 0.22 : 0.12,
                     },
                 });
-                layer.bindTooltip(tooltip(name, item), { sticky: true });
+                layer.bindTooltip(() => tooltip(name, item), { sticky: true });
                 if (clickable) {
                     layer.on('click', () => {
                         if (!isBusy?.()) {
@@ -286,7 +287,8 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
                 .map((item) => ({ item, latLng: L.latLng(Number(item.centerLat), Number(item.centerLng)) }));
             zonePoints.forEach(({ item, latLng }) => {
                 const marker = L.marker(latLng, { icon: pinIcon(item) });
-                marker.bindTooltip(tooltip(item.name, item));
+                // 올릴 때마다 만들어 그때까지 받은 5초 현재 인원을 담는다
+                marker.bindTooltip(() => tooltip(item.name, item));
                 // 핀 위를 우클릭해도 그 구역의 우클릭 메뉴가 뜬다(관리자 앱). 지도의 빈 곳 우클릭으로 번지지 않게 끊는다
                 if (onZoneMenu) {
                     marker.on('contextmenu', (event) => {
@@ -299,7 +301,7 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
                 if (onPinClick) {
                     marker.on('click', () => onPinClick(item.id));
                 } else {
-                    marker.bindPopup(zonePopup(item, levels), { offset: POPUP_OFFSET });
+                    marker.bindPopup(() => zonePopup(item, levels), { offset: POPUP_OFFSET });
                     marker.on('popupopen', () => {
                         openPopupZoneId = item.id;
                     });
@@ -379,6 +381,11 @@ function zonePopup(item, levels) {
     title.textContent = item.name;
     box.append(title);
     if (!item.level) {
+        // 1분 통계가 아직 없어도 5초 현재 인원이 있으면 그것만 보인다(캠을 막 가동한 구역)
+        if (hasNowCount(item)) {
+            box.append(popupRow('현재 인원', nowCountSpan(item)));
+            return box;
+        }
         const empty = document.createElement('div');
         empty.textContent = '데이터 없음';
         box.append(empty);
@@ -389,7 +396,7 @@ function zonePopup(item, levels) {
     chip.className = 'chip l' + item.level;
     chip.textContent = found ? found.name : '단계 ' + item.level;
     box.append(
-        popupRow('현재 인원', document.createTextNode(`${formatNumber(Math.round(Number(item.countAvg)))}명`)),
+        popupRow('현재 인원', nowCountSpan(item)),
         popupRow('밀집도', document.createTextNode(`${formatDecimal(item.density, 2)}명/㎡`)),
         popupRow('혼잡 단계', chip),
     );
@@ -426,9 +433,34 @@ function tooltip(name, item) {
         box.append(path);
     }
     const body = document.createElement('div');
-    body.textContent = item?.level
-        ? `${formatNumber(Math.round(Number(item.countAvg)))}명 · ${formatDecimal(item.density, 2)}명/㎡`
-        : '데이터 없음';
+    if (item?.level) {
+        body.append(nowCountSpan(item), ` · ${formatDecimal(item.density, 2)}명/㎡`);
+    } else if (item && hasNowCount(item)) {
+        body.append(nowCountSpan(item));
+    } else {
+        body.textContent = '데이터 없음';
+    }
     box.append(body);
     return box;
+}
+
+// 구역 단위 항목만 5초 현재 인원을 받는다(지역 합은 서버가 준 값 그대로)
+function isZoneItem(item) {
+    return item.centerLat !== null && item.centerLat !== undefined;
+}
+
+function hasNowCount(item) {
+    return item.currentCount !== null && item.currentCount !== undefined;
+}
+
+// 서버가 준 currentCount(없으면 1분 평균)를 처음 보이고, 구역이면 통계 SSE event: now 가 올 때 이 숫자만 바꾼다
+function nowCountSpan(item) {
+    const span = document.createElement('span');
+    const fallback = `${formatNumber(hasNowCount(item) ? item.currentCount : Math.round(Number(item.countAvg)))}명`;
+    if (isZoneItem(item)) {
+        bindNowCount(span, item.id, fallback, '명');
+    } else {
+        span.textContent = fallback;
+    }
+    return span;
 }

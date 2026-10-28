@@ -74,5 +74,23 @@ public class MinuteAccumulatorStore {
                 .toList();
     }
 
+    /**
+     * 구역마다 아직 마감되지 않은 누적기들 중 가장 최근 초의 결과(FNC-A-054). 1분 통계와 달리 누적기를 비우지 않고 읽기만 한다.
+     * 결과를 받는 스레드와 겹치지 않게 잠금 안에서 읽는다.
+     */
+    public synchronized Map<Long, LatestSecond> findLatestSecondByZone() {
+        Map<Long, LatestSecond> latestByZone = new HashMap<>();
+        for (MinuteAccumulator accumulator : accumulators.values()) {
+            accumulator.latestSecond().ifPresent(entry -> latestByZone.merge(
+                    accumulator.getZoneId(),
+                    new LatestSecond(entry.getKey(), entry.getValue().personCount()),
+                    (left, right) -> left.second().isAfter(right.second()) ? left : right));
+        }
+        return latestByZone;
+    }
+
+    /** 한 구역이 가장 최근에 받은 초와 그 초의 인원. */
+    public record LatestSecond(LocalDateTime second, int personCount) {}
+
     private record MinuteKey(long zoneId, LocalDateTime minute) {}
 }

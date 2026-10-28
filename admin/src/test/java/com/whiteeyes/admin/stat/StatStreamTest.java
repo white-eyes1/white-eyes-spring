@@ -14,6 +14,7 @@ import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.region.service.RegionQueryService;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
+import com.whiteeyes.common.stat.service.NowCountReader;
 import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
 import jakarta.persistence.EntityManagerFactory;
 import java.math.BigDecimal;
@@ -67,6 +68,8 @@ class StatStreamTest {
     // 컨텍스트와 방송 객체가 테스트들 사이에 공유되므로 분이 항상 앞선 시각으로 늘려 간다
     private static final AtomicLong MINUTES = new AtomicLong(0);
     private static final LocalDateTime BASE = LocalDateTime.of(2097, 1, 1, 0, 0);
+    // 현재 인원(zone_now_count)의 기준 시각. pollNowOnce에 시각을 직접 넘겨 15초 경계를 시계와 무관하게 확인한다
+    private static final LocalDateTime NOW_BASE = LocalDateTime.of(2098, 1, 1, 12, 0, 0);
 
     @Autowired
     private RegionLoadService regionLoadService;
@@ -82,6 +85,9 @@ class StatStreamTest {
 
     @Autowired
     private LevelService levelService;
+
+    @Autowired
+    private NowCountReader nowCountReader;
 
     @Autowired
     private JsonMapper jsonMapper;
@@ -234,7 +240,8 @@ class StatStreamTest {
         LocalDateTime existing = nextMinute();
         insertStat(samcheongZone, existing, "10.00", "0.1000");
         StatStreamBroadcaster fresh =
-                new StatStreamBroadcaster(zoneStatMinuteRepository, regionQueryService, levelService, jsonMapper, false);
+                new StatStreamBroadcaster(
+                        zoneStatMinuteRepository, regionQueryService, levelService, nowCountReader, jsonMapper, false);
 
         assertThat(fresh.pollOnce()).isNull();
 
@@ -363,6 +370,102 @@ class StatStreamTest {
         mockMvc.perform(get(STREAM_URL).with(anonymous())).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    @DisplayName("FNC-C-022 5초마다 신선한 현재 인원을 event: now 로 보내고, 지역에 속한 구역만 받는다")
+    void nowEvent_deliveredByRegion() throws Exception {
+        MvcResult samcheongOnly = connect(regionId("11110540"));
+        MvcResult jongno = connect(regionId("11110"));
+        MvcResult junggu = connect(regionId("11140"));
+        insertNowCount(samcheongZone, 12, NOW_BASE);
+        insertNowCount(sajikZone, 30, NOW_BASE.minusSeconds(2));
+        insertNowCount(sogongZone, 7, NOW_BASE);
+
+        assertThat(broadcaster.pollNowOnce(NOW_BASE.plusSeconds(3))).isEqualTo(3);
+
+        String samcheong = eventsOf(samcheongOnly);
+        assertThat(samcheong).contains("event:now").doesNotContain("event:stat");
+        assertThat(samcheong).contains("\"zoneId\":" + samcheongZone).doesNotContain("\"zoneId\":" + sajikZone);
+        var json = jsonMapper.readTree(awaitDataLines(samcheongOnly, 1).get(0));
+        var item = json.get("items").get(0);
+        assertThat(item.get("currentCount").asInt()).isEqualTo(12);
+        assertThat(item.get("at").asString())
+                .isEqualTo(NOW_BASE.atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+
+        String jongnoBody = eventsOf(jongno);
+        assertThat(jongnoBody).contains("\"zoneId\":" + samcheongZone, "\"zoneId\":" + sajikZone);
+        assertThat(jongnoBody).doesNotContain("\"zoneId\":" + sogongZone);
+        assertThat(eventsOf(junggu)).contains("\"zoneId\":" + sogongZone).doesNotContain("\"zoneId\":" + samcheongZone);
+    }
+
+    @Test
+    @DisplayName("FNC-C-022 현재 인원이 15초보다 오래됐으면 보내지 않는다(경계: 15초는 보내고 16초는 보내지 않는다)")
+    void nowEvent_staleNotSent() throws Exception {
+        MvcResult stream = connect(null);
+        insertNowCount(samcheongZone, 5, NOW_BASE);
+
+        assertThat(broadcaster.pollNowOnce(NOW_BASE.plusSeconds(16))).isZero();
+        assertThat(dataLines(stream)).isEmpty();
+
+        assertThat(broadcaster.pollNowOnce(NOW_BASE.plusSeconds(15))).isEqualTo(1);
+        awaitDataLines(stream, 1);
+    }
+
+    @Test
+    @DisplayName("FNC-C-022 현재 인원 조회는 접속자 수와 무관하게 5초에 한 번(구독자 없으면 읽지도 않는다)")
+    void nowEvent_queryCountIndependentOfSubscribers() throws Exception {
+        insertNowCount(samcheongZone, 5, NOW_BASE);
+        Statistics statistics = statistics();
+        statistics.clear();
+        assertThat(broadcaster.pollNowOnce(NOW_BASE)).isZero();
+        assertThat(statistics.getPrepareStatementCount()).isZero();
+
+        connect(null);
+        statistics.clear();
+        broadcaster.pollNowOnce(NOW_BASE);
+        long withOne = statistics.getPrepareStatementCount();
+
+        connect(null);
+        connect(null);
+        connect(null);
+        connect(null);
+        statistics.clear();
+        broadcaster.pollNowOnce(NOW_BASE);
+
+        assertThat(withOne).isEqualTo(1);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(withOne);
+    }
+
+    @Test
+    @DisplayName("FNC-C-022 전송이 막힌 구독자에게 1분 통계와 현재 인원이 쌓여도 서로를 대신하지 않는다")
+    void blockedSubscriber_statAndNowDoNotReplaceEachOther() throws Exception {
+        BlockableEmitter blocked = new BlockableEmitter();
+        broadcaster.subscribe(null, blocked);
+        blocked.blockFromNowOn();
+
+        insertStat(samcheongZone, nextMinute(), "10.00", "0.1000");
+        broadcaster.pollOnce();
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(blocked.started.get()).isEqualTo(1));
+
+        insertStat(samcheongZone, nextMinute(), "20.00", "0.2000");
+        broadcaster.pollOnce();
+        insertNowCount(samcheongZone, 33, NOW_BASE);
+        broadcaster.pollNowOnce(NOW_BASE);
+
+        blocked.release();
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(blocked.sent).hasSize(3));
+        assertThat(blocked.sent.get(0)).contains("10.00");
+        assertThat(blocked.sent.get(1)).contains("20.00");
+        assertThat(blocked.sent.get(2)).contains("\"currentCount\":33");
+    }
+
+    private void insertNowCount(long zoneId, int personCount, LocalDateTime updatedAt) {
+        jdbcTemplate.update(
+                "INSERT INTO zone_now_count (zone_id, person_count, updated_at) VALUES (?, ?, ?)",
+                zoneId,
+                personCount,
+                Timestamp.valueOf(updatedAt));
+    }
+
     private long countStatementsOfNextMinute() {
         insertStat(samcheongZone, nextMinute(), "10.00", "0.1000");
         Statistics statistics = statistics();
@@ -472,6 +575,7 @@ class StatStreamTest {
     }
 
     private void clearAll() {
+        jdbcTemplate.update("DELETE FROM zone_now_count");
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");

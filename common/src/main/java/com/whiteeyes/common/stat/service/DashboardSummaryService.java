@@ -46,6 +46,7 @@ public class DashboardSummaryService {
     private final LevelService levelService;
     private final ZoneNeighborRepository zoneNeighborRepository;
     private final TodayEventCountService todayEventCountService;
+    private final NowCountReader nowCountReader;
 
     public DashboardSummaryService(
             RegionQueryService regionQueryService,
@@ -54,7 +55,8 @@ public class DashboardSummaryService {
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             LevelService levelService,
             ZoneNeighborRepository zoneNeighborRepository,
-            TodayEventCountService todayEventCountService) {
+            TodayEventCountService todayEventCountService,
+            NowCountReader nowCountReader) {
         this.regionQueryService = regionQueryService;
         this.cameraCountService = cameraCountService;
         this.recentZoneStatReader = recentZoneStatReader;
@@ -62,6 +64,7 @@ public class DashboardSummaryService {
         this.levelService = levelService;
         this.zoneNeighborRepository = zoneNeighborRepository;
         this.todayEventCountService = todayEventCountService;
+        this.nowCountReader = nowCountReader;
     }
 
     /**
@@ -79,12 +82,17 @@ public class DashboardSummaryService {
         // 통계가 없어도 센다. 삭제된 구역의 오늘 이벤트도 포함(FNC-C-017)
         int todayEventCount = todayEventCountService.countTotal(target.allZoneIds(), now.toLocalDate().atStartOfDay());
 
+        // 5초마다 갱신되는 현재 인원(FNC-A-054). 1분 통계가 아직 없어도 값이 있을 수 있다
+        Integer currentCount = nowCountReader.sumFresh(activeZoneIds, now).stream().boxed().findFirst().orElse(null);
+
         Map<Long, ZoneStatMinute> latestStatByZone = recentZoneStatReader.findLatestStats(target.activeZones(), now);
         return recentZoneStatReader
                 .sumAtLatestMinute(target.activeZones(), latestStatByZone)
-                .map(sum -> toResponse(target, sum, cameraCount, runningCameraCount, todayEventCount, todayMaxCount))
+                .map(sum -> toResponse(
+                        target, sum, currentCount, cameraCount, runningCameraCount, todayEventCount, todayMaxCount))
                 .orElseGet(() -> new DashboardSummaryResponse(
-                        null, null, null, null, null, null, null, todayEventCount, cameraCount, runningCameraCount, todayMaxCount));
+                        null, null, currentCount, null, null, null, null, null,
+                        todayEventCount, cameraCount, runningCameraCount, todayMaxCount));
     }
 
     private Target zoneTarget(long zoneId) {
@@ -120,6 +128,7 @@ public class DashboardSummaryService {
     private DashboardSummaryResponse toResponse(
             Target target,
             LatestMinuteSum sum,
+            Integer currentCount,
             int cameraCount,
             int runningCameraCount,
             int todayEventCount,
@@ -151,6 +160,7 @@ public class DashboardSummaryService {
         return new DashboardSummaryResponse(
                 sum.statAt().atOffset(KST_OFFSET),
                 sum.countAvg(),
+                currentCount,
                 density,
                 level,
                 total(inByDirection),

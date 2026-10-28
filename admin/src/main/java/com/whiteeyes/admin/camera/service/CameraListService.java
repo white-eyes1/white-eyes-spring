@@ -11,6 +11,8 @@ import com.whiteeyes.common.event.service.TodayEventCountService;
 import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.level.service.LevelTarget;
 import com.whiteeyes.common.stat.dto.ZoneMinuteStat;
+import com.whiteeyes.common.stat.entity.ZoneNowCount;
+import com.whiteeyes.common.stat.service.NowCountReader;
 import com.whiteeyes.common.stat.service.ZoneStatQueryService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,6 +41,7 @@ public class CameraListService {
     private final ZoneStatQueryService zoneStatQueryService;
     private final LevelService levelService;
     private final TodayEventCountService todayEventCountService;
+    private final NowCountReader nowCountReader;
 
     /**
      * 삭제되지 않은 캠 목록을 번호 순으로 돌려준다. regionId가 있으면 그 지역 아래 구역의 캠만 돌려준다.
@@ -61,6 +64,8 @@ public class CameraListService {
         // 오늘 혼잡·급증 이벤트 수도 구역 전체를 한 번에 센다(FNC-C-017). 오늘은 KST 00:00부터
         Map<Long, Integer> eventCounts =
                 todayEventCountService.countByZone(zoneIds, LocalDate.now(KST).atStartOfDay());
+        // 5초마다 갱신되는 현재 인원(FNC-A-054)도 구역 전체를 한 번에 읽는다
+        Map<Long, ZoneNowCount> nowCounts = nowCountReader.findFresh(zoneIds, now);
 
         return cameras.stream()
                 .map(camera -> toItem(
@@ -69,6 +74,7 @@ public class CameraListService {
                         regionPaths,
                         stats.getOrDefault(camera.getZoneId(), List.of()),
                         eventCounts.getOrDefault(camera.getZoneId(), 0),
+                        nowCounts.get(camera.getZoneId()),
                         now))
                 .toList();
     }
@@ -91,6 +97,7 @@ public class CameraListService {
             Map<Long, String> regionPaths,
             List<ZoneMinuteStat> recent,
             int todayEventCount,
+            ZoneNowCount nowCount,
             LocalDateTime now) {
         return new CameraListItem(
                 camera.getId(),
@@ -105,13 +112,14 @@ public class CameraListService {
                 camera.getStatus() == CameraStatus.PREPARING ? camera.getProgress() : null,
                 camera.getErrorMessage(),
                 camera.isRunRequested(),
-                toStat(camera.getZoneId(), recent, now),
+                toStat(camera.getZoneId(), recent, nowCount, now),
                 todayEventCount,
                 toRecent10m(camera.getZoneId(), recent));
     }
 
     /** 5분 안에 1분 통계가 없으면 null. 있으면 가장 최근 것과 혼잡 단계(FNC-C-025). */
-    private CameraListItem.Stat toStat(Long zoneId, List<ZoneMinuteStat> recent, LocalDateTime now) {
+    private CameraListItem.Stat toStat(
+            Long zoneId, List<ZoneMinuteStat> recent, ZoneNowCount nowCount, LocalDateTime now) {
         if (recent.isEmpty()) {
             return null;
         }
@@ -120,7 +128,13 @@ public class CameraListService {
             return null;
         }
         int level = levelService.judgeLevel(LevelTarget.zone(zoneId), latest.density()).getLevel();
-        return new CameraListItem.Stat(toKstOffset(latest.statAt()), latest.countAvg().doubleValue(), latest.density().doubleValue(), level);
+        Integer currentCount = nowCount == null ? null : nowCount.getPersonCount();
+        return new CameraListItem.Stat(
+                toKstOffset(latest.statAt()),
+                latest.countAvg().doubleValue(),
+                currentCount,
+                latest.density().doubleValue(),
+                level);
     }
 
     // DB에는 KST를 오프셋 없이 저장하므로 응답에서 +09:00을 붙인다

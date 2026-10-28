@@ -4,6 +4,7 @@
 // 영상 아래 그래프 2행 2열(결정 0016)은 live-graphs.js가 그리고, 창을 열 때와 캠 정보가 새로 읽힐 때(새 1분 통계) 다시 읽는다.
 import { ApiError, get, url } from '../common/api.js';
 import { formatDecimal, formatNumber } from '../common/format.js';
+import { bindNowCount } from '../common/now-count.js';
 import { showToast } from '../common/toast.js';
 import { clearLiveGraphs, loadLiveGraphs } from './live-graphs.js';
 
@@ -105,7 +106,9 @@ function showNotice(message, withRetry = false) {
 
 function renderStat(camera) {
     const stat = camera.stat;
-    byId('live-count').textContent = stat ? `${formatNumber(Math.round(stat.countAvg))}명` : '-';
+    // 현재 인원은 5초마다(통계 SSE event: now) 이 칸만 바꾼다. 서버 값은 currentCount, 없으면 1분 평균(FNC-A-054)
+    const shown = stat ? `${formatNumber(stat.currentCount ?? Math.round(stat.countAvg))}명` : '';
+    bindNowCount(byId('live-count'), camera.zoneId, stat ? shown : '-', '명');
     byId('live-density').textContent = stat ? formatDecimal(stat.density, 2) : '-';
     const chip = byId('live-level');
     chip.className = 'chip';
@@ -117,7 +120,7 @@ function renderStat(camera) {
         chip.hidden = true;
     }
     byId('live-level-none').hidden = !chip.hidden;
-    byId('live-count-badge').textContent = stat ? `${formatNumber(Math.round(stat.countAvg))}명` : '';
+    bindNowCount(byId('live-count-badge'), camera.zoneId, shown, '명');
 }
 
 // 가장 최근 녹화를 찾아 다시보기 화면으로 간다(FNC-A-043·047). 없으면 토스트

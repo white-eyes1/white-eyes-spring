@@ -5,6 +5,7 @@ import { get, url } from '../common/api.js';
 import { initCameraForm } from '../camera/camera-form.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 import { initLiveView, openLiveView, updateLiveView } from '../live/live-view.js';
+import { nowTotal, onNowCounts, setNowCounts } from '../common/now-count.js';
 import { showToast } from '../common/toast.js';
 import { createRegionMap, createStatusLayer } from '../map/status-map.js';
 import { createAbnormalPanel } from './stats-main/abnormal.js';
@@ -24,6 +25,7 @@ import {
     renderLevelRules,
     renderMapLegend,
     renderSummary,
+    renderSummaryCount,
     renderTarget,
     renderZonePanel,
 } from './stats-main/panel.js';
@@ -79,6 +81,7 @@ let stream = null;
 let streamConnected = false;
 let streamTimer = null;
 let lastRefreshAt = 0;
+let lastSummary = null; // 마지막으로 읽은 요약. '현재 인원' 칸만 5초마다 다시 쓸 때 되돌릴 값을 얻는다
 const childrenCache = new Map(); // parentId(없으면 'root') -> 하위 지역 목록
 
 start();
@@ -105,6 +108,8 @@ async function start() {
             },
         });
     }
+    // 5초 현재 인원이 오거나 만료될 때 요약의 '현재 인원'만 다시 쓴다
+    onNowCounts(() => renderSummaryCount(lastSummary, nowTotal()));
     await selectFromUrl();
     window.setInterval(pollIfNeeded, REFRESH_MS);
 }
@@ -119,6 +124,17 @@ function connectStream(regionId) {
     stream = source;
     source.addEventListener('open', () => setStreamConnected(true));
     source.addEventListener('error', () => setStreamConnected(false));
+    // 5초마다 현재 인원만 온다(FNC-C-022). 요약·지도·캠 목록을 다시 읽지 않고 숫자 칸만 바꾼다
+    source.addEventListener('now', (event) => {
+        if (stream !== source) {
+            return;
+        }
+        try {
+            setNowCounts(JSON.parse(event.data).items ?? []);
+        } catch {
+            // 깨진 소식은 건너뛴다. 다음 5초에 다시 온다
+        }
+    });
     source.addEventListener('stat', () => {
         // 이미 다른 지역으로 옮겨 닫힌 연결의 늦은 소식은 무시한다
         if (stream !== source) {
@@ -387,6 +403,7 @@ async function refresh() {
     zoneItems = zones.items;
     zoneShapeList = zoneShapes;
     renderTarget(target.name, summary.cameraCount);
+    lastSummary = summary;
     renderSummary(summary, levels);
     renderZonePanel(zoneItems, zoneTab, levels);
     // 보조 지표(FNC-C-030): 펼쳐 있는 영역만 시계열을 다시 읽는다. 읽기 실패는 영역 안에 문구로 보인다
