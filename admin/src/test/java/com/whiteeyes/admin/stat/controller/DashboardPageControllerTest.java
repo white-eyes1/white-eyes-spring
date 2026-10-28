@@ -283,6 +283,29 @@ class DashboardPageControllerTest {
     }
 
     @Test
+    @DisplayName("SCR-A-008 실시간 보기 창 영상 아래에 현재 통계 4칸과 그래프 2행 2열이 있고, 밀집도 그래프는 없다(결정 0016)")
+    void statsPage_admin_liveViewHasGraphs() throws Exception {
+        String[] expected = {
+            "id=\"live-net\"", ">1시간 순증감<", ">혼잡 단계<", "id=\"live-graphs\"",
+            "<h3>최근 10분 · 혼잡 단계</h3>", "id=\"live-graph-10m\"",
+            "<h3>최근 1시간 · 혼잡 단계</h3>", "id=\"live-graph-60m\"",
+            "<h3>방향별 흐름 · 1시간</h3>", "id=\"live-compass\"", "id=\"live-direction-bars\"",
+            "id=\"live-graph-count\"", "id=\"live-graph-flow\"", "id=\"live-stats-link\"", "통계에서 보기"
+        };
+        var result = mockMvc.perform(get("/stats")).andExpect(status().isOk());
+        for (String fragment : expected) {
+            result.andExpect(content().string(containsString(fragment)));
+        }
+        result.andExpect(content().string(not(containsString("최근 1시간 · 밀집도"))));
+        // 대시보드에는 Chart.js를 넣지 않으므로 창 그래프는 SVG로 그리고, 같은 1분 API(/stats/series)를 쓴다
+        mockMvc.perform(get("/js/live/live-graphs.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/api/v1/stats/series")))
+                .andExpect(content().string(containsString("interval: '1m'")));
+        mockMvc.perform(get("/js/live/mini-charts.js")).andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("SCR-C-003 실제 화면에는 시안 표시용 data-api·data-fnc 속성과 .anno 요소를 옮기지 않는다")
     void statsPage_noDesignAnnotations() throws Exception {
         mockMvc.perform(get("/stats"))

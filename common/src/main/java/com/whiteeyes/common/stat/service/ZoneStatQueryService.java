@@ -31,7 +31,7 @@ public class ZoneStatQueryService {
         }
         return zoneStatMinuteRepository.findByZoneIdInAndStatAtGreaterThanEqual(zoneIds, from).stream()
                 .sorted(Comparator.comparing(ZoneStatMinute::getStatAt))
-                .map(stat -> new ZoneMinuteStat(stat.getZoneId(), stat.getStatAt(), stat.getCountAvg(), stat.getDensity()))
+                .map(stat -> new ZoneMinuteStat(stat.getZoneId(), stat.getStatAt(), stat.getCountAvg(), stat.getDensity(), stat.getSampleSec()))
                 .collect(Collectors.groupingBy(ZoneMinuteStat::zoneId));
     }
 }
