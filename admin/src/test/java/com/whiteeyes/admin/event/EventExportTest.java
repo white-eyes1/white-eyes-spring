@@ -235,7 +235,7 @@ class EventExportTest {
         assertThat(handled.getCell(14).getStringCellValue()).isEqualTo(adminLoginId);
         assertThat(handled.getCell(15).getLocalDateTimeCellValue()).isEqualTo(T0.plusMinutes(20));
         Row deleted = rows.get(1);
-        assertThat(deleted.getCell(7).getStringCellValue()).isEqualTo("(삭제됨) 사직동 1구역");
+        assertThat(deleted.getCell(7).getStringCellValue()).isEqualTo("사직동 1구역 (삭제됨)");
         assertThat(deleted.getCell(1).getStringCellValue()).isEqualTo("진행 중");
     }
 

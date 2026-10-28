@@ -171,12 +171,12 @@ class EventListTest {
     }
 
     @Test
-    @DisplayName("FNC-A-036 삭제된 구역은 이름 앞에 (삭제됨)이 붙고 zoneDeleted=true")
+    @DisplayName("FNC-A-036 삭제된 구역은 이름 뒤에 (삭제됨)이 붙고 zoneDeleted=true")
     void list_deletedZone_markedDeleted() throws Exception {
         insertEvent("CONGESTION", sajikZoneId, null, T0, T0.plusMinutes(5), 2, "0.8000", 10, "RESOLVED");
         jdbcTemplate.update("UPDATE zone SET deleted_at = NOW() WHERE id = ?", sajikZoneId);
 
-        list().andExpect(jsonPath("$.items[0].zoneName").value("(삭제됨) 사직동 1구역"))
+        list().andExpect(jsonPath("$.items[0].zoneName").value("사직동 1구역 (삭제됨)"))
                 .andExpect(jsonPath("$.items[0].zoneDeleted").value(true))
                 .andExpect(jsonPath("$.items[0].regionPath").value("종로구 · 사직동"));
     }
