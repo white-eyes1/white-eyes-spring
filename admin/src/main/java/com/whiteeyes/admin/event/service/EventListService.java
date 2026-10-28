@@ -38,7 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class EventListService {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-    private static final String DELETED_ZONE_PREFIX = "(삭제됨) ";
+    private static final String DELETED_ZONE_SUFFIX = " (삭제됨)";
     /** 발생 시각 내림차순, 같으면 번호가 큰 것이 먼저. 엑셀(FNC-A-039)도 같은 순서로 쓴다. */
     public static final Sort LATEST_FIRST = Sort.by(Sort.Order.desc("startedAt"), Sort.Order.desc("id"));
 
@@ -116,7 +116,7 @@ public class EventListService {
     }
 
     private static String zoneNameOf(ZoneSummary zone) {
-        return zone.deleted() ? DELETED_ZONE_PREFIX + zone.name() : zone.name();
+        return zone.deleted() ? zone.name() + DELETED_ZONE_SUFFIX : zone.name();
     }
 
     // 캠 이상만 이벤트가 가리키는 캠 이름. 혼잡·급증은 구역 단위라 camera_id가 없으므로 null (PM 결정)
