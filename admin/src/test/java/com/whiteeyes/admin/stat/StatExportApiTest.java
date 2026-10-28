@@ -38,7 +38,7 @@ import com.whiteeyes.admin.support.AdminTestLogin;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** 통계 엑셀 다운로드(FNC-C-023) API: 파일 응답, 시연용 표시, 100만 행 제한, 작업 기록 저장 */
+/** 통계 엑셀 다운로드(FNC-C-023) API: 파일 응답, 시연용 열 없음, 100만 행 제한, 작업 기록 저장 */
 @SpringBootTest
 @AutoConfigureMockMvc
 class StatExportApiTest {
@@ -76,7 +76,7 @@ class StatExportApiTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 구역 엑셀: xlsx 파일, 파일 이름 stats_{대상}_{from}_{to}.xlsx, 항목별 시트, 시연용 행 표시")
+    @DisplayName("FNC-C-023 구역 엑셀: xlsx 파일, 파일 이름 stats_{대상}_{from}_{to}.xlsx, 항목별 시트, 시연용 열 없음(시연용 행은 그대로)")
     void exportZone_file() throws Exception {
         // 10시 시연용 100명, 11시 실제 80명
         insertHourly(sajik, H0, "100.00", true);
@@ -100,13 +100,14 @@ class StatExportApiTest {
             Sheet count = workbook.getSheet("인원");
             assertThat(workbook.getSheet("밀집도")).isNotNull();
             Row header = count.getRow(0);
-            int demoColumn = header.getLastCellNum() - 1;
-            assertThat(header.getCell(demoColumn).getStringCellValue()).isEqualTo("시연용");
+            // 시연용 열은 없다: 이름 5칸 + 인원 3칸
+            assertThat(header.getLastCellNum()).isEqualTo((short) 8);
+            assertThat(header.getCell(7).getStringCellValue()).isEqualTo("최소 인원(명)");
             assertThat(count.getLastRowNum()).isEqualTo(2);
             assertThat(count.getRow(1).getCell(4).getStringCellValue()).isEqualTo("사직동 1구역");
             assertThat(count.getRow(1).getCell(5).getNumericCellValue()).isEqualTo(100.0);
-            assertThat(count.getRow(1).getCell(demoColumn).getStringCellValue()).isEqualTo("예");
-            assertThat(count.getRow(2).getCell(demoColumn).getStringCellValue()).isEqualTo("아니오");
+            assertThat(count.getRow(1).getLastCellNum()).isEqualTo((short) 8);
+            assertThat(count.getRow(2).getLastCellNum()).isEqualTo((short) 8);
         }
     }
 
