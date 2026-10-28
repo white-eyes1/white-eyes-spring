@@ -13,6 +13,7 @@ import { createHourlyLevelsPanel } from './stats-main/hourly-levels.js';
 import { createVisitPatternPanel } from './stats-main/visit-pattern.js';
 import { createPeakHoursPanel } from './stats-main/peak-hours.js';
 import { createMapMenu } from './stats-main/map-menu.js';
+import { createZoneRegister } from './stats-main/zone-register.js';
 import { createTrendPanel } from './stats-main/trend.js';
 import { createFlowTool } from './stats-main/flow-tool.js';
 import { createHeatmapTool } from './stats-main/heatmap-tool.js';
@@ -50,6 +51,8 @@ const flowTool = createFlowTool();
 const heatmapTool = createHeatmapTool();
 // 지도 우클릭 메뉴(관리자 앱만): 구역 위·빈 곳을 우클릭하면 구역·캠 수정·등록·삭제 항목이 뜬다
 const mapMenu = isAdmin ? createMapMenu() : null;
+// 구역 등록(관리자 앱만, 동 단계). 등록하면 지도·통계를 다시 읽는다
+const zoneRegister = isAdmin ? createZoneRegister({ onRegistered: onZoneRegistered }) : null;
 // 동 단계에서 지도에 그려진 구역(GET /zones). 우클릭 메뉴가 구역 이름·면적을 쓴다
 let zoneShapeList = [];
 let auxPanel = null;
@@ -258,6 +261,7 @@ async function loadRegion() {
             levels,
         });
         renderedRegionId = target.id;
+        zoneRegister?.attach(map);
         connectStream(target.id);
         abnormalPanel.setRegion(target.id);
         hourlyLevelsPanel.setRegion(target.id);
@@ -279,12 +283,21 @@ async function selectChildRegion(id) {
     }
 }
 
+// 구역을 등록하면 지도 경계·핀·통계·캠 패널을 다시 읽는다. 다른 동에 등록됐으면 그 동을 골라야 보인다고 알린다
+async function onZoneRegistered(created) {
+    const target = path[path.length - 1];
+    if (target.level === EMD && created.dongId !== target.id) {
+        showToast('다른 동에 등록되었습니다. 해당 동을 선택하면 지도에 보입니다.');
+    }
+    await refresh();
+}
+
 // ---- 지도 우클릭 메뉴(관리자 앱, 동 단계) -------------------------------------------------
 // 항목은 기능마다 이슈를 나눠 더한다(구역 등록·수정·삭제, 캠 수정·삭제). 항목이 없으면 메뉴를 띄우지 않는다
 
 // 구역을 그리거나 고치는 중이면 true
 function isMapBusy() {
-    return false;
+    return zoneRegister?.isActive() === true;
 }
 
 function openZoneMenu(zoneId, event) {
@@ -309,7 +322,7 @@ function buildZoneMenu(zone) {
 
 /** 지금 동 안의 빈 곳 우클릭 메뉴 항목 */
 function buildEmptyMenu(latLng) {
-    const items = [];
+    const items = [{ label: '구역 등록', onClick: () => zoneRegister.begin() }];
     return items;
 }
 
@@ -364,6 +377,7 @@ async function refresh() {
     const parent = path.length >= 2 ? path[path.length - 2] : null;
     const siblings = isDong && parent ? (await children(parent.id)).filter((region) => region.id !== target.id) : [];
     layer.showOutlines(target, siblings);
+    zoneRegister?.setAvailable(isDong);
     layer.showPins(zoneItems);
     // 이동 흐름(FNC-C-010): 켜져 있으면 구역 중심점으로 화살표를 다시 그린다
     flowTool.refresh(zoneItems);
@@ -384,6 +398,9 @@ async function loadCameras() {
 
 // 구역 핀: 그 구역의 캠이 가동 중이면 실시간 보기 창을 연다
 function openLiveForZone(zoneId) {
+    if (zoneRegister?.isActive()) {
+        return;
+    }
     const camera = deck?.cameraByZone(zoneId);
     if (!camera) {
         showToast('이 구역에는 캠이 없습니다.');
