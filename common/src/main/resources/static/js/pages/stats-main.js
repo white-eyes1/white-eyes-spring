@@ -2,6 +2,7 @@
 // 지역은 주소 쿼리 regionId로 유지한다. 새 1분 통계는 통계 SSE(FNC-C-022)가 알려 주면 화면 값을 새로 읽고,
 // 연결이 끊겨 있거나 한참 소식이 없으면 60초마다 읽는다.
 import { get, url } from '../common/api.js';
+import { initCameraForm } from '../camera/camera-form.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 import { initLiveView, openLiveView, updateLiveView } from '../live/live-view.js';
 import { showToast } from '../common/toast.js';
@@ -47,6 +48,8 @@ const peakHoursPanel = createPeakHoursPanel();
 const trendPanel = createTrendPanel();
 const flowTool = createFlowTool();
 const heatmapTool = createHeatmapTool();
+// 캠 등록 창(관리자 앱만): 캠이 없는 구역의 핀을 누르면 연다. 저장하면 지도·캠 패널을 다시 읽는다
+const cameraForm = isAdmin ? initCameraForm({ onSaved: () => refresh() }) : null;
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -327,7 +330,8 @@ async function loadCameras() {
 function openLiveForZone(zoneId) {
     const camera = deck?.cameraByZone(zoneId);
     if (!camera) {
-        showToast('이 구역에는 캠이 없습니다.');
+        // 캠 관리로 이동하지 않고 대시보드 위에서 그 구역을 고른 캠 등록 창을 연다(SCR-A-007)
+        cameraForm.openRegister(zoneId);
     } else if (camera.status !== 'RUNNING') {
         showToast('가동 중인 캠이 아니라 실시간 영상을 볼 수 없습니다.');
     } else {

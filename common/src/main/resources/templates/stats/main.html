@@ -20,6 +20,7 @@
     <link rel="stylesheet" th:href="@{/css/stats-main.css}">
     <link rel="stylesheet" th:href="@{/css/live.css}">
     <link rel="stylesheet" th:href="@{/css/stats-export.css}">
+    <link rel="stylesheet" th:href="@{/css/camera-modal.css}" th:if="${admin}">
 </head>
 <body class="we">
 <div class="dash" id="dash" th:attr="data-admin=${admin}, data-snapshot-interval-sec=${cardSnapshotIntervalSec}">
@@ -236,6 +237,8 @@
 <!-- SCR-A-008 실시간 보기 창(관리자 앱만) -->
 <th:block th:if="${admin}">
     <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
+    <!-- SCR-A-007 캠 등록 창: 캠이 없는 구역의 핀을 누르면 이 창을 연다(캠 관리 화면과 같은 창) -->
+    <th:block th:replace="~{fragments/layout :: adminCameraModal}"/>
 </th:block>
 <!-- SCR-C-006 엑셀 다운로드 창(두 앱) -->
 <th:block th:replace="~{fragments/layout :: statExportModal}"/>
