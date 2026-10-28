@@ -46,6 +46,7 @@ class EventExcelWriterTest {
                         "읍·면·동",
                         "구역",
                         "최고 단계",
+                        "최고 인원",
                         "최고 밀집도(명/㎡)",
                         "최고 증가율(%)",
                         "처리 상태",
@@ -71,12 +72,13 @@ class EventExcelWriterTest {
         assertThat(text(row, 6)).isEqualTo("삼청동");
         assertThat(text(row, 7)).isEqualTo("삼청동 1구역");
         assertThat(text(row, 8)).isEqualTo("위험");
-        assertThat(row.getCell(9).getNumericCellValue()).isEqualTo(1.64);
-        assertThat(row.getCell(10)).isNull();
-        assertThat(text(row, 11)).isEqualTo("확인 중");
-        assertThat(row.getCell(12)).isNull();
-        assertThat(row.getCell(14)).isNull();
+        assertThat(row.getCell(9).getNumericCellValue()).isEqualTo(48.0);
+        assertThat(row.getCell(10).getNumericCellValue()).isEqualTo(1.64);
+        assertThat(row.getCell(11)).isNull();
+        assertThat(text(row, 12)).isEqualTo("확인 중");
+        assertThat(row.getCell(13)).isNull();
         assertThat(row.getCell(15)).isNull();
+        assertThat(row.getCell(16)).isNull();
     }
 
     @Test
@@ -88,13 +90,14 @@ class EventExcelWriterTest {
 
         assertThat(text(row, 3)).isEqualTo("급증");
         assertThat(row.getCell(8)).isNull();
-        assertThat(row.getCell(9)).isNull();
-        assertThat(row.getCell(10).getNumericCellValue()).isEqualTo(75.5);
-        assertThat(text(row, 11)).isEqualTo("미확인");
+        assertThat(row.getCell(9).getNumericCellValue()).isEqualTo(30.0);
+        assertThat(row.getCell(10)).isNull();
+        assertThat(row.getCell(11).getNumericCellValue()).isEqualTo(75.5);
+        assertThat(text(row, 12)).isEqualTo("미확인");
     }
 
     @Test
-    @DisplayName("FNC-A-039 캠 이상 이벤트: 최고 값 칸이 모두 빈다")
+    @DisplayName("FNC-A-039 캠 이상 이벤트: 최고 인원·최고 값 칸이 모두 빈다")
     void camFaultRow() throws Exception {
         EventListItem item = item(EventType.CAM_FAULT, ENDED, false, 600, null, null, null, EventStatus.UNCHECKED);
 
@@ -104,6 +107,7 @@ class EventExcelWriterTest {
         assertThat(row.getCell(8)).isNull();
         assertThat(row.getCell(9)).isNull();
         assertThat(row.getCell(10)).isNull();
+        assertThat(row.getCell(11)).isNull();
     }
 
     @Test
@@ -125,11 +129,11 @@ class EventExcelWriterTest {
 
         Row row = write(List.of(new EventExportRow(item, "서울특별시", "종로구", "삼청동", "STAFF", "인력 2명 배치", "admin01", handledAt))).getRow(1);
 
-        assertThat(text(row, 11)).isEqualTo("조치완료");
-        assertThat(text(row, 12)).isEqualTo("인력 배치");
-        assertThat(text(row, 13)).isEqualTo("인력 2명 배치");
-        assertThat(text(row, 14)).isEqualTo("admin01");
-        assertThat(row.getCell(15).getLocalDateTimeCellValue()).isEqualTo(LocalDateTime.of(2026, 10, 12, 9, 20));
+        assertThat(text(row, 12)).isEqualTo("조치완료");
+        assertThat(text(row, 13)).isEqualTo("인력 배치");
+        assertThat(text(row, 14)).isEqualTo("인력 2명 배치");
+        assertThat(text(row, 15)).isEqualTo("admin01");
+        assertThat(row.getCell(16).getLocalDateTimeCellValue()).isEqualTo(LocalDateTime.of(2026, 10, 12, 9, 20));
     }
 
     @Test
