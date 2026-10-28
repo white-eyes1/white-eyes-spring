@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
@@ -48,6 +49,9 @@ public class StatExcelWriter implements AutoCloseable {
     private static final DateTimeFormatter FILE_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
     // 파일 이름에 쓸 수 없는 글자
     private static final String UNSAFE_FILE_CHARS = "[\\\\/:*?\"<>|]";
+
+    private static final XSSFColor BORDER_COLOR =
+            new XSSFColor(new byte[] {(byte) 0xBF, (byte) 0xBF, (byte) 0xBF}, null);
 
     private final SXSSFWorkbook workbook = new SXSSFWorkbook(WINDOW_SIZE);
     private final Map<StatExportItem, SXSSFSheet> sheets = new EnumMap<>(StatExportItem.class);
@@ -188,6 +192,15 @@ public class StatExcelWriter implements AutoCloseable {
             }
             style.setFillForegroundColor(new XSSFColor(GROUP_COLORS[key.color()], null));
             style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            // 배경색을 칠하면 엑셀 기본 눈금선이 가려지므로 칸마다 가는 테두리로 눈금선 모양을 지킨다
+            style.setBorderTop(BorderStyle.THIN);
+            style.setBorderBottom(BorderStyle.THIN);
+            style.setBorderLeft(BorderStyle.THIN);
+            style.setBorderRight(BorderStyle.THIN);
+            style.setTopBorderColor(BORDER_COLOR);
+            style.setBottomBorderColor(BORDER_COLOR);
+            style.setLeftBorderColor(BORDER_COLOR);
+            style.setRightBorderColor(BORDER_COLOR);
             return style;
         });
     }
