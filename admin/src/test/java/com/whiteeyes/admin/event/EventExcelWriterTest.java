@@ -136,12 +136,12 @@ class EventExcelWriterTest {
     @DisplayName("FNC-A-039 삭제된 구역 이름의 '(삭제됨)'은 그대로 남고, 지역 경로가 없으면 지역 칸이 빈다")
     void deletedZoneAndMissingRegion() throws Exception {
         EventListItem item = new EventListItem(
-                1L, EventType.CONGESTION, 7L, "(삭제됨) 사직동 1구역", null, null, true, STARTED, ENDED, false, 600, 2,
+                1L, EventType.CONGESTION, 7L, "사직동 1구역 (삭제됨)", null, null, true, STARTED, ENDED, false, 600, 2,
                 new BigDecimal("0.8000"), 10, EventStatus.UNCHECKED);
 
         Row row = write(List.of(new EventExportRow(item, null, null, null, null, null, null, null))).getRow(1);
 
-        assertThat(text(row, 7)).isEqualTo("(삭제됨) 사직동 1구역");
+        assertThat(text(row, 7)).isEqualTo("사직동 1구역 (삭제됨)");
         assertThat(row.getCell(4)).isNull();
         assertThat(row.getCell(5)).isNull();
         assertThat(row.getCell(6)).isNull();
