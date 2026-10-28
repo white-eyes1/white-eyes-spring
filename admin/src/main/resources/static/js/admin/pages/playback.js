@@ -17,6 +17,7 @@ import {
     normalizeRanges,
     normalizeSeries,
     previousEvent,
+    recordedInMinute,
     recordingCovers,
     timeAt,
     toKstIso,
@@ -634,14 +635,14 @@ function renderGuides(guides) {
     });
 }
 
-// 분마다 혼잡 단계 색 띠. 통계가 없는 분은 비워 둔다
+// 분마다 혼잡 단계 색 띠. 통계가 없는 분과 영상(녹화)이 없는 분은 비워 둔다(#296). 녹화 구간을 못 받았으면 통계만 본다
 function renderLevelStrip(from, to) {
     const byMinute = new Map(series.map((item) => [item.at, item]));
     const cells = [];
     for (let at = minuteStart(from); at < to; at += 60 * 1000) {
         const cell = document.createElement('span');
         const item = byMinute.get(at);
-        if (item && LEVEL_LABELS[item.level]) {
+        if (item && LEVEL_LABELS[item.level] && recordedInMinute(recordingRanges, at)) {
             cell.className = `l${item.level}`;
         }
         cells.push(cell);
