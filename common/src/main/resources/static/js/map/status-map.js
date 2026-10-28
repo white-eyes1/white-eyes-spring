@@ -171,18 +171,44 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
                     });
                 }
                 boundaries.addLayer(layer);
-                const entry = { id, name, layer, style: layer.options.style, item, hover: false };
+                const entry = { id, name, layer, style: layer.options.style, item, hover: false, held: false, isZone: Boolean(zoom) };
                 layer.on('mouseover', () => {
                     entry.hover = true;
                     layer.setStyle(styleOf(entry));
                 });
                 layer.on('mouseout', () => {
+                    // 우클릭 메뉴가 떠 있는 동안에는 그 구역의 강조를 유지한다(holdZone)
+                    if (entry.held) {
+                        return;
+                    }
                     entry.hover = false;
                     layer.setStyle(styleOf(entry));
                 });
                 boundaryLayers.push(entry);
             });
             applyPaint();
+        },
+
+        /** 우클릭 메뉴가 뜬 구역(zoneId)을 강조한 채로 붙들어 둔다. 마우스가 메뉴로 옮겨가도 풀리지 않는다(releaseZone으로 푼다). */
+        holdZone(zoneId) {
+            this.releaseZone();
+            const entry = boundaryLayers.find((candidate) => candidate.isZone && candidate.id === zoneId);
+            if (entry) {
+                entry.held = true;
+                entry.hover = true;
+                entry.layer.setStyle(styleOf(entry));
+            }
+        },
+
+        /** 붙들어 둔 강조를 푼다(메뉴가 닫힐 때). */
+        releaseZone() {
+            boundaryLayers.forEach((entry) => {
+                if (entry.held) {
+                    entry.held = false;
+                    entry.hover = false;
+                    entry.layer.setStyle(styleOf(entry));
+                }
+            });
         },
 
         /**
