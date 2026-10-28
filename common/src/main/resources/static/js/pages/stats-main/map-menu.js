@@ -5,11 +5,12 @@ const EDGE_GAP_PX = 8;
 
 /**
  * 우클릭 메뉴를 만든다. 메뉴 칸(#map-menu)은 templates/stats/main.html에 있다.
+ * @param {{onClose?: () => void}} [handlers] onClose: 메뉴가 닫힐 때(구역 강조를 풀 때 쓴다)
  * @returns {{open: (menu: {x: number, y: number, title: string, items: MenuItem[]}) => void, close: () => void, isOpen: () => boolean}}
  * MenuItem: {label: string, onClick: () => void, disabled?: boolean, hint?: string, danger?: boolean}
  *   disabled이면 눌러도 반응하지 않고, hint(꺼진 이유)를 항목 아래에 보인다
  */
-export function createMapMenu() {
+export function createMapMenu({ onClose } = {}) {
     const menu = document.getElementById('map-menu');
 
     // 메뉴 밖을 누르거나 Esc를 누르거나 창이 바뀌면 닫는다
@@ -47,7 +48,11 @@ export function createMapMenu() {
     }
 
     function close() {
+        const wasOpen = !menu.hidden;
         menu.hidden = true;
+        if (wasOpen) {
+            onClose?.();
+        }
     }
 
     function buildItem(item) {

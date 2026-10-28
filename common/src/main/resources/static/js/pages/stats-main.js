@@ -50,7 +50,8 @@ const trendPanel = createTrendPanel();
 const flowTool = createFlowTool();
 const heatmapTool = createHeatmapTool();
 // 지도 우클릭 메뉴(관리자 앱만): 구역 위·빈 곳을 우클릭하면 구역·캠 수정·등록·삭제 항목이 뜬다
-const mapMenu = isAdmin ? createMapMenu() : null;
+// 메뉴가 닫히면 붙들어 둔 구역 강조도 푼다
+const mapMenu = isAdmin ? createMapMenu({ onClose: () => layer?.releaseZone() }) : null;
 // 구역 등록(관리자 앱만, 동 단계). 등록하면 지도·통계를 다시 읽는다
 const zoneRegister = isAdmin ? createZoneRegister({ onRegistered: onZoneRegistered }) : null;
 // 동 단계에서 지도에 그려진 구역(GET /zones). 우클릭 메뉴가 구역 이름·면적을 쓴다
@@ -303,6 +304,8 @@ function isMapBusy() {
 function openZoneMenu(zoneId, event) {
     const zone = zoneShapeList.find((candidate) => candidate.id === zoneId);
     if (zone && path[path.length - 1].level === EMD) {
+        // 메뉴가 떠 있는 동안 그 구역이 강조된 채로 남게 한다
+        layer.holdZone(zoneId);
         mapMenu.open({ x: event.clientX, y: event.clientY, title: zone.name, items: buildZoneMenu(zone) });
     }
 }
