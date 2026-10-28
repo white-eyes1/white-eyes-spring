@@ -1,9 +1,11 @@
 // 실시간 보기 창(SCR-A-008, FNC-A-041·042). 대시보드 지도 핀·캠 카드와 캠 관리의 '실시간 보기'에서 연다.
 // 영상은 nginx가 권한(FNC-A-041)을 확인한 뒤 분석 서버의 MJPEG 스트림을 그대로 전달한다(/admin/live/{cameraId}).
 // 창 안의 '현재 통계'는 통계 SSE(FNC-C-022)로 갱신한 캠 정보를 받아 바꾼다. 서버 값은 textContent로만 넣는다.
+// 영상 아래 그래프 2행 2열(결정 0016)은 live-graphs.js가 그리고, 창을 열 때와 캠 정보가 새로 읽힐 때(새 1분 통계) 다시 읽는다.
 import { ApiError, get, url } from '../common/api.js';
 import { formatDecimal, formatNumber } from '../common/format.js';
 import { showToast } from '../common/toast.js';
+import { clearLiveGraphs, loadLiveGraphs } from './live-graphs.js';
 
 const PLAYBACK_MESSAGES = {
     RECORDING_NOT_FOUND: '영상 없음',
@@ -54,6 +56,7 @@ export function openLiveView(camera) {
     renderStat(camera);
     modal.hidden = false;
     connect();
+    loadLiveGraphs(camera);
 }
 
 /** 캠 정보가 새로 읽혔을 때 열려 있는 창의 현재 통계만 바꾼다(영상은 다시 연결하지 않는다). */
@@ -65,6 +68,7 @@ export function updateLiveView(cameras) {
     if (latest) {
         current = latest;
         renderStat(latest);
+        loadLiveGraphs(latest);
     }
 }
 
@@ -74,6 +78,7 @@ export function closeLiveView() {
     }
     modal.hidden = true;
     current = null;
+    clearLiveGraphs();
     // 이미지 요청을 끊어 분석 서버·nginx의 스트림 연결을 닫는다
     const img = byId('live-img');
     img.removeAttribute('src');
@@ -109,6 +114,7 @@ function renderStat(camera) {
     } else {
         chip.hidden = true;
     }
+    byId('live-level-none').hidden = !chip.hidden;
     byId('live-count-badge').textContent = stat ? `${formatNumber(Math.round(stat.countAvg))}명` : '';
 }
 

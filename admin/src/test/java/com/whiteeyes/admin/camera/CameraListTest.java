@@ -192,6 +192,38 @@ class CameraListTest {
     }
 
     @Test
+    @DisplayName("FNC-A-022 recent10m 점마다 밀집도와 혼잡 단계가 있고, 단계는 같은 분 /stats/series(1m)의 level과 같다(결정 0016)")
+    void list_recent10m_hasDensityAndLevelMatchingSeries() throws Exception {
+        createCamera(samcheongZoneId, "삼청동 캠");
+        LocalDateTime thisMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(3), 10.0, 0.2);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(2), 50.5, 0.9);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(1), 120.4, 1.6);
+        // 시계열은 결과가 들어온 초(sample_sec)가 0인 분을 빈 점으로 내므로 실제 분석 결과처럼 60초를 넣는다
+        jdbcTemplate.update("UPDATE zone_stat_minute SET sample_sec = 60 WHERE zone_id = ?", samcheongZoneId);
+
+        list(null)
+                .andExpect(jsonPath("$[0].recent10m", hasSize(3)))
+                .andExpect(jsonPath("$[0].recent10m[*].density", contains(0.2, 0.9, 1.6)))
+                .andExpect(jsonPath("$[0].recent10m[*].level", contains(1, 2, 3)));
+
+        DateTimeFormatter minute = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+        String body = mockMvc.perform(get("/api/v1/stats/series")
+                        .param("targetType", "ZONE")
+                        .param("targetId", String.valueOf(samcheongZoneId))
+                        .param("interval", "1m")
+                        .param("from", thisMinute.minusMinutes(3).format(minute))
+                        .param("to", thisMinute.format(minute)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode items = jsonMapper.readTree(body).get("items");
+        assertThat(items.size()).isEqualTo(3);
+        for (int index = 0; index < 3; index++) {
+            assertThat(items.get(index).get("level").asInt()).isEqualTo(index + 1);
+        }
+    }
+
+    @Test
     @DisplayName("FNC-A-022 혼잡 단계는 밀집도 경계(주의 0.7, 위험 1.5)를 따른다")
     void list_statLevel_followsThresholds() throws Exception {
         createCamera(samcheongZoneId, "삼청동 캠");

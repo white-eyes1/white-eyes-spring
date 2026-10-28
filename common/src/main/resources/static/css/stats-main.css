@@ -171,7 +171,11 @@
 .camcard header .row-between { align-items: center; }
 .camcard header strong { font-size: 13px; }
 .camcard .snap { height: 90px; margin: 0 12px; border-radius: 8px; background: linear-gradient(160deg, #18222e, #0b1016); display: grid; place-items: center; color: #6c7888; font-size: 11px; }
-.camcard .spark { height: 24px; margin: 8px 12px 0; }
+.camcard .recent { margin: 8px 12px 0; display: flex; flex-direction: column; gap: 3px; }
+.camcard .recent-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; }
+.camcard .recent-head b { font-size: 15px; color: var(--text); }
+.camcard .recent-delta { color: #a5b4fc; }
+.camcard .recent-foot { display: flex; justify-content: space-between; font-size: 10px; }
 .camcard .meta { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 11px; color: var(--muted); }
 .camcard .meta b { color: var(--text); }
 .camcard footer { display: flex; gap: 6px; padding: 0 12px 12px; }
