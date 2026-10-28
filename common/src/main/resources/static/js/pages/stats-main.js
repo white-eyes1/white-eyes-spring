@@ -12,6 +12,7 @@ import { createDeck } from './stats-main/deck.js';
 import { createHourlyLevelsPanel } from './stats-main/hourly-levels.js';
 import { createVisitPatternPanel } from './stats-main/visit-pattern.js';
 import { createPeakHoursPanel } from './stats-main/peak-hours.js';
+import { createMapMenu } from './stats-main/map-menu.js';
 import { createTrendPanel } from './stats-main/trend.js';
 import { createFlowTool } from './stats-main/flow-tool.js';
 import { createHeatmapTool } from './stats-main/heatmap-tool.js';
@@ -47,6 +48,10 @@ const peakHoursPanel = createPeakHoursPanel();
 const trendPanel = createTrendPanel();
 const flowTool = createFlowTool();
 const heatmapTool = createHeatmapTool();
+// 지도 우클릭 메뉴(관리자 앱만): 구역 위·빈 곳을 우클릭하면 구역·캠 수정·등록·삭제 항목이 뜬다
+const mapMenu = isAdmin ? createMapMenu() : null;
+// 동 단계에서 지도에 그려진 구역(GET /zones). 우클릭 메뉴가 구역 이름·면적을 쓴다
+let zoneShapeList = [];
 let auxPanel = null;
 let zoneItems = [];
 let zoneTab = 'count';
@@ -241,6 +246,11 @@ async function loadRegion() {
         layer = createStatusLayer(map, {
             onSelectRegion: selectChildRegion,
             onSelectSibling: selectSiblingRegion,
+            onZoneMenu: isAdmin ? openZoneMenu : undefined,
+            onEmptyMenu: isAdmin ? openEmptyMenu : undefined,
+            // 구역을 그리거나 고치는 중에는 지도의 지역·구역 클릭과 우클릭을 무시한다
+            isBusy: isMapBusy,
+            onViewStart: () => mapMenu?.close(),
             onViewChange: updateVisibleZones,
             // 관리자 앱: 구역 핀을 누르면 그 구역 캠의 실시간 보기 창(SCR-A-008)
             // 사용자 앱: onPinClick이 없으면 구역 정보 팝업(인원·밀집도·단계, SCR-C-003)
@@ -269,6 +279,40 @@ async function selectChildRegion(id) {
     }
 }
 
+// ---- 지도 우클릭 메뉴(관리자 앱, 동 단계) -------------------------------------------------
+// 항목은 기능마다 이슈를 나눠 더한다(구역 등록·수정·삭제, 캠 수정·삭제). 항목이 없으면 메뉴를 띄우지 않는다
+
+// 구역을 그리거나 고치는 중이면 true
+function isMapBusy() {
+    return false;
+}
+
+function openZoneMenu(zoneId, event) {
+    const zone = zoneShapeList.find((candidate) => candidate.id === zoneId);
+    if (zone && path[path.length - 1].level === EMD) {
+        mapMenu.open({ x: event.clientX, y: event.clientY, title: zone.name, items: buildZoneMenu(zone) });
+    }
+}
+
+function openEmptyMenu(latLng, event) {
+    const target = path[path.length - 1];
+    if (target.level === EMD) {
+        mapMenu.open({ x: event.clientX, y: event.clientY, title: target.name, items: buildEmptyMenu(latLng) });
+    }
+}
+
+/** 구역 위 우클릭 메뉴 항목 */
+function buildZoneMenu(zone) {
+    const items = [];
+    return items;
+}
+
+/** 지금 동 안의 빈 곳 우클릭 메뉴 항목 */
+function buildEmptyMenu(latLng) {
+    const items = [];
+    return items;
+}
+
 // 동 단계에서 이웃 동 윤곽선을 누르면 그 동으로 이동한다
 async function selectSiblingRegion(id) {
     const parent = path.length >= 2 ? path[path.length - 2] : null;
@@ -293,6 +337,7 @@ async function refresh() {
         return; // 읽는 동안 지역이 바뀌었다
     }
     zoneItems = zones.items;
+    zoneShapeList = zoneShapes;
     renderTarget(target.name, summary.cameraCount);
     renderSummary(summary, levels);
     renderZonePanel(zoneItems, zoneTab, levels);

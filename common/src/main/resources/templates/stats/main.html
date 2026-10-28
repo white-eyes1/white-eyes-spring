@@ -236,6 +236,8 @@
 <!-- SCR-A-008 실시간 보기 창(관리자 앱만) -->
 <th:block th:if="${admin}">
     <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
+    <!-- 지도 우클릭 메뉴(stats-main/map-menu.js) -->
+    <div class="map-menu" id="map-menu" role="menu" hidden></div>
 </th:block>
 <!-- SCR-C-006 엑셀 다운로드 창(두 앱) -->
 <th:block th:replace="~{fragments/layout :: statExportModal}"/>
