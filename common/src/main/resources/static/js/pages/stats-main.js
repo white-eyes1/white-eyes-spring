@@ -373,10 +373,20 @@ function buildZoneMenu(zone) {
             hint: CAMERA_EDIT_BLOCKED,
             onClick: () => cameraForm.openEdit(camera),
         });
+        // 캠 삭제(FNC-A-023): 정지 상태일 때만. 가동 요청 상태면 그 안내를 보인다
+        items.push({
+            label: '캠 삭제',
+            danger: true,
+            disabled: camera.status !== 'STOPPED' || Boolean(camera.runRequested),
+            hint: camera.runRequested ? CAMERA_RUN_PENDING : CAMERA_DELETE_BLOCKED,
+            onClick: () => askDeleteCamera(camera),
+        });
     }
     return items;
 }
 
+const CAMERA_DELETE_BLOCKED = '정지 상태에서만 삭제할 수 있습니다. 먼저 정지해 주세요.';
+const CAMERA_RUN_PENDING = '가동 요청 처리 중입니다. 잠시 뒤 다시 시도하거나 정지해 주세요';
 const CAMERA_EDIT_BLOCKED = '정지 상태에서만 고칠 수 있습니다. 먼저 정지해 주세요.';
 const ZONE_DELETE_BLOCKED = '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.';
 
@@ -394,6 +404,20 @@ function askDeleteZone(zone) {
             showToast(`'${zone.name}' 구역을 삭제했습니다.`);
             // 삭제는 끝났으니, 그 뒤 다시 읽기가 실패해도 확인 창에 오류로 보이지 않게 한다(다시 눌러 404가 나지 않게)
             await refreshSafely();
+        },
+    });
+}
+
+// 캠 삭제(FNC-A-023): 확인 뒤 DELETE. 삭제되면 구역은 남고 캠 패널·핀만 다시 읽는다
+function askDeleteCamera(camera) {
+    confirmDialog.open({
+        title: '캠 삭제',
+        message: '이 캠을 삭제할까요? 가동한 적이 있으면 지난 녹화·통계는 남습니다.',
+        okLabel: '삭제',
+        onConfirm: async () => {
+            await del(`/api/v1/manage/cameras/${camera.id}`, { toast: false });
+            showToast(`'${camera.name}' 캠을 삭제했습니다.`);
+            await refresh();
         },
     });
 }
