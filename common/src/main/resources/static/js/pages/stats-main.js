@@ -35,6 +35,7 @@ const EMD = 'EMD';
 
 const isAdmin = document.getElementById('dash').dataset.admin === 'true';
 const selects = ['filter-sido', 'filter-sigungu', 'filter-emd'].map((id) => document.getElementById(id));
+const backButton = document.getElementById('map-back');
 
 let levels = [];
 let path = []; // 시·도부터 고른 지역 목록. 마지막이 통계 대상
@@ -237,6 +238,7 @@ function openExport() {
 
 async function loadRegion() {
     const target = path[path.length - 1];
+    renderBackButton();
     renderGraphLink(target.id);
     const resetView = renderedRegionId !== target.id;
     if (resetView) {
@@ -262,6 +264,21 @@ async function loadRegion() {
         auxPanel.setRegion(target.id);
     }
     await refresh();
+}
+
+// 지도 뒤로가기: 누르면 한 단계 위 지역으로 올라간다(동 → 구 → 시). 가장 위 단계에서는 숨긴다
+backButton.addEventListener('click', () => {
+    if (path.length > 1) {
+        applyPath(path.slice(0, -1), true);
+    }
+});
+
+function renderBackButton() {
+    const parent = path.length > 1 ? path[path.length - 2] : null;
+    backButton.hidden = parent === null;
+    if (parent) {
+        backButton.textContent = `← ${parent.name}`;
+    }
 }
 
 async function selectChildRegion(id) {

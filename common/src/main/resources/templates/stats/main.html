@@ -169,6 +169,8 @@
             <div class="map-canvas" id="dash-map"></div>
             <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
             <div class="map-legend legend" id="map-legend"></div>
+            <!-- 한 단계 위 지역으로 올라가는 뒤로가기(시·도 단계에서는 숨김). 올라갈 지역 이름은 stats-main.js가 넣는다 -->
+            <button type="button" class="btn secondary sm map-back" id="map-back" hidden>← 상위 지역</button>
             <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 이동 흐름(FNC-C-010)은 동 단계에서만 켤 수 있다(stats-main/flow-tool.js). 히트맵(FNC-C-011): 조건·시간대 슬라이더·재생(stats-main/heatmap-tool.js) -->
             <div class="map-tools" id="map-tools">
                 <div class="map-tool">
