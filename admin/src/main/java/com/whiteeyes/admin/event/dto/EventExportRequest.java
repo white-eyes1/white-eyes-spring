@@ -17,6 +17,7 @@ import org.springframework.format.annotation.DateTimeFormat;
  * @param types 종류(복수)
  * @param statuses 처리 상태(복수)
  * @param keyword 캠·구역·소속 구·동 이름 검색어
+ * @param overlap true면 기간을 발생 시각이 아니라 [from, to)와 겹치는 이벤트로 본다(목록과 같다). 비우면 false
  */
 public record EventExportRequest(
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
@@ -25,16 +26,18 @@ public record EventExportRequest(
         Long zoneId,
         List<EventType> types,
         List<EventStatus> statuses,
-        String keyword) {
+        String keyword,
+        Boolean overlap) {
 
     public EventExportRequest {
         types = types == null ? List.of() : List.copyOf(types);
         statuses = statuses == null ? List.of() : List.copyOf(statuses);
         keyword = keyword == null || keyword.isBlank() ? null : keyword.strip();
+        overlap = overlap != null && overlap;
     }
 
     /** 조건을 만드는 {@code EventConditionService}가 받는 형태로 바꾼다(page·size는 쓰이지 않는다). */
     public EventSearchRequest toSearchRequest() {
-        return new EventSearchRequest(from, to, regionId, zoneId, types, statuses, keyword, null, null, null);
+        return new EventSearchRequest(from, to, regionId, zoneId, types, statuses, keyword, overlap, null, null);
     }
 }
