@@ -2,7 +2,8 @@
 // 1단계: 준비 중인 캠이 있으면 목록을 몇 초마다 다시 받아 진행률을 갱신한다(SSE는 2단계).
 // 실시간 보기 창(SCR-A-008)은 RUNNING인 캠의 '실시간 보기'에서 연다. 서버 값은 textContent로만 넣는다(code-conventions 5-3).
 
-import { get, patch, post, del, ApiError } from '../../common/api.js';
+import { get, post, del } from '../../common/api.js';
+import { initCameraForm } from '../../camera/camera-form.js';
 import { showToast } from '../../common/toast.js';
 import { initLiveView, openLiveView, updateLiveView } from '../../live/live-view.js';
 
@@ -16,32 +17,17 @@ const STATUS = {
     ERROR: { label: '오류', chip: 'err' },
 };
 const SOURCE_TYPE = { DUMMY: '더미', LIVE: '라이브' };
-const URI_HINT = {
-    DUMMY: 'dummy/videos/ 로 시작하고 .mp4 로 끝나는 상대경로 (예: dummy/videos/a.mp4)',
-    LIVE: 'rtsp:// 로 시작하는 주소 (예: rtsp://10.0.0.21/stream)',
-};
-// 등록 창에서 서버 메시지를 입력 아래에 보이는 오류 코드와 위치
-const FORM_ERROR_TARGET = { ZONE_NOT_FOUND: 'zoneId', ZONE_HAS_CAMERA: 'zoneId' };
 const NOT_STOPPED_HINT = '정지 상태에서만 고칠 수 있습니다. 먼저 정지해 주세요.';
 
 const rowsEl = document.getElementById('camera-rows');
 const emptyEl = document.getElementById('camera-empty');
 const summaryEl = document.getElementById('camera-summary');
-const modal = document.getElementById('camera-modal');
-const form = document.getElementById('camera-form');
-const formError = document.getElementById('camera-form-error');
-const zoneSelect = document.getElementById('camera-zone');
-const uriInput = document.getElementById('camera-uri');
-const uriHint = document.getElementById('camera-uri-hint');
-const saveButton = document.getElementById('camera-save');
 const deleteModal = document.getElementById('camera-delete-modal');
 const deleteConfirm = document.getElementById('camera-delete-confirm');
 
 let pollTimer = null;
 let loading = false;
 let streamTimer = null;
-// 수정 창이 열려 있는 캠(등록 창이면 null)
-let editing = null;
 let deleteTarget = null;
 let deleting = false;
 
@@ -193,7 +179,7 @@ function editButton(camera) {
         // 가동 요청 처리 중이면 삭제 버튼과 같은 안내를 쓴다(FNC-A-019·023 같은 기준)
         button.title = isRunPending(camera) ? RUN_PENDING_HINT : NOT_STOPPED_HINT;
     }
-    button.addEventListener('click', () => openModal(camera));
+    button.addEventListener('click', () => cameraForm.openEdit(camera));
     return button;
 }
 
@@ -216,136 +202,6 @@ async function runAction(button, camera, action) {
         // 409·422·502 등은 api.js가 서버 메시지를 토스트로 띄웠다
     }
     // 성공이든 실패든 서버 상태가 기준이므로 목록을 다시 받는다
-    await loadCameras();
-}
-
-// ---- 캠 등록·수정 창 ----
-
-// camera가 있으면 수정 창(구역은 읽기 전용, 값을 채워 연다), 없으면 등록 창
-async function openModal(camera = null) {
-    editing = camera;
-    form.reset();
-    clearErrors();
-    document.getElementById('camera-modal-title').textContent = camera ? '캠 수정' : '캠 등록';
-    document.getElementById('camera-zone-hint').textContent = camera
-        ? '구역은 바꿀 수 없습니다'
-        : '캠이 없는 구역만 고를 수 있습니다(구역당 1대)';
-    if (camera) {
-        form.elements.name.value = camera.name;
-        form.elements.sourceType.value = camera.sourceType;
-        uriInput.value = camera.sourceUri;
-    }
-    updateUriHint();
-    modal.hidden = false;
-    if (camera) {
-        zoneSelect.replaceChildren(option(camera.zoneId, camera.zoneName));
-        zoneSelect.disabled = true;
-        saveButton.disabled = false;
-        form.elements.name.focus();
-        return;
-    }
-    zoneSelect.disabled = false;
-    zoneSelect.replaceChildren(option('', '구역을 불러오는 중…'));
-    saveButton.disabled = true;
-    try {
-        const zones = await get('/api/v1/zones');
-        const free = zones.filter((zone) => !zone.hasCamera);
-        zoneSelect.replaceChildren(
-            ...(free.length === 0
-                ? [option('', '캠이 없는 구역이 없습니다')]
-                : [option('', '구역 선택'), ...free.map((zone) => option(zone.id, zone.name))]),
-        );
-        saveButton.disabled = false;
-        zoneSelect.focus();
-    } catch {
-        zoneSelect.replaceChildren(option('', '구역을 불러오지 못했습니다'));
-    }
-}
-
-function closeModal() {
-    modal.hidden = true;
-    editing = null;
-}
-
-function updateUriHint() {
-    uriHint.textContent = URI_HINT[form.elements.sourceType.value];
-    uriInput.placeholder = form.elements.sourceType.value === 'LIVE' ? 'rtsp://…' : 'dummy/videos/….mp4';
-}
-
-function clearErrors() {
-    formError.hidden = true;
-    formError.textContent = '';
-    form.querySelectorAll('[data-error-for]').forEach((hint) => {
-        hint.hidden = true;
-        hint.textContent = '';
-    });
-    form.querySelectorAll('.input.err').forEach((input) => input.classList.remove('err'));
-}
-
-function showFieldError(field, message) {
-    const hint = form.querySelector(`[data-error-for="${field}"]`);
-    if (!hint) {
-        formError.textContent = message;
-        formError.hidden = false;
-        return;
-    }
-    hint.textContent = message;
-    hint.hidden = false;
-    form.elements[field]?.classList?.add('err');
-}
-
-async function submitForm(event) {
-    event.preventDefault();
-    clearErrors();
-    const values = {
-        name: form.elements.name.value.trim(),
-        sourceType: form.elements.sourceType.value,
-        sourceUri: uriInput.value.trim(),
-    };
-    saveButton.disabled = true;
-    try {
-        if (editing) {
-            await saveEdit(values);
-        } else {
-            await post('/api/v1/manage/cameras', { zoneId: zoneSelect.value ? Number(zoneSelect.value) : null, ...values }, { toast: false });
-            closeModal();
-            await loadCameras();
-        }
-    } catch (error) {
-        if (!(error instanceof ApiError)) {
-            throw error;
-        }
-        if (error.fieldErrors.length > 0) {
-            error.fieldErrors.forEach(({ field, message }) => showFieldError(field, message));
-        } else if (error.code === 'INVALID_INPUT') {
-            showFieldError('sourceUri', error.message);
-        } else if (error.code === 'CAMERA_NOT_STOPPED') {
-            // 그 사이 가동됐다. 오류를 보이고 목록을 다시 받아 수정 버튼을 끈다
-            showFieldError('', error.message);
-            await loadCameras();
-        } else {
-            showFieldError(FORM_ERROR_TARGET[error.code] ?? '', error.message);
-        }
-    } finally {
-        saveButton.disabled = false;
-    }
-}
-
-// 수정: 바뀐 필드만 PATCH로 보낸다. 바뀐 것이 없으면 창만 닫는다
-async function saveEdit(values) {
-    const body = {};
-    Object.keys(values).forEach((key) => {
-        if (values[key] !== editing[key]) {
-            body[key] = values[key];
-        }
-    });
-    if (Object.keys(body).length === 0) {
-        closeModal();
-        return;
-    }
-    const updated = await patch(`/api/v1/manage/cameras/${editing.id}`, body, { toast: false });
-    closeModal();
-    showToast(`'${updated.name}' 캠 정보를 수정했습니다.`);
     await loadCameras();
 }
 
@@ -414,21 +270,10 @@ function textWithSmall(main, sub) {
     return fragment;
 }
 
-function option(value, label) {
-    const node = document.createElement('option');
-    node.value = value;
-    node.textContent = label;
-    return node;
-}
-
 initLiveView();
-document.getElementById('camera-add').addEventListener('click', () => openModal());
-modal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeModal));
-modal.addEventListener('mousedown', (event) => {
-    if (event.target === modal) {
-        closeModal();
-    }
-});
+// 캠 등록·수정 창은 대시보드와 같은 창을 쓴다(camera/camera-form.js). 저장이 끝나면 목록을 다시 읽는다
+const cameraForm = initCameraForm({ onSaved: loadCameras });
+document.getElementById('camera-add').addEventListener('click', () => cameraForm.openRegister());
 deleteModal.querySelectorAll('[data-delete-close]').forEach((button) => button.addEventListener('click', closeDeleteModal));
 deleteModal.addEventListener('mousedown', (event) => {
     if (event.target === deleteModal) {
@@ -437,15 +282,9 @@ deleteModal.addEventListener('mousedown', (event) => {
 });
 deleteConfirm.addEventListener('click', confirmDelete);
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !modal.hidden) {
-        closeModal();
-    }
     if (event.key === 'Escape' && !deleteModal.hidden) {
         closeDeleteModal();
     }
 });
-form.addEventListener('submit', submitForm);
-form.querySelectorAll('input[name="sourceType"]').forEach((radio) => radio.addEventListener('change', updateUriHint));
 
-updateUriHint();
 loadCameras();
