@@ -28,14 +28,20 @@ class StatGraphPageControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    @DisplayName("SCR-C-004 /stats/graph는 공통 틀 위에 '통계·기간 비교' 탭을 켜고, Chart.js는 고정 버전을 이 화면에서만 불러온다")
+    @DisplayName("SCR-C-005 기간 비교 화면은 없앴다(결정 0016): /stats/compare는 404")
+    void comparePage_removed() throws Exception {
+        mockMvc.perform(get("/stats/compare")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 /stats/graph는 공통 틀 위에 '통계' 탭을 켜고, Chart.js는 고정 버전을 이 화면에서만 불러온다")
     void graphPage_rendersFrameAndChartLibrary() throws Exception {
         mockMvc.perform(get("/stats/graph"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("stats/graph"))
                 .andExpect(content().string(containsString("<title>통계 그래프 - White Eyes</title>")))
                 .andExpect(content().string(containsString("data-header=\"admin\"")))
-                .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/compare\"")))
+                .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/graph\"")))
                 .andExpect(content().string(containsString("src=\"https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js\"")))
                 .andExpect(content().string(containsString("href=\"/css/stats-graph.css\"")))
                 .andExpect(content().string(containsString("src=\"/js/common/header.js\"")))
