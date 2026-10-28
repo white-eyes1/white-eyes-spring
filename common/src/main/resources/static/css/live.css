@@ -1,11 +1,11 @@
 /* 실시간 보기 창(SCR-A-008)과 캠 카드 영상 칸(FNC-A-042). 공통 스타일은 we.css */
 .live-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
 .live-modal-stage[hidden] { display: none; }
-.live-modal { max-width: 1040px; }
+.live-modal { max-width: 1040px; max-height: calc(100vh - 32px); overflow-y: auto; }
 .live-modal .modal-head h2 { margin-top: 4px; }
 .live-place { font-size: 12px; font-weight: 400; }
 .live-body { padding: 18px 20px; }
-.live-feed { position: relative; height: 460px; max-height: 60vh; border-radius: 10px; background: #05080c; overflow: hidden; display: grid; place-items: center; }
+.live-feed { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; background: #05080c; overflow: hidden; display: grid; place-items: center; }
 .live-feed img { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .live-feed img[hidden] { display: none; }
 .live-notice { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; color: #c3ccd8; font-size: 14px; background: rgba(5, 8, 12, .6); }
@@ -13,13 +13,39 @@
 .live-badge { position: absolute; left: 12px; top: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; background: rgba(5, 8, 12, .7); font-size: 11px; font-weight: 700; }
 .live-badge .rec { width: 8px; height: 8px; border-radius: 50%; background: #ef4d55; }
 .live-count-badge { position: absolute; right: 12px; top: 10px; padding: 4px 8px; border-radius: 6px; background: rgba(0, 0, 0, .55); font-size: 12px; font-weight: 700; }
-.live-foot { display: flex; align-items: center; gap: 24px; padding: 0 20px 18px; flex-wrap: wrap; }
+.live-foot { display: flex; align-items: stretch; gap: 10px; padding: 0 20px 12px; flex-wrap: wrap; }
+.live-stat { flex: 1 1 0; min-width: 140px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .live-foot .muted { font-size: 11px; }
-.live-foot .value { font-size: 26px; font-weight: 700; }
+.live-foot .value { font-size: 20px; font-weight: 700; }
 .live-foot .value small { font-size: 12px; font-weight: 400; }
 .live-foot .chip { height: 28px; font-size: 13px; }
 .live-foot .chip[hidden] { display: none; }
-.live-foot .live-playback { margin-left: auto; }
+.live-foot .live-playback { align-self: center; }
+#live-level-none[hidden] { display: none; }
+
+/* 영상 아래 그래프 2행 2열(결정 0016). 같은 행은 같은 높이 */
+.live-graphs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 20px 18px; }
+.live-graph { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.live-graph h3 { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; }
+.live-stats-link { color: #a5b4fc; font-size: 11px; font-weight: 400; }
+.live-axis { display: flex; justify-content: space-between; font-size: 10px; }
+.live-direction { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 8px; align-items: center; flex: 1; }
+.live-compass { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-rows: auto auto auto; gap: 4px; align-items: center; justify-items: center; font-size: 11px; }
+.live-compass .center { padding: 10px 12px; border: 1px solid #4f46e5; border-radius: 8px; background: rgba(129, 140, 248, .14); text-align: center; }
+.live-compass .dir { text-align: center; line-height: 1.35; }
+.live-compass .in { color: #a5b4fc; } .live-compass .out { color: #818cf8; }
+.live-direction-bars { display: flex; flex-direction: column; gap: 6px; font-size: 10px; }
+.live-direction-bars .row { display: grid; grid-template-columns: 22px 1fr; gap: 6px; align-items: center; }
+.live-direction-bars .bars { display: flex; flex-direction: column; gap: 2px; }
+.live-direction-bars .bar { height: 6px; border-radius: 2px; min-width: 1px; }
+.live-direction-bars .bar.in { background: #a5b4fc; } .live-direction-bars .bar.out { background: #4f46e5; }
+.live-graph-legend { grid-column: 1 / -1; display: flex; align-items: center; gap: 4px; font-size: 10px; }
+.live-graph-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-left: 8px; }
+.live-graph-legend .in { background: #a5b4fc; } .live-graph-legend .out { background: #4f46e5; }
+.live-graph-legend .l1 { background: #34a37f; } .live-graph-legend .l2 { background: #c98a1c; } .live-graph-legend .l3 { background: #d9475a; }
+.live-graph-legend .now { background: #818cf8; }
+.live-graph-error { grid-column: 1 / -1; font-size: 12px; }
+.live-graph-error[hidden] { display: none; }
 
 /* 캠 카드 영상 칸 */
 .camcard .snap.snap-live { position: relative; overflow: hidden; cursor: pointer; }

@@ -107,7 +107,7 @@ public class CameraListService {
                 camera.isRunRequested(),
                 toStat(camera.getZoneId(), recent, now),
                 todayEventCount,
-                toRecent10m(recent));
+                toRecent10m(camera.getZoneId(), recent));
     }
 
     /** 5분 안에 1분 통계가 없으면 null. 있으면 가장 최근 것과 혼잡 단계(FNC-C-025). */
@@ -128,11 +128,18 @@ public class CameraListService {
         return time.atZone(KST).toOffsetDateTime();
     }
 
-    /** 최근 10분의 1분 평균 인원을 시각 순서로 최대 10개. */
-    private List<CameraListItem.RecentCount> toRecent10m(List<ZoneMinuteStat> recent) {
-        return recent.stream()
-                .skip(Math.max(0, recent.size() - RECENT_MINUTES))
-                .map(stat -> new CameraListItem.RecentCount(toKstOffset(stat.statAt()), stat.countAvg().doubleValue()))
+    /** 최근 10분의 1분 통계(평균 인원·밀집도·혼잡 단계)를 시각 순서로 최대 10개. */
+    // 분마다 stat과 같은 기준으로 단계를 판정한다(카드의 단계색 막대, 결정 0016).
+    // 결과가 들어온 초(sample_sec)가 0인 분은 통계 그래프(FNC-C-012)에서 빈 점이므로 여기서도 뺀다
+    private List<CameraListItem.RecentCount> toRecent10m(Long zoneId, List<ZoneMinuteStat> recent) {
+        List<ZoneMinuteStat> sampled = recent.stream().filter(stat -> stat.sampleSec() > 0).toList();
+        return sampled.stream()
+                .skip(Math.max(0, sampled.size() - RECENT_MINUTES))
+                .map(stat -> new CameraListItem.RecentCount(
+                        toKstOffset(stat.statAt()),
+                        stat.countAvg().doubleValue(),
+                        stat.density().doubleValue(),
+                        levelService.judgeLevel(LevelTarget.zone(zoneId), stat.density()).getLevel()))
                 .toList();
     }
 }
