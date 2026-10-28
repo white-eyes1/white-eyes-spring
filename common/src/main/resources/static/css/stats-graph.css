@@ -55,3 +55,20 @@
 .point-menu-actions:empty { display: none; }
 .point-menu .btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 #point-menu-notice { margin-top: 6px; }
+
+/* 통합 그래프 아래 세 칸(결정 0016): 통합 그래프와 같은 폭·간격으로 세로로 잇는다 */
+.graph-panels { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.graph-panels[hidden] { display: none; }
+.graph-sub-head { padding: 12px 18px; }
+.graph-sub-head h2 { font-size: 13px; }
+.graph-sub-head h2 .muted { font-size: 11px; font-weight: 400; margin-left: 6px; }
+.graph-legend { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #8b98a9; }
+.graph-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-left: 8px; }
+.graph-legend .l1 { background: #34a37f; } .graph-legend .l2 { background: #c98a1c; } .graph-legend .l3 { background: #d9475a; }
+.graph-legend .in { background: #a5b4fc; } .graph-legend .out { background: #4f46e5; }
+.graph-legend .congested { background: rgba(239, 77, 85, .35); }
+.graph-sub-label { margin: 10px 24px 0; font-size: 11px; color: #8b98a9; }
+.graph-sub-canvas { position: relative; height: 200px; padding: 10px 24px 14px; }
+.graph-sub-canvas.count { height: 150px; }
+.graph-sub-canvas.flow { height: 300px; }
+.graph-sub-canvas.direction { height: 180px; }
