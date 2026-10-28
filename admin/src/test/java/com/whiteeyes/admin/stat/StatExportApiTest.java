@@ -19,6 +19,7 @@ import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -155,13 +156,14 @@ class StatExportApiTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 처리 순서 3: 지역 합산 파일(펼치기 안 함)은 읍·면·동·구역 칸에 '(지역 합산)'이 있고 값은 합산")
+    @DisplayName("FNC-C-023 처리 순서 3: 지역 합산 파일(sum=true)은 읍·면·동·구역 칸에 '(지역 합산)'이 있고 값은 합산")
     void exportRegionSum_labelsSumRow() throws Exception {
         insertHourly(sajik, H0, "100.00", false);
         long jongno = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '11110'", Long.class);
 
         byte[] body = mockMvc.perform(exportRequest("REGION", jongno, "1h", "2099-01-01T10:00", "2099-01-01T11:00")
                         .param("items", "COUNT")
+                        .param("sum", "true")
                         .with(AdminTestLogin.admin()))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -175,6 +177,50 @@ class StatExportApiTest {
             assertThat(row.getCell(3).getStringCellValue()).isEqualTo("(지역 합산)");
             assertThat(row.getCell(4).getStringCellValue()).isEqualTo("(지역 합산)");
             assertThat(row.getCell(5).getNumericCellValue()).isEqualTo(100.0);
+        }
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 지역(sum 없음)은 기본으로 소속 구역별 행: 칸마다 실제 이름, 시각 묶음 순서, 삭제된 구역 제외, 시각 묶음마다 배경색")
+    void exportRegion_defaultPerZoneRows() throws Exception {
+        long samcheong = insertZone("11110540", "삼청동 1구역");
+        long deleted = insertZone("11110540", "삼청동 삭제된 구역");
+        jdbcTemplate.update("UPDATE zone SET deleted_at = '2099-01-02 00:00:00' WHERE id = ?", deleted);
+        insertHourly(sajik, H0, "100.00", false);
+        insertHourly(samcheong, H0.plusHours(1), "60.00", false);
+        insertHourly(deleted, H0, "30.00", false);
+        long jongno = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '11110'", Long.class);
+
+        byte[] body = mockMvc.perform(exportRequest("REGION", jongno, "1h", "2099-01-01T10:00", "2099-01-01T12:00")
+                        .param("items", "COUNT")
+                        .with(AdminTestLogin.admin()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
+            Sheet sheet = workbook.getSheet("인원");
+            // 구역 2개(삭제된 구역 제외) × 시각 2개
+            assertThat(sheet.getLastRowNum()).isEqualTo(4);
+            String[][] expected = {
+                {"서울특별시", "종로구", "사직동", "사직동 1구역"},
+                {"서울특별시", "종로구", "삼청동", "삼청동 1구역"},
+                {"서울특별시", "종로구", "사직동", "사직동 1구역"},
+                {"서울특별시", "종로구", "삼청동", "삼청동 1구역"},
+            };
+            for (int i = 0; i < expected.length; i++) {
+                Row row = sheet.getRow(i + 1);
+                for (int column = 0; column < 4; column++) {
+                    assertThat(row.getCell(column + 1).getStringCellValue()).isEqualTo(expected[i][column]);
+                }
+                // 10시 두 줄은 회색, 11시 두 줄은 흰색
+                String color = ((XSSFCellStyle) row.getCell(1).getCellStyle())
+                        .getFillForegroundXSSFColor().getARGBHex();
+                assertThat(color).isEqualTo(i < 2 ? "FFD1D1D1" : "FFFFFFFF");
+            }
+            assertThat(sheet.getRow(1).getCell(5).getNumericCellValue()).isEqualTo(100.0);
+            assertThat(sheet.getRow(4).getCell(5).getNumericCellValue()).isEqualTo(60.0);
         }
     }
 
@@ -204,7 +250,8 @@ class StatExportApiTest {
         assertThat(detail.get("to").asString()).isEqualTo("2099-01-01T12:00");
         assertThat(detail.get("interval").asString()).isEqualTo("1h");
         assertThat(detail.get("items").get(0).asString()).isEqualTo("COUNT");
-        assertThat(detail.get("expand").asBoolean()).isFalse();
+        assertThat(detail.get("sum").asBoolean()).isFalse();
+        assertThat(detail.has("expand")).isFalse();
     }
 
     @Test

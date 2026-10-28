@@ -40,7 +40,7 @@ export function initExportModal() {
         }
     });
     byId('export-scope').addEventListener('change', () => {
-        renderExpand();
+        renderSum();
         validate();
     });
     ['export-from', 'export-end', 'export-interval'].forEach((id) => byId(id).addEventListener('change', validate));
@@ -77,13 +77,13 @@ export function openExportModal({ zone = null, region = null, interval, from, to
         return option;
     }));
     scopeSelect.value = '0';
-    // 지역은 기본 합산(FNC-C-023 업무 규칙)
-    byId('export-expand').checked = false;
+    // 지역은 기본 소속 구역별 행, 합산은 직접 고를 때만(FNC-C-023 업무 규칙)
+    byId('export-sum').checked = false;
     byId('export-interval').value = INTERVALS[interval] ? interval : '1h';
     byId('export-from').value = toInputValue(from);
     byId('export-end').value = toInputValue(new Date(to.getTime() - MINUTE_MS));
     hideError();
-    renderExpand();
+    renderSum();
     validate();
     modal.hidden = false;
     scopeSelect.focus();
@@ -103,9 +103,9 @@ function selectedScope() {
     return scopes[Number(byId('export-scope').value)];
 }
 
-// '구역별 펼치기'는 지역일 때만
-function renderExpand() {
-    byId('export-expand-row').hidden = selectedScope()?.scope !== 'REGION';
+// '지역 합산으로 받기'는 지역일 때만
+function renderSum() {
+    byId('export-sum-row').hidden = selectedScope()?.scope !== 'REGION';
 }
 
 /** 지금 입력으로 받을 조건. 틀리면 { reason } */
@@ -158,8 +158,8 @@ async function submit() {
     if (targetId !== null) {
         params.push(['targetId', String(targetId)]);
     }
-    if (scope === 'REGION' && byId('export-expand').checked) {
-        params.push(['expand', 'true']);
+    if (scope === 'REGION' && byId('export-sum').checked) {
+        params.push(['sum', 'true']);
     }
 
     const button = byId('export-submit');

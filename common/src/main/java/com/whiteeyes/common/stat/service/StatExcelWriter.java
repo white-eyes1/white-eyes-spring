@@ -11,12 +11,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 
 import com.whiteeyes.common.stat.dto.StatExportItem;
 import com.whiteeyes.common.stat.dto.StatExportPlan;
@@ -26,10 +30,11 @@ import com.whiteeyes.common.stat.dto.StatSeriesPoint;
 
 /**
  * 통계 엑셀 파일을 쓴다(FNC-C-023 처리 순서 2·3·5). SXSSF(스트리밍)라 메모리에는 최근 행 몇 개만 두고 나머지는
- * 임시 파일로 내린다. 항목마다 시트 하나, 행 = 대상 줄 × 시각.
+ * 임시 파일로 내린다. 항목마다 시트 하나, 행 = 대상 줄 × 시각. 시각이 같은 행끼리 한 묶음이고, 묶음마다 행
+ * 배경색을 #d1d1d1, #ffffff로 번갈아 칠한다(FNC-C-023 처리 순서 2).
  *
  * <p>열: 시각, 시·도, 시·군·구, 읍·면·동, 구역, 항목 값, 시연용. 인원은 평균·최대·최소 3열.
- * 통계가 없는 시각은 값 칸을 비운다. 다 쓰면 {@link #close()}로 임시 파일을 지운다.
+ * 통계가 없는 시각은 값 칸을 비운다(색을 칠하려고 빈 칸도 칸은 둔다). 다 쓰면 {@link #close()}로 임시 파일을 지운다.
  */
 public class StatExcelWriter implements AutoCloseable {
 
@@ -37,21 +42,29 @@ public class StatExcelWriter implements AutoCloseable {
     private static final int WINDOW_SIZE = 100;
     private static final String[] NAME_HEADERS = {"시각", "시·도", "시·군·구", "읍·면·동", "구역"};
     private static final String DEMO_HEADER = "시연용";
+    // 시각 묶음의 배경색: 첫 묶음부터 번갈아
+    private static final byte[][] GROUP_COLORS = {
+        {(byte) 0xD1, (byte) 0xD1, (byte) 0xD1}, {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF}
+    };
     private static final DateTimeFormatter FILE_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
     // 파일 이름에 쓸 수 없는 글자
     private static final String UNSAFE_FILE_CHARS = "[\\\\/:*?\"<>|]";
 
+    private static final XSSFColor BORDER_COLOR =
+            new XSSFColor(new byte[] {(byte) 0xBF, (byte) 0xBF, (byte) 0xBF}, null);
+
     private final SXSSFWorkbook workbook = new SXSSFWorkbook(WINDOW_SIZE);
     private final Map<StatExportItem, SXSSFSheet> sheets = new EnumMap<>(StatExportItem.class);
     private final Map<StatExportItem, Integer> nextRows = new EnumMap<>(StatExportItem.class);
-    private final CellStyle timeStyle;
-    private final Map<Integer, CellStyle> decimalStyles = new HashMap<>();
+    private final String timeFormat;
+    // 칸 종류(시각·글자·소수 자릿수) × 묶음 색 순서 → 서식
+    private final Map<StyleKey, CellStyle> styles = new HashMap<>();
+    private LocalDateTime lastAt;
+    private int groupIndex = -1;
 
     public StatExcelWriter(StatExportPlan plan) {
         workbook.setCompressTempFiles(true);
-        DataFormat format = workbook.createDataFormat();
-        timeStyle = workbook.createCellStyle();
-        timeStyle.setDataFormat(format.getFormat(timeFormat(plan.request().interval())));
+        timeFormat = timeFormat(plan.request().interval());
         CellStyle headerStyle = workbook.createCellStyle();
         Font bold = workbook.createFont();
         bold.setBold(true);
@@ -76,30 +89,40 @@ public class StatExcelWriter implements AutoCloseable {
         }
     }
 
-    /** 대상 줄의 한 시각을 시트마다 한 행씩 쓴다. 통계 엑셀 값 읽기(StatExportReader.read)가 넘기는 순서대로 부른다. */
+    /**
+     * 대상 줄의 한 시각을 시트마다 한 행씩 쓴다. 통계 엑셀 값 읽기(StatExportReader.read)가 넘기는 순서대로 부른다.
+     * 앞 행과 시각이 다르면 새 시각 묶음이라 배경색을 바꾼다.
+     */
     public void append(StatExportSeries series, StatSeriesPoint point) {
         LocalDateTime at = point.at().toLocalDateTime();
+        if (!at.equals(lastAt)) {
+            lastAt = at;
+            groupIndex++;
+        }
+        int color = groupIndex % GROUP_COLORS.length;
         boolean empty = point.sampleSec() == 0;
         sheets.forEach((item, sheet) -> {
             int rowIndex = nextRows.merge(item, 1, Integer::sum) - 1;
             Row row = sheet.createRow(rowIndex);
             row.createCell(0).setCellValue(at);
-            row.getCell(0).setCellStyle(timeStyle);
-            setText(row, 1, series.sido());
-            setText(row, 2, series.sigungu());
-            setText(row, 3, series.emd());
-            setText(row, 4, series.zoneName());
+            row.getCell(0).setCellStyle(style(StyleKey.time(color)));
+            setText(row, 1, series.sido(), color);
+            setText(row, 2, series.sigungu(), color);
+            setText(row, 3, series.emd(), color);
+            setText(row, 4, series.zoneName(), color);
             int column = NAME_HEADERS.length;
             for (Column value : columns(item)) {
                 BigDecimal number = empty ? null : value.value().apply(point);
+                Cell cell = row.createCell(column);
                 if (number != null) {
-                    row.createCell(column).setCellValue(number.doubleValue());
-                    row.getCell(column).setCellStyle(decimalStyle(value.decimals()));
+                    cell.setCellValue(number.doubleValue());
                 }
+                cell.setCellStyle(style(StyleKey.decimal(value.decimals(), color)));
                 column++;
             }
             // 1분 통계에는 시연용 데이터가 없어 항상 '아니오'(tables.md zone_stat_minute)
             row.createCell(column).setCellValue(point.isDemo() ? "예" : "아니오");
+            row.getCell(column).setCellStyle(style(StyleKey.text(color)));
         });
     }
 
@@ -157,19 +180,38 @@ public class StatExcelWriter implements AutoCloseable {
         return flow == null ? null : BigDecimal.valueOf(flow.values().stream().mapToInt(Integer::intValue).sum());
     }
 
-    private CellStyle decimalStyle(int decimals) {
-        return decimalStyles.computeIfAbsent(decimals, digits -> {
-            CellStyle style = workbook.createCellStyle();
-            style.setDataFormat(workbook.createDataFormat()
-                    .getFormat(digits == 0 ? "#,##0" : "#,##0." + "0".repeat(digits)));
+    // 같은 서식은 한 번만 만든다(엑셀은 서식 수에 제한이 있다)
+    private CellStyle style(StyleKey key) {
+        return styles.computeIfAbsent(key, ignored -> {
+            XSSFCellStyle style = (XSSFCellStyle) workbook.createCellStyle();
+            if (key.isTime()) {
+                style.setDataFormat(workbook.createDataFormat().getFormat(timeFormat));
+            } else if (key.decimals() >= 0) {
+                style.setDataFormat(workbook.createDataFormat()
+                        .getFormat(key.decimals() == 0 ? "#,##0" : "#,##0." + "0".repeat(key.decimals())));
+            }
+            style.setFillForegroundColor(new XSSFColor(GROUP_COLORS[key.color()], null));
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            // 배경색을 칠하면 엑셀 기본 눈금선이 가려지므로 칸마다 가는 테두리로 눈금선 모양을 지킨다
+            style.setBorderTop(BorderStyle.THIN);
+            style.setBorderBottom(BorderStyle.THIN);
+            style.setBorderLeft(BorderStyle.THIN);
+            style.setBorderRight(BorderStyle.THIN);
+            style.setTopBorderColor(BORDER_COLOR);
+            style.setBottomBorderColor(BORDER_COLOR);
+            style.setLeftBorderColor(BORDER_COLOR);
+            style.setRightBorderColor(BORDER_COLOR);
             return style;
         });
     }
 
-    private static void setText(Row row, int column, String text) {
+    // 이름이 없는 칸도 색을 칠하려고 빈 칸으로 둔다
+    private void setText(Row row, int column, String text, int color) {
+        Cell cell = row.createCell(column);
         if (text != null) {
-            row.createCell(column).setCellValue(text);
+            cell.setCellValue(text);
         }
+        cell.setCellStyle(style(StyleKey.text(color)));
     }
 
     // 스트리밍 시트는 자동 너비를 쓸 수 없어 고정 너비(글자 수 × 256)
@@ -177,6 +219,31 @@ public class StatExcelWriter implements AutoCloseable {
         sheet.setColumnWidth(0, 18 * 256);
         for (int column = 1; column < columnCount; column++) {
             sheet.setColumnWidth(column, 14 * 256);
+        }
+    }
+
+    /**
+     * 칸 서식의 종류. decimals는 값 칸의 소수 자릿수, 시각 칸은 TIME(-2), 글자 칸은 TEXT(-1). color는 묶음 색 순서.
+     */
+    private record StyleKey(int decimals, int color) {
+
+        private static final int TIME = -2;
+        private static final int TEXT = -1;
+
+        static StyleKey time(int color) {
+            return new StyleKey(TIME, color);
+        }
+
+        static StyleKey text(int color) {
+            return new StyleKey(TEXT, color);
+        }
+
+        static StyleKey decimal(int decimals, int color) {
+            return new StyleKey(decimals, color);
+        }
+
+        boolean isTime() {
+            return decimals == TIME;
         }
     }
 

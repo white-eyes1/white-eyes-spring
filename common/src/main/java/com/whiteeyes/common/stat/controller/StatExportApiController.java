@@ -41,10 +41,10 @@ public class StatExportApiController {
             @RequestParam("from") String from,
             @RequestParam("to") String to,
             @RequestParam(name = "items", required = false) List<String> items,
-            @RequestParam(name = "expand", defaultValue = "false") boolean expand,
+            @RequestParam(name = "sum", defaultValue = "false") boolean sum,
             HttpServletResponse response)
             throws BindException, IOException {
-        StatExportRequest request = StatExportRequest.parse(scope, targetId, interval, from, to, items, expand);
+        StatExportRequest request = StatExportRequest.parse(scope, targetId, interval, from, to, items, sum);
         try (StatExportFile file = statExportService.export(request)) {
             response.setContentType(XLSX_TYPE);
             response.setHeader(
