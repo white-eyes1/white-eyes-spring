@@ -1,16 +1,18 @@
 // 통계 메인 아래 캠 패널(관리자 앱만, SCR-C-003, FNC-A-022·020·021).
 // 지도 화면 안 구역의 캠 카드, 정렬, 접기(가로 한 줄)/펼치기(세로 여러 줄) 전환, 가동·정지를 맡는다.
 // 영상 칸은 가동 중이고 화면에 보이는 카드만 최신 화면을 2초마다 갱신하고(FNC-A-042, live/preview.js), 누르면 실시간 보기 창을 연다.
+// 최근 10분은 1분마다 혼잡 단계 색 막대(결정 0016, live/mini-charts.js). 단계는 서버가 판정한 recent10m[].level이다.
 import { post } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
+import { levelBars, niceMax } from '../../live/mini-charts.js';
 import { createPreviewManager } from '../../live/preview.js';
 import { levelChip } from './panel.js';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
 const MIN_MAP_HEIGHT = 64;
 const EXPAND_BELOW_MAP_HEIGHT = 360;
-const SPARK_WIDTH = 180;
-const SPARK_HEIGHT = 24;
+const RECENT_BAR_HEIGHT = 40;
+// 주의 단계(GET /meta/levels의 level 2)의 시작 밀집도 × 면적 = 주의 기준 인원(막대 위 점선)
+const WARN_LEVEL = 2;
 
 // 카드 상태 칩: 정지 / 준비 중 n% / 가동 중 / 오류
 const STATUS_CHIPS = {
@@ -168,7 +170,7 @@ function card(camera, levels, onReload) {
         labeled('이벤트', formatNumber(camera.todayEventCount)),
     );
 
-    article.append(head, snapshot, sparkline(camera.recent10m), meta);
+    article.append(head, snapshot, recentBlock(camera, levels), meta);
     if (camera.status === 'ERROR' && camera.errorMessage) {
         const error = document.createElement('div');
         error.className = 'err-msg';
@@ -198,34 +200,54 @@ function labeled(label, value) {
     return span;
 }
 
-// 최근 10분 인원 선(1분 통계). 점이 2개 미만이면 선을 그리지 않는다
-function sparkline(recent) {
-    const svg = document.createElementNS(SVG_NS, 'svg');
-    svg.setAttribute('viewBox', `0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`);
-    svg.setAttribute('preserveAspectRatio', 'none');
-    svg.setAttribute('class', 'spark');
-    svg.setAttribute('aria-label', '최근 10분 인원');
-    if (recent.length < 2) {
-        return svg;
+// 최근 10분: 머리(현재 인원, 10분 전 대비 증감), 단계 색 막대(주의 기준 점선), 아래 줄(-10분 · 최대·최소 · 지금)
+function recentBlock(camera, levels) {
+    const recent = camera.recent10m;
+    const box = document.createElement('div');
+    box.className = 'recent';
+    const head = document.createElement('div');
+    head.className = 'recent-head';
+    const title = document.createElement('span');
+    title.className = 'muted';
+    title.textContent = '최근 10분';
+    const now = document.createElement('span');
+    if (recent.length > 0) {
+        const latest = Math.round(recent[recent.length - 1].countAvg);
+        const value = document.createElement('b');
+        value.textContent = formatNumber(latest);
+        now.append(value, '명');
+        if (recent.length > 1) {
+            const change = latest - Math.round(recent[0].countAvg);
+            const delta = document.createElement('span');
+            delta.className = 'recent-delta';
+            delta.textContent = change === 0 ? ' 0' : ` ${change > 0 ? '▲' : '▼'}${formatNumber(Math.abs(change))}`;
+            now.append(delta);
+        }
     }
-    const values = recent.map((point) => Number(point.countAvg));
-    const min = Math.min(...values);
-    const range = Math.max(...values) - min || 1;
-    const points = values
-        .map((value, index) => {
-            const x = (index / (values.length - 1)) * SPARK_WIDTH;
-            const y = SPARK_HEIGHT - 3 - ((value - min) / range) * (SPARK_HEIGHT - 6);
-            return `${x.toFixed(1)},${y.toFixed(1)}`;
-        })
-        .join(' ');
-    const line = document.createElementNS(SVG_NS, 'polyline');
-    line.setAttribute('points', points);
-    line.setAttribute('fill', 'none');
-    line.setAttribute('stroke', '#76a7ff');
-    line.setAttribute('stroke-width', '1.6');
-    line.setAttribute('vector-effect', 'non-scaling-stroke');
-    svg.append(line);
-    return svg;
+    head.append(title, now);
+
+    const values = recent.map((point) => point.countAvg);
+    const warnDensity = levels.find((level) => level.level === WARN_LEVEL)?.minDensity;
+    const warn = warnDensity ? Number(warnDensity) * camera.areaM2 : null;
+    const bars = levelBars(
+        recent.map((point) => ({ value: point.countAvg, level: point.level })),
+        { height: RECENT_BAR_HEIGHT, max: niceMax(values), warn, label: '최근 10분 인원, 혼잡 단계 색' },
+    );
+
+    const foot = document.createElement('div');
+    foot.className = 'recent-foot muted';
+    const range = recent.length > 0
+        ? `최대 ${formatNumber(Math.round(Math.max(...values)))} · 최소 ${formatNumber(Math.round(Math.min(...values)))}`
+        : '데이터 없음';
+    foot.append(span('-10분'), span(range), span('지금'));
+    box.append(head, bars, foot);
+    return box;
+}
+
+function span(text) {
+    const element = document.createElement('span');
+    element.textContent = text;
+    return element;
 }
 
 // STOPPED → 가동 / PREPARING·RUNNING → 정지 / ERROR → 다시 시작·정지 둘 다(FNC-A-020·021). 캠 관리 표(SCR-A-006)와 같은 낱말
