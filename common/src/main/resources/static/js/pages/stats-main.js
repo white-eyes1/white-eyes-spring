@@ -378,7 +378,8 @@ function buildZoneMenu(zone) {
             label: '캠 삭제',
             danger: true,
             disabled: camera.status !== 'STOPPED' || Boolean(camera.runRequested),
-            hint: camera.runRequested ? CAMERA_RUN_PENDING : CAMERA_DELETE_BLOCKED,
+            // 가동 요청 안내는 정지 상태인데 요청만 남은 때(캠 관리 화면과 같은 규칙). 가동 중·준비 중이면 정지부터 하라고 안내한다
+            hint: camera.status === 'STOPPED' && camera.runRequested ? CAMERA_RUN_PENDING : CAMERA_DELETE_BLOCKED,
             onClick: () => askDeleteCamera(camera),
         });
     }
