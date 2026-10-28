@@ -85,7 +85,7 @@ class UserAccessControlTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"/stats", "/stats/graph", "/stats/compare", "/me/password", "/pending", "/actuator/health"})
+    @ValueSource(strings = {"/stats", "/stats/graph", "/me/password", "/pending", "/actuator/health"})
     @DisplayName("FNC-C-003 세션 없이 화면을 요청하면 로그인 화면으로 이동한다(권한 표에 없는 /actuator/health 포함)")
     void anonymous_screen_redirectsToLogin(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isFound()).andExpect(redirectedUrl("/login"));

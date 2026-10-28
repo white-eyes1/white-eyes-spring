@@ -192,3 +192,7 @@
 /* 실시간 통계 갱신 연결 상태(FNC-C-022) */
 .stream-status { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 3px 9px; border-radius: 11px; background: #1d2733; color: #c3ccd8; font-size: 11px; }
 .stream-status[hidden] { display: none; }
+
+/* 지도 뒤로가기(상위 지역으로 줌아웃): 지도 위쪽 가운데 */
+.map-back { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 501; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-back[hidden] { display: none; }
