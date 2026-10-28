@@ -8,6 +8,10 @@ const OFF_PAINT = '#4a5768';
 // 하위 단위로 내려가도 남기는 윤곽선: 지금 보는 지역은 실선, 같은 단계의 이웃 지역은 옅은 점선
 const OUTLINE_TARGET = { color: '#1f3a5f', weight: 3, fill: false };
 const OUTLINE_SIBLING = { color: '#4a5d78', weight: 2, dashArray: '6 4', fill: false };
+// 마우스를 올렸을 때: 칠 진하기를 이만큼 올리되 이 값을 넘기지 않는다(지도가 가려지지 않게)
+const HOVER_FILL_BOOST = 0.2;
+const HOVER_MAX_FILL = 0.6;
+const OUTLINE_HOVER_FILL = 0.18;
 // 핀 아이콘(지름 30px) 위쪽에서 팝업 꼬리가 시작하도록 올린다
 const POPUP_OFFSET = [0, -18];
 // 고정 문자열이라 innerHTML에 넣어도 안전하다(서버 값이 아님)
@@ -43,7 +47,7 @@ export function createRegionMap(element, region, previous) {
  *   levels: GET /meta/levels. 팝업의 혼잡 단계 이름에 쓴다
  */
 export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onViewChange, onPinClick, levels = [] }) {
-    // 윤곽선은 단계 색 경계 아래에 깔고, 눌러도 반응하지 않는다
+    // 윤곽선은 단계 색 경계 아래에 깐다. 지금 지역은 눌러도 반응하지 않고, 이웃 지역은 누르면 이동한다
     const outlines = L.layerGroup().addTo(map);
     const boundaries = L.layerGroup().addTo(map);
     const pins = L.layerGroup().addTo(map);
@@ -55,7 +59,7 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
     let paint = null;
     map.on('moveend', onViewChange);
 
-    function addOutline(boundary, style, onClick) {
+    function addOutline(boundary, style, onClick, name) {
         if (!boundary) {
             return;
         }
@@ -63,6 +67,10 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
         const layer = L.geoJSON(boundary, onClick ? { style: { ...style, fill: true, fillOpacity: 0 } } : { style, interactive: false });
         if (onClick) {
             layer.on('click', onClick);
+            // 올리면 영역이 살짝 칠해지고 이름이 뜬다(누를 수 있다는 표시)
+            layer.bindTooltip(textTooltip(name, '눌러서 이동'), { sticky: true });
+            layer.on('mouseover', () => layer.setStyle({ weight: style.weight + 1.5, fillOpacity: OUTLINE_HOVER_FILL }));
+            layer.on('mouseout', () => layer.setStyle({ weight: style.weight, fillOpacity: 0 }));
         }
         outlines.addLayer(layer);
     }
@@ -72,18 +80,33 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
         map.fitBounds(layer.getBounds(), { padding: [60, 60], maxZoom: 18 });
     }
 
+    // 지금 칠할 모양: 히트맵이 켜져 있으면 히트맵 색, 아니면 단계 색. 마우스를 올린 영역은 테두리를 굵게, 채움을 진하게 한다
+    function styleOf(entry) {
+        const painted = paint?.get(entry.id);
+        let style;
+        if (paint && painted) {
+            style = { color: painted.color, weight: 1.5, fillColor: painted.color, fillOpacity: painted.fillOpacity };
+        } else if (paint) {
+            // 히트맵 값이 없는 칸은 회색(FNC-C-011 예외 상황)
+            style = { color: OFF_PAINT, weight: 1, fillColor: OFF_PAINT, fillOpacity: 0.12 };
+        } else {
+            style = entry.style;
+        }
+        return entry.hover
+            ? { ...style, weight: style.weight + 1.5, fillOpacity: Math.min(HOVER_MAX_FILL, style.fillOpacity + HOVER_FILL_BOOST) }
+            : style;
+    }
+
     function applyPaint() {
-        boundaryLayers.forEach(({ id, name, layer, style, item }) => {
+        boundaryLayers.forEach((entry) => {
+            const { id, name, layer, item } = entry;
             const painted = paint?.get(id);
+            layer.setStyle(styleOf(entry));
             if (paint && painted) {
-                layer.setStyle({ color: painted.color, weight: 1.5, fillColor: painted.color, fillOpacity: painted.fillOpacity });
                 layer.setTooltipContent(textTooltip(name, painted.label));
             } else if (paint) {
-                // 히트맵 값이 없는 칸은 회색(FNC-C-011 예외 상황)
-                layer.setStyle({ color: OFF_PAINT, weight: 1, fillColor: OFF_PAINT, fillOpacity: 0.12 });
                 layer.setTooltipContent(textTooltip(name, '데이터 없음'));
             } else {
-                layer.setStyle(style);
                 layer.setTooltipContent(tooltip(name, item));
             }
         });
@@ -115,7 +138,16 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
                     layer.on('click', () => (zoom ? zoomTo(layer) : onSelectRegion(id)));
                 }
                 boundaries.addLayer(layer);
-                boundaryLayers.push({ id, name, layer, style: layer.options.style, item });
+                const entry = { id, name, layer, style: layer.options.style, item, hover: false };
+                layer.on('mouseover', () => {
+                    entry.hover = true;
+                    layer.setStyle(styleOf(entry));
+                });
+                layer.on('mouseout', () => {
+                    entry.hover = false;
+                    layer.setStyle(styleOf(entry));
+                });
+                boundaryLayers.push(entry);
             });
             applyPaint();
         },
@@ -124,11 +156,13 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
          * 지금 보는 지역(target)과 이웃 지역(siblings)의 윤곽선을 그린다. 하위 단위 경계(showBoundaries)와 별개로 남아,
          * 동까지 내려가도 지역 경계가 지도에서 사라지지 않는다.
          * @param {{boundary: object|null}} target 지금 보는 지역(regions API 항목)
-         * @param {{id: number, boundary: object|null}[]} siblings 같은 단계의 이웃 지역(누르면 onSelectSibling)
+         * @param {{id: number, name: string, boundary: object|null}[]} siblings 같은 단계의 이웃 지역(누르면 onSelectSibling)
          */
         showOutlines(target, siblings) {
             outlines.clearLayers();
-            siblings.forEach(({ id, boundary }) => addOutline(boundary, OUTLINE_SIBLING, onSelectSibling ? () => onSelectSibling(id) : undefined));
+            siblings.forEach(({ id, name, boundary }) =>
+                addOutline(boundary, OUTLINE_SIBLING, onSelectSibling ? () => onSelectSibling(id) : undefined, name),
+            );
             addOutline(target.boundary, OUTLINE_TARGET);
         },
 
