@@ -239,6 +239,8 @@
 <!-- SCR-A-008 실시간 보기 창(관리자 앱만) -->
 <th:block th:if="${admin}">
     <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
+    <!-- 지도 우클릭 메뉴(stats-main/map-menu.js) -->
+    <div class="map-menu" id="map-menu" role="menu" hidden></div>
     <!-- SCR-A-007 캠 등록 창: 캠이 없는 구역의 핀을 누르면 이 창을 연다(캠 관리 화면과 같은 창) -->
     <th:block th:replace="~{fragments/layout :: adminCameraModal}"/>
 </th:block>

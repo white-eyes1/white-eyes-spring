@@ -42,12 +42,15 @@ export function createRegionMap(element, region, previous) {
 /**
  * 지도 위에 올리는 경계·핀 층.
  * @param map createRegionMap의 지도
- * @param {{onSelectRegion: (id: number) => void, onSelectSibling?: (id: number) => void, onViewChange: () => void, onPinClick?: (zoneId: number) => void, levels?: object[]}} handlers
+ * @param {{onSelectRegion: (id: number) => void, onSelectSibling?: (id: number) => void, onZoneMenu?: (zoneId: number, event: MouseEvent) => void, onEmptyMenu?: (latLng: object, event: MouseEvent) => void, isBusy?: () => boolean, onViewStart?: () => void, onViewChange: () => void, onPinClick?: (zoneId: number) => void, levels?: object[]}} handlers
  *   onSelectSibling: 동 단계에서 이웃 동 윤곽선을 눌렀을 때(그 동으로 이동)
+ *   onZoneMenu·onEmptyMenu: 구역 위·지금 지역 안의 빈 곳을 우클릭했을 때(관리자 앱의 우클릭 메뉴). 없으면 우클릭을 가로채지 않는다
+ *   isBusy: true인 동안(구역을 그리거나 고치는 중)에는 지도의 클릭·우클릭을 무시한다
+ *   onViewStart: 지도를 끌거나 확대하기 시작할 때(열려 있는 메뉴를 닫는다)
  *   onPinClick: 구역 핀을 눌렀을 때(관리자 앱은 실시간 보기 창). 없으면 구역 정보 팝업을 연다(사용자 앱, FNC-C-009)
  *   levels: GET /meta/levels. 팝업의 혼잡 단계 이름에 쓴다
  */
-export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onViewChange, onPinClick, levels = [] }) {
+export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZoneMenu, onEmptyMenu, isBusy, onViewStart, onViewChange, onPinClick, levels = [] }) {
     // 윤곽선은 단계 색 경계 아래에 깐다. 지금 지역은 눌러도 반응하지 않고, 이웃 지역은 누르면 이동한다
     const outlines = L.layerGroup().addTo(map);
     const boundaries = L.layerGroup().addTo(map);
@@ -58,7 +61,19 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
     // 경계 층과 그 단계 색 모양. 히트맵(FNC-C-011)이 켜져 있으면 paint로 덮어 칠한다
     let boundaryLayers = [];
     let paint = null;
+    // 지금 보는 지역의 바깥 고리들(showOutlines가 채운다). 빈 곳 우클릭이 이 안인지 가린다
+    let regionRings = [];
     map.on('moveend', onViewChange);
+    ['movestart', 'zoomstart'].forEach((name) => map.on(name, () => onViewStart?.()));
+    // 우클릭 메뉴(관리자 앱): 구역 위는 onZoneMenu, 지금 지역 안의 빈 곳은 onEmptyMenu. 메뉴가 없는 앱에서는 브라우저 기본 메뉴를 그대로 둔다
+    if (onZoneMenu || onEmptyMenu) {
+        map.on('contextmenu', (event) => {
+            L.DomEvent.preventDefault(event.originalEvent);
+            if (!isBusy?.() && onEmptyMenu && regionRings.some((ring) => insideRing(event.latlng, ring))) {
+                onEmptyMenu(event.latlng, event.originalEvent);
+            }
+        });
+    }
 
     function addOutline(boundary, style, onClick, name) {
         if (!boundary) {
@@ -67,7 +82,11 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
         // 누를 수 있는 윤곽선은 안쪽도 눌리도록 투명한 채움을 둔다(채움이 없으면 선만 눌린다)
         const layer = L.geoJSON(boundary, onClick ? { style: { ...style, fill: true, fillOpacity: 0 } } : { style, interactive: false });
         if (onClick) {
-            layer.on('click', onClick);
+            layer.on('click', () => {
+                if (!isBusy?.()) {
+                    onClick();
+                }
+            });
             // 올리면 영역이 살짝 칠해지고 이름이 뜬다(누를 수 있다는 표시)
             layer.bindTooltip(textTooltip(name, '눌러서 이동'), { sticky: true });
             layer.on('mouseover', () => layer.setStyle({ weight: style.weight + 1.5, fillOpacity: OUTLINE_HOVER_FILL }));
@@ -136,21 +155,60 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
                 });
                 layer.bindTooltip(tooltip(name, item), { sticky: true });
                 if (clickable) {
-                    layer.on('click', () => (zoom ? zoomTo(layer) : onSelectRegion(id)));
+                    layer.on('click', () => {
+                        if (!isBusy?.()) {
+                            return zoom ? zoomTo(layer) : onSelectRegion(id);
+                        }
+                    });
+                }
+                // 구역(zoom 표시가 있는 단위)을 우클릭하면 구역 메뉴. 지도의 우클릭(빈 곳 메뉴)으로 번지지 않게 끊는다
+                if (zoom && onZoneMenu) {
+                    layer.on('contextmenu', (event) => {
+                        L.DomEvent.stop(event);
+                        if (!isBusy?.()) {
+                            onZoneMenu(id, event.originalEvent);
+                        }
+                    });
                 }
                 boundaries.addLayer(layer);
-                const entry = { id, name, layer, style: layer.options.style, item, hover: false };
+                const entry = { id, name, layer, style: layer.options.style, item, hover: false, held: false, isZone: Boolean(zoom) };
                 layer.on('mouseover', () => {
                     entry.hover = true;
                     layer.setStyle(styleOf(entry));
                 });
                 layer.on('mouseout', () => {
+                    // 우클릭 메뉴가 떠 있는 동안에는 그 구역의 강조를 유지한다(holdZone)
+                    if (entry.held) {
+                        return;
+                    }
                     entry.hover = false;
                     layer.setStyle(styleOf(entry));
                 });
                 boundaryLayers.push(entry);
             });
             applyPaint();
+        },
+
+        /** 우클릭 메뉴가 뜬 구역(zoneId)을 강조한 채로 붙들어 둔다. 마우스가 메뉴로 옮겨가도 풀리지 않는다(releaseZone으로 푼다). */
+        holdZone(zoneId) {
+            this.releaseZone();
+            const entry = boundaryLayers.find((candidate) => candidate.isZone && candidate.id === zoneId);
+            if (entry) {
+                entry.held = true;
+                entry.hover = true;
+                entry.layer.setStyle(styleOf(entry));
+            }
+        },
+
+        /** 붙들어 둔 강조를 푼다(메뉴가 닫힐 때). */
+        releaseZone() {
+            boundaryLayers.forEach((entry) => {
+                if (entry.held) {
+                    entry.held = false;
+                    entry.hover = false;
+                    entry.layer.setStyle(styleOf(entry));
+                }
+            });
         },
 
         /**
@@ -161,6 +219,7 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
          */
         showOutlines(target, siblings) {
             outlines.clearLayers();
+            regionRings = target.boundary ? outerRings(target.boundary) : [];
             siblings.forEach(({ id, name, boundary }) =>
                 addOutline(boundary, OUTLINE_SIBLING, onSelectSibling ? () => onSelectSibling(id) : undefined, name),
             );
@@ -187,6 +246,15 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
             zonePoints.forEach(({ item, latLng }) => {
                 const marker = L.marker(latLng, { icon: pinIcon(item) });
                 marker.bindTooltip(tooltip(item.name, item));
+                // 핀 위를 우클릭해도 그 구역의 우클릭 메뉴가 뜬다(관리자 앱). 지도의 빈 곳 우클릭으로 번지지 않게 끊는다
+                if (onZoneMenu) {
+                    marker.on('contextmenu', (event) => {
+                        L.DomEvent.stop(event);
+                        if (!isBusy?.()) {
+                            onZoneMenu(item.id, event.originalEvent);
+                        }
+                    });
+                }
                 if (onPinClick) {
                     marker.on('click', () => onPinClick(item.id));
                 } else {
@@ -216,6 +284,34 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onView
             map.invalidateSize();
         },
     };
+}
+
+// GeoJSON Polygon·MultiPolygon의 바깥 고리들(구멍은 뺀다)
+function outerRings(boundary) {
+    const rings = [];
+    L.geoJSON(boundary).eachLayer((layer) => {
+        const latLngs = layer.getLatLngs();
+        // Polygon은 [바깥 고리, 구멍…], MultiPolygon은 그 목록의 목록이다
+        if (Array.isArray(latLngs[0]) && Array.isArray(latLngs[0][0])) {
+            latLngs.forEach((polygon) => rings.push(polygon[0]));
+        } else if (Array.isArray(latLngs[0])) {
+            rings.push(latLngs[0]);
+        }
+    });
+    return rings;
+}
+
+// 점이 고리 안인지(반직선이 변과 만나는 횟수가 홀수면 안)
+function insideRing(point, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const a = ring[i];
+        const b = ring[j];
+        if (a.lat > point.lat !== b.lat > point.lat && point.lng < ((b.lng - a.lng) * (point.lat - a.lat)) / (b.lat - a.lat) + a.lng) {
+            inside = !inside;
+        }
+    }
+    return inside;
 }
 
 function pinIcon(item) {
