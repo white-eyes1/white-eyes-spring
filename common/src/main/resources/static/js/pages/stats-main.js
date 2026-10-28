@@ -365,9 +365,19 @@ function buildZoneMenu(zone) {
         hint: ZONE_DELETE_BLOCKED,
         onClick: () => askDeleteZone(zone),
     });
+    if (camera) {
+        // 캠 수정(FNC-A-019): 정지 상태일 때만 고칠 수 있다(캠 관리 화면과 같은 규칙). 대시보드 위에 캠 수정 창을 연다
+        items.push({
+            label: '캠 수정',
+            disabled: camera.status !== 'STOPPED' || Boolean(camera.runRequested),
+            hint: CAMERA_EDIT_BLOCKED,
+            onClick: () => cameraForm.openEdit(camera),
+        });
+    }
     return items;
 }
 
+const CAMERA_EDIT_BLOCKED = '정지 상태에서만 고칠 수 있습니다. 먼저 정지해 주세요.';
 const ZONE_DELETE_BLOCKED = '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.';
 
 // 구역 삭제(FNC-A-017): 확인 뒤 DELETE. 삭제되면 지도·핀·통계·캠 패널을 다시 읽는다
