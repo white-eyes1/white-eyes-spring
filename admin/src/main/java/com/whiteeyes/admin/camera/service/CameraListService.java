@@ -129,10 +129,12 @@ public class CameraListService {
     }
 
     /** 최근 10분의 1분 통계(평균 인원·밀집도·혼잡 단계)를 시각 순서로 최대 10개. */
-    // 분마다 stat과 같은 기준으로 단계를 판정한다(카드의 단계색 막대, 결정 0016)
+    // 분마다 stat과 같은 기준으로 단계를 판정한다(카드의 단계색 막대, 결정 0016).
+    // 결과가 들어온 초(sample_sec)가 0인 분은 통계 그래프(FNC-C-012)에서 빈 점이므로 여기서도 뺀다
     private List<CameraListItem.RecentCount> toRecent10m(Long zoneId, List<ZoneMinuteStat> recent) {
-        return recent.stream()
-                .skip(Math.max(0, recent.size() - RECENT_MINUTES))
+        List<ZoneMinuteStat> sampled = recent.stream().filter(stat -> stat.sampleSec() > 0).toList();
+        return sampled.stream()
+                .skip(Math.max(0, sampled.size() - RECENT_MINUTES))
                 .map(stat -> new CameraListItem.RecentCount(
                         toKstOffset(stat.statAt()),
                         stat.countAvg().doubleValue(),

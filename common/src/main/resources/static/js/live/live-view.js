@@ -56,6 +56,8 @@ export function openLiveView(camera) {
     renderStat(camera);
     modal.hidden = false;
     connect();
+    // 이전 캠의 그래프가 응답 전까지 남지 않게 비운 뒤 읽는다
+    clearLiveGraphs();
     loadLiveGraphs(camera);
 }
 

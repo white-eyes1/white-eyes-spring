@@ -199,8 +199,6 @@ class CameraListTest {
         insertStat(samcheongZoneId, thisMinute.minusMinutes(3), 10.0, 0.2);
         insertStat(samcheongZoneId, thisMinute.minusMinutes(2), 50.5, 0.9);
         insertStat(samcheongZoneId, thisMinute.minusMinutes(1), 120.4, 1.6);
-        // 시계열은 결과가 들어온 초(sample_sec)가 0인 분을 빈 점으로 내므로 실제 분석 결과처럼 60초를 넣는다
-        jdbcTemplate.update("UPDATE zone_stat_minute SET sample_sec = 60 WHERE zone_id = ?", samcheongZoneId);
 
         list(null)
                 .andExpect(jsonPath("$[0].recent10m", hasSize(3)))
@@ -238,6 +236,19 @@ class CameraListTest {
                 .andExpect(jsonPath("$[0].stat.level").value(1))
                 .andExpect(jsonPath("$[1].stat.level").value(2))
                 .andExpect(jsonPath("$[2].stat.level").value(3));
+    }
+
+    @Test
+    @DisplayName("FNC-A-022 recent10m은 결과가 들어온 초(sample_sec)가 0인 분을 뺀다(/stats/series 1m의 빈 점과 같게, 결정 0016)")
+    void list_recent10m_skipsMinutesWithoutSamples() throws Exception {
+        createCamera(samcheongZoneId, "삼청동 캠");
+        LocalDateTime thisMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(3), 10.0, 0.2);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(2), 0.0, 0.0, 0);
+        insertStat(samcheongZoneId, thisMinute.minusMinutes(1), 30.0, 0.4);
+
+        list(null)
+                .andExpect(jsonPath("$[0].recent10m[*].countAvg", contains(10.0, 30.0)));
     }
 
     @Test
@@ -397,16 +408,22 @@ class CameraListTest {
         return zoneRegisterService.register(name, jsonMapper.readTree(polygon)).id();
     }
 
+    // 실제 분석 결과처럼 1분 내내 결과가 들어온 것(sample_sec=60)으로 넣는다
     private void insertStat(long zoneId, LocalDateTime statAt, double countAvg, double density) {
+        insertStat(zoneId, statAt, countAvg, density, 60);
+    }
+
+    private void insertStat(long zoneId, LocalDateTime statAt, double countAvg, double density, int sampleSec) {
         jdbcTemplate.update(
-                "INSERT INTO zone_stat_minute (zone_id, stat_at, count_avg, count_max, count_min, density)"
-                        + " VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO zone_stat_minute (zone_id, stat_at, count_avg, count_max, count_min, density, sample_sec)"
+                        + " VALUES (?, ?, ?, ?, ?, ?, ?)",
                 zoneId,
                 statAt,
                 countAvg,
                 (int) Math.ceil(countAvg),
                 (int) Math.floor(countAvg),
-                density);
+                density,
+                sampleSec);
     }
 
     private void insertEvent(long zoneId, String type, LocalDateTime startedAt) {

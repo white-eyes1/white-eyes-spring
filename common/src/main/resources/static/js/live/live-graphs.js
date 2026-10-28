@@ -21,9 +21,15 @@ const DIRECTIONS = [
 
 let latestRequestId = 0;
 
-/** 그래프를 비운다(창을 닫을 때). 늦게 온 응답은 그리지 않는다 */
+/** 그래프를 비운다(창을 닫거나 다른 캠으로 열 때). 늦게 온 응답은 그리지 않는다 */
 export function clearLiveGraphs() {
     latestRequestId++;
+    if (!document.getElementById('live-graphs')) {
+        return;
+    }
+    ['live-graph-10m', 'live-graph-60m', 'live-graph-count', 'live-graph-flow', 'live-compass', 'live-direction-bars']
+        .forEach((id) => byId(id).replaceChildren());
+    byId('live-net').textContent = '-';
 }
 
 /**
