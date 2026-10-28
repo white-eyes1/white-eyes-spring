@@ -37,11 +37,12 @@ export function createRegionMap(element, region, previous) {
 /**
  * 지도 위에 올리는 경계·핀 층.
  * @param map createRegionMap의 지도
- * @param {{onSelectRegion: (id: number) => void, onViewChange: () => void, onPinClick?: (zoneId: number) => void, levels?: object[]}} handlers
+ * @param {{onSelectRegion: (id: number) => void, onSelectSibling?: (id: number) => void, onViewChange: () => void, onPinClick?: (zoneId: number) => void, levels?: object[]}} handlers
+ *   onSelectSibling: 동 단계에서 이웃 동 윤곽선을 눌렀을 때(그 동으로 이동)
  *   onPinClick: 구역 핀을 눌렀을 때(관리자 앱은 실시간 보기 창). 없으면 구역 정보 팝업을 연다(사용자 앱, FNC-C-009)
  *   levels: GET /meta/levels. 팝업의 혼잡 단계 이름에 쓴다
  */
-export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClick, levels = [] }) {
+export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onViewChange, onPinClick, levels = [] }) {
     // 윤곽선은 단계 색 경계 아래에 깔고, 눌러도 반응하지 않는다
     const outlines = L.layerGroup().addTo(map);
     const boundaries = L.layerGroup().addTo(map);
@@ -54,10 +55,21 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
     let paint = null;
     map.on('moveend', onViewChange);
 
-    function addOutline(boundary, style) {
-        if (boundary) {
-            outlines.addLayer(L.geoJSON(boundary, { style, interactive: false }));
+    function addOutline(boundary, style, onClick) {
+        if (!boundary) {
+            return;
         }
+        // 누를 수 있는 윤곽선은 안쪽도 눌리도록 투명한 채움을 둔다(채움이 없으면 선만 눌린다)
+        const layer = L.geoJSON(boundary, onClick ? { style: { ...style, fill: true, fillOpacity: 0 } } : { style, interactive: false });
+        if (onClick) {
+            layer.on('click', onClick);
+        }
+        outlines.addLayer(layer);
+    }
+
+    // 지도를 그 영역 크기에 맞춘다(구역 줌인)
+    function zoomTo(layer) {
+        map.fitBounds(layer.getBounds(), { padding: [60, 60], maxZoom: 18 });
     }
 
     function applyPaint() {
@@ -78,11 +90,14 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
     }
 
     return {
-        /** 경계를 단계 색으로 칠한다. 통계가 없으면 회색. clickable이면 눌러서 그 지역으로 이동. */
+        /**
+         * 경계를 단계 색으로 칠한다. 통계가 없으면 회색. clickable이면 눌러서 줌인한다:
+         * 지역은 그 지역으로 이동(onSelectRegion), unit.zoom이 true인 구역은 지도를 그 구역에 맞춘다.
+         */
         showBoundaries(units, clickable) {
             boundaries.clearLayers();
             boundaryLayers = [];
-            units.forEach(({ id, name, boundary, item }) => {
+            units.forEach(({ id, name, boundary, item, zoom }) => {
                 if (!boundary) {
                     return;
                 }
@@ -97,7 +112,7 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
                 });
                 layer.bindTooltip(tooltip(name, item), { sticky: true });
                 if (clickable) {
-                    layer.on('click', () => onSelectRegion(id));
+                    layer.on('click', () => (zoom ? zoomTo(layer) : onSelectRegion(id)));
                 }
                 boundaries.addLayer(layer);
                 boundaryLayers.push({ id, name, layer, style: layer.options.style, item });
@@ -109,11 +124,11 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
          * 지금 보는 지역(target)과 이웃 지역(siblings)의 윤곽선을 그린다. 하위 단위 경계(showBoundaries)와 별개로 남아,
          * 동까지 내려가도 지역 경계가 지도에서 사라지지 않는다.
          * @param {{boundary: object|null}} target 지금 보는 지역(regions API 항목)
-         * @param {{boundary: object|null}[]} siblings 같은 단계의 이웃 지역
+         * @param {{id: number, boundary: object|null}[]} siblings 같은 단계의 이웃 지역(누르면 onSelectSibling)
          */
         showOutlines(target, siblings) {
             outlines.clearLayers();
-            siblings.forEach(({ boundary }) => addOutline(boundary, OUTLINE_SIBLING));
+            siblings.forEach(({ id, boundary }) => addOutline(boundary, OUTLINE_SIBLING, onSelectSibling ? () => onSelectSibling(id) : undefined));
             addOutline(target.boundary, OUTLINE_TARGET);
         },
 
