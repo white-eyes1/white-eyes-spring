@@ -19,7 +19,7 @@ const CONGESTED_LEVEL = 2;
 const GAP_RATIO = 0.18;
 
 /**
- * 혼잡 단계 색 막대. 값이 없는 분은 빈칸, 마지막 막대(지금)는 인디고.
+ * 혼잡 단계 색 막대. 값이 없는 분은 빈칸, 값이 있는 마지막 분(지금)은 인디고(아직 집계 전인 지금 분은 값이 없어 건너뛴다).
  * @param {{value: number|null, level: number|null}[]} points 시각 순서
  * @param {{height: number, max: number, warn?: number|null, label: string}} options
  *   max: y축 최대(같은 줄의 그래프끼리 맞출 때 같은 값을 준다), warn: 주의 기준 인원(있으면 점선)
@@ -27,12 +27,13 @@ const GAP_RATIO = 0.18;
 export function levelBars(points, { height, max, warn = null, label }) {
     const svg = svgBox(height, label);
     const step = WIDTH / Math.max(points.length, 1);
+    const nowIndex = points.findLastIndex((point) => point.value !== null && point.value !== undefined);
     points.forEach((point, index) => {
         if (point.value === null || point.value === undefined) {
             return;
         }
         const barHeight = Math.max(1, (point.value / max) * (height - 2));
-        const isNow = index === points.length - 1;
+        const isNow = index === nowIndex;
         svg.append(rect(index * step + (step * GAP_RATIO) / 2, height - barHeight, step * (1 - GAP_RATIO), barHeight,
             isNow ? NOW_COLOR : LEVEL_COLORS[point.level] ?? EMPTY_COLOR));
     });
