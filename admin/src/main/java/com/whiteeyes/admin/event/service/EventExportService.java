@@ -169,6 +169,9 @@ public class EventExportService {
             filter.put("statuses", request.statuses().stream().map(Enum::name).toList());
         }
         putIfPresent(filter, "keyword", request.keyword());
+        if (request.overlap()) {
+            filter.put("overlap", true);
+        }
 
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("kind", EXPORT_KIND);
