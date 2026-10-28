@@ -377,10 +377,13 @@ function askDeleteZone(zone) {
         message: `'${zone.name}' 구역을 삭제할까요? 가동 이력이 있으면 기록은 남고 목록에서만 사라집니다.`,
         okLabel: '삭제',
         errorMessages: { CAMERA_RUNNING: ZONE_DELETE_BLOCKED },
+        // 서버가 거절하면(가동 중, 이미 지워짐) 화면 값이 낡았다는 뜻이라 다시 읽어 메뉴 항목을 새로 맞춘다
+        onRejected: () => refreshSafely(),
         onConfirm: async () => {
             await del(`/api/v1/manage/zones/${zone.id}`, { toast: false });
             showToast(`'${zone.name}' 구역을 삭제했습니다.`);
-            await refresh();
+            // 삭제는 끝났으니, 그 뒤 다시 읽기가 실패해도 확인 창에 오류로 보이지 않게 한다(다시 눌러 404가 나지 않게)
+            await refreshSafely();
         },
     });
 }
