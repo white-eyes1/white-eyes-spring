@@ -218,3 +218,6 @@
 .zone-reg-modal { max-width: 420px; }
 .zone-reg-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 500; margin: 0; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(13,19,27,.9); color: #9aa8b8; font-size: 12px; pointer-events: none; white-space: nowrap; }
 .zone-reg-hint[hidden] { display: none; }
+/* 지도 뒤로가기(상위 지역으로 줌아웃): 지도 위쪽 가운데 */
+.map-back { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 501; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-back[hidden] { display: none; }
