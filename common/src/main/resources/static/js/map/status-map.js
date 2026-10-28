@@ -220,6 +220,15 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             zonePoints.forEach(({ item, latLng }) => {
                 const marker = L.marker(latLng, { icon: pinIcon(item) });
                 marker.bindTooltip(tooltip(item.name, item));
+                // 핀 위를 우클릭해도 그 구역의 우클릭 메뉴가 뜬다(관리자 앱). 지도의 빈 곳 우클릭으로 번지지 않게 끊는다
+                if (onZoneMenu) {
+                    marker.on('contextmenu', (event) => {
+                        L.DomEvent.stop(event);
+                        if (!isBusy?.()) {
+                            onZoneMenu(item.id, event.originalEvent);
+                        }
+                    });
+                }
                 if (onPinClick) {
                     marker.on('click', () => onPinClick(item.id));
                 } else {
