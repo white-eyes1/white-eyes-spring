@@ -9,7 +9,7 @@
 .export-period-inputs .input { flex: 1; min-width: 0; font-size: 12px; }
 .export-interval { flex: 0 0 120px; }
 .export-items { display: flex; gap: 14px; flex-wrap: wrap; }
-/* '구역별 펼치기'와 안내(SCR-C-006). 안내 색은 we.css의 .field .hint와 같다 */
+/* '지역 합산으로 받기'와 안내(SCR-C-006). 안내 색은 we.css의 .field .hint와 같다 */
 .export-sum { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .export-sum[hidden] { display: none; }
 .export-sum-hint { font-size: 11px; color: var(--muted); }
