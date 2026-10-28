@@ -211,7 +211,7 @@ function hideError() {
     notice.textContent = '';
 }
 
-// ---- 시각 도우미(통계 그래프 stats-graph.js와 같은 규칙) --------------------------------------------
+// ---- 시각 도우미(서버 Period와 같은 규칙, 통계 그래프 stats-graph.js의 shift와 같다) --------------------------------------------
 
 // 서버 Period/plus와 같게: 연·월을 더해 그 달에 없는 날이면 말일로 줄이고(2024-02-29 + 10년 = 2034-02-28), 일은 그 뒤에 더한다
 function shift(date, { years = 0, months = 0, days = 0 }) {
