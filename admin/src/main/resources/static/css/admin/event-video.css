@@ -3,7 +3,8 @@
 .ev-video[hidden] { display: none; }
 .ev-video-head { font-size: 13px; }
 .ev-video-feed { position: relative; height: 300px; border-radius: 10px; background: #05080c; overflow: hidden; display: grid; place-items: center; }
-.ev-video-player { width: 100%; height: 100%; object-fit: contain; background: #000; }
+/* 칸에 딱 맞춘다. 그리드 안에 두면 height:100%가 영상 원래 비율의 높이로 커져 칸 밖으로 잘리고, 칸(canvas) 기준으로 그리는 탐지 박스와 어긋난다(#245와 같은 원인) */
+.ev-video-player { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
 .ev-video-player[hidden] { display: none; }
 /* 탐지 박스 캔버스(FNC-A-046). 영상 칸 전체에 겹치고 클릭은 영상 컨트롤로 통과시킨다 */
 .ev-video-boxes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
