@@ -33,6 +33,10 @@ export function createZoneRegister({ onRegistered }) {
     // 그리는 중이거나 미리보기를 보고 있으면 true. 이 동안은 지도의 구역·핀 클릭을 막는다
     let active = false;
     let draft = null;
+    // 미리보기 요청 번호. 다시 그리기·취소를 누르면 올려서, 그 전에 보낸 응답이 늦게 와도 값을 덮어쓰지 않게 한다
+    let previewRequest = 0;
+    // 구역 수정 중이면 true(안내 문구를 숨긴다)
+    let suppressed = false;
     // 동 단계이고 지도가 이 도구를 쓸 수 있으면 true(안내 문구를 보인다)
     let available = false;
 
@@ -78,11 +82,12 @@ export function createZoneRegister({ onRegistered }) {
     }
 
     function startDraw() {
+        previewRequest++;
         tool.cancel();
         draft = null;
         active = true;
         panel.hidden = false;
-        hint.hidden = true;
+        refreshHint();
         guide.hidden = false;
         form.hidden = true;
         nameInput.value = '';
@@ -92,11 +97,17 @@ export function createZoneRegister({ onRegistered }) {
     }
 
     function cancel() {
+        previewRequest++;
         tool?.cancel();
         active = false;
         draft = null;
         panel.hidden = true;
-        hint.hidden = !available;
+        refreshHint();
+    }
+
+    // 안내 문구는 동 단계에서 쉬는 중일 때만 보인다(그리는 중, 구역 수정 중에는 숨김)
+    function refreshHint() {
+        hint.hidden = !available || active || suppressed;
     }
 
     // 그리기를 마치면 미리보기 API로 면적·소속 동을 받아 카드에 보인다
@@ -109,12 +120,19 @@ export function createZoneRegister({ onRegistered }) {
         showError('');
         setNameError('');
         updateSubmit();
+        const request = ++previewRequest;
         try {
             const result = await post('/api/v1/manage/zones/preview', { boundary }, { toast: false });
+            if (request !== previewRequest) {
+                return; // 그 사이 다시 그리기·취소를 눌렀다
+            }
             draft = { boundary };
             area.textContent = `${formatNumber(Math.round(result.areaM2))}㎡`;
             dong.textContent = result.dongName;
         } catch (failure) {
+            if (request !== previewRequest) {
+                return;
+            }
             reportFailure(failure, showError, setNameError);
         }
         updateSubmit();
@@ -147,7 +165,11 @@ export function createZoneRegister({ onRegistered }) {
 
     // 서버 오류 코드는 화면 문구로, 그 밖의 오류는 토스트(api.js는 toast:false라 직접 띄운다)
     function reportFailure(failure, show, showName) {
-        if (!(failure instanceof ApiError) || failure.status === 401) {
+        if (!(failure instanceof ApiError)) {
+            showToast('요청을 보내지 못했습니다. 연결을 확인하고 다시 시도해 주세요.');
+            return;
+        }
+        if (failure.status === 401) {
             return;
         }
         const fieldMessage = failure.fieldErrors.find((item) => item.field === 'name')?.message;
@@ -189,7 +211,12 @@ export function createZoneRegister({ onRegistered }) {
         /** 동 단계일 때만 켠다. 켜져 있고 쉬는 중이면 '빈 곳을 우클릭하면 구역을 등록할 수 있습니다' 안내를 보인다 */
         setAvailable(on) {
             available = on;
-            hint.hidden = !on || active;
+            refreshHint();
+        },
+        /** 구역을 수정하는 동안 true로 둔다(안내 문구를 숨긴다) */
+        setSuppressed(on) {
+            suppressed = on;
+            refreshHint();
         },
         /** 그리는 중이거나 미리보기를 보고 있으면 true */
         isActive() {
