@@ -14,6 +14,7 @@ import { createHourlyLevelsPanel } from './stats-main/hourly-levels.js';
 import { createVisitPatternPanel } from './stats-main/visit-pattern.js';
 import { createPeakHoursPanel } from './stats-main/peak-hours.js';
 import { createMapMenu } from './stats-main/map-menu.js';
+import { createZoneEdit } from './stats-main/zone-edit.js';
 import { createZoneRegister } from './stats-main/zone-register.js';
 import { createTrendPanel } from './stats-main/trend.js';
 import { createFlowTool } from './stats-main/flow-tool.js';
@@ -56,6 +57,16 @@ const heatmapTool = createHeatmapTool();
 const mapMenu = isAdmin ? createMapMenu({ onClose: () => layer?.releaseZone() }) : null;
 // 구역 등록(관리자 앱만, 동 단계). 등록하면 지도·통계를 다시 읽는다
 const zoneRegister = isAdmin ? createZoneRegister({ onRegistered: onZoneRegistered }) : null;
+// 구역 수정(관리자 앱만, 동 단계): 저장하거나 취소하면 지도·통계를 다시 읽는다(취소하면 원래 모양)
+const zoneEdit = isAdmin
+    ? createZoneEdit({
+          getLayer: () => layer,
+          dongName: () => path[path.length - 1].name,
+          onChanged: () => refresh(),
+          // 구역을 수정하는 동안에는 하단 안내 문구('빈 곳을 우클릭하면 구역을 등록할 수 있습니다')를 숨긴다
+          onActiveChange: (active) => zoneRegister?.setSuppressed(active),
+      })
+    : null;
 // 동 단계에서 지도에 그려진 구역(GET /zones). 우클릭 메뉴가 구역 이름·면적을 쓴다
 let zoneShapeList = [];
 // 캠 등록 창(관리자 앱만): 캠이 없는 구역의 핀을 누르면 연다. 저장하면 지도·캠 패널을 다시 읽는다
@@ -267,6 +278,7 @@ async function loadRegion() {
             levels,
         });
         renderedRegionId = target.id;
+        zoneEdit?.reset();
         zoneRegister?.attach(map);
         connectStream(target.id);
         abnormalPanel.setRegion(target.id);
@@ -318,7 +330,7 @@ async function onZoneRegistered(created) {
 
 // 구역을 그리거나 고치는 중이면 true
 function isMapBusy() {
-    return zoneRegister?.isActive() === true;
+    return zoneRegister?.isActive() === true || zoneEdit?.isActive() === true;
 }
 
 function openZoneMenu(zoneId, event) {
@@ -339,7 +351,7 @@ function openEmptyMenu(latLng, event) {
 
 /** 구역 위 우클릭 메뉴 항목 */
 function buildZoneMenu(zone) {
-    const items = [];
+    const items = [{ label: '구역 수정', onClick: () => zoneEdit.begin(zone) }];
     return items;
 }
 
@@ -383,7 +395,9 @@ async function refresh() {
     hourlyLevelsPanel.refresh();
 
     const statusById = new Map(child.items.map((item) => [item.id, item]));
-    if (isDong) {
+    if (zoneEdit?.isActive()) {
+        // 구역 모양을 고치는 중에는 경계를 다시 그리지 않는다(고치는 모양이 지워지지 않게). 핀·패널만 갱신한다
+    } else if (isDong) {
         // 동이면 하위 단위가 구역이라 구역 경계를 칠한다
         layer.showBoundaries(
             zoneShapes.map((zone) => ({ id: zone.id, name: zone.name, boundary: zone.boundary, item: statusById.get(zone.id), zoom: true })),
@@ -424,7 +438,7 @@ async function loadCameras() {
 
 // 구역 핀: 그 구역의 캠이 가동 중이면 실시간 보기 창을 연다
 function openLiveForZone(zoneId) {
-    if (zoneRegister?.isActive()) {
+    if (isMapBusy()) {
         return;
     }
     const camera = deck?.cameraByZone(zoneId);
