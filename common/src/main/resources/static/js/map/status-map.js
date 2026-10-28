@@ -7,6 +7,8 @@ const FALLBACK_ZOOM = 12;
 const OFF_PAINT = '#4a5768';
 // 하위 단위로 내려가도 남기는 윤곽선: 지금 보는 지역은 실선, 같은 단계의 이웃 지역은 옅은 점선
 // 지금 보는 지역은 굵은 실선과 옅은 채움으로 강조한다(지역 밖을 어둡게 덮지는 않는다)
+// 꼭짓점을 고치는 구역의 모양(구역 수정, FNC-A-015)
+const EDIT_STYLE = { color: '#76a7ff', weight: 3, fillColor: '#4f8cff', fillOpacity: 0.28 };
 const OUTLINE_TARGET = { color: '#1f3a5f', weight: 3.5, fill: true, fillColor: '#4f8cff', fillOpacity: 0.07 };
 const OUTLINE_SIBLING = { color: '#4a5d78', weight: 2, dashArray: '6 4', fill: false };
 // 마우스를 올렸을 때: 칠 진하기를 이만큼 올리되 이 값을 넘기지 않는다(지도가 가려지지 않게)
@@ -63,6 +65,8 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
     let paint = null;
     // 지금 보는 지역의 바깥 고리들(showOutlines가 채운다). 빈 곳 우클릭이 이 안인지 가린다
     let regionRings = [];
+    // 꼭짓점을 고치는 중인 구역 { entry, polygon, handler }
+    let zoneEditing = null;
     map.on('moveend', onViewChange);
     ['movestart', 'zoomstart'].forEach((name) => map.on(name, () => onViewStart?.()));
     // 우클릭 메뉴(관리자 앱): 구역 위는 onZoneMenu, 지금 지역 안의 빈 곳은 onEmptyMenu. 메뉴가 없는 앱에서는 브라우저 기본 메뉴를 그대로 둔다
@@ -102,6 +106,9 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
 
     // 지금 칠할 모양: 히트맵이 켜져 있으면 히트맵 색, 아니면 단계 색. 마우스를 올린 영역은 테두리를 굵게, 채움을 진하게 한다
     function styleOf(entry) {
+        if (entry.editing) {
+            return EDIT_STYLE;
+        }
         const painted = paint?.get(entry.id);
         let style;
         if (paint && painted) {
@@ -138,6 +145,7 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
          * 지역은 그 지역으로 이동(onSelectRegion), unit.zoom이 true인 구역은 지도를 그 구역에 맞춘다.
          */
         showBoundaries(units, clickable) {
+            this.stopZoneEdit();
             boundaries.clearLayers();
             boundaryLayers = [];
             units.forEach(({ id, name, boundary, item, zoom }) => {
@@ -171,7 +179,7 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
                     });
                 }
                 boundaries.addLayer(layer);
-                const entry = { id, name, layer, style: layer.options.style, item, hover: false, held: false, isZone: Boolean(zoom) };
+                const entry = { id, name, layer, style: layer.options.style, item, hover: false, held: false, editing: false, isZone: Boolean(zoom) };
                 layer.on('mouseover', () => {
                     entry.hover = true;
                     layer.setStyle(styleOf(entry));
@@ -209,6 +217,39 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
                     entry.layer.setStyle(styleOf(entry));
                 }
             });
+        },
+
+        /**
+         * 구역 하나의 꼭짓점 편집을 시작한다(FNC-A-015). 꼭짓점을 끌거나 더하거나 지울 때마다 onChange가 새 GeoJSON Polygon으로 불린다.
+         * 선이 서로 겹치게 옮기는 것은 막는다. 고치는 동안 그 구역은 수정 색으로 칠한다.
+         */
+        startZoneEdit(zoneId, onChange) {
+            this.stopZoneEdit();
+            const entry = boundaryLayers.find((candidate) => candidate.isZone && candidate.id === zoneId);
+            const polygon = entry ? entry.layer.getLayers()[0] : null;
+            if (!polygon) {
+                return;
+            }
+            entry.editing = true;
+            entry.layer.setStyle(EDIT_STYLE);
+            entry.layer.bringToFront();
+            // 꼭짓점을 지워 3점 아래로 내려가면 구역 모양이 사라지므로, 3점 아래로는 지울 수 없게 한다
+            polygon.pm.enable({ allowSelfIntersection: false, removeLayerBelowMinVertexCount: false });
+            const handler = () => onChange(polygon.toGeoJSON().geometry);
+            polygon.on('pm:edit', handler);
+            zoneEditing = { entry, polygon, handler };
+        },
+
+        /** 꼭짓점 편집을 끝낸다. 고친 모양을 버리려면 부른 쪽이 경계를 다시 그린다(showBoundaries). */
+        stopZoneEdit() {
+            if (!zoneEditing) {
+                return;
+            }
+            const { entry, polygon, handler } = zoneEditing;
+            polygon.off('pm:edit', handler);
+            polygon.pm.disable();
+            entry.editing = false;
+            zoneEditing = null;
         },
 
         /**
