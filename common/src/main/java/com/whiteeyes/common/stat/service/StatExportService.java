@@ -25,6 +25,8 @@ import com.whiteeyes.common.stat.dto.StatExportRequest;
 @Service
 public class StatExportService {
 
+    private static final String EXPORT_KIND = "STATS";
+
     private final StatExportReader statExportReader;
     private final WorkRecorder workRecorder;
     private final TransactionTemplate transactionTemplate;
@@ -56,10 +58,11 @@ public class StatExportService {
         }
     }
 
-    // detail: scope·대상·기간·단위·항목(FNC-C-023 처리 순서 4)
+    // detail: 종류·scope·대상·기간·단위·항목(FNC-C-023 처리 순서 4)
     private void record(LoginAccount actor, StatExportPlan plan) {
         StatExportRequest request = plan.request();
         Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("kind", EXPORT_KIND);
         detail.put("scope", request.scope().name());
         detail.put("targetId", request.targetId());
         detail.put("from", request.from().toString());

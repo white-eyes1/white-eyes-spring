@@ -376,6 +376,9 @@ async function refresh() {
     // 하위 단위로 내려가도 지역 경계가 남도록, 지금 지역(동이면 이웃 동도)의 윤곽선을 함께 그린다
     const parent = path.length >= 2 ? path[path.length - 2] : null;
     const siblings = isDong && parent ? (await children(parent.id)).filter((region) => region.id !== target.id) : [];
+    if (target !== path[path.length - 1]) {
+        return; // 이웃 동 목록을 읽는 동안 지역이 바뀌었다(새 지도에 옛 윤곽선을 그리지 않는다)
+    }
     layer.showOutlines(target, siblings);
     zoneRegister?.setAvailable(isDong);
     layer.showPins(zoneItems);
