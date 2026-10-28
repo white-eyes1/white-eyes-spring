@@ -1,6 +1,6 @@
 // 통계 패널 '피크 시간 TOP 3 · 증감 추세' 접기 영역의 증감 추세(SCR-C-003, FNC-C-019).
 // 펼칠 때 GET /api/v1/dashboard/trend로 읽어 어제까지 7일을 지난주·지난달·지난해 같은 7일과 비교한 증감률을 보인다.
-// 증가는 빨강 ▲ +n%, 감소는 파랑 ▼ −n%, 기준 기간 데이터가 없으면 '-'. 줄을 누르면 기간 비교 화면(SCR-C-005)에 대상·기간을 넣어 연다.
+// 증가는 빨강 ▲ +n%, 감소는 파랑 ▼ −n%, 기준 기간 데이터가 없으면 '-'. 줄을 누르면 통계 그래프(SCR-C-004)를 대상·1일 단위·대상 기간(어제까지 7일)으로 연다(기간 비교 화면은 결정 0016으로 없앰).
 // 기간이 어제까지라 1분마다 바뀌지 않으므로 새 1분 통계(SSE)에는 다시 읽지 않는다.
 import { get, url } from '../../common/api.js';
 import { formatSigned } from '../../common/format.js';
@@ -8,11 +8,11 @@ import { formatSigned } from '../../common/format.js';
 const TREND_API = '/api/v1/dashboard/trend';
 const DAYS = 7;
 const LOAD_ERROR = '불러오지 못했습니다.';
-// 응답 필드, 이름, 기준 기간이 대상 기간보다 며칠 앞인지(FNC-C-019 처리 순서 2)
+// 응답 필드, 이름(세 줄 모두 같은 통계 그래프로 연결)
 const RATES = [
-    ['weekRate', '지난주 대비', 7],
-    ['monthRate', '지난달 대비', 28],
-    ['yearRate', '지난해 대비', 364],
+    ['weekRate', '지난주 대비'],
+    ['monthRate', '지난달 대비'],
+    ['yearRate', '지난해 대비'],
 ];
 
 const byId = (id) => document.getElementById(id);
@@ -54,8 +54,8 @@ export function createTrendPanel() {
                 return; // 더 늦게 보낸 요청이 있다(지역 변경 등)
             }
             loadedRegionId = requestedRegionId;
-            list.replaceChildren(...RATES.map(([field, label, daysAgo]) =>
-                row(label, trend[field], compareLink(requestedRegionId, daysAgo))));
+            list.replaceChildren(...RATES.map(([field, label]) =>
+                row(label, trend[field], graphLink(requestedRegionId))));
         } catch {
             if (requestId === latestRequestId) {
                 const message = document.createElement('span');
@@ -69,19 +69,17 @@ export function createTrendPanel() {
     return { setRegion };
 }
 
-// 기간 비교 화면 주소: 대상 기간 = 어제까지 7일, 기준 기간 = 그보다 daysAgo일 앞(기간 자동 입력, FNC-C-019 후속 동작)
-function compareLink(regionId, daysAgo) {
-    const yesterday = addDays(new Date(), -1);
-    const from = addDays(yesterday, -(DAYS - 1));
+// 통계 그래프 주소: 1일 단위, 대상 기간 = 어제까지 7일(FNC-C-019 후속 동작). 그래프의 to는 끝을 빼므로 오늘 0시
+function graphLink(regionId) {
+    const today = new Date();
     const params = new URLSearchParams({
         targetType: 'REGION',
         targetId: String(regionId),
-        from: toDateText(from),
-        to: toDateText(yesterday),
-        baseFrom: toDateText(addDays(from, -daysAgo)),
-        baseTo: toDateText(addDays(yesterday, -daysAgo)),
+        interval: '1d',
+        from: toDateText(addDays(today, -DAYS)),
+        to: toDateText(today),
     });
-    return url(`/stats/compare?${params.toString()}`);
+    return url(`/stats/graph?${params.toString()}`);
 }
 
 // '지난주 대비  ▲ +12.4%' (증가 빨강, 감소 파랑 ▼ −n%, 기준 없음 '-')
