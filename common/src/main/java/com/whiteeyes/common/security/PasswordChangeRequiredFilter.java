@@ -19,10 +19,13 @@ import tools.jackson.databind.json.JsonMapper;
  * must_change_password=1인 계정은 비밀번호 변경 화면·API·로그아웃 외에는 쓰지 못하게 한다(FNC-C-003 처리 순서 4).
  * 화면은 비밀번호 변경 화면으로 보내고, API는 보낼 화면이 없어 403 공통 오류 응답을 준다.
  * 변경 화면이 쓰는 정적 파일과 오류 화면은 막지 않는다.
+ * 승인 대기(ROLE_PENDING) 계정은 보지 않는다. 로그인 뒤 이동처럼(FNC-C-001 처리 순서 6) 승인 대기 화면이 먼저이고,
+ * 승인 대기 계정은 변경 화면에 들어갈 권한이 없어 보내면 두 화면 사이를 계속 오가게 된다(#313).
  */
 public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
 
     private static final String PASSWORD_CHANGE_URL = "/me/password";
+    private static final String PENDING_ROLE = "ROLE_PENDING";
     private static final List<String> ALLOWED_PATTERNS = List.of(
             PASSWORD_CHANGE_URL,
             "/api/v1/me/password",
@@ -61,7 +64,9 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
         return authentication != null
                 && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof AccountPrincipal principal
-                && principal.isMustChangePassword();
+                && principal.isMustChangePassword()
+                && authentication.getAuthorities().stream()
+                        .noneMatch(authority -> PENDING_ROLE.equals(authority.getAuthority()));
     }
 
     private boolean isAllowed(HttpServletRequest request) {
