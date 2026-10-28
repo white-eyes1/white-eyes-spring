@@ -105,7 +105,8 @@ class StatGraphPageControllerTest {
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 사용자 앱에서도 내려가는지 본다
     @ParameterizedTest
     @ValueSource(strings = {
-        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js", "/css/stats-graph.css"
+        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js",
+        "/js/chart/chart-theme.js", "/js/chart/panel-charts.js", "/css/stats-graph.css"
     })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 사용자 앱이 내려준다")
     void graphPage_staticFilesServed(String path) throws Exception {

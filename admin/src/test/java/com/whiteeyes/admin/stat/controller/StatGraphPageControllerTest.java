@@ -73,8 +73,32 @@ class StatGraphPageControllerTest {
         mockMvc.perform(get("/stats/graph"))
                 .andExpect(content().string(containsString(
                         "<span class=\"chip demo\" id=\"demo-badge\" hidden>시연용 데이터 포함</span>")));
+        // 시연용 점은 점선이 아니라 칸 배경으로 칠한다(결정 0016)
         mockMvc.perform(get("/js/chart/series-chart.js"))
-                .andExpect(content().string(containsString("DEMO_DASH")));
+                .andExpect(content().string(containsString("shadePlugin(demo, DEMO_FILL)")));
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 통합 그래프 아래에 혼잡 단계 막대·인원·유입·유출·방향별 흐름 칸과 최대·최소 띠 토글이 있다(결정 0016)")
+    void graphPage_hasPanelsBelowMainChart() throws Exception {
+        String[] expected = {
+            "id=\"band-toggle\"", ">최대·최소 띠", "id=\"graph-panels\"",
+            "<h2>시간별 인원 · 혼잡 단계</h2>", "id=\"level-chart\"",
+            "<h2>인원 · 유입·유출</h2>", "id=\"count-chart\"", "id=\"flow-chart\"",
+            "<h2>방향별 흐름 <span class=\"muted\">선택한 기간 합계</span></h2>", "id=\"direction-chart\"", "id=\"direction-empty\""
+        };
+        var result = mockMvc.perform(get("/stats/graph")).andExpect(status().isOk());
+        for (String fragment : expected) {
+            result.andExpect(content().string(containsString(fragment)));
+        }
+        // 띠 토글은 항목 체크박스 묶음 밖에 있다(항목 선택에 끼지 않음)
+        String html = result.andReturn().getResponse().getContentAsString();
+        int itemsEnd = html.indexOf("</div>", html.indexOf("id=\"graph-items\""));
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"band-toggle\"")).isGreaterThan(itemsEnd);
+        // 혼잡 단계 색은 서버가 판정한 point.level을 쓴다(화면에서 다시 판정하지 않음)
+        mockMvc.perform(get("/js/chart/panel-charts.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("point.level")));
     }
 
     @Test
@@ -143,7 +167,8 @@ class StatGraphPageControllerTest {
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 관리자 앱에서 내려가는지 본다
     @ParameterizedTest
     @ValueSource(strings = {
-        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js", "/css/stats-graph.css",
+        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js",
+        "/js/chart/chart-theme.js", "/js/chart/panel-charts.js", "/css/stats-graph.css",
         "/js/export/export-modal.js", "/css/stats-export.css"
     })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 관리자 앱이 내려준다")

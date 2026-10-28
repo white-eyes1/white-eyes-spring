@@ -2,12 +2,14 @@
 // 대상·단위·기간은 주소 쿼리(targetType·targetId·interval·from·to)로 유지한다. 기본은 1h, 오늘(screens.md SCR-C-004).
 // 시각은 브라우저 시각을 오프셋 없이 주고받는다(서버가 KST로 읽음). 끝 칸은 to에서 1분 뺀 시각을 보인다(#25에서 정함).
 // 하위 비교(FNC-C-014)를 켜면 GET /api/v1/stats/children으로 고른 항목 하나를 하위 단위별 선으로 겹쳐 그린다(대상이 지역일 때만).
-// 시연용 데이터 표시(FNC-C-024): 시연용 점이 낀 구간은 점선·연한 색, 하나라도 있으면 제목 옆 배지(하위 비교 응답엔 시연용 여부가 없어 숨김).
+// 시연용 데이터 표시(FNC-C-024): 시연용 점의 칸은 옅은 배경, 하나라도 있으면 제목 옆 배지(하위 비교 응답엔 시연용 여부가 없어 숨김).
+// 통합 그래프 아래 세 칸(결정 0016)은 같은 응답으로 그리고(chart/panel-charts.js), 하위 비교를 켜면 숨긴다.
 // 단계별 들어가기(FNC-C-013): 점을 누르면 한 단계 아래 단위·기간으로 다시 그리고 이동 경로를 남긴다.
 // 1시간 점은 1분 통계가 있을 때만 1분으로 내려간다(보관 기간 지남·시연용이면 '1분 데이터 없음'). 관리자 앱은 '1분 단위로 보기'·'다시보기'
 // 중 고르고, 1분 점은 바로 다시보기(SCR-A-009)로 간다. 다시보기는 구역 영상이라 대상이 구역일 때만 열 수 있다.
 import { ApiError, get, url } from '../common/api.js';
 import { formatDateTime, formatDecimal, formatNumber } from '../common/format.js';
+import { createPanelCharts } from '../chart/panel-charts.js';
 import { SERIES_ITEMS, createSeriesChart } from '../chart/series-chart.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 import { crumbLabel, drillDown } from './stats-graph/drill.js';
@@ -61,6 +63,15 @@ const demoBadge = byId('demo-badge');
 const drillPath = byId('drill-path');
 const pointMenu = byId('point-menu');
 const canvas = byId('series-chart');
+const bandToggle = byId('band-toggle');
+const panelsBox = byId('graph-panels');
+const directionEmpty = byId('direction-empty');
+const panels = createPanelCharts({
+    level: byId('level-chart'),
+    count: byId('count-chart'),
+    flow: byId('flow-chart'),
+    direction: byId('direction-chart'),
+});
 const chart = createSeriesChart(canvas, {
     onPointClick,
     // 사용자 앱의 1분 점은 누를 수 없다(FNC-C-013 처리 순서 6)
@@ -101,6 +112,7 @@ async function start() {
     await selectTarget(params.get('targetType'), Number(params.get('targetId')));
     initTabs();
     initItems();
+    bandToggle.addEventListener('change', render);
     initCompare();
     byId('period-apply').addEventListener('click', applyPeriod);
     initExportModal();
@@ -685,28 +697,28 @@ function render() {
         return;
     }
     omittedNotice.hidden = true;
+    panelsBox.hidden = false;
     const keys = selectedItems();
     const seriesByItem = {};
     keys.forEach((key) => {
-        // 인원은 평균 선과 최대~최소 띠
-        seriesByItem[key] = key === 'count'
+        // 인원은 평균 선, '최대·최소 띠'를 켜면 최대~최소 띠도
+        seriesByItem[key] = key === 'count' && bandToggle.checked
             ? {
                 values: items.map((point) => valueOf(point, 'countAvg')),
                 high: items.map((point) => valueOf(point, 'countMax')),
                 low: items.map((point) => valueOf(point, 'countMin')),
             }
-            : { values: items.map((point) => valueOf(point, key)) };
+            : { values: items.map((point) => valueOf(point, key === 'count' ? 'countAvg' : key)) };
     });
     pointTimes = items.map((point) => point.at);
-    // 시연용 점(FNC-C-024)은 점선·연한 색, 하나라도 있으면 '시연용 데이터 포함' 배지
+    // 시연용 점(FNC-C-024)은 옅은 배경, 하나라도 있으면 '시연용 데이터 포함' 배지
     const demo = items.map((point) => Boolean(point.isDemo));
     demoBadge.hidden = !demo.some(Boolean);
-    chart.update(
-        items.map((point) => axisLabel(point.at)),
-        items.map((point) => tooltipTitle(point.at)),
-        seriesByItem,
-        demo,
-    );
+    const labels = items.map((point) => axisLabel(point.at));
+    const titles = items.map((point) => tooltipTitle(point.at));
+    chart.update(labels, titles, seriesByItem, demo);
+    const hasFlow = panels.update(labels, titles, items);
+    directionEmpty.hidden = hasFlow;
     // 오류 문구가 보이는 동안에는 '데이터 없음'을 같이 보이지 않는다
     emptyNotice.hidden = !errorNotice.hidden || items.some((point) => point.sampleSec > 0);
 }
@@ -716,8 +728,9 @@ function renderCompare() {
     const { series, omitted } = compareResult;
     const points = series.length > 0 ? series[0].points : [];
     pointTimes = points.map((point) => point.at);
-    // 하위 비교 응답(/stats/children)에는 시연용 여부가 없어 배지를 숨긴다
+    // 하위 비교 응답(/stats/children)에는 시연용 여부가 없어 배지를 숨긴다. 아래 세 칸은 한 대상의 그래프라 숨긴다
     demoBadge.hidden = true;
+    panelsBox.hidden = true;
     chart.compare(
         points.map((point) => axisLabel(point.at)),
         points.map((point) => tooltipTitle(point.at)),

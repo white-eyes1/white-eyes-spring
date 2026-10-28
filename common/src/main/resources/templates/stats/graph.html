@@ -6,7 +6,9 @@
   하위 비교(FNC-C-014)는 그래프 패널 머리의 토글로 켠다(대상이 지역일 때만).
   단계별 들어가기(FNC-C-013): 점을 누르면 한 단계 아래 단위로 다시 그리고, 패널 머리 왼쪽에 이동 경로를 남긴다.
   1시간 점은 관리자 앱에서 '1분 단위로 보기'·'다시보기' 작은 메뉴를 띄운다(stats-graph/drill.js, stats-graph.js).
-  시연용 데이터 표시(FNC-C-024): 시연용 점이 낀 구간은 점선·연한 색, 하나라도 있으면 제목 옆 '시연용 데이터 포함' 배지.
+  시연용 데이터 표시(FNC-C-024): 시연용 점의 칸은 옅은 배경, 하나라도 있으면 제목 옆 '시연용 데이터 포함' 배지.
+  그래프는 세로 4칸(결정 0016): 통합 → 시간별 인원·혼잡 단계 → 인원·유입·유출 → 방향별 흐름. 네 칸이 같은 응답·같은 구간을 쓰고,
+  하위 비교를 켜면 아래 세 칸은 숨긴다.
   기간 비교 버튼(SCR-C-005)은 그 기능의 이슈 몫이라 두지 않는다.
 -->
 <head>
@@ -46,13 +48,16 @@
             <button type="button" class="btn primary sm" id="period-apply">조회</button>
         </div>
         <div class="graph-items" id="graph-items" aria-label="항목">
-            <!-- 인원: 평균은 선, 최대~최소는 띠로 함께 그린다 -->
             <label class="ck"><input type="checkbox" value="count" checked><i></i>인원</label>
             <label class="ck"><input type="checkbox" value="density" checked><i></i>밀집도</label>
             <label class="ck"><input type="checkbox" value="inflow"><i></i>유입</label>
             <label class="ck"><input type="checkbox" value="outflow"><i></i>유출</label>
             <label class="ck"><input type="checkbox" value="dwellAvgSec"><i></i>평균 체류</label>
         </div>
+        <!-- 통합 그래프의 인원 평균 선에 최대~최소 띠를 함께 그린다(기본 끔) -->
+        <label class="switch">최대·최소 띠
+            <input type="checkbox" role="switch" id="band-toggle"><span aria-hidden="true"></span>
+        </label>
     </section>
 
     <section class="panel graph-panel" aria-label="통계 그래프">
@@ -87,6 +92,36 @@
         </div>
         <p class="muted compare-omitted" id="compare-omitted" hidden></p>
     </section>
+
+    <div class="graph-panels" id="graph-panels">
+        <section class="panel graph-sub" aria-label="시간별 인원 · 혼잡 단계">
+            <div class="panel-head graph-sub-head">
+                <h2>시간별 인원 · 혼잡 단계</h2>
+                <span class="graph-legend"><i class="l1"></i>정상<i class="l2"></i>주의<i class="l3"></i>위험</span>
+            </div>
+            <div class="graph-sub-canvas"><canvas id="level-chart" role="img" aria-label="시간별 인원 막대, 혼잡 단계 색"></canvas></div>
+        </section>
+        <section class="panel graph-sub" aria-label="인원 · 유입·유출">
+            <div class="panel-head graph-sub-head">
+                <h2>인원 · 유입·유출</h2>
+                <span class="graph-legend"><i class="in"></i>유입<i class="out"></i>유출<i class="congested"></i>주의 이상</span>
+            </div>
+            <p class="graph-sub-label">인원</p>
+            <div class="graph-sub-canvas count"><canvas id="count-chart" role="img" aria-label="시간별 인원 선"></canvas></div>
+            <p class="graph-sub-label">유입(위) · 유출(아래)</p>
+            <div class="graph-sub-canvas flow"><canvas id="flow-chart" role="img" aria-label="시간별 유입·유출 막대"></canvas></div>
+        </section>
+        <section class="panel graph-sub" aria-label="방향별 흐름">
+            <div class="panel-head graph-sub-head">
+                <h2>방향별 흐름 <span class="muted">선택한 기간 합계</span></h2>
+                <span class="graph-legend"><i class="in"></i>유입<i class="out"></i>유출</span>
+            </div>
+            <div class="graph-sub-canvas direction">
+                <canvas id="direction-chart" role="img" aria-label="방향별 유입·유출 가로 막대"></canvas>
+                <p class="muted graph-empty" id="direction-empty" hidden>데이터 없음</p>
+            </div>
+        </section>
+    </div>
 </main>
 <th:block th:replace="~{fragments/layout :: statExportModal}"/>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
