@@ -213,9 +213,14 @@ function hideError() {
 
 // ---- 시각 도우미(통계 그래프 stats-graph.js와 같은 규칙) --------------------------------------------
 
+// 서버 Period/plus와 같게: 연·월을 더해 그 달에 없는 날이면 말일로 줄이고(2024-02-29 + 10년 = 2034-02-28), 일은 그 뒤에 더한다
 function shift(date, { years = 0, months = 0, days = 0 }) {
     const result = new Date(date.getTime());
-    result.setFullYear(result.getFullYear() + years, result.getMonth() + months, result.getDate() + days);
+    const day = result.getDate();
+    result.setDate(1);
+    result.setFullYear(result.getFullYear() + years, result.getMonth() + months, 1);
+    const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+    result.setDate(Math.min(day, lastDay) + days);
     return result;
 }
 
