@@ -137,11 +137,44 @@
                 <span class="live-count-badge" id="live-count-badge"></span>
             </div>
         </div>
+        <!-- 현재 통계 4칸(통계 SSE로 갱신). 1시간 순증감은 아래 그래프와 같은 응답의 유입 합 − 유출 합 -->
         <div class="live-foot">
-            <div><span class="muted">현재 인원</span><div class="value" id="live-count">-</div></div>
-            <div><span class="muted">밀집도</span><div class="value"><span id="live-density">-</span> <small class="muted">명/㎡</small></div></div>
-            <span class="chip" id="live-level" hidden></span>
+            <div class="live-stat"><span class="muted">현재 인원</span><div class="value" id="live-count">-</div></div>
+            <div class="live-stat"><span class="muted">밀집도</span><div class="value"><span id="live-density">-</span> <small class="muted">명/㎡</small></div></div>
+            <div class="live-stat"><span class="muted">혼잡 단계</span><div class="value"><span class="chip" id="live-level" hidden></span><span id="live-level-none">-</span></div></div>
+            <div class="live-stat"><span class="muted">1시간 순증감</span><div class="value" id="live-net">-</div></div>
             <button type="button" class="btn secondary live-playback" id="live-playback">다시보기</button>
+        </div>
+        <!--
+          영상 아래 그래프 2행 2열(결정 0016, js/live/live-graphs.js). GET /api/v1/stats/series(구역, 1m, 최근 60분) 하나로 그리고,
+          캠 카드·통계 그래프(1m)와 같은 1분 통계·같은 단계(level)라 같은 분이면 같은 값이다
+        -->
+        <div class="live-graphs" id="live-graphs">
+            <section class="live-graph">
+                <h3>최근 10분 · 혼잡 단계</h3>
+                <div class="live-graph-body" id="live-graph-10m"></div>
+                <div class="live-axis muted"><span>-10분</span><span>지금</span></div>
+            </section>
+            <section class="live-graph">
+                <h3>최근 1시간 · 혼잡 단계</h3>
+                <div class="live-graph-body" id="live-graph-60m"></div>
+                <div class="live-axis muted"><span>-60분</span><span>-30분</span><span>지금</span></div>
+            </section>
+            <section class="live-graph">
+                <h3>방향별 흐름 · 1시간</h3>
+                <div class="live-direction">
+                    <div class="live-compass" id="live-compass"></div>
+                    <div class="live-direction-bars" id="live-direction-bars"></div>
+                </div>
+            </section>
+            <section class="live-graph">
+                <h3>최근 1시간 · 인원 · 유입·유출 <a class="live-stats-link" id="live-stats-link" href="#">통계에서 보기 ↗</a></h3>
+                <div class="live-graph-body" id="live-graph-count"></div>
+                <div class="live-graph-body" id="live-graph-flow"></div>
+                <div class="live-axis muted"><span>-60분</span><span>-30분</span><span>지금</span></div>
+            </section>
+            <p class="live-graph-legend muted"><i class="in"></i>유입<i class="out"></i>유출<i class="l1"></i>정상<i class="l2"></i>주의<i class="l3"></i>위험·주의 이상 구간<i class="now"></i>지금</p>
+            <p class="muted live-graph-error" id="live-graph-error" hidden>그래프를 불러오지 못했습니다.</p>
         </div>
     </div>
 </div>
