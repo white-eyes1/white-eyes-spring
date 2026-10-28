@@ -25,7 +25,7 @@ import com.whiteeyes.common.stat.exception.TooManyRowsException;
  *
  * @param targetId 구역·지역 번호. 전체(ALL)면 null
  * @param items 고른 항목(요청 순서, 중복 없음). 항목마다 시트 하나
- * @param expand 지역을 소속 구역별로 펼치는지. 지역(REGION)일 때만 true일 수 있다
+ * @param sum 지역을 합산해 한 줄로 받는지. 지역(REGION)일 때만 true일 수 있고, 아니면 지역도 소속 구역별 행이다
  */
 public record StatExportRequest(
         StatExportScope scope,
@@ -34,7 +34,7 @@ public record StatExportRequest(
         LocalDateTime from,
         LocalDateTime to,
         List<StatExportItem> items,
-        boolean expand) {
+        boolean sum) {
 
     /** 한 시트에 쓸 수 있는 최대 행 수(conventions.md EXPORT_MAX_RANGE '예상 행 수 100만 이하'). */
     public static final long MAX_ROWS = 1_000_000L;
@@ -47,7 +47,7 @@ public record StatExportRequest(
     private static final String ITEMS_REQUIRED_MESSAGE = "항목을 하나 이상 골라 주세요.";
 
     /**
-     * 요청 값을 읽고 검사한다. 전체(ALL)는 targetId를 쓰지 않고, 구역별 펼치기는 지역(REGION)일 때만 쓴다.
+     * 요청 값을 읽고 검사한다. 전체(ALL)는 targetId를 쓰지 않고, 지역 합산(sum)은 지역(REGION)일 때만 쓴다.
      *
      * @param itemCodes 항목 코드. 같은 이름을 여러 번 보내거나 쉼표로 이어 보내도 된다
      * @throws BindException 대상·단위·시각·항목이 없거나 형식이 틀리거나 끝이 시작보다 늦지 않으면(400 INVALID_INPUT)
@@ -60,7 +60,7 @@ public record StatExportRequest(
             String fromText,
             String toText,
             List<String> itemCodes,
-            boolean expand)
+            boolean sum)
             throws BindException {
         MapBindingResult errors = new MapBindingResult(new HashMap<>(), OBJECT_NAME);
         if (scope != StatExportScope.ALL && targetId == null) {
@@ -102,7 +102,7 @@ public record StatExportRequest(
                 from.get(),
                 to.get(),
                 items.get(),
-                scope == StatExportScope.REGION && expand);
+                scope == StatExportScope.REGION && sum);
     }
 
     /**
@@ -120,7 +120,7 @@ public record StatExportRequest(
      * 한 시트의 예상 행 수(대상 줄 수 × 시각 수)가 최대를 넘지 않는지 확인한다(FNC-C-023 처리 순서 1).
      * 최대와 같으면 허용한다.
      *
-     * @param seriesCount 시트에 쓸 대상 줄 수. 구역·지역 합산은 1, 지역 펼침·전체는 구역 수
+     * @param seriesCount 시트에 쓸 대상 줄 수. 구역·지역 합산은 1, 지역 기본(구역별)·전체는 구역 수
      * @return 예상 행 수
      * @throws TooManyRowsException 최대 행 수를 넘으면(400 TOO_MANY_ROWS)
      */
