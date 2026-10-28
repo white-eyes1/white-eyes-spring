@@ -44,7 +44,8 @@ export function createMapMenu({ onClose } = {}) {
         const top = Math.max(EDGE_GAP_PX, Math.min(y, window.innerHeight - rect.height - EDGE_GAP_PX));
         menu.style.left = `${left}px`;
         menu.style.top = `${top}px`;
-        menu.querySelector('button:not([disabled])')?.focus();
+        // 포커스가 문서를 스크롤하면 아래 scroll 규칙이 열자마자 메뉴를 닫으므로, 스크롤 없이 포커스만 준다
+        menu.querySelector('button:not([disabled])')?.focus({ preventScroll: true });
     }
 
     function close() {
