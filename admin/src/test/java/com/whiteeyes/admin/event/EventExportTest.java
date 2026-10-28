@@ -255,19 +255,20 @@ class EventExportTest {
         assertThat(handled.getCell(6).getStringCellValue()).isEqualTo("삼청동");
         assertThat(handled.getCell(7).getStringCellValue()).isEqualTo("삼청동 1구역");
         assertThat(handled.getCell(8).getStringCellValue()).isEqualTo("위험");
-        assertThat(handled.getCell(9).getNumericCellValue()).isEqualTo(1.64);
-        assertThat(handled.getCell(11).getStringCellValue()).isEqualTo("조치완료");
-        assertThat(handled.getCell(12).getStringCellValue()).isEqualTo("인력 배치");
-        assertThat(handled.getCell(13).getStringCellValue()).isEqualTo("인력 2명 배치");
-        assertThat(handled.getCell(14).getStringCellValue()).isEqualTo(adminLoginId);
-        assertThat(handled.getCell(15).getLocalDateTimeCellValue()).isEqualTo(T0.plusMinutes(20));
+        assertThat(handled.getCell(9).getNumericCellValue()).isEqualTo(48.0);
+        assertThat(handled.getCell(10).getNumericCellValue()).isEqualTo(1.64);
+        assertThat(handled.getCell(12).getStringCellValue()).isEqualTo("조치완료");
+        assertThat(handled.getCell(13).getStringCellValue()).isEqualTo("인력 배치");
+        assertThat(handled.getCell(14).getStringCellValue()).isEqualTo("인력 2명 배치");
+        assertThat(handled.getCell(15).getStringCellValue()).isEqualTo(adminLoginId);
+        assertThat(handled.getCell(16).getLocalDateTimeCellValue()).isEqualTo(T0.plusMinutes(20));
         Row deleted = rows.get(1);
         assertThat(deleted.getCell(7).getStringCellValue()).isEqualTo("사직동 1구역 (삭제됨)");
         assertThat(deleted.getCell(1).getStringCellValue()).isEqualTo("진행 중");
     }
 
     @Test
-    @DisplayName("FNC-A-039 캠 이상 행에는 최고 값이 없다")
+    @DisplayName("FNC-A-039 캠 이상 행에는 최고 인원·최고 값이 없다")
     void export_camFaultRow() throws Exception {
         long cameraId = createCamera(samcheongZoneId, "삼청동 캠");
         jdbcTemplate.update(
@@ -282,6 +283,7 @@ class EventExportTest {
         assertThat(row.getCell(8)).isNull();
         assertThat(row.getCell(9)).isNull();
         assertThat(row.getCell(10)).isNull();
+        assertThat(row.getCell(11)).isNull();
     }
 
     @Test
