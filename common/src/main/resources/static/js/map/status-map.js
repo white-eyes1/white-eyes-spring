@@ -5,6 +5,9 @@ import { formatDecimal, formatNumber } from '../common/format.js';
 
 const FALLBACK_ZOOM = 12;
 const OFF_PAINT = '#4a5768';
+// 하위 단위로 내려가도 남기는 윤곽선: 지금 보는 지역은 실선, 같은 단계의 이웃 지역은 옅은 점선
+const OUTLINE_TARGET = { color: '#1f3a5f', weight: 3, fill: false };
+const OUTLINE_SIBLING = { color: '#4a5d78', weight: 2, dashArray: '6 4', fill: false };
 // 핀 아이콘(지름 30px) 위쪽에서 팝업 꼬리가 시작하도록 올린다
 const POPUP_OFFSET = [0, -18];
 // 고정 문자열이라 innerHTML에 넣어도 안전하다(서버 값이 아님)
@@ -39,6 +42,8 @@ export function createRegionMap(element, region, previous) {
  *   levels: GET /meta/levels. 팝업의 혼잡 단계 이름에 쓴다
  */
 export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClick, levels = [] }) {
+    // 윤곽선은 단계 색 경계 아래에 깔고, 눌러도 반응하지 않는다
+    const outlines = L.layerGroup().addTo(map);
     const boundaries = L.layerGroup().addTo(map);
     const pins = L.layerGroup().addTo(map);
     let zonePoints = [];
@@ -48,6 +53,12 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
     let boundaryLayers = [];
     let paint = null;
     map.on('moveend', onViewChange);
+
+    function addOutline(boundary, style) {
+        if (boundary) {
+            outlines.addLayer(L.geoJSON(boundary, { style, interactive: false }));
+        }
+    }
 
     function applyPaint() {
         boundaryLayers.forEach(({ id, name, layer, style, item }) => {
@@ -92,6 +103,18 @@ export function createStatusLayer(map, { onSelectRegion, onViewChange, onPinClic
                 boundaryLayers.push({ id, name, layer, style: layer.options.style, item });
             });
             applyPaint();
+        },
+
+        /**
+         * 지금 보는 지역(target)과 이웃 지역(siblings)의 윤곽선을 그린다. 하위 단위 경계(showBoundaries)와 별개로 남아,
+         * 동까지 내려가도 지역 경계가 지도에서 사라지지 않는다.
+         * @param {{boundary: object|null}} target 지금 보는 지역(regions API 항목)
+         * @param {{boundary: object|null}[]} siblings 같은 단계의 이웃 지역
+         */
+        showOutlines(target, siblings) {
+            outlines.clearLayers();
+            siblings.forEach(({ boundary }) => addOutline(boundary, OUTLINE_SIBLING));
+            addOutline(target.boundary, OUTLINE_TARGET);
         },
 
         /**

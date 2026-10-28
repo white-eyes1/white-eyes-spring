@@ -305,6 +305,10 @@ async function refresh() {
             true,
         );
     }
+    // 하위 단위로 내려가도 지역 경계가 남도록, 지금 지역(동이면 이웃 동도)의 윤곽선을 함께 그린다
+    const parent = path.length >= 2 ? path[path.length - 2] : null;
+    const siblings = isDong && parent ? (await children(parent.id)).filter((region) => region.id !== target.id) : [];
+    layer.showOutlines(target, siblings);
     layer.showPins(zoneItems);
     // 이동 흐름(FNC-C-010): 켜져 있으면 구역 중심점으로 화살표를 다시 그린다
     flowTool.refresh(zoneItems);
