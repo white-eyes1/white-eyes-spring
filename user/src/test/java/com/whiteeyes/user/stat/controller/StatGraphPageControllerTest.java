@@ -59,7 +59,13 @@ class StatGraphPageControllerTest {
     }
 
     @Test
-    @DisplayName("SCR-C-004 사용자 앱 /stats/graph는 사용자 헤더(SCR-U-004)의 '통계·기간 비교' 탭을 켜고 그래프 조건·차트 자리를 그린다")
+    @DisplayName("SCR-C-005 기간 비교 화면은 없앴다(결정 0016): 사용자 앱 /stats/compare는 404")
+    void comparePage_removed() throws Exception {
+        mockMvc.perform(get("/stats/compare").with(user("user01").roles("USER"))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SCR-C-004 사용자 앱 /stats/graph는 사용자 헤더(SCR-U-004)의 '통계' 탭을 켜고 그래프 조건·차트 자리를 그린다")
     void graphPage_user_rendersUserHeaderAndConditions() throws Exception {
         mockMvc.perform(get("/stats/graph").with(user("user01").roles("USER")))
                 .andExpect(status().isOk())
@@ -67,7 +73,7 @@ class StatGraphPageControllerTest {
                 .andExpect(content().string(containsString("<title>통계 그래프 - White Eyes</title>")))
                 .andExpect(content().string(containsString("data-header=\"user\"")))
                 .andExpect(content().string(not(containsString("data-header=\"admin\""))))
-                .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/compare\"")))
+                .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/graph\"")))
                 .andExpect(content().string(containsString("id=\"target-sido\"")))
                 .andExpect(content().string(containsString("id=\"target-zone\"")))
                 .andExpect(content().string(containsString("data-interval=\"1m\"")))
@@ -105,7 +111,8 @@ class StatGraphPageControllerTest {
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 사용자 앱에서도 내려가는지 본다
     @ParameterizedTest
     @ValueSource(strings = {
-        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js", "/css/stats-graph.css"
+        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js",
+        "/js/chart/chart-theme.js", "/js/chart/panel-charts.js", "/css/stats-graph.css"
     })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 사용자 앱이 내려준다")
     void graphPage_staticFilesServed(String path) throws Exception {
