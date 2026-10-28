@@ -415,10 +415,14 @@ function askDeleteCamera(camera) {
         title: '캠 삭제',
         message: '이 캠을 삭제할까요? 가동한 적이 있으면 지난 녹화·통계는 남습니다.',
         okLabel: '삭제',
+        errorMessages: { CAMERA_NOT_STOPPED: CAMERA_DELETE_BLOCKED },
+        // 서버가 거절하면(그 사이 가동됨 등) 화면 값이 낡았다는 뜻이라 다시 읽어 메뉴 항목을 새로 맞춘다
+        onRejected: () => refreshSafely(),
         onConfirm: async () => {
             await del(`/api/v1/manage/cameras/${camera.id}`, { toast: false });
             showToast(`'${camera.name}' 캠을 삭제했습니다.`);
-            await refresh();
+            // 삭제는 끝났으니, 그 뒤 다시 읽기가 실패해도 확인 창에 오류로 보이지 않게 한다
+            await refreshSafely();
         },
     });
 }
