@@ -95,6 +95,14 @@ class StatGraphPageControllerTest {
         String html = result.andReturn().getResponse().getContentAsString();
         int itemsEnd = html.indexOf("</div>", html.indexOf("id=\"graph-items\""));
         org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"band-toggle\"")).isGreaterThan(itemsEnd);
+        // 띠 토글은 기본 끔(checked 없음)
+        String bandInput = html.substring(html.lastIndexOf("<input", html.indexOf("id=\"band-toggle\"")), html.indexOf(">", html.indexOf("id=\"band-toggle\"")));
+        org.assertj.core.api.Assertions.assertThat(bandInput).doesNotContain("checked");
+        // 하위 비교 중에는 아래 세 칸을 숨기고, 인원을 끄거나 하위 비교 중이면 띠 토글을 비활성으로
+        mockMvc.perform(get("/js/pages/stats-graph.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("panelsBox.hidden = true")))
+                .andExpect(content().string(containsString("bandToggle.disabled = !bandUsable")));
         // 혼잡 단계 색은 서버가 판정한 point.level을 쓴다(화면에서 다시 판정하지 않음)
         mockMvc.perform(get("/js/chart/panel-charts.js"))
                 .andExpect(status().isOk())

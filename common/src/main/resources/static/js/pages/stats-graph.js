@@ -9,7 +9,7 @@
 // 중 고르고, 1분 점은 바로 다시보기(SCR-A-009)로 간다. 다시보기는 구역 영상이라 대상이 구역일 때만 열 수 있다.
 import { ApiError, get, url } from '../common/api.js';
 import { formatDateTime, formatDecimal, formatNumber } from '../common/format.js';
-import { createPanelCharts } from '../chart/panel-charts.js';
+import { createPanelCharts, flowSum } from '../chart/panel-charts.js';
 import { SERIES_ITEMS, createSeriesChart } from '../chart/series-chart.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 import { crumbLabel, drillDown } from './stats-graph/drill.js';
@@ -692,6 +692,10 @@ async function load() {
 }
 
 function render() {
+    // '최대·최소 띠'는 통합 그래프의 인원 선에만 붙으므로 인원을 끄거나 하위 비교 중이면 쓸 수 없다
+    const bandUsable = !comparing && selectedItems().includes('count');
+    bandToggle.disabled = !bandUsable;
+    bandToggle.closest('label').title = bandUsable ? '' : '인원 항목을 켜고 하위 비교를 끈 상태에서만 쓸 수 있습니다';
     if (comparing) {
         renderCompare();
         return;
@@ -750,8 +754,7 @@ function renderCompare() {
 // 유입·유출은 방향(N·E·S·W) 합. 값이 없는 점은 null(선 끊김)
 function valueOf(point, key) {
     if (key === 'inflow' || key === 'outflow') {
-        const flow = point[key];
-        return flow ? Object.values(flow).reduce((sum, value) => sum + value, 0) : null;
+        return flowSum(point[key]);
     }
     const value = point[key];
     return value === null || value === undefined ? null : Number(value);

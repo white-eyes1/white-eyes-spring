@@ -165,8 +165,8 @@ function numberOrNull(value) {
     return value === null || value === undefined ? null : Number(value);
 }
 
-// 방향별(N·E·S·W) 합. 값이 없는 점은 null
-function flowSum(flow) {
+// 방향별(N·E·S·W) 합. 값이 없는 점은 null(통합 그래프의 유입·유출 값도 이 함수로 낸다)
+export function flowSum(flow) {
     return flow ? Object.values(flow).reduce((sum, value) => sum + value, 0) : null;
 }
 
