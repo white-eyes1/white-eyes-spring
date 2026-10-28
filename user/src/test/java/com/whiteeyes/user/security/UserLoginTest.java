@@ -146,6 +146,43 @@ class UserLoginTest {
     }
 
     @Test
+    @DisplayName("FNC-C-001 PENDING이면 비밀번호 변경이 필요해도 승인 대기 화면에 머물고, 다른 화면은 /pending으로·API는 403이다 (#313)")
+    void login_pendingWithMustChangePassword_staysOnPendingPage() throws Exception {
+        accounts.insert("wait04", "PENDING", true);
+
+        MvcResult login = accounts.login("wait04", PASSWORD);
+
+        assertThat(login.getResponse().getRedirectedUrl()).isEqualTo("/pending");
+        Cookie session = login.getResponse().getCookie(UserTestAccounts.SESSION_COOKIE);
+        mockMvc.perform(get("/pending").cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("관리자 승인을 기다리고 있습니다")));
+        mockMvc.perform(get("/stats").cookie(session))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/pending"));
+        mockMvc.perform(get("/me/password").cookie(session))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/pending"));
+        mockMvc.perform(get("/api/v1/meta/levels").cookie(session))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("FNC-C-001 승인 대기 중 비밀번호를 재설정받은 계정도 승인된 뒤 로그인하면 비밀번호 변경을 강제한다 (#313)")
+    void login_approvedAfterReset_redirectsToPasswordChange() throws Exception {
+        Long id = accounts.insert("wait05", "PENDING", true);
+        jdbcTemplate.update("UPDATE user_account SET status = 'ACTIVE' WHERE id = ?", id);
+
+        Cookie session = accounts.login("wait05", PASSWORD).getResponse().getCookie(UserTestAccounts.SESSION_COOKIE);
+
+        mockMvc.perform(get("/stats").cookie(session))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/me/password"));
+        mockMvc.perform(get("/me/password").cookie(session)).andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("FNC-C-001 must_change_password=1이면 비밀번호 변경 화면으로 이동한다")
     void login_mustChangePassword_redirectsToPasswordChange() throws Exception {
         accounts.insert("temp01", "ACTIVE", true);
