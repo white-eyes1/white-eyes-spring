@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +24,7 @@ import com.whiteeyes.common.region.service.RegionQueryService;
 import com.whiteeyes.common.stat.dto.MapStatusItem;
 import com.whiteeyes.common.stat.dto.MapStatusResponse;
 import com.whiteeyes.common.stat.dto.MapUnit;
-import com.whiteeyes.common.stat.entity.ZoneNowCount;
+import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
 
@@ -41,7 +42,8 @@ public class MapStatusService {
     private final LevelService levelService;
     private final TodayEventCountService todayEventCountService;
     private final OngoingEventService ongoingEventService;
-    private final NowCountReader nowCountReader;
+    // 관리자 앱에만 있다. 사용자 앱은 빈이 없어 currentCount가 null이다(결정 0018)
+    private final ObjectProvider<NowCountSource> nowCountSource;
 
     public MapStatusService(
             RegionQueryService regionQueryService,
@@ -49,13 +51,13 @@ public class MapStatusService {
             LevelService levelService,
             TodayEventCountService todayEventCountService,
             OngoingEventService ongoingEventService,
-            NowCountReader nowCountReader) {
+            ObjectProvider<NowCountSource> nowCountSource) {
         this.regionQueryService = regionQueryService;
         this.recentZoneStatReader = recentZoneStatReader;
         this.levelService = levelService;
         this.todayEventCountService = todayEventCountService;
         this.ongoingEventService = ongoingEventService;
-        this.nowCountReader = nowCountReader;
+        this.nowCountSource = nowCountSource;
     }
 
     /**
@@ -74,8 +76,10 @@ public class MapStatusService {
                         .toList();
         Map<Long, ZoneStatMinute> latestStatByZone = recentZoneStatReader.findLatestStats(zones, now);
         // 5초마다 갱신되는 현재 인원(FNC-A-054). 1분 통계와 따로 읽는다
-        Map<Long, ZoneNowCount> nowCountByZone =
-                nowCountReader.findFresh(zones.stream().map(Zone::getId).toList(), now);
+        NowCountSource nowCounts = nowCountSource.getIfAvailable();
+        Map<Long, NowCount> nowCountByZone = nowCounts == null
+                ? Map.of()
+                : nowCounts.findFresh(zones.stream().map(Zone::getId).toList(), now);
         // 오늘 이벤트 수는 삭제된 구역의 것까지 센다(FNC-C-017)
         List<Zone> allZones = emdCodeById.isEmpty()
                 ? List.of()
@@ -118,12 +122,12 @@ public class MapStatusService {
             Zone zone,
             String regionPath,
             ZoneStatMinute stat,
-            ZoneNowCount nowCount,
+            NowCount nowCount,
             Map<Long, Integer> eventCountByZone,
             Set<Long> ongoingZoneIds) {
         int todayEventCount = eventCountByZone.getOrDefault(zone.getId(), 0);
         boolean ongoingEvent = ongoingZoneIds.contains(zone.getId());
-        Integer currentCount = nowCount == null ? null : nowCount.getPersonCount();
+        Integer currentCount = nowCount == null ? null : nowCount.personCount();
         if (stat == null) {
             return noDataItem(
                     zone.getId(),
@@ -210,12 +214,12 @@ public class MapStatusService {
     }
 
     // 신선한 현재 인원이 있는 구역만 더한다. 하나도 없으면 null(화면은 1분 평균으로 되돌린다)
-    private Integer sumNowCount(List<Zone> zones, Map<Long, ZoneNowCount> nowCountByZone) {
-        List<ZoneNowCount> found = zones.stream()
+    private Integer sumNowCount(List<Zone> zones, Map<Long, NowCount> nowCountByZone) {
+        List<NowCount> found = zones.stream()
                 .map(zone -> nowCountByZone.get(zone.getId()))
                 .filter(java.util.Objects::nonNull)
                 .toList();
-        return found.isEmpty() ? null : found.stream().mapToInt(ZoneNowCount::getPersonCount).sum();
+        return found.isEmpty() ? null : found.stream().mapToInt(NowCount::personCount).sum();
     }
 
     private boolean hasOngoingEvent(List<Zone> zones, Set<Long> ongoingZoneIds) {

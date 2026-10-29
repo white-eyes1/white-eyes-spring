@@ -7,7 +7,7 @@ import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.service.RegionQueryService;
 import com.whiteeyes.common.stat.dto.NowStreamEvent;
 import com.whiteeyes.common.stat.dto.StatStreamEvent;
-import com.whiteeyes.common.stat.entity.ZoneNowCount;
+import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import jakarta.annotation.PostConstruct;
@@ -31,6 +31,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -70,7 +71,8 @@ public class StatStreamBroadcaster {
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final RegionQueryService regionQueryService;
     private final LevelService levelService;
-    private final NowCountReader nowCountReader;
+    // 관리자 앱에만 있다. 사용자 앱은 빈이 없어 event: now 를 보내지 않는다(결정 0018)
+    private final ObjectProvider<NowCountSource> nowCountSource;
     private final JsonMapper jsonMapper;
     // 테스트가 켜진 컨텍스트마다 5초 조회를 돌려 다른 테스트의 쿼리 수를 어지럽히지 않도록 기본은 꺼 두고, 앱 설정(application.yml)에서 켠다
     private final boolean autoPoll;
@@ -88,13 +90,13 @@ public class StatStreamBroadcaster {
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             RegionQueryService regionQueryService,
             LevelService levelService,
-            NowCountReader nowCountReader,
+            ObjectProvider<NowCountSource> nowCountSource,
             JsonMapper jsonMapper,
             @Value("${stats.stream.auto-poll:false}") boolean autoPoll) {
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.regionQueryService = regionQueryService;
         this.levelService = levelService;
-        this.nowCountReader = nowCountReader;
+        this.nowCountSource = nowCountSource;
         this.jsonMapper = jsonMapper;
         this.autoPoll = autoPoll;
     }
@@ -224,17 +226,19 @@ public class StatStreamBroadcaster {
     }
 
     /**
-     * 5초마다: 신선한 현재 인원(zone_now_count)을 전체 구역 한 번에 읽어 구독자마다 자기 지역 소속분만 event: now 로 보낸다
-     * (FNC-C-022). 구독자가 없으면 읽지 않고, 보낼 구역이 없는 구독자에게는 보내지 않는다.
+     * 5초마다: 신선한 현재 인원을 전체 구역 한 번에 읽어 구독자마다 자기 지역 소속분만 event: now 로 보낸다
+     * (FNC-C-022, 관리자 앱만). 값은 메모리 누적기에서 읽어 DB 조회가 없다. 현재 인원을 내는 쪽(NowCountSource)이 없는
+     * 사용자 앱이나 구독자가 없으면 읽지 않고, 보낼 구역이 없는 구독자에게는 보내지 않는다.
      *
      * @param now KST 현재 시각
      * @return 이번에 보낸 구역 수(구독자가 같은 구역을 중복해서 받아도 한 번만 센다). 읽지 않았거나 신선한 값이 없으면 0
      */
     public synchronized int pollNowOnce(LocalDateTime now) {
-        if (subscribers.isEmpty()) {
+        NowCountSource source = nowCountSource.getIfAvailable();
+        if (source == null || subscribers.isEmpty()) {
             return 0;
         }
-        List<ZoneNowCount> counts = nowCountReader.findAllFresh(now);
+        List<NowCount> counts = source.findAllFresh(now);
         if (counts.isEmpty()) {
             return 0;
         }
@@ -244,9 +248,9 @@ public class StatStreamBroadcaster {
                     ? null
                     : zoneIdsByRegion.computeIfAbsent(subscriber.regionId(), this::findZoneIds);
             List<NowStreamEvent.Item> items = counts.stream()
-                    .filter(count -> zoneIds == null || zoneIds.contains(count.getZoneId()))
+                    .filter(count -> zoneIds == null || zoneIds.contains(count.zoneId()))
                     .map(count -> new NowStreamEvent.Item(
-                            count.getZoneId(), count.getPersonCount(), count.getUpdatedAt().atOffset(KST_OFFSET)))
+                            count.zoneId(), count.personCount(), count.at().atOffset(KST_OFFSET)))
                     .toList();
             if (!items.isEmpty()) {
                 String json = jsonMapper.writeValueAsString(new NowStreamEvent(items));

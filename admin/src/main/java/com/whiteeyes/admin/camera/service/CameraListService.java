@@ -11,8 +11,8 @@ import com.whiteeyes.common.event.service.TodayEventCountService;
 import com.whiteeyes.common.level.service.LevelService;
 import com.whiteeyes.common.level.service.LevelTarget;
 import com.whiteeyes.common.stat.dto.ZoneMinuteStat;
-import com.whiteeyes.common.stat.entity.ZoneNowCount;
-import com.whiteeyes.common.stat.service.NowCountReader;
+import com.whiteeyes.common.stat.service.NowCountSource;
+import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.service.ZoneStatQueryService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,7 +41,7 @@ public class CameraListService {
     private final ZoneStatQueryService zoneStatQueryService;
     private final LevelService levelService;
     private final TodayEventCountService todayEventCountService;
-    private final NowCountReader nowCountReader;
+    private final NowCountSource nowCountSource;
 
     /**
      * 삭제되지 않은 캠 목록을 번호 순으로 돌려준다. regionId가 있으면 그 지역 아래 구역의 캠만 돌려준다.
@@ -64,8 +64,8 @@ public class CameraListService {
         // 오늘 혼잡·급증 이벤트 수도 구역 전체를 한 번에 센다(FNC-C-017). 오늘은 KST 00:00부터
         Map<Long, Integer> eventCounts =
                 todayEventCountService.countByZone(zoneIds, LocalDate.now(KST).atStartOfDay());
-        // 5초마다 갱신되는 현재 인원(FNC-A-054)도 구역 전체를 한 번에 읽는다
-        Map<Long, ZoneNowCount> nowCounts = nowCountReader.findFresh(zoneIds, now);
+        // 5초마다 갱신되는 현재 인원(FNC-A-054)은 메모리 누적기에서 구역 전체를 한 번에 읽는다
+        Map<Long, NowCount> nowCounts = nowCountSource.findFresh(zoneIds, now);
 
         return cameras.stream()
                 .map(camera -> toItem(
@@ -97,7 +97,7 @@ public class CameraListService {
             Map<Long, String> regionPaths,
             List<ZoneMinuteStat> recent,
             int todayEventCount,
-            ZoneNowCount nowCount,
+            NowCount nowCount,
             LocalDateTime now) {
         return new CameraListItem(
                 camera.getId(),
@@ -119,7 +119,7 @@ public class CameraListService {
 
     /** 5분 안에 1분 통계가 없으면 null. 있으면 가장 최근 것과 혼잡 단계(FNC-C-025). */
     private CameraListItem.Stat toStat(
-            Long zoneId, List<ZoneMinuteStat> recent, ZoneNowCount nowCount, LocalDateTime now) {
+            Long zoneId, List<ZoneMinuteStat> recent, NowCount nowCount, LocalDateTime now) {
         if (recent.isEmpty()) {
             return null;
         }
@@ -128,7 +128,7 @@ public class CameraListService {
             return null;
         }
         int level = levelService.judgeLevel(LevelTarget.zone(zoneId), latest.density()).getLevel();
-        Integer currentCount = nowCount == null ? null : nowCount.getPersonCount();
+        Integer currentCount = nowCount == null ? null : nowCount.personCount();
         return new CameraListItem.Stat(
                 toKstOffset(latest.statAt()),
                 latest.countAvg().doubleValue(),

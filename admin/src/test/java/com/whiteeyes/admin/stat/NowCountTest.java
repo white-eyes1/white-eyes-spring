@@ -1,11 +1,12 @@
 package com.whiteeyes.admin.stat;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.stat.service.DirectionCounts;
+import com.whiteeyes.admin.stat.service.MemoryNowCountSource;
 import com.whiteeyes.admin.stat.service.MinuteAccumulatorStore;
-import com.whiteeyes.admin.stat.service.NowCountService;
 import com.whiteeyes.admin.stat.service.SecondResult;
 import com.whiteeyes.common.stat.dto.DashboardSummaryResponse;
 import com.whiteeyes.common.stat.dto.DashboardTargetType;
@@ -13,14 +14,15 @@ import com.whiteeyes.common.stat.dto.MapStatusItem;
 import com.whiteeyes.common.stat.dto.MapUnit;
 import com.whiteeyes.common.stat.service.DashboardSummaryService;
 import com.whiteeyes.common.stat.service.MapStatusService;
-import com.whiteeyes.common.stat.service.NowCountReader;
+import com.whiteeyes.common.stat.service.NowCountSource;
+import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -33,20 +35,24 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 /**
- * 현재 인원 저장·읽기(FNC-A-054, FNC-C-016). 5초 값은 zone_now_count에만 있고 1분 통계·이벤트·집계·엑셀과 섞이지 않는다.
+ * 현재 인원 제공(FNC-A-054, 결정 0018). 관리자 앱이 메모리 누적기의 가장 최근 초를 바로 읽고(15초 넘게 오래된 값은 쓰지 않음),
+ * 5초 값은 1분 통계·이벤트·집계·엑셀과 섞이지 않는다. DB 표는 없다.
  */
 @SpringBootTest
 class NowCountTest {
 
     private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
-    // 구역·누적기가 다른 테스트와 겹치지 않도록 먼 미래의 한 분을 쓴다. 시각은 모두 직접 넘기므로 시계와 무관하다
+    // 앱이 도는 예약 작업(실제 시각 기준)이 마감하지 않도록 먼 미래의 한 분을 쓴다. 시각은 모두 직접 넘기므로 시계와 무관하다
     private static final LocalDateTime NOW = LocalDateTime.of(2099, 1, 1, 12, 0, 10);
 
     @Autowired
     private RegionLoadService regionLoadService;
 
     @Autowired
-    private NowCountReader nowCountReader;
+    private MinuteAccumulatorStore sharedStore;
+
+    @Autowired
+    private NowCountSource appNowCountSource;
 
     @Autowired
     private DashboardSummaryService dashboardSummaryService;
@@ -62,14 +68,14 @@ class NowCountTest {
 
     private long samcheongZone;
     private long sajikZone;
-    // 앱이 돌리는 예약 작업(실제 시각 기준)과 겹치지 않도록 이 시험만의 누적기와 저장 서비스를 쓴다
-    private MinuteAccumulatorStore accumulatorStore;
-    private NowCountService nowCountService;
+    // 읽기 규칙만 보는 시험은 이 시험만의 누적기를 쓴다
+    private MinuteAccumulatorStore store;
+    private MemoryNowCountSource source;
 
     @BeforeEach
     void setUp() {
-        accumulatorStore = new MinuteAccumulatorStore();
-        nowCountService = new NowCountService(accumulatorStore, jdbcTemplate, 15);
+        store = new MinuteAccumulatorStore();
+        source = new MemoryNowCountSource(store, 15);
         clearAll();
         regionLoadService.load(REGION_FILE);
         samcheongZone = insertZone("11110540", "삼청동 1구역");
@@ -78,79 +84,107 @@ class NowCountTest {
 
     @AfterEach
     void cleanUp() {
+        // 앱의 공유 누적기에 넣은 결과를 비운다
+        for (long zoneId : List.of(samcheongZone, sajikZone)) {
+            sharedStore.closeMinute(zoneId, NOW.truncatedTo(ChronoUnit.MINUTES));
+            sharedStore.closeMinute(zoneId, NOW.minusMinutes(1).truncatedTo(ChronoUnit.MINUTES));
+        }
         clearAll();
     }
 
     @Test
-    @DisplayName("FNC-A-054 구역마다 가장 최근 초의 인원을 zone_now_count에 한 행으로 저장하고 다시 저장하면 덮어쓴다")
-    void saveLatest_upsertsLatestSecondPerZone() {
-        addResult(samcheongZone, NOW.minusSeconds(8), 5);
-        addResult(samcheongZone, NOW.minusSeconds(6), 7);
-        addResult(sajikZone, NOW.minusSeconds(7), 40);
+    @DisplayName("FNC-A-054 구역마다 메모리 누적기의 가장 최근 초 인원을 읽는다")
+    void source_readsLatestSecondPerZone() {
+        add(store, samcheongZone, NOW.minusSeconds(8), 5);
+        add(store, samcheongZone, NOW.minusSeconds(6), 7);
+        add(store, sajikZone, NOW.minusSeconds(7), 40);
 
-        assertThat(nowCountService.saveLatest(NOW)).isEqualTo(2);
+        List<NowCount> found = source.findAllFresh(NOW);
 
-        assertThat(personCount(samcheongZone)).isEqualTo(7);
-        assertThat(updatedAt(samcheongZone)).isEqualTo(NOW.minusSeconds(6));
-        assertThat(personCount(sajikZone)).isEqualTo(40);
+        assertThat(found)
+                .extracting(NowCount::zoneId, NowCount::personCount, NowCount::at)
+                .containsExactlyInAnyOrder(
+                        tuple(samcheongZone, 7, NOW.minusSeconds(6)), tuple(sajikZone, 40, NOW.minusSeconds(7)));
 
-        // 5초 뒤 더 새로운 초가 오면 같은 행을 덮어쓴다(구역당 1행, 이력 없음)
-        addResult(samcheongZone, NOW.minusSeconds(1), 9);
-        assertThat(nowCountService.saveLatest(NOW.plusSeconds(5))).isEqualTo(2);
-
-        assertThat(rowCount()).isEqualTo(2);
-        assertThat(personCount(samcheongZone)).isEqualTo(9);
-        assertThat(updatedAt(samcheongZone)).isEqualTo(NOW.minusSeconds(1));
+        // 더 새로운 초가 오면 그것을 읽는다
+        add(store, samcheongZone, NOW.minusSeconds(1), 9);
+        assertThat(source.findFresh(List.of(samcheongZone), NOW).get(samcheongZone).personCount()).isEqualTo(9);
     }
 
     @Test
-    @DisplayName("FNC-A-054 15초 넘게 오래된 값은 저장하지 않는다(경계: 15초는 저장, 16초는 건너뜀)")
-    void saveLatest_skipsStaleResults() {
-        addResult(samcheongZone, NOW.minusSeconds(15), 3);
-        addResult(sajikZone, NOW.minusSeconds(16), 4);
+    @DisplayName("FNC-A-054 분이 바뀌어도 가장 최근 초를 읽는다(앞 분은 아직 마감 전)")
+    void source_latestAcrossMinutes() {
+        add(store, samcheongZone, NOW.minusSeconds(12), 3); // 11:59:58
+        add(store, samcheongZone, NOW.minusSeconds(8), 4); // 12:00:02
 
-        assertThat(nowCountService.saveLatest(NOW)).isEqualTo(1);
-
-        assertThat(rowCount()).isEqualTo(1);
-        assertThat(personCount(samcheongZone)).isEqualTo(3);
+        assertThat(source.findFresh(List.of(samcheongZone), NOW).get(samcheongZone).personCount()).isEqualTo(4);
     }
 
     @Test
-    @DisplayName("FNC-A-054 받은 결과가 없으면 아무것도 저장하지 않는다")
-    void saveLatest_nothingReceived() {
-        assertThat(nowCountService.saveLatest(NOW)).isZero();
-        assertThat(rowCount()).isZero();
+    @DisplayName("FNC-A-054 15초 넘게 오래된 값은 쓰지 않는다(경계: 15초는 읽고 16초는 읽지 않는다)")
+    void source_freshnessBoundary() {
+        add(store, samcheongZone, NOW.minusSeconds(15), 3);
+        add(store, sajikZone, NOW.minusSeconds(16), 4);
+
+        assertThat(source.findAllFresh(NOW)).extracting(NowCount::zoneId).containsExactly(samcheongZone);
+        assertThat(source.findFresh(List.of(samcheongZone, sajikZone), NOW)).containsOnlyKeys(samcheongZone);
     }
 
     @Test
-    @DisplayName("FNC-A-054 5초 값을 저장해도 1분 통계는 만들어지지 않고 실시간 갱신이 새 분으로 보지도 않는다")
-    void saveLatest_doesNotTouchMinuteStat() {
+    @DisplayName("FNC-C-016 합은 신선한 구역끼리 더하고, 신선한 값이 없거나 구역이 없으면 빈 값이다")
+    void source_sum() {
+        add(store, samcheongZone, NOW.minusSeconds(3), 12);
+        add(store, sajikZone, NOW.minusSeconds(16), 30);
+
+        assertThat(source.sumFresh(List.of(samcheongZone, sajikZone), NOW).getAsInt()).isEqualTo(12);
+        assertThat(source.sumFresh(List.of(sajikZone), NOW)).isEmpty();
+        assertThat(source.sumFresh(List.of(), NOW)).isEmpty();
+        assertThat(source.findAllFresh(NOW.plusSeconds(60))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FNC-A-054 받은 결과가 없으면 아무것도 읽히지 않는다")
+    void source_nothingReceived() {
+        assertThat(source.findAllFresh(NOW)).isEmpty();
+        assertThat(source.findFresh(List.of(samcheongZone), NOW)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FNC-A-054 관리자 앱에는 현재 인원을 내는 빈이 있고 DB 표는 없다")
+    void adminApp_hasMemorySourceAndNoTable() {
+        assertThat(appNowCountSource).isInstanceOf(MemoryNowCountSource.class);
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE LOWER(TABLE_NAME) = 'zone_now_count'",
+                        Integer.class))
+                .isZero();
+    }
+
+    @Test
+    @DisplayName("FNC-A-054 5초 값을 읽어도 1분 통계는 만들어지지 않고 실시간 갱신이 새 분으로 보지도 않는다")
+    void source_doesNotTouchMinuteStat() {
         broadcaster.pollOnce();
-        addResult(samcheongZone, NOW.minusSeconds(2), 11);
+        add(sharedStore, samcheongZone, NOW.minusSeconds(2), 11);
 
-        nowCountService.saveLatest(NOW);
+        assertThat(appNowCountSource.findAllFresh(NOW)).hasSize(1);
 
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM zone_stat_minute", Integer.class)).isZero();
         assertThat(broadcaster.pollOnce()).isNull();
     }
 
     @Test
-    @DisplayName("FNC-A-054 1분 통계·이벤트·집계·엑셀 코드는 zone_now_count를 읽지 않는다(읽는 곳은 NowCountReader 하나)")
-    void onlyNowCountReaderReadsTheTable() throws IOException {
+    @DisplayName("FNC-A-054 1분 통계·이벤트·집계·엑셀 코드는 현재 인원을 읽지 않는다(읽는 곳은 요약·지도·캠 목록·통계 SSE뿐)")
+    void onlyDisplayCodeReadsNowCount() throws IOException {
         List<String> readers = Stream.of(Paths.get("src/main/java"), Paths.get("../common/src/main/java"))
                 .flatMap(NowCountTest::javaFiles)
-                .filter(NowCountTest::mentionsNowCountTable)
+                .filter(NowCountTest::mentionsNowCountSource)
                 .map(file -> file.getFileName().toString())
                 .sorted()
                 .toList();
 
         assertThat(readers)
                 .containsExactlyInAnyOrder(
-                        // 표를 쓰는 곳(admin), 엔티티·저장소·읽기(common)
-                        "NowCountService.java",
-                        "NowCountReader.java",
-                        "ZoneNowCount.java",
-                        "ZoneNowCountRepository.java",
+                        "NowCountSource.java",
+                        "MemoryNowCountSource.java",
                         "StatStreamBroadcaster.java",
                         "DashboardSummaryService.java",
                         "MapStatusService.java",
@@ -158,23 +192,10 @@ class NowCountTest {
     }
 
     @Test
-    @DisplayName("FNC-C-016 신선한 현재 인원만 읽고 합은 신선한 구역끼리 더한다. 신선한 값이 없으면 빈 값")
-    void reader_freshnessAndSum() {
-        insertNowCount(samcheongZone, 12, NOW.minusSeconds(15));
-        insertNowCount(sajikZone, 30, NOW.minusSeconds(16));
-
-        assertThat(nowCountReader.findFresh(List.of(samcheongZone, sajikZone), NOW)).containsOnlyKeys(samcheongZone);
-        assertThat(nowCountReader.sumFresh(List.of(samcheongZone, sajikZone), NOW).getAsInt()).isEqualTo(12);
-        assertThat(nowCountReader.sumFresh(List.of(sajikZone), NOW)).isEmpty();
-        assertThat(nowCountReader.sumFresh(List.of(), NOW)).isEmpty();
-        assertThat(nowCountReader.findAllFresh(NOW)).hasSize(1);
-    }
-
-    @Test
     @DisplayName("FNC-C-016 요약은 1분 통계가 없어도 currentCount를 주고, 지역은 신선한 구역의 합이다. countAvg는 그대로")
     void summary_currentCount() {
-        insertNowCount(samcheongZone, 12, NOW.minusSeconds(3));
-        insertNowCount(sajikZone, 30, NOW.minusSeconds(4));
+        add(sharedStore, samcheongZone, NOW.minusSeconds(3), 12);
+        add(sharedStore, sajikZone, NOW.minusSeconds(4), 30);
 
         DashboardSummaryResponse zone = dashboardSummaryService.findSummary(DashboardTargetType.ZONE, samcheongZone, NOW);
         assertThat(zone.currentCount()).isEqualTo(12);
@@ -194,20 +215,19 @@ class NowCountTest {
     @Test
     @DisplayName("FNC-C-009 지도 현황의 구역과 하위 지역 항목에 currentCount가 실린다(지역은 합)")
     void mapStatus_currentCount() {
-        insertNowCount(samcheongZone, 12, NOW.minusSeconds(3));
-        insertNowCount(sajikZone, 30, NOW.minusSeconds(20));
+        add(sharedStore, samcheongZone, NOW.minusSeconds(3), 12);
+        add(sharedStore, sajikZone, NOW.minusSeconds(20), 30);
 
         List<MapStatusItem> zones =
                 mapStatusService.findMapStatus(regionId("11110"), MapUnit.ZONE, NOW).items();
-        assertThat(zones).extracting(MapStatusItem::id, MapStatusItem::currentCount)
-                .containsExactlyInAnyOrder(
-                        org.assertj.core.api.Assertions.tuple(samcheongZone, 12),
-                        org.assertj.core.api.Assertions.tuple(sajikZone, null));
+        assertThat(zones)
+                .extracting(MapStatusItem::id, MapStatusItem::currentCount)
+                .containsExactlyInAnyOrder(tuple(samcheongZone, 12), tuple(sajikZone, null));
 
-        List<MapStatusItem> dongs =
+        List<MapStatusItem> sigungus =
                 mapStatusService.findMapStatus(regionId("11"), MapUnit.CHILD, NOW).items();
         MapStatusItem jongno =
-                dongs.stream().filter(item -> item.id() == regionId("11110")).findFirst().orElseThrow();
+                sigungus.stream().filter(item -> item.id() == regionId("11110")).findFirst().orElseThrow();
         assertThat(jongno.currentCount()).isEqualTo(12);
         assertThat(jongno.countAvg()).isNull();
     }
@@ -220,48 +240,20 @@ class NowCountTest {
         }
     }
 
-    // 표 이름이나 그 엔티티·저장소·읽기 클래스를 코드(주석 제외 줄)에서 쓰는 파일
-    private static boolean mentionsNowCountTable(Path file) {
+    // 현재 인원을 내는 인터페이스나 그 구현을 코드(주석 제외 줄)에서 쓰는 파일
+    private static boolean mentionsNowCountSource(Path file) {
         try {
             return Files.readAllLines(file).stream()
                     .map(String::strip)
                     .filter(line -> !line.startsWith("*") && !line.startsWith("//") && !line.startsWith("/*"))
-                    .anyMatch(line -> line.contains("zone_now_count")
-                            || line.contains("ZoneNowCount")
-                            || line.contains("NowCountReader"));
+                    .anyMatch(line -> line.contains("NowCountSource"));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
     }
 
-    private void addResult(long zoneId, LocalDateTime second, int personCount) {
-        accumulatorStore.add(
-                zoneId,
-                second,
-                new SecondResult(personCount, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of()));
-    }
-
-    private int personCount(long zoneId) {
-        return jdbcTemplate.queryForObject(
-                "SELECT person_count FROM zone_now_count WHERE zone_id = ?", Integer.class, zoneId);
-    }
-
-    private LocalDateTime updatedAt(long zoneId) {
-        return jdbcTemplate
-                .queryForObject("SELECT updated_at FROM zone_now_count WHERE zone_id = ?", Timestamp.class, zoneId)
-                .toLocalDateTime();
-    }
-
-    private int rowCount() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM zone_now_count", Integer.class);
-    }
-
-    private void insertNowCount(long zoneId, int personCount, LocalDateTime updatedAt) {
-        jdbcTemplate.update(
-                "INSERT INTO zone_now_count (zone_id, person_count, updated_at) VALUES (?, ?, ?)",
-                zoneId,
-                personCount,
-                Timestamp.valueOf(updatedAt));
+    private void add(MinuteAccumulatorStore target, long zoneId, LocalDateTime second, int personCount) {
+        target.add(zoneId, second, new SecondResult(personCount, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of()));
     }
 
     private long regionId(String code) {
@@ -278,7 +270,6 @@ class NowCountTest {
     }
 
     private void clearAll() {
-        jdbcTemplate.update("DELETE FROM zone_now_count");
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");

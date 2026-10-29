@@ -43,3 +43,4 @@
 - [0018 nginx auth_request 주소에 변수를 썼더니 권한 확인이 항상 통과함](0018-nginx-auth-request-variable-uri.md)
 - [0019 관리자 앱이 local MySQL(3306)에 붙지 못함(Windows MySQL80·WSL 포트 전달)](0019-local-mysql-3306-port-conflict.md)
 - [0020 관리자 앱이 MySQL에서 스키마 검사(is_demo 형식)로 시작하지 못함](0020-is-demo-tinyint-schema-validation.md)
+- [0021 현재 인원 5초 갱신을 DB 표로 만들었다가 관리자 앱 메모리 직접 읽기로 바꿈](0021-now-count-db-table-to-memory.md)
