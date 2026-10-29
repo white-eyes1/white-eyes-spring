@@ -381,6 +381,11 @@ function zonePopup(item, levels) {
     title.textContent = item.name;
     box.append(title);
     if (!item.level) {
+        // 1분 통계가 아직 없어도 5초 현재 인원이 있으면 그것만 보인다(캠을 막 가동한 구역)
+        if (hasNowCount(item)) {
+            box.append(popupRow('현재 인원', nowCountSpan(item)));
+            return box;
+        }
         const empty = document.createElement('div');
         empty.textContent = '데이터 없음';
         box.append(empty);
@@ -430,6 +435,8 @@ function tooltip(name, item) {
     const body = document.createElement('div');
     if (item?.level) {
         body.append(nowCountSpan(item), ` · ${formatDecimal(item.density, 2)}명/㎡`);
+    } else if (item && hasNowCount(item)) {
+        body.append(nowCountSpan(item));
     } else {
         body.textContent = '데이터 없음';
     }
