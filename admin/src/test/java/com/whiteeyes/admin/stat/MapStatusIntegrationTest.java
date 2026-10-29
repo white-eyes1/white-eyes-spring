@@ -125,7 +125,7 @@ class MapStatusIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         // 구역이 없는 중구는 목록에 남고 통계 값만 null('데이터 없음')
-        assertThat(body).contains("\"name\":\"중구\",\"countAvg\":null,\"density\":null,\"level\":null,\"statAt\":null");
+        assertThat(body).contains("\"name\":\"중구\",\"countAvg\":null,\"currentCount\":null,\"density\":null,\"level\":null,\"statAt\":null");
     }
 
     @Test
@@ -190,7 +190,7 @@ class MapStatusIntegrationTest {
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
 
-        assertThat(body).contains("\"countAvg\":null,\"density\":null,\"level\":null,\"statAt\":null");
+        assertThat(body).contains("\"countAvg\":null,\"currentCount\":null,\"density\":null,\"level\":null,\"statAt\":null");
     }
 
     @Test

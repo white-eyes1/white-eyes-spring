@@ -4,6 +4,7 @@
 // 최근 10분은 1분마다 혼잡 단계 색 막대(결정 0016, live/mini-charts.js). 단계는 서버가 판정한 recent10m[].level이다.
 import { post } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
+import { bindNowCount } from '../../common/now-count.js';
 import { levelBars, niceMax } from '../../live/mini-charts.js';
 import { createPreviewManager } from '../../live/preview.js';
 import { levelChip } from './panel.js';
@@ -164,11 +165,10 @@ function card(camera, levels, onReload) {
 
     const meta = document.createElement('div');
     meta.className = 'meta';
-    meta.append(
-        statusPart(camera),
-        labeled('인원', camera.stat ? formatNumber(Math.round(camera.stat.countAvg)) : '-'),
-        labeled('이벤트', formatNumber(camera.todayEventCount)),
-    );
+    const people = labeled('인원', camera.stat ? formatNumber(currentOf(camera.stat)) : '-');
+    // 현재 인원은 5초마다(통계 SSE event: now) 카드를 다시 그리지 않고 숫자만 바꾼다. 1분 통계가 아직 없는 캠도 받는다(FNC-A-054)
+    bindNowCount(people.querySelector('b'), camera.zoneId, people.querySelector('b').textContent);
+    meta.append(statusPart(camera), people, labeled('이벤트', formatNumber(camera.todayEventCount)));
 
     article.append(head, snapshot, recentBlock(camera, levels), meta);
     if (camera.status === 'ERROR' && camera.errorMessage) {
@@ -179,6 +179,11 @@ function card(camera, levels, onReload) {
     }
     article.append(actions(camera, onReload));
     return { article, snapshot, camera };
+}
+
+// 5초 현재 인원(currentCount)이 있으면 그것을, 없으면 1분 평균을 반올림해 쓴다
+function currentOf(stat) {
+    return stat.currentCount ?? Math.round(stat.countAvg);
 }
 
 function statusPart(camera) {

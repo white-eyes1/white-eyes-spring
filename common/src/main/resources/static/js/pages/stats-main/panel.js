@@ -1,6 +1,7 @@
 // 통계 메인 왼쪽 통계 패널(SCR-C-003, FNC-C-009·016·017·025): 구역별 현재 인원 도넛·목록, 요약 6칸, 유입·유출, 혼잡 기준.
 // 서버 값은 textContent로만 넣는다(code-conventions 5-3). 5분 안에 통계가 없으면 '데이터 없음'(api/public.md).
 import { formatDateTime, formatDecimal, formatNumber } from '../../common/format.js';
+import { nowTotal } from '../../common/now-count.js';
 import { levelColor } from '../../map/map-view.js';
 
 const NO_DATA = '데이터 없음';
@@ -130,6 +131,20 @@ export function levelChip(level, levels) {
     return chip;
 }
 
+/**
+ * 요약의 '현재 인원'만 바꾼다(5초마다, 통계 SSE event: now). 이벤트로 받은 합이 있으면 그것을, 없으면 요약 응답의
+ * currentCount(5초 인원), 그것도 없으면 1분 평균을 보인다. 1분 통계가 없어도 currentCount가 있으면 보인다(FNC-C-016).
+ * @param {object|null} summary GET /dashboard/summary 응답
+ * @param {number|null} liveTotal event: now 로 받은 구독 지역 구역 합. 없으면 null
+ */
+export function renderSummaryCount(summary, liveTotal) {
+    const count =
+        liveTotal ??
+        summary?.currentCount ??
+        (summary?.countAvg === null || summary?.countAvg === undefined ? null : Math.round(Number(summary.countAvg)));
+    byId('sum-count').textContent = count === null || count === undefined ? '-' : `${formatNumber(count)}명`;
+}
+
 /** 요약 6칸과 유입·유출. summary는 GET /dashboard/summary 응답 */
 export function renderSummary(summary, levels) {
     const hasStat = summary.statAt !== null && summary.statAt !== undefined;
@@ -137,7 +152,7 @@ export function renderSummary(summary, levels) {
     const fill = (id, text) => {
         byId(id).textContent = text;
     };
-    fill('sum-count', hasStat ? `${formatNumber(Math.round(Number(summary.countAvg)))}명` : '-');
+    renderSummaryCount(summary, nowTotal());
     fill('sum-density', hasStat ? formatDecimal(summary.density, 2) : '-');
     byId('sum-level').replaceChildren(hasStat ? levelChip(summary.level, levels) : NO_DATA);
     fill('sum-cameras', `${summary.runningCameraCount} / ${summary.cameraCount}대`);

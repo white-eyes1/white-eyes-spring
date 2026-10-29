@@ -3,6 +3,7 @@ package com.whiteeyes.admin.stat.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 
 /**
@@ -17,7 +18,7 @@ public class MinuteAccumulator {
 
     private final long zoneId;
     private final LocalDateTime minute;
-    private final Map<LocalDateTime, SecondResult> resultsBySecond = new TreeMap<>();
+    private final TreeMap<LocalDateTime, SecondResult> resultsBySecond = new TreeMap<>();
 
     MinuteAccumulator(long zoneId, LocalDateTime minute) {
         this.zoneId = zoneId;
@@ -66,6 +67,11 @@ public class MinuteAccumulator {
     /** 결과가 실제로 들어온 초 수(0~60). zone_stat_minute.sample_sec에 대응한다. */
     public int getSampleSec() {
         return resultsBySecond.size();
+    }
+
+    /** 가장 최근 초의 결과. 현재 인원 저장(FNC-A-054)이 읽는다. 호출은 {@link MinuteAccumulatorStore}의 잠금 안에서만 한다. */
+    Optional<Map.Entry<LocalDateTime, SecondResult>> latestSecond() {
+        return Optional.ofNullable(resultsBySecond.lastEntry());
     }
 
     void put(LocalDateTime second, SecondResult result) {

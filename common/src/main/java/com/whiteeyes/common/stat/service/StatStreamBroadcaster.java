@@ -5,13 +5,16 @@ import com.whiteeyes.common.level.service.LevelTarget;
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.service.RegionQueryService;
+import com.whiteeyes.common.stat.dto.NowStreamEvent;
 import com.whiteeyes.common.stat.dto.StatStreamEvent;
+import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +31,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -55,10 +59,20 @@ public class StatStreamBroadcaster {
     static final int HEARTBEAT_SECONDS = 30;
     static final long RECONNECT_MILLIS = 5000;
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
+    private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
+
+    // 보내는 건의 종류. 통계·현재 인원은 앞 전송이 길어지면 종류별로 최신 하나만 남기고, 하트비트는 버린다
+    private enum Kind {
+        STAT,
+        NOW,
+        HEARTBEAT
+    }
 
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final RegionQueryService regionQueryService;
     private final LevelService levelService;
+    // 관리자 앱에만 있다. 사용자 앱은 빈이 없어 event: now 를 보내지 않는다(결정 0018)
+    private final ObjectProvider<NowCountSource> nowCountSource;
     private final JsonMapper jsonMapper;
     // 테스트가 켜진 컨텍스트마다 5초 조회를 돌려 다른 테스트의 쿼리 수를 어지럽히지 않도록 기본은 꺼 두고, 앱 설정(application.yml)에서 켠다
     private final boolean autoPoll;
@@ -76,11 +90,13 @@ public class StatStreamBroadcaster {
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             RegionQueryService regionQueryService,
             LevelService levelService,
+            ObjectProvider<NowCountSource> nowCountSource,
             JsonMapper jsonMapper,
             @Value("${stats.stream.auto-poll:false}") boolean autoPoll) {
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.regionQueryService = regionQueryService;
         this.levelService = levelService;
+        this.nowCountSource = nowCountSource;
         this.jsonMapper = jsonMapper;
         this.autoPoll = autoPoll;
     }
@@ -96,6 +112,7 @@ public class StatStreamBroadcaster {
             return thread;
         });
         executor.scheduleWithFixedDelay(this::safePoll, POLL_SECONDS, POLL_SECONDS, TimeUnit.SECONDS);
+        executor.scheduleWithFixedDelay(this::safePollNow, POLL_SECONDS, POLL_SECONDS, TimeUnit.SECONDS);
         executor.scheduleWithFixedDelay(this::safeHeartbeat, HEARTBEAT_SECONDS, HEARTBEAT_SECONDS, TimeUnit.SECONDS);
     }
 
@@ -199,6 +216,50 @@ public class StatStreamBroadcaster {
         return latest;
     }
 
+    private void safePollNow() {
+        try {
+            pollNowOnce(LocalDateTime.now(KST_ZONE));
+        } catch (RuntimeException e) {
+            // 한 번 실패해도 다음 5초에 다시 읽어야 하므로 작업이 죽지 않게 한다
+            log.warn("실시간 현재 인원 확인 중 오류가 났습니다. 다음 주기에 다시 시도합니다.", e);
+        }
+    }
+
+    /**
+     * 5초마다: 신선한 현재 인원을 전체 구역 한 번에 읽어 구독자마다 자기 지역 소속분만 event: now 로 보낸다
+     * (FNC-C-022, 관리자 앱만). 값은 메모리 누적기에서 읽어 DB 조회가 없다. 현재 인원을 내는 쪽(NowCountSource)이 없는
+     * 사용자 앱이나 구독자가 없으면 읽지 않고, 보낼 구역이 없는 구독자에게는 보내지 않는다.
+     *
+     * @param now KST 현재 시각
+     * @return 이번에 보낸 구역 수(구독자가 같은 구역을 중복해서 받아도 한 번만 센다). 읽지 않았거나 신선한 값이 없으면 0
+     */
+    public synchronized int pollNowOnce(LocalDateTime now) {
+        NowCountSource source = nowCountSource.getIfAvailable();
+        if (source == null || subscribers.isEmpty()) {
+            return 0;
+        }
+        List<NowCount> counts = source.findAllFresh(now);
+        if (counts.isEmpty()) {
+            return 0;
+        }
+        Map<Long, Set<Long>> zoneIdsByRegion = new HashMap<>();
+        for (Subscriber subscriber : subscribers) {
+            Set<Long> zoneIds = subscriber.regionId() == null
+                    ? null
+                    : zoneIdsByRegion.computeIfAbsent(subscriber.regionId(), this::findZoneIds);
+            List<NowStreamEvent.Item> items = counts.stream()
+                    .filter(count -> zoneIds == null || zoneIds.contains(count.zoneId()))
+                    .map(count -> new NowStreamEvent.Item(
+                            count.zoneId(), count.personCount(), count.at().atOffset(KST_OFFSET)))
+                    .toList();
+            if (!items.isEmpty()) {
+                String json = jsonMapper.writeValueAsString(new NowStreamEvent(items));
+                dispatch(subscriber, () -> SseEmitter.event().name("now").data(json), Kind.NOW);
+            }
+        }
+        return counts.size();
+    }
+
     // 지역(시·도, 시·군·구, 읍·면·동) 아래 삭제되지 않은 구역 번호. 지역이 그 사이 사라졌으면 빈 집합
     private Set<Long> findZoneIds(Long regionId) {
         try {
@@ -215,7 +276,7 @@ public class StatStreamBroadcaster {
 
     private void send(Subscriber subscriber, StatStreamEvent payload) {
         String json = jsonMapper.writeValueAsString(payload);
-        dispatch(subscriber, () -> SseEmitter.event().name("stat").data(json), true);
+        dispatch(subscriber, () -> SseEmitter.event().name("stat").data(json), Kind.STAT);
     }
 
     private void safeHeartbeat() {
@@ -229,19 +290,22 @@ public class StatStreamBroadcaster {
 
     private void sendHeartbeat() {
         for (Subscriber subscriber : subscribers) {
-            dispatch(subscriber, () -> SseEmitter.event().comment("keepalive"), false);
+            dispatch(subscriber, () -> SseEmitter.event().comment("keepalive"), Kind.HEARTBEAT);
         }
     }
 
     /**
-     * 구독자의 전송 순서에 한 건을 넣는다. 앞 전송이 진행 중이면 {@code keepLatest}인 건만 대기 칸에 남기고(이미 있던 대기분은
-     * 대신해 버린다) 아니면 버린다. 이 구독자가 막혀 있어도 다른 구독자와 호출한 스레드는 기다리지 않는다.
+     * 구독자의 전송 순서에 한 건을 넣는다. 앞 전송이 진행 중이면 통계·현재 인원은 종류별 대기 칸에 남기고(이미 있던 같은 종류
+     * 대기분은 대신해 버린다. 종류가 다르면 서로 대신하지 않는다) 하트비트는 버린다. 이 구독자가 막혀 있어도 다른 구독자와
+     * 호출한 스레드는 기다리지 않는다.
      */
-    private void dispatch(Subscriber subscriber, Supplier<SseEmitter.SseEventBuilder> event, boolean keepLatest) {
+    private void dispatch(Subscriber subscriber, Supplier<SseEmitter.SseEventBuilder> event, Kind kind) {
         synchronized (subscriber) {
             if (subscriber.sending) {
-                if (keepLatest) {
-                    subscriber.pending = event;
+                if (kind == Kind.STAT) {
+                    subscriber.pendingStat = event;
+                } else if (kind == Kind.NOW) {
+                    subscriber.pendingNow = event;
                 }
                 return;
             }
@@ -274,8 +338,14 @@ public class StatStreamBroadcaster {
                 return;
             }
             synchronized (subscriber) {
-                next = subscriber.pending;
-                subscriber.pending = null;
+                // 1분 통계가 먼저 간다. 현재 인원은 5초 뒤 다시 오므로 밀려도 괜찮다
+                if (subscriber.pendingStat != null) {
+                    next = subscriber.pendingStat;
+                    subscriber.pendingStat = null;
+                } else {
+                    next = subscriber.pendingNow;
+                    subscriber.pendingNow = null;
+                }
                 if (next == null) {
                     subscriber.sending = false;
                 }
@@ -286,7 +356,8 @@ public class StatStreamBroadcaster {
     private void abandon(Subscriber subscriber) {
         subscribers.remove(subscriber);
         synchronized (subscriber) {
-            subscriber.pending = null;
+            subscriber.pendingStat = null;
+            subscriber.pendingNow = null;
             subscriber.sending = false;
         }
     }
@@ -301,7 +372,8 @@ public class StatStreamBroadcaster {
         private final SseEmitter emitter;
         // 아래 둘은 이 객체의 잠금 안에서만 바꾼다
         private boolean sending;
-        private Supplier<SseEmitter.SseEventBuilder> pending;
+        private Supplier<SseEmitter.SseEventBuilder> pendingStat;
+        private Supplier<SseEmitter.SseEventBuilder> pendingNow;
 
         Subscriber(Long regionId, SseEmitter emitter) {
             this.regionId = regionId;

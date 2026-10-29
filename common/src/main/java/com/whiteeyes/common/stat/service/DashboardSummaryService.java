@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +47,8 @@ public class DashboardSummaryService {
     private final LevelService levelService;
     private final ZoneNeighborRepository zoneNeighborRepository;
     private final TodayEventCountService todayEventCountService;
+    // 관리자 앱에만 있다. 사용자 앱은 빈이 없어 currentCount가 null이다(결정 0018)
+    private final ObjectProvider<NowCountSource> nowCountSource;
 
     public DashboardSummaryService(
             RegionQueryService regionQueryService,
@@ -54,7 +57,8 @@ public class DashboardSummaryService {
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             LevelService levelService,
             ZoneNeighborRepository zoneNeighborRepository,
-            TodayEventCountService todayEventCountService) {
+            TodayEventCountService todayEventCountService,
+            ObjectProvider<NowCountSource> nowCountSource) {
         this.regionQueryService = regionQueryService;
         this.cameraCountService = cameraCountService;
         this.recentZoneStatReader = recentZoneStatReader;
@@ -62,6 +66,7 @@ public class DashboardSummaryService {
         this.levelService = levelService;
         this.zoneNeighborRepository = zoneNeighborRepository;
         this.todayEventCountService = todayEventCountService;
+        this.nowCountSource = nowCountSource;
     }
 
     /**
@@ -79,12 +84,20 @@ public class DashboardSummaryService {
         // 통계가 없어도 센다. 삭제된 구역의 오늘 이벤트도 포함(FNC-C-017)
         int todayEventCount = todayEventCountService.countTotal(target.allZoneIds(), now.toLocalDate().atStartOfDay());
 
+        // 5초마다 갱신되는 현재 인원(FNC-A-054, 관리자 앱만). 1분 통계가 아직 없어도 값이 있을 수 있다
+        NowCountSource nowCounts = nowCountSource.getIfAvailable();
+        Integer currentCount = nowCounts == null
+                ? null
+                : nowCounts.sumFresh(activeZoneIds, now).stream().boxed().findFirst().orElse(null);
+
         Map<Long, ZoneStatMinute> latestStatByZone = recentZoneStatReader.findLatestStats(target.activeZones(), now);
         return recentZoneStatReader
                 .sumAtLatestMinute(target.activeZones(), latestStatByZone)
-                .map(sum -> toResponse(target, sum, cameraCount, runningCameraCount, todayEventCount, todayMaxCount))
+                .map(sum -> toResponse(
+                        target, sum, currentCount, cameraCount, runningCameraCount, todayEventCount, todayMaxCount))
                 .orElseGet(() -> new DashboardSummaryResponse(
-                        null, null, null, null, null, null, null, todayEventCount, cameraCount, runningCameraCount, todayMaxCount));
+                        null, null, currentCount, null, null, null, null, null,
+                        todayEventCount, cameraCount, runningCameraCount, todayMaxCount));
     }
 
     private Target zoneTarget(long zoneId) {
@@ -120,6 +133,7 @@ public class DashboardSummaryService {
     private DashboardSummaryResponse toResponse(
             Target target,
             LatestMinuteSum sum,
+            Integer currentCount,
             int cameraCount,
             int runningCameraCount,
             int todayEventCount,
@@ -151,6 +165,7 @@ public class DashboardSummaryService {
         return new DashboardSummaryResponse(
                 sum.statAt().atOffset(KST_OFFSET),
                 sum.countAvg(),
+                currentCount,
                 density,
                 level,
                 total(inByDirection),
