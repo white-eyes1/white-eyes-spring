@@ -24,7 +24,7 @@ import com.whiteeyes.common.stat.exception.TooManyRowsException;
  * <p>단위별 최대 기간(conventions.md EXPORT_MAX_RANGE)은 STATS_MAX_RANGE처럼 코드 상수로 둔다.
  *
  * @param targetId 구역·지역 번호. 전체(ALL)면 null
- * @param items 고른 항목(요청 순서, 중복 없음). 항목마다 시트 하나
+ * @param items 고른 항목(요청 순서, 중복 없음). 엑셀 열 순서는 요청 순서가 아니라 StatExportItem 선언 순서
  * @param sum 지역을 합산해 한 줄로 받는지. 지역(REGION)일 때만 true일 수 있고, 아니면 지역도 소속 구역별 행이다
  */
 public record StatExportRequest(
