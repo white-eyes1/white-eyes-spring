@@ -104,13 +104,13 @@ class StatExportRequestTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 구역별 펼치기는 지역(REGION)일 때만 켜진다")
-    void parse_expandOnlyForRegion() throws BindException {
-        assertThat(parse(StatExportScope.REGION, "1h", "2099-01-01", "2099-01-02", true).expand()).isTrue();
-        assertThat(parse(StatExportScope.REGION, "1h", "2099-01-01", "2099-01-02", false).expand()).isFalse();
-        assertThat(parse(StatExportScope.ZONE, "1h", "2099-01-01", "2099-01-02", true).expand()).isFalse();
+    @DisplayName("FNC-C-023 지역 합산(sum)은 지역(REGION)일 때만 켜지고, 지역은 합산을 고르지 않으면 구역별 행")
+    void parse_sumOnlyForRegion() throws BindException {
+        assertThat(parse(StatExportScope.REGION, "1h", "2099-01-01", "2099-01-02", true).sum()).isTrue();
+        assertThat(parse(StatExportScope.REGION, "1h", "2099-01-01", "2099-01-02", false).sum()).isFalse();
+        assertThat(parse(StatExportScope.ZONE, "1h", "2099-01-01", "2099-01-02", true).sum()).isFalse();
         assertThat(StatExportRequest.parse(StatExportScope.ALL, null, "1h", "2099-01-01", "2099-01-02", COUNT, true)
-                        .expand())
+                        .sum())
                 .isFalse();
     }
 
@@ -171,8 +171,8 @@ class StatExportRequestTest {
     }
 
     private static StatExportRequest parse(
-            StatExportScope scope, String interval, String from, String to, boolean expand) throws BindException {
+            StatExportScope scope, String interval, String from, String to, boolean sum) throws BindException {
         Long targetId = scope == StatExportScope.ALL ? null : 1L;
-        return StatExportRequest.parse(scope, targetId, interval, from, to, COUNT, expand);
+        return StatExportRequest.parse(scope, targetId, interval, from, to, COUNT, sum);
     }
 }

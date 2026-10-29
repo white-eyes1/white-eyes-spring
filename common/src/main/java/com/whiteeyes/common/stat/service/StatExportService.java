@@ -69,7 +69,7 @@ public class StatExportService {
         detail.put("to", request.to().toString());
         detail.put("interval", request.interval().getCode());
         detail.put("items", request.items().stream().map(StatExportItem::name).toList());
-        detail.put("expand", request.expand());
+        detail.put("sum", request.sum());
         workRecorder.record(
                 actor,
                 WorkAction.EXCEL_DOWNLOAD,

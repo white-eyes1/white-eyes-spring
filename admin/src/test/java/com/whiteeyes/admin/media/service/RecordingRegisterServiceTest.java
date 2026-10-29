@@ -55,6 +55,17 @@ class RecordingRegisterServiceTest {
                 new RecordingRegisterService(cameraQueryService, recordingRepository, new RecordingPathValidator());
     }
 
+    // 갭 락 교착(#301)을 막는 격리 수준이 실수로 빠지지 않게 고정한다
+    @Test
+    @DisplayName("#301 녹화 등록은 READ COMMITTED 트랜잭션으로 실행됨")
+    void runsInReadCommittedTransaction() throws NoSuchMethodException {
+        var method = RecordingRegisterService.class.getMethod("registerRecording", RecordingRegisterRequest.class);
+
+        var transactional = method.getAnnotation(org.springframework.transaction.annotation.Transactional.class);
+
+        assertThat(transactional.isolation()).isEqualTo(org.springframework.transaction.annotation.Isolation.READ_COMMITTED);
+    }
+
     @Test
     @DisplayName("FNC-A-026 라이브 녹화를 KST·밀리초로 저장하고 id를 돌려줌")
     void registersLiveRecording() {

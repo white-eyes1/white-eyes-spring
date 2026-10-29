@@ -27,8 +27,6 @@ public class PlaybackRangesService {
 
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
     private static final Duration MAX_SPAN = Duration.ofHours(24);
-    // 이 시간 이하로 떨어진 구간은 하나로 잇는다(파일이 이어 붙는 사이 틈)
-    private static final Duration JOIN_GAP = Duration.ofSeconds(2);
 
     private final ZoneCameraService zoneCameraService;
     private final RecordingRepository recordingRepository;
@@ -72,7 +70,7 @@ public class PlaybackRangesService {
         return new PlaybackRangesResponse(merge(spans));
     }
 
-    // 캠 구분 없이 합쳐서 겹치거나 JOIN_GAP 이하로 떨어진 구간을 하나로 잇는다
+    // 캠 구분 없이 합쳐서 겹치거나 맞닿은 구간만 하나로 잇는다. 틈이 있으면 끊어서 영상이 있는 구간만 띠에 보인다(#296)
     private List<Range> merge(List<Span> spans) {
         spans.sort(Comparator.comparing(Span::start));
         List<Range> merged = new ArrayList<>();
@@ -82,7 +80,7 @@ public class PlaybackRangesService {
             if (currentStart == null) {
                 currentStart = span.start();
                 currentEnd = span.end();
-            } else if (Duration.between(currentEnd, span.start()).compareTo(JOIN_GAP) <= 0) {
+            } else if (!span.start().isAfter(currentEnd)) {
                 currentEnd = max(currentEnd, span.end());
             } else {
                 merged.add(toRange(currentStart, currentEnd));

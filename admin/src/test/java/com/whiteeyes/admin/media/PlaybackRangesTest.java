@@ -105,21 +105,24 @@ class PlaybackRangesTest {
     }
 
     @Test
-    @DisplayName("FNC-A-043 캠 구분 없이 합치고 겹치거나 2초 이하로 떨어진 구간은 하나로 잇는다. 3초 떨어지면 나눈다")
-    void merges_overlap_and_small_gap() throws Exception {
+    @DisplayName("FNC-A-043 캠 구분 없이 합치고 겹치거나 맞닿은 구간만 잇는다. 틈이 있으면 나눈다(#296)")
+    void merges_overlap_and_touching_only() throws Exception {
         LocalDateTime base = now.minusHours(3);
         insertRecording(cameraId, base, base.plusMinutes(10));
         // 다른 캠의 겹치는 녹화
         insertRecording(secondCameraId, base.plusMinutes(8), base.plusMinutes(15));
-        // 정확히 2초 떨어짐 → 이음
-        insertRecording(cameraId, base.plusMinutes(15).plusSeconds(2), base.plusMinutes(20));
-        // 3초 떨어짐 → 나눔
-        insertRecording(cameraId, base.plusMinutes(20).plusSeconds(3), base.plusMinutes(25));
+        // 정확히 맞닿음 → 이음
+        insertRecording(cameraId, base.plusMinutes(15), base.plusMinutes(20));
+        // 0.5초 떨어짐 → 나눔
+        insertRecording(cameraId, base.plusMinutes(20).plusNanos(500_000_000), base.plusMinutes(25));
+        // 1.5초 떨어짐 → 나눔
+        insertRecording(cameraId, base.plusMinutes(25).plusNanos(1_500_000_000), base.plusMinutes(30));
 
         assertThat(ranges(zoneId, base, base.plusHours(1)))
                 .containsExactly(
                         range(base, base.plusMinutes(20)),
-                        range(base.plusMinutes(20).plusSeconds(3), base.plusMinutes(25)));
+                        range(base.plusMinutes(20).plusNanos(500_000_000), base.plusMinutes(25)),
+                        range(base.plusMinutes(25).plusNanos(1_500_000_000), base.plusMinutes(30)));
     }
 
     @Test

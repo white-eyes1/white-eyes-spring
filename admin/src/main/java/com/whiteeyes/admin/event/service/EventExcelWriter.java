@@ -22,8 +22,9 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
  * 이벤트 엑셀 파일을 쓴다(FNC-A-039 처리 순서 2). SXSSF(스트리밍)라 메모리에는 최근 행 몇 개만 두고 나머지는 임시 파일로
  * 내린다. 시트 하나에 이벤트 한 건이 한 행이다. 다 쓰면 {@link #close()}로 임시 파일을 지운다.
  *
- * <p>열: 발생·종료 시각, 지속, 종류, 시·도, 시·군·구, 읍·면·동, 구역, 최고 단계, 최고 밀집도(혼잡), 최고 증가율(급증), 처리 상태,
- * 조치 항목·메모, 처리자, 처리 일시. 종류에 해당하지 않는 값 칸은 비운다. 진행 중이면 종료 시각 칸에 '진행 중'을 쓴다.
+ * <p>열: 발생·종료 시각, 지속, 종류, 시·도, 시·군·구, 읍·면·동, 구역, 최고 단계, 최고 인원(혼잡·급증), 최고 밀집도(혼잡),
+ * 최고 증가율(급증), 처리 상태, 조치 항목·메모, 처리자, 처리 일시. 종류에 해당하지 않는 값 칸은 비운다. 진행 중이면 종료 시각
+ * 칸에 '진행 중'을 쓴다. 캠 이름은 화면과 달리 넣지 않는다(FNC-A-039).
  */
 public class EventExcelWriter implements AutoCloseable {
 
@@ -32,8 +33,8 @@ public class EventExcelWriter implements AutoCloseable {
     // 메모리에 둘 행 수(SXSSF 기본값)
     private static final int WINDOW_SIZE = 100;
     private static final String[] HEADERS = {
-        "발생 시각", "종료 시각", "지속(분)", "종류", "시·도", "시·군·구", "읍·면·동", "구역", "최고 단계", "최고 밀집도(명/㎡)", "최고 증가율(%)",
-        "처리 상태", "조치 항목", "조치 메모", "처리자", "처리 일시"
+        "발생 시각", "종료 시각", "지속(분)", "종류", "시·도", "시·군·구", "읍·면·동", "구역", "최고 단계", "최고 인원",
+        "최고 밀집도(명/㎡)", "최고 증가율(%)", "처리 상태", "조치 항목", "조치 메모", "처리자", "처리 일시"
     };
     private static final String ONGOING_TEXT = "진행 중";
     private static final int SECONDS_PER_MINUTE = 60;
@@ -101,18 +102,21 @@ public class EventExcelWriter implements AutoCloseable {
         setText(row, 6, exportRow.emd());
         setText(row, 7, item.zoneName());
         setText(row, 8, levelName(item.peakLevel()));
+        if (item.peakCount() != null) {
+            row.createCell(9).setCellValue(item.peakCount());
+        }
         // 혼잡은 밀집도(명/㎡), 급증은 증가율(%)이 같은 peak_value 칸에 들어 있어 종류로 나눠 쓴다
         if (item.type() == EventType.CONGESTION) {
-            setNumber(row, 9, item.peakValue());
-        } else if (item.type() == EventType.SURGE) {
             setNumber(row, 10, item.peakValue());
+        } else if (item.type() == EventType.SURGE) {
+            setNumber(row, 11, item.peakValue());
         }
-        setText(row, 11, STATUS_LABELS.getOrDefault(item.status(), item.status().name()));
-        setText(row, 12, actionLabel(exportRow.actionCode()));
-        setText(row, 13, exportRow.actionNote());
-        setText(row, 14, exportRow.handlerLoginId());
+        setText(row, 12, STATUS_LABELS.getOrDefault(item.status(), item.status().name()));
+        setText(row, 13, actionLabel(exportRow.actionCode()));
+        setText(row, 14, exportRow.actionNote());
+        setText(row, 15, exportRow.handlerLoginId());
         if (exportRow.handledAt() != null) {
-            setTime(row, 15, exportRow.handledAt().toLocalDateTime());
+            setTime(row, 16, exportRow.handledAt().toLocalDateTime());
         }
     }
 
@@ -163,9 +167,9 @@ public class EventExcelWriter implements AutoCloseable {
 
     private static int widthOf(int column) {
         return switch (column) {
-            case 0, 1, 15 -> 18;
-            case 13 -> 30;
-            case 9 -> 20;
+            case 0, 1, 16 -> 18;
+            case 14 -> 30;
+            case 10 -> 20;
             default -> 14;
         };
     }

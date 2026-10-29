@@ -117,9 +117,9 @@ class StatExportReaderIntegrationTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 지역 합산(기본): 줄 하나에 지역 경로와 아래 단계 칸 '(지역 합산)', 원본 구역은 삭제된 구역까지 센다")
+    @DisplayName("FNC-C-023 지역 합산을 고른 경우(sum=true): 줄 하나에 지역 경로와 아래 단계 칸 '(지역 합산)', 원본 구역은 삭제된 구역까지 센다")
     void planRegionSum() throws BindException {
-        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
+        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), true));
 
         assertThat(plan.targetName()).isEqualTo("종로구");
         assertThat(plan.series()).containsExactly(
@@ -131,8 +131,8 @@ class StatExportReaderIntegrationTest {
     @Test
     @DisplayName("FNC-C-023 처리 순서 3: 지역 합산 줄은 합산한 지역보다 아래 단계 칸에만 '(지역 합산)'(시·도는 구·동·구역, 동은 구역)")
     void planRegionSum_labelsBelowLevel() throws BindException {
-        StatExportPlan sido = statExportReader.plan(request(StatExportScope.REGION, regionId("11"), false));
-        StatExportPlan dong = statExportReader.plan(request(StatExportScope.REGION, regionId("11110540"), false));
+        StatExportPlan sido = statExportReader.plan(request(StatExportScope.REGION, regionId("11"), true));
+        StatExportPlan dong = statExportReader.plan(request(StatExportScope.REGION, regionId("11110540"), true));
 
         assertThat(sido.series()).containsExactly(
                 new StatExportSeries(null, "서울특별시", "(지역 합산)", "(지역 합산)", "(지역 합산)"));
@@ -141,9 +141,9 @@ class StatExportReaderIntegrationTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 지역 구역별 펼치기: 삭제되지 않은 소속 구역마다 한 줄(동 코드 순, 같은 동은 구역 번호 순)")
-    void planRegionExpanded() throws BindException {
-        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), true));
+    @DisplayName("FNC-C-023 지역 기본: 삭제되지 않은 소속 구역마다 한 줄(칸마다 실제 이름), 삭제된 구역은 줄로 쓰지 않음")
+    void planRegionPerZone() throws BindException {
+        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
 
         assertThat(plan.series())
                 .extracting(StatExportSeries::zoneId, StatExportSeries::emd, StatExportSeries::zoneName)
@@ -153,6 +153,24 @@ class StatExportReaderIntegrationTest {
                         tuple(samcheong2, "삼청동", "삼청동 2구역"));
         assertThat(plan.rows()).isEqualTo(3 * 4);
         assertThat(plan.perZone()).isTrue();
+        assertThat(plan.series().get(0))
+                .isEqualTo(new StatExportSeries(sajik, "서울특별시", "종로구", "사직동", "사직동 1구역"));
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 처리 순서 2: 줄 순서는 시·도 → 시·군·구 → 읍·면·동 → 구역 이름 가나다순, 이름이 같으면 구역 번호순")
+    void planOrder_byNameThenId() throws BindException {
+        long ga = insertZone("11110540", "가 구역", "100.00");
+        long samcheong1Again = insertZone("11110540", "삼청동 1구역", "100.00");
+
+        StatExportPlan region = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
+        StatExportPlan all = statExportReader.plan(request(StatExportScope.ALL, null, false));
+
+        assertThat(region.series()).extracting(StatExportSeries::zoneId)
+                .containsExactly(sajik, ga, samcheong1, samcheong1Again, samcheong2);
+        // 시·군·구는 종로구, 중구 순
+        assertThat(all.series()).extracting(StatExportSeries::zoneId)
+                .containsExactly(sajik, ga, samcheong1, samcheong1Again, samcheong2, sogong);
     }
 
     @Test
@@ -184,10 +202,10 @@ class StatExportReaderIntegrationTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 처리 순서 2: 지역 합산 값은 통계 그래프(FNC-C-012) 지역 값과 같고, 빈 시각은 값 없는 점")
+    @DisplayName("FNC-C-023 처리 순서 2: 지역 합산(sum=true) 값은 통계 그래프(FNC-C-012) 지역 값과 같고, 빈 시각은 값 없는 점")
     void readRegionSum_sameAsSeries() throws BindException {
         insertHourlyRows();
-        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
+        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), true));
 
         List<StatSeriesPoint> exported = readPoints(plan).get(null);
 
@@ -202,9 +220,9 @@ class StatExportReaderIntegrationTest {
 
     @Test
     @DisplayName("FNC-C-023 처리 순서 2: 구역별 줄 값은 구역마다 통계 그래프 구역 값과 같다(통계 없는 구역도 시각마다 한 줄)")
-    void readExpanded_sameAsZoneSeries() throws BindException {
+    void readPerZone_sameAsZoneSeries() throws BindException {
         insertHourlyRows();
-        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), true));
+        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
 
         Map<Long, List<StatSeriesPoint>> exported = readPoints(plan);
 
@@ -217,6 +235,22 @@ class StatExportReaderIntegrationTest {
         // 시연용 표시는 구역 줄에도 그대로(삼청1 10시)
         assertThat(exported.get(samcheong1)).extracting(StatSeriesPoint::isDemo)
                 .containsExactly(true, false, false, false);
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 처리 순서 2: 구역별 행은 시각 오름차순으로 묶고 같은 시각 안에서는 계획의 줄 순서")
+    void readPerZone_timeMajorOrder() throws BindException {
+        insertHourlyRows();
+        StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
+
+        List<String> rows = new ArrayList<>();
+        statExportReader.read(plan, (line, point) -> rows.add(point.at().getHour() + "@" + line.zoneId()));
+
+        assertThat(rows).containsExactly(
+                "10@" + sajik, "10@" + samcheong1, "10@" + samcheong2,
+                "11@" + sajik, "11@" + samcheong1, "11@" + samcheong2,
+                "12@" + sajik, "12@" + samcheong1, "12@" + samcheong2,
+                "13@" + sajik, "13@" + samcheong1, "13@" + samcheong2);
     }
 
     private Map<Long, List<StatSeriesPoint>> readPoints(StatExportPlan plan) {
@@ -235,10 +269,10 @@ class StatExportReaderIntegrationTest {
     }
 
     // 10시부터 4시간, 인원만
-    private static StatExportRequest request(StatExportScope scope, Long targetId, boolean expand)
+    private static StatExportRequest request(StatExportScope scope, Long targetId, boolean sum)
             throws BindException {
         return StatExportRequest.parse(
-                scope, targetId, "1h", "2099-01-01T10:00", "2099-01-01T14:00", List.of("COUNT"), expand);
+                scope, targetId, "1h", "2099-01-01T10:00", "2099-01-01T14:00", List.of("COUNT"), sum);
     }
 
     private void deleteRows() {

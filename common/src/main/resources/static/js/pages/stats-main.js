@@ -1,7 +1,7 @@
 // 통계 메인(대시보드) 진입 파일 SCR-C-003: 지역 필터(FNC-C-008), 통계 패널(FNC-C-009·016·020·025·030), 지도, 캠 패널(관리자 앱).
 // 지역은 주소 쿼리 regionId로 유지한다. 새 1분 통계는 통계 SSE(FNC-C-022)가 알려 주면 화면 값을 새로 읽고,
 // 연결이 끊겨 있거나 한참 소식이 없으면 60초마다 읽는다.
-import { get, url } from '../common/api.js';
+import { del, get, url } from '../common/api.js';
 import { initCameraForm } from '../camera/camera-form.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 import { initLiveView, openLiveView, updateLiveView } from '../live/live-view.js';
@@ -14,6 +14,7 @@ import { createDeck } from './stats-main/deck.js';
 import { createHourlyLevelsPanel } from './stats-main/hourly-levels.js';
 import { createVisitPatternPanel } from './stats-main/visit-pattern.js';
 import { createPeakHoursPanel } from './stats-main/peak-hours.js';
+import { createConfirmDialog } from './stats-main/confirm-dialog.js';
 import { createMapMenu } from './stats-main/map-menu.js';
 import { createZoneEdit } from './stats-main/zone-edit.js';
 import { createZoneRegister } from './stats-main/zone-register.js';
@@ -57,6 +58,8 @@ const heatmapTool = createHeatmapTool();
 // 지도 우클릭 메뉴(관리자 앱만): 구역 위·빈 곳을 우클릭하면 구역·캠 수정·등록·삭제 항목이 뜬다
 // 메뉴가 닫히면 붙들어 둔 구역 강조도 푼다
 const mapMenu = isAdmin ? createMapMenu({ onClose: () => layer?.releaseZone() }) : null;
+// 확인 창(구역 삭제·캠 삭제)
+const confirmDialog = isAdmin ? createConfirmDialog() : null;
 // 구역 등록(관리자 앱만, 동 단계). 등록하면 지도·통계를 다시 읽는다
 const zoneRegister = isAdmin ? createZoneRegister({ onRegistered: onZoneRegistered }) : null;
 // 구역 수정(관리자 앱만, 동 단계): 저장하거나 취소하면 지도·통계를 다시 읽는다(취소하면 원래 모양)
@@ -368,7 +371,76 @@ function openEmptyMenu(latLng, event) {
 /** 구역 위 우클릭 메뉴 항목 */
 function buildZoneMenu(zone) {
     const items = [{ label: '구역 수정', onClick: () => zoneEdit.begin(zone) }];
+    // 가동 중이거나 가동을 요청한 캠이 있는 구역은 지울 수 없다(구역 관리 화면과 같은 규칙)
+    const camera = deck?.cameraByZone(zone.id);
+    const running = camera && (camera.status === 'RUNNING' || camera.status === 'PREPARING' || camera.runRequested);
+    items.push({
+        label: '구역 삭제',
+        danger: true,
+        disabled: Boolean(running),
+        hint: ZONE_DELETE_BLOCKED,
+        onClick: () => askDeleteZone(zone),
+    });
+    if (camera) {
+        // 캠 수정(FNC-A-019): 정지 상태일 때만 고칠 수 있다(캠 관리 화면과 같은 규칙). 대시보드 위에 캠 수정 창을 연다
+        items.push({
+            label: '캠 수정',
+            disabled: camera.status !== 'STOPPED' || Boolean(camera.runRequested),
+            hint: CAMERA_EDIT_BLOCKED,
+            onClick: () => cameraForm.openEdit(camera),
+        });
+        // 캠 삭제(FNC-A-023): 정지 상태일 때만. 가동 요청 상태면 그 안내를 보인다
+        items.push({
+            label: '캠 삭제',
+            danger: true,
+            disabled: camera.status !== 'STOPPED' || Boolean(camera.runRequested),
+            // 가동 요청 안내는 정지 상태인데 요청만 남은 때(캠 관리 화면과 같은 규칙). 가동 중·준비 중이면 정지부터 하라고 안내한다
+            hint: camera.status === 'STOPPED' && camera.runRequested ? CAMERA_RUN_PENDING : CAMERA_DELETE_BLOCKED,
+            onClick: () => askDeleteCamera(camera),
+        });
+    }
     return items;
+}
+
+const CAMERA_DELETE_BLOCKED = '정지 상태에서만 삭제할 수 있습니다. 먼저 정지해 주세요.';
+const CAMERA_RUN_PENDING = '가동 요청 처리 중입니다. 잠시 뒤 다시 시도하거나 정지해 주세요';
+const CAMERA_EDIT_BLOCKED = '정지 상태에서만 고칠 수 있습니다. 먼저 정지해 주세요.';
+const ZONE_DELETE_BLOCKED = '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.';
+
+// 구역 삭제(FNC-A-017): 확인 뒤 DELETE. 삭제되면 지도·핀·통계·캠 패널을 다시 읽는다
+function askDeleteZone(zone) {
+    confirmDialog.open({
+        title: '구역 삭제',
+        message: `'${zone.name}' 구역을 삭제할까요? 가동 이력이 있으면 기록은 남고 목록에서만 사라집니다.`,
+        okLabel: '삭제',
+        errorMessages: { CAMERA_RUNNING: ZONE_DELETE_BLOCKED },
+        // 서버가 거절하면(가동 중, 이미 지워짐) 화면 값이 낡았다는 뜻이라 다시 읽어 메뉴 항목을 새로 맞춘다
+        onRejected: () => refreshSafely(),
+        onConfirm: async () => {
+            await del(`/api/v1/manage/zones/${zone.id}`, { toast: false });
+            showToast(`'${zone.name}' 구역을 삭제했습니다.`);
+            // 삭제는 끝났으니, 그 뒤 다시 읽기가 실패해도 확인 창에 오류로 보이지 않게 한다(다시 눌러 404가 나지 않게)
+            await refreshSafely();
+        },
+    });
+}
+
+// 캠 삭제(FNC-A-023): 확인 뒤 DELETE. 삭제되면 구역은 남고 캠 패널·핀만 다시 읽는다
+function askDeleteCamera(camera) {
+    confirmDialog.open({
+        title: '캠 삭제',
+        message: '이 캠을 삭제할까요? 가동한 적이 있으면 지난 녹화·통계는 남습니다.',
+        okLabel: '삭제',
+        errorMessages: { CAMERA_NOT_STOPPED: CAMERA_DELETE_BLOCKED },
+        // 서버가 거절하면(그 사이 가동됨 등) 화면 값이 낡았다는 뜻이라 다시 읽어 메뉴 항목을 새로 맞춘다
+        onRejected: () => refreshSafely(),
+        onConfirm: async () => {
+            await del(`/api/v1/manage/cameras/${camera.id}`, { toast: false });
+            showToast(`'${camera.name}' 캠을 삭제했습니다.`);
+            // 삭제는 끝났으니, 그 뒤 다시 읽기가 실패해도 확인 창에 오류로 보이지 않게 한다
+            await refreshSafely();
+        },
+    });
 }
 
 /** 지금 동 안의 빈 곳 우클릭 메뉴 항목 */

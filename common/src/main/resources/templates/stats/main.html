@@ -285,6 +285,25 @@
     <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
     <!-- 지도 우클릭 메뉴(stats-main/map-menu.js) -->
     <div class="map-menu" id="map-menu" role="menu" hidden></div>
+    <!-- 확인 창(구역 삭제·캠 삭제 등, stats-main/confirm-dialog.js) -->
+    <div class="modal-stage zone-reg-modal-stage" id="dash-confirm" hidden>
+        <div class="modal zone-reg-modal" role="alertdialog" aria-modal="true" aria-labelledby="dash-confirm-title">
+            <div class="modal-head">
+                <h2 id="dash-confirm-title">확인</h2>
+                <button class="icon-btn" type="button" aria-label="닫기" data-close>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="dash-confirm-message"></p>
+                <p class="zone-reg-error" id="dash-confirm-error" role="alert" hidden></p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn secondary" type="button" data-close>취소</button>
+                <button class="btn danger" type="button" id="dash-confirm-ok">삭제</button>
+            </div>
+        </div>
+    </div>
     <!-- 구역 등록 확인 창(빈 곳 우클릭 메뉴의 `구역 등록`을 누르면 연다) -->
     <div class="modal-stage zone-reg-modal-stage" id="zone-reg-confirm" hidden>
         <div class="modal zone-reg-modal" role="alertdialog" aria-modal="true" aria-labelledby="zone-reg-confirm-title">

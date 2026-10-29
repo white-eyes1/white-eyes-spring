@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
@@ -39,7 +40,9 @@ public class RecordingRegisterService {
         this.recordingPathValidator = recordingPathValidator;
     }
 
-    @Transactional
+    // 캠 여러 대의 등록이 겹치면 REPEATABLE READ의 갭 락이 (camera_id, started_at) 인덱스의 캠 경계에서 얽혀
+    // 교착(1213)이 난다. READ COMMITTED는 갭 락을 걸지 않아 맞는 행만 잠그므로 교착이 없다(#301)
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public RecordingRegisterResponse registerRecording(RecordingRegisterRequest request) {
         CameraSourceType sourceType = cameraQueryService
                 .findSourceTypeOfExistingCamera(request.cameraId())

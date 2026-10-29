@@ -78,6 +78,14 @@ export function recordingCovers(recording, ms) {
     return recording.startedAt <= ms && (recording.endedAt === null || ms < recording.endedAt);
 }
 
+/** 그 1분 칸 [minuteMs, minuteMs+1분)에 겹치는 녹화 구간이 있는가. ranges는 {from, to}(ms)이며 null이면 알 수 없으므로 true. */
+export function recordedInMinute(ranges, minuteMs) {
+    if (ranges === null) {
+        return true;
+    }
+    return ranges.some((range) => range.from < minuteMs + 60 * 1000 && range.to > minuteMs);
+}
+
 /** 1분 통계 목록에서 그 시각이 속한 1분 항목. 없으면 null. items는 {at: ms, ...}. */
 export function findMinute(items, ms) {
     const key = minuteStart(ms);
