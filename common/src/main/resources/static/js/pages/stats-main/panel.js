@@ -133,13 +133,15 @@ export function levelChip(level, levels) {
 
 /**
  * 요약의 '현재 인원'만 바꾼다(5초마다, 통계 SSE event: now). 이벤트로 받은 합이 있으면 그것을, 없으면 요약 응답의
- * currentCount(5초 인원), 그것도 없으면 1분 평균을 보인다. 1분 통계가 없어도 currentCount가 있으면 보인다(FNC-C-016).
+ * currentCount(5초 인원), 그것도 없으면 1분 평균을 보인다. 최근 5분 안에 1분 통계가 없으면 '-'(데이터 없음, FNC-C-016).
  * @param {object|null} summary GET /dashboard/summary 응답
  * @param {number|null} liveTotal event: now 로 받은 구독 지역 구역 합. 없으면 null
  */
 export function renderSummaryCount(summary, liveTotal) {
-    const count =
-        liveTotal ??
+    const hasStat = summary?.statAt !== null && summary?.statAt !== undefined;
+    const count = !hasStat
+        ? null
+        : liveTotal ??
         summary?.currentCount ??
         (summary?.countAvg === null || summary?.countAvg === undefined ? null : Math.round(Number(summary.countAvg)));
     byId('sum-count').textContent = count === null || count === undefined ? '-' : `${formatNumber(count)}명`;
