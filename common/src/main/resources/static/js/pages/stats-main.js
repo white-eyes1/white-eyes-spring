@@ -373,10 +373,21 @@ function buildZoneMenu(zone) {
             hint: CAMERA_EDIT_BLOCKED,
             onClick: () => cameraForm.openEdit(camera),
         });
+        // 캠 삭제(FNC-A-023): 정지 상태일 때만. 가동 요청 상태면 그 안내를 보인다
+        items.push({
+            label: '캠 삭제',
+            danger: true,
+            disabled: camera.status !== 'STOPPED' || Boolean(camera.runRequested),
+            // 가동 요청 안내는 정지 상태인데 요청만 남은 때(캠 관리 화면과 같은 규칙). 가동 중·준비 중이면 정지부터 하라고 안내한다
+            hint: camera.status === 'STOPPED' && camera.runRequested ? CAMERA_RUN_PENDING : CAMERA_DELETE_BLOCKED,
+            onClick: () => askDeleteCamera(camera),
+        });
     }
     return items;
 }
 
+const CAMERA_DELETE_BLOCKED = '정지 상태에서만 삭제할 수 있습니다. 먼저 정지해 주세요.';
+const CAMERA_RUN_PENDING = '가동 요청 처리 중입니다. 잠시 뒤 다시 시도하거나 정지해 주세요';
 const CAMERA_EDIT_BLOCKED = '정지 상태에서만 고칠 수 있습니다. 먼저 정지해 주세요.';
 const ZONE_DELETE_BLOCKED = '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.';
 
@@ -393,6 +404,24 @@ function askDeleteZone(zone) {
             await del(`/api/v1/manage/zones/${zone.id}`, { toast: false });
             showToast(`'${zone.name}' 구역을 삭제했습니다.`);
             // 삭제는 끝났으니, 그 뒤 다시 읽기가 실패해도 확인 창에 오류로 보이지 않게 한다(다시 눌러 404가 나지 않게)
+            await refreshSafely();
+        },
+    });
+}
+
+// 캠 삭제(FNC-A-023): 확인 뒤 DELETE. 삭제되면 구역은 남고 캠 패널·핀만 다시 읽는다
+function askDeleteCamera(camera) {
+    confirmDialog.open({
+        title: '캠 삭제',
+        message: '이 캠을 삭제할까요? 가동한 적이 있으면 지난 녹화·통계는 남습니다.',
+        okLabel: '삭제',
+        errorMessages: { CAMERA_NOT_STOPPED: CAMERA_DELETE_BLOCKED },
+        // 서버가 거절하면(그 사이 가동됨 등) 화면 값이 낡았다는 뜻이라 다시 읽어 메뉴 항목을 새로 맞춘다
+        onRejected: () => refreshSafely(),
+        onConfirm: async () => {
+            await del(`/api/v1/manage/cameras/${camera.id}`, { toast: false });
+            showToast(`'${camera.name}' 캠을 삭제했습니다.`);
+            // 삭제는 끝났으니, 그 뒤 다시 읽기가 실패해도 확인 창에 오류로 보이지 않게 한다
             await refreshSafely();
         },
     });
