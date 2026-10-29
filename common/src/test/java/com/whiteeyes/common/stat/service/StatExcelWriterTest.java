@@ -40,17 +40,17 @@ class StatExcelWriterTest {
             new StatExportSeries(null, "서울특별시", "종로구", "(지역 합산)", "(지역 합산)");
 
     @Test
-    @DisplayName("FNC-C-023 처리 순서 2·3: 항목마다 시트 하나(고른 순서), 열은 시각·시·구·동·구역·항목 값·시연용")
+    @DisplayName("FNC-C-023 처리 순서 2·3: 항목마다 시트 하나(고른 순서), 열은 시각·시·구·동·구역·항목 값(시연용 열 없음)")
     void sheetsAndHeaders() throws Exception {
         StatExportPlan plan = plan("1h", List.of("DWELL", "COUNT", "DENSITY", "INFLOW", "OUTFLOW"));
 
         try (XSSFWorkbook workbook = write(plan, List.of())) {
             assertThat(sheetNames(workbook)).containsExactly("평균 체류", "인원", "밀집도", "유입", "유출");
             assertThat(texts(workbook.getSheet("인원").getRow(0))).containsExactly(
-                    "시각", "시·도", "시·군·구", "읍·면·동", "구역", "평균 인원(명)", "최대 인원(명)", "최소 인원(명)", "시연용");
+                    "시각", "시·도", "시·군·구", "읍·면·동", "구역", "평균 인원(명)", "최대 인원(명)", "최소 인원(명)");
             assertThat(texts(workbook.getSheet("밀집도").getRow(0)))
-                    .endsWith("구역", "밀집도(명/㎡)", "시연용");
-            assertThat(texts(workbook.getSheet("평균 체류").getRow(0))).endsWith("평균 체류(초)", "시연용");
+                    .endsWith("구역", "밀집도(명/㎡)");
+            assertThat(texts(workbook.getSheet("평균 체류").getRow(0))).endsWith("평균 체류(초)");
             // 머리글은 스크롤해도 보이게 고정
             assertThat(workbook.getSheet("인원").getPaneInformation().getHorizontalSplitPosition()).isEqualTo((short) 1);
         }
@@ -70,11 +70,13 @@ class StatExcelWriterTest {
             assertThat(count.getCell(0).getCellStyle().getDataFormatString()).isEqualTo("yyyy-mm-dd hh:mm");
             assertThat(texts(count).subList(1, 5)).containsExactly("서울특별시", "종로구", "사직동", "사직동 1구역");
             assertThat(numbers(count, 5, 8)).containsExactly(120.5, 150.0, 90.0);
-            assertThat(count.getCell(8).getStringCellValue()).isEqualTo("아니오");
+            // 시연용 열은 없다: 이름 5칸 + 인원 3칸
+            assertThat(count.getLastCellNum()).isEqualTo((short) 8);
 
             Row regionRow = workbook.getSheet("인원").getRow(2);
             assertThat(texts(regionRow).subList(1, 5)).containsExactly("서울특별시", "종로구", "(지역 합산)", "(지역 합산)");
-            assertThat(regionRow.getCell(8).getStringCellValue()).isEqualTo("예");
+            // 시연용 행(demo=true)이어도 열은 늘지 않는다
+            assertThat(regionRow.getLastCellNum()).isEqualTo((short) 8);
 
             Row density = workbook.getSheet("밀집도").getRow(1);
             assertThat(density.getCell(5).getNumericCellValue()).isEqualTo(0.9213);
@@ -130,12 +132,12 @@ class StatExcelWriterTest {
             Sheet sheet = workbook.getSheet("인원");
             assertThat(fillRgb(sheet.getRow(1).getCell(0))).isEqualTo("D1D1D1");
             assertThat(fillRgb(sheet.getRow(2).getCell(0))).isEqualTo("FFFFFF");
-            assertThat(fillRgb(sheet.getRow(3).getCell(8))).isEqualTo("D1D1D1");
+            assertThat(fillRgb(sheet.getRow(3).getCell(7))).isEqualTo("D1D1D1");
         }
     }
 
     @Test
-    @DisplayName("FNC-C-023 통계가 없는 시각은 시각·이름만 있고 값 칸은 빈다, 시연용은 '아니오'")
+    @DisplayName("FNC-C-023 통계가 없는 시각은 시각·이름만 있고 값 칸은 빈다, 시연용 열은 없다")
     void emptyPoint() throws Exception {
         StatExportPlan plan = plan("1h", List.of("COUNT"));
         StatSeriesPoint empty = StatSeriesPoint.empty(T0.atOffset(ZoneOffset.ofHours(9)));
@@ -148,7 +150,7 @@ class StatExcelWriterTest {
             assertThat(row.getCell(5).getCellType()).isEqualTo(CellType.BLANK);
             assertThat(row.getCell(6).getCellType()).isEqualTo(CellType.BLANK);
             assertThat(row.getCell(7).getCellType()).isEqualTo(CellType.BLANK);
-            assertThat(row.getCell(8).getStringCellValue()).isEqualTo("아니오");
+            assertThat(row.getLastCellNum()).isEqualTo((short) 8);
         }
     }
 
