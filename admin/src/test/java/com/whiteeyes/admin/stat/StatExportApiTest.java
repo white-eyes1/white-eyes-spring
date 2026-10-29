@@ -76,7 +76,7 @@ class StatExportApiTest {
     }
 
     @Test
-    @DisplayName("FNC-C-023 구역 엑셀: xlsx 파일, 파일 이름 stats_{대상}_{from}_{to}.xlsx, 항목별 시트, 시연용 열 없음(시연용 행은 그대로)")
+    @DisplayName("FNC-C-023 구역 엑셀: xlsx 파일, 파일 이름 stats_{대상}_{from}_{to}.xlsx, 시트 하나(통계)에 고른 항목이 나란히(시연용 행은 그대로)")
     void exportZone_file() throws Exception {
         // 10시 시연용 100명, 11시 실제 80명
         insertHourly(sajik, H0, "100.00", true);
@@ -96,18 +96,18 @@ class StatExportApiTest {
                 .getContentAsByteArray();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
-            assertThat(workbook.getNumberOfSheets()).isEqualTo(2);
-            Sheet count = workbook.getSheet("인원");
-            assertThat(workbook.getSheet("밀집도")).isNotNull();
+            assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
+            Sheet count = workbook.getSheet("통계");
             Row header = count.getRow(0);
-            // 시연용 열은 없다: 이름 5칸 + 인원 3칸
-            assertThat(header.getLastCellNum()).isEqualTo((short) 8);
+            // 이름 5칸 + 인원 3칸 + 밀집도 1칸
+            assertThat(header.getLastCellNum()).isEqualTo((short) 9);
             assertThat(header.getCell(7).getStringCellValue()).isEqualTo("최소 인원(명)");
+            assertThat(header.getCell(8).getStringCellValue()).isEqualTo("밀집도(명/㎡)");
             assertThat(count.getLastRowNum()).isEqualTo(2);
             assertThat(count.getRow(1).getCell(4).getStringCellValue()).isEqualTo("사직동 1구역");
             assertThat(count.getRow(1).getCell(5).getNumericCellValue()).isEqualTo(100.0);
-            assertThat(count.getRow(1).getLastCellNum()).isEqualTo((short) 8);
-            assertThat(count.getRow(2).getLastCellNum()).isEqualTo((short) 8);
+            assertThat(count.getRow(1).getLastCellNum()).isEqualTo((short) 9);
+            assertThat(count.getRow(2).getLastCellNum()).isEqualTo((short) 9);
         }
     }
 
@@ -128,7 +128,7 @@ class StatExportApiTest {
                 .getContentAsByteArray();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
-            Sheet count = workbook.getSheet("인원");
+            Sheet count = workbook.getSheet("통계");
             assertThat(count.getLastRowNum()).isEqualTo(1);
             assertThat(count.getRow(1).getCell(4).getStringCellValue()).isEqualTo("사직동 1구역 (삭제됨)");
             assertThat(count.getRow(1).getCell(5).getNumericCellValue()).isEqualTo(100.0);
@@ -150,7 +150,7 @@ class StatExportApiTest {
                 .getContentAsByteArray();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
-            Sheet count = workbook.getSheet("인원");
+            Sheet count = workbook.getSheet("통계");
             assertThat(count.getLastRowNum()).isEqualTo(1);
             assertThat(count.getRow(1).getCell(4).getStringCellValue()).isEqualTo("삼청동 1구역");
         }
@@ -172,7 +172,7 @@ class StatExportApiTest {
                 .getContentAsByteArray();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
-            Row row = workbook.getSheet("인원").getRow(1);
+            Row row = workbook.getSheet("통계").getRow(1);
             assertThat(row.getCell(1).getStringCellValue()).isEqualTo("서울특별시");
             assertThat(row.getCell(2).getStringCellValue()).isEqualTo("종로구");
             assertThat(row.getCell(3).getStringCellValue()).isEqualTo("(지역 합산)");
@@ -201,7 +201,7 @@ class StatExportApiTest {
                 .getContentAsByteArray();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(body))) {
-            Sheet sheet = workbook.getSheet("인원");
+            Sheet sheet = workbook.getSheet("통계");
             // 구역 2개(삭제된 구역 제외) × 시각 2개
             assertThat(sheet.getLastRowNum()).isEqualTo(4);
             String[][] expected = {

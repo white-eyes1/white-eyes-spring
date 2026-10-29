@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * 통계 엑셀에 담을 항목(GET /api/v1/stats/export의 items, conventions.md '통계 항목'). 항목마다 시트 하나가 된다.
+ * 통계 엑셀에 담을 항목(GET /api/v1/stats/export의 items, conventions.md '통계 항목'). 고른 항목은 한 시트('통계')에 선언 순서대로 열이 된다.
  */
 public enum StatExportItem {
     COUNT("인원"),

@@ -5,7 +5,7 @@ import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.EnumMap;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,16 +30,18 @@ import com.whiteeyes.common.stat.dto.StatSeriesPoint;
 
 /**
  * 통계 엑셀 파일을 쓴다(FNC-C-023 처리 순서 2·3·5). SXSSF(스트리밍)라 메모리에는 최근 행 몇 개만 두고 나머지는
- * 임시 파일로 내린다. 항목마다 시트 하나, 행 = 대상 줄 × 시각. 시각이 같은 행끼리 한 묶음이고, 묶음마다 행
+ * 임시 파일로 내린다. 시트는 '통계' 하나, 행 = 대상 줄 × 시각. 시각이 같은 행끼리 한 묶음이고, 묶음마다 행
  * 배경색을 #d1d1d1, #ffffff로 번갈아 칠한다(FNC-C-023 처리 순서 2).
  *
- * <p>열: 시각, 시·도, 시·군·구, 읍·면·동, 구역, 항목 값. 인원은 평균·최대·최소 3열. 시연용 여부 열은 없다(FNC-C-023).
- * 통계가 없는 시각은 값 칸을 비운다(색을 칠하려고 빈 칸도 칸은 둔다). 다 쓰면 {@link #close()}로 임시 파일을 지운다.
+ * <p>열: 시각, 시·도, 시·군·구, 읍·면·동, 구역, 고른 항목 값. 항목 열은 요청 순서와 상관없이 인원(평균·최대·최소 3열),
+ * 밀집도, 유입, 유출, 평균 체류 순이다(FNC-C-023 처리 순서 3). 통계가 없는 시각은 값 칸을 항목마다 따로 비운다(색을
+ * 칠하려고 빈 칸도 칸은 둔다). 다 쓰면 {@link #close()}로 임시 파일을 지운다.
  */
 public class StatExcelWriter implements AutoCloseable {
 
     // 메모리에 둘 행 수(SXSSF 기본값)
     private static final int WINDOW_SIZE = 100;
+    private static final String SHEET_NAME = "통계";
     private static final String[] NAME_HEADERS = {"시각", "시·도", "시·군·구", "읍·면·동", "구역"};
     // 시각 묶음의 배경색: 첫 묶음부터 번갈아
     private static final byte[][] GROUP_COLORS = {
@@ -53,13 +55,14 @@ public class StatExcelWriter implements AutoCloseable {
             new XSSFColor(new byte[] {(byte) 0xBF, (byte) 0xBF, (byte) 0xBF}, null);
 
     private final SXSSFWorkbook workbook = new SXSSFWorkbook(WINDOW_SIZE);
-    private final Map<StatExportItem, SXSSFSheet> sheets = new EnumMap<>(StatExportItem.class);
-    private final Map<StatExportItem, Integer> nextRows = new EnumMap<>(StatExportItem.class);
+    private final SXSSFSheet sheet;
+    private final List<Column> valueColumns;
     private final String timeFormat;
     // 칸 종류(시각·글자·소수 자릿수) × 묶음 색 순서 → 서식
     private final Map<StyleKey, CellStyle> styles = new HashMap<>();
     private LocalDateTime lastAt;
     private int groupIndex = -1;
+    private int nextRow = 1;
 
     public StatExcelWriter(StatExportPlan plan) {
         workbook.setCompressTempFiles(true);
@@ -69,26 +72,28 @@ public class StatExcelWriter implements AutoCloseable {
         bold.setBold(true);
         headerStyle.setFont(bold);
 
-        for (StatExportItem item : plan.request().items()) {
-            SXSSFSheet sheet = workbook.createSheet(item.getLabel());
-            Row header = sheet.createRow(0);
-            int column = 0;
-            for (String name : NAME_HEADERS) {
-                header.createCell(column++).setCellValue(name);
-            }
-            for (Column value : columns(item)) {
-                header.createCell(column++).setCellValue(value.header());
-            }
-            header.forEach(cell -> cell.setCellStyle(headerStyle));
-            sheet.createFreezePane(0, 1);
-            setWidths(sheet, column);
-            sheets.put(item, sheet);
-            nextRows.put(item, 1);
+        // 항목 열은 고른 순서가 아니라 StatExportItem 선언 순서(인원 → 밀집도 → 유입 → 유출 → 평균 체류)
+        valueColumns = Arrays.stream(StatExportItem.values())
+                .filter(plan.request().items()::contains)
+                .flatMap(item -> columns(item).stream())
+                .toList();
+
+        sheet = workbook.createSheet(SHEET_NAME);
+        Row header = sheet.createRow(0);
+        int column = 0;
+        for (String name : NAME_HEADERS) {
+            header.createCell(column++).setCellValue(name);
         }
+        for (Column value : valueColumns) {
+            header.createCell(column++).setCellValue(value.header());
+        }
+        header.forEach(cell -> cell.setCellStyle(headerStyle));
+        sheet.createFreezePane(0, 1);
+        setWidths(sheet, column);
     }
 
     /**
-     * 대상 줄의 한 시각을 시트마다 한 행씩 쓴다. 통계 엑셀 값 읽기(StatExportReader.read)가 넘기는 순서대로 부른다.
+     * 대상 줄의 한 시각을 한 행으로 쓴다(고른 항목 값이 나란히). 통계 엑셀 값 읽기(StatExportReader.read)가 넘기는 순서대로 부른다.
      * 앞 행과 시각이 다르면 새 시각 묶음이라 배경색을 바꾼다.
      */
     public void append(StatExportSeries series, StatSeriesPoint point) {
@@ -99,26 +104,23 @@ public class StatExcelWriter implements AutoCloseable {
         }
         int color = groupIndex % GROUP_COLORS.length;
         boolean empty = point.sampleSec() == 0;
-        sheets.forEach((item, sheet) -> {
-            int rowIndex = nextRows.merge(item, 1, Integer::sum) - 1;
-            Row row = sheet.createRow(rowIndex);
-            row.createCell(0).setCellValue(at);
-            row.getCell(0).setCellStyle(style(StyleKey.time(color)));
-            setText(row, 1, series.sido(), color);
-            setText(row, 2, series.sigungu(), color);
-            setText(row, 3, series.emd(), color);
-            setText(row, 4, series.zoneName(), color);
-            int column = NAME_HEADERS.length;
-            for (Column value : columns(item)) {
-                BigDecimal number = empty ? null : value.value().apply(point);
-                Cell cell = row.createCell(column);
-                if (number != null) {
-                    cell.setCellValue(number.doubleValue());
-                }
-                cell.setCellStyle(style(StyleKey.decimal(value.decimals(), color)));
-                column++;
+        Row row = sheet.createRow(nextRow++);
+        row.createCell(0).setCellValue(at);
+        row.getCell(0).setCellStyle(style(StyleKey.time(color)));
+        setText(row, 1, series.sido(), color);
+        setText(row, 2, series.sigungu(), color);
+        setText(row, 3, series.emd(), color);
+        setText(row, 4, series.zoneName(), color);
+        int column = NAME_HEADERS.length;
+        for (Column value : valueColumns) {
+            BigDecimal number = empty ? null : value.value().apply(point);
+            Cell cell = row.createCell(column);
+            if (number != null) {
+                cell.setCellValue(number.doubleValue());
             }
-        });
+            cell.setCellStyle(style(StyleKey.decimal(value.decimals(), color)));
+            column++;
+        }
     }
 
     /** 다 쓴 파일을 내보낸다. */
