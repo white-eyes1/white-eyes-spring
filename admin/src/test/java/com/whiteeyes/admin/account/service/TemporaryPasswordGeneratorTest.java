@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.whiteeyes.common.constant.InputRules;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +41,7 @@ class TemporaryPasswordGeneratorTest {
     @Test
     @DisplayName("FNC-A-009 대문자·소문자·숫자가 늘 앞 세 자리에 고정되지 않게 섞는다")
     void shuffled() {
-        TemporaryPasswordGenerator generator = new TemporaryPasswordGenerator(new Random(1));
+        TemporaryPasswordGenerator generator = new TemporaryPasswordGenerator();
         Set<String> firstThreeKinds = new HashSet<>();
         for (int i = 0; i < 200; i++) {
             String head = generator.generate().substring(0, 3).replaceAll("[A-Z]", "U").replaceAll("[a-z]", "L")

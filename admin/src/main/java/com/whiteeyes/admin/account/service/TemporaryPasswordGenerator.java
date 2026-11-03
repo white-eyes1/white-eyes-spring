@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.random.RandomGenerator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,18 +21,7 @@ public class TemporaryPasswordGenerator {
     private static final String DIGITS = "0123456789";
     private static final String ALL = UPPER + LOWER + DIGITS;
 
-    private final RandomGenerator random;
-
-    // 생성자가 둘이라 빈을 만들 때 쓸 쪽을 정한다
-    @Autowired
-    public TemporaryPasswordGenerator() {
-        this(new SecureRandom());
-    }
-
-    // 테스트에서 값을 고정하려고 난수 생성기를 받는다
-    TemporaryPasswordGenerator(RandomGenerator random) {
-        this.random = random;
-    }
+    private final RandomGenerator random = new SecureRandom();
 
     public String generate() {
         List<Character> chars = new ArrayList<>(LENGTH);
