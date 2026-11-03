@@ -6,8 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +25,9 @@ import com.whiteeyes.common.event.repository.EventRepository;
  * 복구·정지되면 닫는다. 10초마다 전체를 훑는 {@link #detect}와 상태 보고·정지 때 바로 처리하는 메서드로 나뉜다.
  * 새 이벤트를 열면 관리자 화면 알림(FNC-A-048)으로 알린다.
  */
+@Slf4j
 @Service
 public class CamFaultEventService {
-
-    private static final Logger log = LoggerFactory.getLogger(CamFaultEventService.class);
 
     private final WatchedCameraService watchedCameraService;
     private final EventRepository eventRepository;

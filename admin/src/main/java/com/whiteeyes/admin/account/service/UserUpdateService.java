@@ -18,8 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
  * 저장과 작업 기록(ACCOUNT_CHANGE, detail: 바뀐 필드의 이전·이후 값)은 한 트랜잭션이라 기록이 실패하면 수정도 취소된다.
  * 바뀐 값이 없으면 기록하지 않는다(내 정보 수정 FNC-C-006과 같음).
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserUpdateService {
-
-    private static final Logger log = LoggerFactory.getLogger(UserUpdateService.class);
 
     // 409 오류 문구에 들어가는 하려던 일
     private static final String ACTION = "수정";

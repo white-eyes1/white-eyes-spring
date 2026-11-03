@@ -14,8 +14,8 @@ import com.whiteeyes.common.security.LoginAccountResolver;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,27 +26,16 @@ import org.springframework.transaction.annotation.Transactional;
  * 수정하면 작업 기록(FNC-C-026, ACCOUNT_CHANGE)을 같은 트랜잭션으로 남긴다. 행동한 계정과 대상은 모두 본인이고,
  * detail은 바뀐 필드의 이전·이후 값이다. 바뀐 값이 없으면 기록하지 않는다.
  */
+@Slf4j
 @Service
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@RequiredArgsConstructor
 public class MyInfoService {
-
-    private static final Logger log = LoggerFactory.getLogger(MyInfoService.class);
 
     private final LoginAccountResolver loginAccountResolver;
     private final AccountProfileStore accountProfileStore;
     private final WorkRecorder workRecorder;
     private final WorkActorTypeProvider actorTypeProvider;
-
-    public MyInfoService(
-            LoginAccountResolver loginAccountResolver,
-            AccountProfileStore accountProfileStore,
-            WorkRecorder workRecorder,
-            WorkActorTypeProvider actorTypeProvider) {
-        this.loginAccountResolver = loginAccountResolver;
-        this.accountProfileStore = accountProfileStore;
-        this.workRecorder = workRecorder;
-        this.actorTypeProvider = actorTypeProvider;
-    }
 
     /** @throws BusinessException 로그인하지 않았으면 401 */
     @Transactional(readOnly = true)

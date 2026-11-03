@@ -5,18 +5,18 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /** 빠진 집계 보충(FNC-A-031) */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class MissingStatFillService {
-
-    private static final Logger log = LoggerFactory.getLogger(MissingStatFillService.class);
 
     /** 시간별은 최근 48시간, 일별은 최근 7일까지 찾는다(FNC-A-031 처리 순서). */
     static final int HOURLY_LOOKBACK_HOURS = 48;
@@ -26,17 +26,6 @@ public class MissingStatFillService {
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
     private final HourlyStatService hourlyStatService;
     private final DailyStatService dailyStatService;
-
-    public MissingStatFillService(
-            ZoneStatMinuteRepository zoneStatMinuteRepository,
-            ZoneStatHourlyRepository zoneStatHourlyRepository,
-            HourlyStatService hourlyStatService,
-            DailyStatService dailyStatService) {
-        this.zoneStatMinuteRepository = zoneStatMinuteRepository;
-        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
-        this.hourlyStatService = hourlyStatService;
-        this.dailyStatService = dailyStatService;
-    }
 
     /**
      * 시간별을 먼저 채운 뒤 일별을 채운다(일별이 시간별을 읽으므로). 다시 실행해도 안전하다.

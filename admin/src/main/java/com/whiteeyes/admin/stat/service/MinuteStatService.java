@@ -8,8 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,10 +20,9 @@ import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /** 1분 통계 저장(FNC-A-028) */
+@Slf4j
 @Service
 public class MinuteStatService {
-
-    private static final Logger log = LoggerFactory.getLogger(MinuteStatService.class);
 
     private final MinuteAccumulatorStore minuteAccumulatorStore;
     private final ZoneService zoneService;

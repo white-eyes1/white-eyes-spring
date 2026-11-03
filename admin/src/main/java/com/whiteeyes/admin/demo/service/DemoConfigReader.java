@@ -6,8 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import com.whiteeyes.admin.demo.service.DemoGenerateConfig.Season;
@@ -22,10 +21,9 @@ import tools.jackson.databind.json.JsonMapper;
  * 시연용 통계 생성 설정을 만든다(FNC-A-051 입력 항목 --config). 설정 파일은 선택이다.
  * 파일이 없으면 기본값을 쓰고, 있으면 파일에 적은 항목만 기본값 위에 덮어쓴 뒤 검사한다.
  */
+@Slf4j
 @Component
 public class DemoConfigReader {
-
-    private static final Logger log = LoggerFactory.getLogger(DemoConfigReader.class);
 
     // 철자가 틀린 항목이 조용히 기본값으로 바뀌지 않게 모르는 항목이 있으면 멈춘다
     private final JsonMapper jsonMapper = JsonMapper.builder()

@@ -6,6 +6,7 @@ import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
 import com.whiteeyes.common.security.LoginAccountResolver;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -15,23 +16,13 @@ import tools.jackson.databind.json.JsonMapper;
  * 부르는 쪽 트랜잭션 안에서 불러야 한다.
  */
 @Component
+@RequiredArgsConstructor
 public class WorkRecorder {
 
     private final LoginAccountResolver loginAccountResolver;
     private final WorkActorTypeProvider actorTypeProvider;
     private final WorkHistoryService workHistoryService;
     private final JsonMapper jsonMapper;
-
-    public WorkRecorder(
-            LoginAccountResolver loginAccountResolver,
-            WorkActorTypeProvider actorTypeProvider,
-            WorkHistoryService workHistoryService,
-            JsonMapper jsonMapper) {
-        this.loginAccountResolver = loginAccountResolver;
-        this.actorTypeProvider = actorTypeProvider;
-        this.workHistoryService = workHistoryService;
-        this.jsonMapper = jsonMapper;
-    }
 
     /**
      * 지금 로그인한 계정을 돌려준다. 로그인하지 않았으면 401로 거부한다.

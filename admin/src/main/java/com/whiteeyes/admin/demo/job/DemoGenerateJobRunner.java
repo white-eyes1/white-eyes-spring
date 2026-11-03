@@ -4,8 +4,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -22,24 +22,19 @@ import com.whiteeyes.admin.demo.service.DemoGenerateService;
  * 선택 옵션: --config={설정 파일}(없으면 기본 설정), --zone={구역 번호,…}(없으면 모든 구역).
  * 시연용 데이터는 local·dev에만 넣으므로(decisions/0004) 이 작업도 local·dev 프로필에서만 등록한다(package-structure.md demo/).
  */
+@Slf4j
 @Component
 @Profile({"local", "dev"})
 @ConditionalOnProperty(name = "job", havingValue = DemoGenerateJobRunner.JOB_NAME)
+@RequiredArgsConstructor
 public class DemoGenerateJobRunner implements ApplicationRunner {
 
     static final String JOB_NAME = "generate-demo";
     private static final String CONFIG_OPTION = "config";
     private static final String ZONE_OPTION = "zone";
 
-    private static final Logger log = LoggerFactory.getLogger(DemoGenerateJobRunner.class);
-
     private final DemoGenerateService demoGenerateService;
     private final ConfigurableApplicationContext context;
-
-    public DemoGenerateJobRunner(DemoGenerateService demoGenerateService, ConfigurableApplicationContext context) {
-        this.demoGenerateService = demoGenerateService;
-        this.context = context;
-    }
 
     @Override
     public void run(ApplicationArguments args) {

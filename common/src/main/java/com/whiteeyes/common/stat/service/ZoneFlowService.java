@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
  * 다음 날 0:00~12:00 시간별, 12:00~12:15 1분(하루가 통째로 들어가지 않음).
  */
 @Service
+@RequiredArgsConstructor
 public class ZoneFlowService {
 
     private final RegionQueryService regionQueryService;
@@ -42,19 +44,6 @@ public class ZoneFlowService {
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
     private final ZoneStatDailyRepository zoneStatDailyRepository;
-
-    public ZoneFlowService(
-            RegionQueryService regionQueryService,
-            ZoneNeighborRepository zoneNeighborRepository,
-            ZoneStatMinuteRepository zoneStatMinuteRepository,
-            ZoneStatHourlyRepository zoneStatHourlyRepository,
-            ZoneStatDailyRepository zoneStatDailyRepository) {
-        this.regionQueryService = regionQueryService;
-        this.zoneNeighborRepository = zoneNeighborRepository;
-        this.zoneStatMinuteRepository = zoneStatMinuteRepository;
-        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
-        this.zoneStatDailyRepository = zoneStatDailyRepository;
-    }
 
     /**
      * @return 나간 구역 번호·방향(N·E·S·W) 순

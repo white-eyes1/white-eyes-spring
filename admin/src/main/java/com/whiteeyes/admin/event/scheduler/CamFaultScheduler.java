@@ -3,25 +3,22 @@ package com.whiteeyes.admin.event.scheduler;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.whiteeyes.admin.event.service.CamFaultEventService;
 
 /** 캠 이상 감지를 10초마다 돌린다(FNC-A-035). 판정은 {@link CamFaultEventService}가 맡는다. */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class CamFaultScheduler {
 
-    private static final Logger log = LoggerFactory.getLogger(CamFaultScheduler.class);
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final CamFaultEventService camFaultEventService;
-
-    public CamFaultScheduler(CamFaultEventService camFaultEventService) {
-        this.camFaultEventService = camFaultEventService;
-    }
 
     @Scheduled(fixedDelay = 10000)
     public void detect() {

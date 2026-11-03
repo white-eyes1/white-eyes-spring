@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository.HourlyCount
  * 평균이 큰 시간대 3개를 고른다. 같으면 이른 시각이 먼저다. 받은 초가 있는 시간만 넣는다.
  */
 @Service
+@RequiredArgsConstructor
 public class PeakHourService {
 
     private static final int HOURS = 24;
@@ -34,11 +36,6 @@ public class PeakHourService {
 
     private final RegionQueryService regionQueryService;
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
-
-    public PeakHourService(RegionQueryService regionQueryService, ZoneStatHourlyRepository zoneStatHourlyRepository) {
-        this.regionQueryService = regionQueryService;
-        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
-    }
 
     /**
      * @param today 오늘(KST). 기간은 어제까지

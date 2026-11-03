@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,7 @@ import com.whiteeyes.common.stat.dto.StatTargetType;
  * 순서는 하위 단위 목록 순서(지역은 코드 순, 구역은 번호 순)를 그대로 둔다(그래프 색이 순위에 따라 바뀌지 않게).
  */
 @Service
+@RequiredArgsConstructor
 public class StatChildrenService {
 
     /** 한 번에 겹쳐 그리는 최대 하위 단위 수(FNC-C-014 처리 순서 1). */
@@ -42,11 +44,6 @@ public class StatChildrenService {
 
     private final RegionQueryService regionQueryService;
     private final StatSeriesService statSeriesService;
-
-    public StatChildrenService(RegionQueryService regionQueryService, StatSeriesService statSeriesService) {
-        this.regionQueryService = regionQueryService;
-        this.statSeriesService = statSeriesService;
-    }
 
     /**
      * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)

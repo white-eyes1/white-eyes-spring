@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,15 +17,12 @@ import com.whiteeyes.common.event.repository.EventRepository;
  * 다른 도메인은 이벤트 리포지토리가 아니라 이 서비스를 부른다.
  */
 @Service
+@RequiredArgsConstructor
 public class OngoingEventService {
 
     private static final List<EventType> COUNTED_TYPES = List.of(EventType.CONGESTION, EventType.SURGE);
 
     private final EventRepository eventRepository;
-
-    public OngoingEventService(EventRepository eventRepository) {
-        this.eventRepository = eventRepository;
-    }
 
     /**
      * 열린(종료 시각 없는) 혼잡·급증 이벤트가 있는 구역을 한 번의 쿼리로 찾는다. 처리 상태는 보지 않는다.

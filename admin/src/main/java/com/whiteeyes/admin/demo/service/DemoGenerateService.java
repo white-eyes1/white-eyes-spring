@@ -17,8 +17,8 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -43,10 +43,10 @@ import com.whiteeyes.common.stat.service.StatRollupCalculator;
  * <p>구역마다 끝 시각(캠 첫 가동 시각이 속한 정시, 가동한 적 없으면 실행 시각이 속한 정시) 직전까지 만들고,
  * 시작은 끝 시각의 1년 전 날짜 0시다. 그래서 첫 가동 뒤에 실행하면 실제 통계와 시간별·일별이 끊기지 않는다.
  */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class DemoGenerateService {
-
-    private static final Logger log = LoggerFactory.getLogger(DemoGenerateService.class);
 
     private final DemoConfigReader configReader;
     private final DemoDeleteService demoDeleteService;
@@ -58,29 +58,6 @@ public class DemoGenerateService {
     private final DailyStatService dailyStatService;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
-
-    public DemoGenerateService(
-            DemoConfigReader configReader,
-            DemoDeleteService demoDeleteService,
-            DemoStatRepository demoStatRepository,
-            ZoneService zoneService,
-            ZoneNeighborService zoneNeighborService,
-            CameraQueryService cameraQueryService,
-            ZoneStatHourlyRepository zoneStatHourlyRepository,
-            DailyStatService dailyStatService,
-            TransactionTemplate transactionTemplate,
-            Clock clock) {
-        this.configReader = configReader;
-        this.demoDeleteService = demoDeleteService;
-        this.demoStatRepository = demoStatRepository;
-        this.zoneService = zoneService;
-        this.zoneNeighborService = zoneNeighborService;
-        this.cameraQueryService = cameraQueryService;
-        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
-        this.dailyStatService = dailyStatService;
-        this.transactionTemplate = transactionTemplate;
-        this.clock = clock;
-    }
 
     /**
      * 날짜마다 시간별을 저장한 뒤 같은 날의 일별을 저장한다(처리 순서 5). 같은 날의 시간별·일별은 한 트랜잭션이라

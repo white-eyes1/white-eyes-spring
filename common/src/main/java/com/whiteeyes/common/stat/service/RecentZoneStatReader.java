@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import com.whiteeyes.common.region.entity.Zone;
@@ -23,6 +24,7 @@ import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
  * 구역들의 최근 1분 통계를 읽고 합산한다(FNC-C-009). 지도 현황과 현재 현황 요약(FNC-C-016)이 같은 기준을 쓴다.
  */
 @Component
+@RequiredArgsConstructor
 public class RecentZoneStatReader {
 
     // 이 시간 안에 통계가 없으면 '데이터 없음'(FNC-C-009·016 업무 규칙)
@@ -31,10 +33,6 @@ public class RecentZoneStatReader {
     private static final int DENSITY_SCALE = 4;
 
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
-
-    public RecentZoneStatReader(ZoneStatMinuteRepository zoneStatMinuteRepository) {
-        this.zoneStatMinuteRepository = zoneStatMinuteRepository;
-    }
 
     /**
      * 구역별로 최근 5분 안의 가장 늦은 1분 통계. 통계가 없는 구역은 빠진다.

@@ -5,8 +5,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,10 +18,11 @@ import com.whiteeyes.admin.stat.service.MinuteStatService;
 import com.whiteeyes.admin.stat.service.MissingStatFillService;
 
 /** 1분(FNC-A-028)·시간별(FNC-A-029)·일별(FNC-A-030) 통계 저장과 빠진 집계 보충(FNC-A-031) */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class StatAggregationScheduler {
 
-    private static final Logger log = LoggerFactory.getLogger(StatAggregationScheduler.class);
     private static final String KST_ID = "Asia/Seoul";
     private static final ZoneId KST = ZoneId.of(KST_ID);
 
@@ -29,17 +30,6 @@ public class StatAggregationScheduler {
     private final HourlyStatService hourlyStatService;
     private final DailyStatService dailyStatService;
     private final MissingStatFillService missingStatFillService;
-
-    public StatAggregationScheduler(
-            MinuteStatService minuteStatService,
-            HourlyStatService hourlyStatService,
-            DailyStatService dailyStatService,
-            MissingStatFillService missingStatFillService) {
-        this.minuteStatService = minuteStatService;
-        this.hourlyStatService = hourlyStatService;
-        this.dailyStatService = dailyStatService;
-        this.missingStatFillService = missingStatFillService;
-    }
 
     // 매시 01분 30초(FNC-A-029). 직전 정시 시작 시각부터 지난 1시간을 묶는다
     @Scheduled(cron = "30 1 * * * *", zone = KST_ID)

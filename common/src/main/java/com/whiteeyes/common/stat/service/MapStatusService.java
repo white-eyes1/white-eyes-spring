@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
  * 지도 혼잡 단계 색 표시(FNC-C-009). 대상 지역의 하위 단위별 최근 1분 통계와 혼잡 단계를 돌려준다.
  */
 @Service
+@RequiredArgsConstructor
 public class MapStatusService {
 
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
@@ -44,21 +46,6 @@ public class MapStatusService {
     private final OngoingEventService ongoingEventService;
     // 관리자 앱에만 있다. 사용자 앱은 빈이 없어 currentCount가 null이다(결정 0018)
     private final ObjectProvider<NowCountSource> nowCountSource;
-
-    public MapStatusService(
-            RegionQueryService regionQueryService,
-            RecentZoneStatReader recentZoneStatReader,
-            LevelService levelService,
-            TodayEventCountService todayEventCountService,
-            OngoingEventService ongoingEventService,
-            ObjectProvider<NowCountSource> nowCountSource) {
-        this.regionQueryService = regionQueryService;
-        this.recentZoneStatReader = recentZoneStatReader;
-        this.levelService = levelService;
-        this.todayEventCountService = todayEventCountService;
-        this.ongoingEventService = ongoingEventService;
-        this.nowCountSource = nowCountSource;
-    }
 
     /**
      * @param now KST 현재 시각

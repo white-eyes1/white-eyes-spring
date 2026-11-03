@@ -8,8 +8,8 @@ import com.whiteeyes.common.security.LoginAccount;
 import com.whiteeyes.common.security.LoginAccountResolver;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
@@ -20,10 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
  * 회원 탈퇴(FNC-U-004). 비밀번호를 확인하고 계정을 WITHDRAWN으로 바꾼 뒤 이 계정의 세션을 지운다.
  * 행은 지우지 않는다(작업 기록 보존). 그래서 같은 아이디로 다시 가입할 수 없고, 로그인은 UserAccountDetailsService가 거부한다.
  */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class WithdrawService {
-
-    private static final Logger log = LoggerFactory.getLogger(WithdrawService.class);
 
     // DB에는 한국 시간(KST)으로 저장한다(conventions.md '시각 형식')
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
@@ -32,17 +32,6 @@ public class WithdrawService {
     private final PasswordEncoder passwordEncoder;
     private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
     private final LoginAccountResolver loginAccountResolver;
-
-    public WithdrawService(
-            UserAccountRepository userAccountRepository,
-            PasswordEncoder passwordEncoder,
-            FindByIndexNameSessionRepository<? extends Session> sessionRepository,
-            LoginAccountResolver loginAccountResolver) {
-        this.userAccountRepository = userAccountRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.sessionRepository = sessionRepository;
-        this.loginAccountResolver = loginAccountResolver;
-    }
 
     /**
      * 지금 요청의 세션은 남겨 두고 같은 계정의 다른 세션만 지운다. 지금 세션은 부르는 쪽이 무효화한다

@@ -1,6 +1,7 @@
 package com.whiteeyes.admin.account.service;
 
 import com.whiteeyes.admin.account.repository.UserSessionStore;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
@@ -17,17 +18,11 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@RequiredArgsConstructor
 public class AccountSessionService {
 
     private final UserSessionStore userSessionStore;
     private final FindByIndexNameSessionRepository<? extends Session> adminSessionRepository;
-
-    public AccountSessionService(
-            UserSessionStore userSessionStore,
-            FindByIndexNameSessionRepository<? extends Session> adminSessionRepository) {
-        this.userSessionStore = userSessionStore;
-        this.adminSessionRepository = adminSessionRepository;
-    }
 
     /** 사용자의 세션을 모두 지우고 지운 수를 돌려준다. 세션이 없으면 0이다. */
     public int endUserSessions(String loginId) {

@@ -4,6 +4,7 @@ import com.whiteeyes.common.camera.service.CameraRunningService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.security.core.Authentication;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 @Service
 // 웹 서버 없이 띄우는 실행(--job=… 같은 1회 작업)에는 세션 저장소가 없어 이 서비스도 필요 없다(AdminSecurityConfig와 같은 조건)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@RequiredArgsConstructor
 public class LiveAuthService {
 
     /** 스프링 시큐리티가 세션에 로그인 정보를 넣어 두는 속성 이름 */
@@ -36,15 +38,6 @@ public class LiveAuthService {
     // 세션 쿠키 이름과 Base64 해석은 로그인 때 쿠키를 만든 것과 같은 설정을 쓴다
     private final CookieSerializer cookieSerializer;
     private final CameraRunningService cameraRunningService;
-
-    public LiveAuthService(
-            SessionRepository<? extends Session> sessionRepository,
-            CookieSerializer cookieSerializer,
-            CameraRunningService cameraRunningService) {
-        this.sessionRepository = sessionRepository;
-        this.cookieSerializer = cookieSerializer;
-        this.cameraRunningService = cameraRunningService;
-    }
 
     /** 확인 결과. 응답 상태는 OK 204 / UNAUTHENTICATED 401 / FORBIDDEN 403 */
     public enum Result {

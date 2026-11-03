@@ -4,8 +4,8 @@ import com.whiteeyes.admin.account.config.SuperAdminProperties;
 import com.whiteeyes.admin.account.entity.AdminAccount;
 import com.whiteeyes.admin.account.entity.AdminRole;
 import com.whiteeyes.admin.account.repository.AdminAccountRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,11 +15,11 @@ import org.springframework.stereotype.Component;
 /**
  * 관리자 앱이 켜질 때 최고 관리자가 없으면 환경변수 값으로 한 번 만든다(FNC-A-001).
  */
+@Slf4j
 @Component
 @EnableConfigurationProperties(SuperAdminProperties.class)
+@RequiredArgsConstructor
 public class SuperAdminInitializer implements ApplicationRunner {
-
-    private static final Logger log = LoggerFactory.getLogger(SuperAdminInitializer.class);
 
     private static final String LOGIN_ID_VARIABLE = "SUPER_ADMIN_LOGIN_ID";
     private static final String INITIAL_PASSWORD_VARIABLE = "SUPER_ADMIN_INITIAL_PASSWORD";
@@ -29,15 +29,6 @@ public class SuperAdminInitializer implements ApplicationRunner {
     private final AdminAccountRepository adminAccountRepository;
     private final PasswordEncoder passwordEncoder;
     private final SuperAdminProperties properties;
-
-    public SuperAdminInitializer(
-            AdminAccountRepository adminAccountRepository,
-            PasswordEncoder passwordEncoder,
-            SuperAdminProperties properties) {
-        this.adminAccountRepository = adminAccountRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.properties = properties;
-    }
 
     @Override
     public void run(ApplicationArguments args) {

@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository.HourlyCount
  * 평일(월~금)·주말(토·일) 행을 따로 평균한다. 받은 초가 있는 시간만 넣는다(데이터 있는 시간만).
  */
 @Service
+@RequiredArgsConstructor
 public class VisitPatternService {
 
     private static final int DAYS = 7;
@@ -32,12 +34,6 @@ public class VisitPatternService {
 
     private final RegionQueryService regionQueryService;
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
-
-    public VisitPatternService(
-            RegionQueryService regionQueryService, ZoneStatHourlyRepository zoneStatHourlyRepository) {
-        this.regionQueryService = regionQueryService;
-        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
-    }
 
     /**
      * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)

@@ -3,6 +3,7 @@ package com.whiteeyes.user.account.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,13 +21,10 @@ import com.whiteeyes.user.account.service.SignupService;
 
 @RestController
 @RequestMapping("/api/v1/signup")
+@RequiredArgsConstructor
 public class SignupApiController {
 
     private final SignupService signupService;
-
-    public SignupApiController(SignupService signupService) {
-        this.signupService = signupService;
-    }
 
     // @Validated를 붙이지 않는다. Spring MVC 내장 메서드 검증이 HandlerMethodValidationException(400)을 낸다
     @GetMapping("/check-id")

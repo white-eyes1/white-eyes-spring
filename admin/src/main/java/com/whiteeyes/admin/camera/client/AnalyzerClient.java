@@ -8,7 +8,7 @@ import com.whiteeyes.common.camera.entity.CameraStatus;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -23,8 +23,8 @@ import tools.jackson.databind.json.JsonMapper;
  * 분석 서버(api/analyzer.md '분석 서버(5000)')를 부른다. 요청마다 X-Internal-Token을 붙인다.
  * 분석 서버가 응답으로 돌려준 업무 결과만 예외로 바꾸고, 판단(상태 저장 등)은 service가 한다.
  */
+@Slf4j
 @Component
-@Log4j2
 public class AnalyzerClient {
 
     private static final String INTERNAL_TOKEN_HEADER = "X-Internal-Token";

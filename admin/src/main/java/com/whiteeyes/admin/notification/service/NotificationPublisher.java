@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -30,10 +31,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class NotificationPublisher {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
+    // 웹 서버 없이 띄우는 실행(--job=…)에는 브로드캐스터가 없어 알림을 건너뛴다
     private final ObjectProvider<NotificationBroadcaster> broadcasterProvider;
     private final ZoneService zoneService;
     private final UncheckedEventCountService uncheckedEventCountService;
@@ -42,16 +45,6 @@ public class NotificationPublisher {
         thread.setDaemon(true);
         return thread;
     });
-
-    public NotificationPublisher(
-            // 웹 서버 없이 띄우는 실행(--job=…)에는 브로드캐스터가 없어 알림을 건너뛴다
-            ObjectProvider<NotificationBroadcaster> broadcasterProvider,
-            ZoneService zoneService,
-            UncheckedEventCountService uncheckedEventCountService) {
-        this.broadcasterProvider = broadcasterProvider;
-        this.zoneService = zoneService;
-        this.uncheckedEventCountService = uncheckedEventCountService;
-    }
 
     @PreDestroy
     void shutdown() {

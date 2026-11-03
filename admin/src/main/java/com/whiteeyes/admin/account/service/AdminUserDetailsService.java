@@ -5,6 +5,7 @@ import com.whiteeyes.admin.account.entity.AdminStatus;
 import com.whiteeyes.admin.account.repository.AdminAccountRepository;
 import com.whiteeyes.common.security.AccountPrincipal;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,15 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
  * 사용자 앱의 계정(user_account)은 이 테이블에 없으므로 '아이디 없음'과 같이 거부된다.
  */
 @Service
+@RequiredArgsConstructor
 public class AdminUserDetailsService implements UserDetailsService {
 
     private static final String ROLE_PREFIX = "ROLE_";
 
     private final AdminAccountRepository adminAccountRepository;
-
-    public AdminUserDetailsService(AdminAccountRepository adminAccountRepository) {
-        this.adminAccountRepository = adminAccountRepository;
-    }
 
     /**
      * 상태가 ACTIVE가 아니면 enabled=false로 돌려준다. 비활성화 여부는 비밀번호를 확인한 뒤에 판정한다

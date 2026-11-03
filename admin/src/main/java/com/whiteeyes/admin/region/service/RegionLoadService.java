@@ -14,23 +14,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class RegionLoadService {
-
-    private static final Logger log = LoggerFactory.getLogger(RegionLoadService.class);
 
     private final RegionGeoJsonParser parser;
     private final RegionRepository regionRepository;
-
-    public RegionLoadService(RegionGeoJsonParser parser, RegionRepository regionRepository) {
-        this.parser = parser;
-        this.regionRepository = regionRepository;
-    }
 
     /**
      * 경계 파일을 region에 넣는다. code가 같은 행은 덮어쓰므로 다시 실행해도 중복이 없다.

@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,7 @@ import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
  * (conventions.md '혼잡 단계 판정'과 같은 규칙), 지역 안 구역끼리 주고받은 유입·유출은 뺀다(stats-008).
  */
 @Service
+@RequiredArgsConstructor
 public class StatSeriesService {
 
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
@@ -59,21 +61,6 @@ public class StatSeriesService {
     private final ZoneStatDailyRepository zoneStatDailyRepository;
     private final ZoneNeighborRepository zoneNeighborRepository;
     private final LevelService levelService;
-
-    public StatSeriesService(
-            RegionQueryService regionQueryService,
-            ZoneStatMinuteRepository zoneStatMinuteRepository,
-            ZoneStatHourlyRepository zoneStatHourlyRepository,
-            ZoneStatDailyRepository zoneStatDailyRepository,
-            ZoneNeighborRepository zoneNeighborRepository,
-            LevelService levelService) {
-        this.regionQueryService = regionQueryService;
-        this.zoneStatMinuteRepository = zoneStatMinuteRepository;
-        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
-        this.zoneStatDailyRepository = zoneStatDailyRepository;
-        this.zoneNeighborRepository = zoneNeighborRepository;
-        this.levelService = levelService;
-    }
 
     /**
      * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)

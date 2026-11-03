@@ -4,6 +4,7 @@ import com.whiteeyes.common.account.dto.MyInfoResponse;
 import com.whiteeyes.common.account.dto.MyInfoUpdateRequest;
 import com.whiteeyes.common.account.service.MyInfoService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -15,13 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@RequiredArgsConstructor
 public class MyInfoApiController {
 
     private final MyInfoService myInfoService;
-
-    public MyInfoApiController(MyInfoService myInfoService) {
-        this.myInfoService = myInfoService;
-    }
 
     @GetMapping("/api/v1/me")
     public MyInfoResponse getMyInfo() {

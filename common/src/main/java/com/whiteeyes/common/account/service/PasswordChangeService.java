@@ -6,8 +6,8 @@ import com.whiteeyes.common.exception.ErrorCode;
 import com.whiteeyes.common.security.AccountPrincipal;
 import com.whiteeyes.common.security.LoginAccount;
 import com.whiteeyes.common.security.LoginAccountResolver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,27 +24,16 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * 세션 저장소는 웹 앱에만 있으므로 웹 서버 없이 띄우는 1회 작업(--job=…)에서는 등록하지 않는다.
  */
+@Slf4j
 @Service
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@RequiredArgsConstructor
 public class PasswordChangeService {
-
-    private static final Logger log = LoggerFactory.getLogger(PasswordChangeService.class);
 
     private final PasswordEncoder passwordEncoder;
     private final AccountPasswordStore accountPasswordStore;
     private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
     private final LoginAccountResolver loginAccountResolver;
-
-    public PasswordChangeService(
-            PasswordEncoder passwordEncoder,
-            AccountPasswordStore accountPasswordStore,
-            FindByIndexNameSessionRepository<? extends Session> sessionRepository,
-            LoginAccountResolver loginAccountResolver) {
-        this.passwordEncoder = passwordEncoder;
-        this.accountPasswordStore = accountPasswordStore;
-        this.sessionRepository = sessionRepository;
-        this.loginAccountResolver = loginAccountResolver;
-    }
 
     /**
      * 로그인한 계정의 비밀번호를 바꾼다. 현재 스레드의 로그인 정보도 새로 만들어 넣으므로,

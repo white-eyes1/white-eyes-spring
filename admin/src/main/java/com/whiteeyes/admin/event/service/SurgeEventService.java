@@ -5,8 +5,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +19,9 @@ import com.whiteeyes.common.event.repository.EventRepository;
  * 급증 이벤트 판정(FNC-A-034). 1분 통계를 저장한 직후 비교 시간 전보다 인원이 기준 증가율 이상 늘었으면 이벤트를
  * 열거나 갱신하고, 기준 아래로 일정 시간 유지되면 닫는다. 새 이벤트는 관리자 화면 알림(FNC-A-048)으로 알린다.
  */
+@Slf4j
 @Service
 public class SurgeEventService {
-
-    private static final Logger log = LoggerFactory.getLogger(SurgeEventService.class);
 
     private static final BigDecimal PERCENT = BigDecimal.valueOf(100);
     private static final int RATE_SCALE = 4;
