@@ -43,8 +43,12 @@ import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** 이벤트 엑셀 다운로드(FNC-A-039) GET /api/v1/events/export. 이벤트 행은 SQL로 직접 넣는다. */
-@SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
+/**
+ * 이벤트 엑셀 다운로드(FNC-A-039) GET /api/v1/events/export. 이벤트 행은 SQL로 직접 넣는다.
+ * SQL 수 시험은 SessionFactory 전체를 세므로 예약 작업을 끈다(spring #350).
+ */
+@SpringBootTest(
+        properties = {"spring.jpa.properties.hibernate.generate_statistics=true", "scheduling.enabled=false"})
 @AutoConfigureMockMvc
 class EventExportTest {
 
