@@ -7,8 +7,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 // 예약 작업은 관리자 앱에서만 돌린다(두 앱에서 돌면 중복 저장, stagg-001).
 // 1회 실행 작업(--job=…)으로 뜬 인스턴스에서는 켜지 않는다. 떠 있는 웹 인스턴스와 같은 집계·정리·캠 이상 감시가
 // 겹쳐 돌고, 결과를 받지 못하는 작업 인스턴스가 가동 중인 캠을 캠 이상으로 잘못 판정하기 때문이다(spring #280)
+// scheduling.enabled=false는 시험용이다. 전체 SQL 수를 세는 시험에 예약 작업 쿼리가 끼어들지 않게 끈다(spring #350)
 @Configuration
-@ConditionalOnExpression("'${job:}'.isEmpty()")
+@ConditionalOnExpression("'${job:}'.isEmpty() and ${scheduling.enabled:true}")
 @EnableScheduling
 public class SchedulingConfig {
 }

@@ -37,4 +37,15 @@ class JobModeTest {
                 .withPropertyValues("job=generate-demo")
                 .run(context -> assertThat(context).doesNotHaveBean(ScheduledAnnotationBeanPostProcessor.class));
     }
+
+    @Test
+    @DisplayName("scheduling.enabled=false면 job 옵션이 없어도 예약 작업을 켜지 않는다(시험용, spring #350)")
+    void schedulingOffBySwitch() {
+        schedulingRunner
+                .withPropertyValues("scheduling.enabled=false")
+                .run(context -> assertThat(context).doesNotHaveBean(ScheduledAnnotationBeanPostProcessor.class));
+        schedulingRunner
+                .withPropertyValues("scheduling.enabled=true")
+                .run(context -> assertThat(context).hasSingleBean(ScheduledAnnotationBeanPostProcessor.class));
+    }
 }
