@@ -4,6 +4,7 @@ import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.security.LoginRecorder;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,16 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
  * 승인 대기(PENDING) 계정의 로그인도 기록한다.
  */
 @Service
+@RequiredArgsConstructor
 public class UserLoginRecordService implements LoginRecorder {
 
     // DB에는 한국 시간(KST)으로 저장한다(conventions.md '시각 형식')
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final UserAccountRepository userAccountRepository;
-
-    public UserLoginRecordService(UserAccountRepository userAccountRepository) {
-        this.userAccountRepository = userAccountRepository;
-    }
 
     @Override
     @Transactional

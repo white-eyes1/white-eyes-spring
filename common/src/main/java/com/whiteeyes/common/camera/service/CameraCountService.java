@@ -2,6 +2,7 @@ package com.whiteeyes.common.camera.service;
 
 import java.util.Collection;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,13 +14,10 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
  */
 // 이름을 CameraQueryService로 하지 않은 이유: #16~#18의 admin CameraQueryService와 빈 이름이 같아 함께 머지되면 앱이 뜨지 않는다
 @Service
+@RequiredArgsConstructor
 public class CameraCountService {
 
     private final CameraRepository cameraRepository;
-
-    public CameraCountService(CameraRepository cameraRepository) {
-        this.cameraRepository = cameraRepository;
-    }
 
     /** 구역들의 삭제되지 않은 캠 수. */
     @Transactional(readOnly = true)

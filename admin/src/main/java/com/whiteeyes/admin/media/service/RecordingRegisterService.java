@@ -5,8 +5,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,24 +21,16 @@ import com.whiteeyes.admin.media.repository.RecordingRepository;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 
 /** 녹화 등록 수신(FNC-A-026) */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class RecordingRegisterService {
 
-    private static final Logger log = LoggerFactory.getLogger(RecordingRegisterService.class);
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final CameraQueryService cameraQueryService;
     private final RecordingRepository recordingRepository;
     private final RecordingPathValidator recordingPathValidator;
-
-    public RecordingRegisterService(
-            CameraQueryService cameraQueryService,
-            RecordingRepository recordingRepository,
-            RecordingPathValidator recordingPathValidator) {
-        this.cameraQueryService = cameraQueryService;
-        this.recordingRepository = recordingRepository;
-        this.recordingPathValidator = recordingPathValidator;
-    }
 
     // 캠 여러 대의 등록이 겹치면 REPEATABLE READ의 갭 락이 (camera_id, started_at) 인덱스의 캠 경계에서 얽혀
     // 교착(1213)이 난다. READ COMMITTED는 갭 락을 걸지 않아 맞는 행만 잠그므로 교착이 없다(#301)

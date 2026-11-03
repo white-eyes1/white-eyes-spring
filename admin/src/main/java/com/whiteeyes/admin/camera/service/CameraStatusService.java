@@ -11,7 +11,7 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestClientException;
@@ -25,9 +25,9 @@ import org.springframework.web.client.RestClientException;
  * 로그만 남긴다(이벤트 저장 실패로 상태 갱신이 롤백되지 않게). 알림 SSE의 camera-status(처리 순서 2)는 상태 갱신이
  * 커밋된 뒤에 보낸다(FNC-A-048).
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Log4j2
 public class CameraStatusService {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");

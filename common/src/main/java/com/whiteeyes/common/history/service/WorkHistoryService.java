@@ -6,19 +6,17 @@ import com.whiteeyes.common.history.entity.WorkHistory;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.history.repository.WorkHistoryRepository;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 모든 작업 기록은 이 서비스 하나로 저장한다(FNC-C-026). */
 @Service
+@RequiredArgsConstructor
 public class WorkHistoryService {
 
     private final WorkHistoryRepository workHistoryRepository;
-
-    public WorkHistoryService(WorkHistoryRepository workHistoryRepository) {
-        this.workHistoryRepository = workHistoryRepository;
-    }
 
     /**
      * 작업 기록 1행을 저장한다. INSERT만 하며 수정·삭제는 없다.

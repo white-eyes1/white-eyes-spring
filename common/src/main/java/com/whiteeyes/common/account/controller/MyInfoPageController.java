@@ -2,6 +2,7 @@ package com.whiteeyes.common.account.controller;
 
 import com.whiteeyes.common.security.AccountPrincipal;
 import com.whiteeyes.common.security.LoginAccountResolver;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -14,16 +15,13 @@ import org.springframework.web.bind.annotation.GetMapping;
  * 비밀번호 변경이 강제된 계정은 PasswordChangeRequiredFilter가 먼저 /me/password로 보낸다.
  */
 @Controller
+@RequiredArgsConstructor
 public class MyInfoPageController {
 
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
     private static final String ROLE_SUPER_ADMIN = "ROLE_SUPER_ADMIN";
 
     private final LoginAccountResolver loginAccountResolver;
-
-    public MyInfoPageController(LoginAccountResolver loginAccountResolver) {
-        this.loginAccountResolver = loginAccountResolver;
-    }
 
     @GetMapping("/me")
     public String myInfoPage(Model model) {

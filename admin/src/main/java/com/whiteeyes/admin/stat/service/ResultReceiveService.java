@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import com.whiteeyes.admin.camera.service.CameraQueryService;
@@ -18,24 +18,16 @@ import com.whiteeyes.admin.stat.dto.ResultReceiveRequest;
 import com.whiteeyes.admin.stat.dto.ResultReceiveRequest.DirectionCount;
 
 /** 분석 결과 수신(FNC-A-024) */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ResultReceiveService {
 
-    private static final Logger log = LoggerFactory.getLogger(ResultReceiveService.class);
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final CameraQueryService cameraQueryService;
     private final MinuteAccumulatorStore minuteAccumulatorStore;
     private final LastResultTimeStore lastResultTimeStore;
-
-    public ResultReceiveService(
-            CameraQueryService cameraQueryService,
-            MinuteAccumulatorStore minuteAccumulatorStore,
-            LastResultTimeStore lastResultTimeStore) {
-        this.cameraQueryService = cameraQueryService;
-        this.minuteAccumulatorStore = minuteAccumulatorStore;
-        this.lastResultTimeStore = lastResultTimeStore;
-    }
 
     public void receiveResults(List<ResultReceiveRequest> results) {
         // 항목마다 조회하지 않고 묶음 안의 캠을 한 번에 조회(FNC-A-024 처리 순서 1)

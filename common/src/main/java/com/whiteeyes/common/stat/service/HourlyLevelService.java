@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,15 +21,12 @@ import com.whiteeyes.common.stat.dto.StatTargetType;
  * 진행 중인 현재 시간은 아직 시간별 통계가 없으므로 그 시간의 1분 통계를 묶어 계산한다.
  */
 @Service
+@RequiredArgsConstructor
 public class HourlyLevelService {
 
     private static final int HOURS_PER_DAY = 24;
 
     private final StatSeriesService statSeriesService;
-
-    public HourlyLevelService(StatSeriesService statSeriesService) {
-        this.statSeriesService = statSeriesService;
-    }
 
     /**
      * @param date 조회할 날짜(KST)

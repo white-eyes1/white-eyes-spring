@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
  * 현재 현황 요약(FNC-C-016). 선택한 구역·지역의 최근 1분 인원·밀집도·단계·유입/유출·주요 방향과 캠 수, 오늘 최대 인원을 돌려준다.
  */
 @Service
+@RequiredArgsConstructor
 public class DashboardSummaryService {
 
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
@@ -49,25 +51,6 @@ public class DashboardSummaryService {
     private final TodayEventCountService todayEventCountService;
     // 관리자 앱에만 있다. 사용자 앱은 빈이 없어 currentCount가 null이다(결정 0018)
     private final ObjectProvider<NowCountSource> nowCountSource;
-
-    public DashboardSummaryService(
-            RegionQueryService regionQueryService,
-            CameraCountService cameraCountService,
-            RecentZoneStatReader recentZoneStatReader,
-            ZoneStatMinuteRepository zoneStatMinuteRepository,
-            LevelService levelService,
-            ZoneNeighborRepository zoneNeighborRepository,
-            TodayEventCountService todayEventCountService,
-            ObjectProvider<NowCountSource> nowCountSource) {
-        this.regionQueryService = regionQueryService;
-        this.cameraCountService = cameraCountService;
-        this.recentZoneStatReader = recentZoneStatReader;
-        this.zoneStatMinuteRepository = zoneStatMinuteRepository;
-        this.levelService = levelService;
-        this.zoneNeighborRepository = zoneNeighborRepository;
-        this.todayEventCountService = todayEventCountService;
-        this.nowCountSource = nowCountSource;
-    }
 
     /**
      * @param now KST 현재 시각

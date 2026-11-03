@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,15 +24,11 @@ import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository.HourlyCount
  * 기간이 최대 1년이라 시간별 통계(zone_stat_hourly)를 원본으로 쓴다.
  */
 @Service
+@RequiredArgsConstructor
 public class CompareService {
 
     private final RegionQueryService regionQueryService;
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
-
-    public CompareService(RegionQueryService regionQueryService, ZoneStatHourlyRepository zoneStatHourlyRepository) {
-        this.regionQueryService = regionQueryService;
-        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
-    }
 
     /**
      * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)

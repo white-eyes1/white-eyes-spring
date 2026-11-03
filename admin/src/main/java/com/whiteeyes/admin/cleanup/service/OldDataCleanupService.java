@@ -6,15 +6,15 @@ import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import java.time.LocalDateTime;
 import java.util.function.IntSupplier;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 
 /** 오래된 데이터 정리(FNC-A-032) */
+@Slf4j
 @Service
 @EnableConfigurationProperties(RetentionProperties.class)
 @RequiredArgsConstructor
-@Log4j2
 public class OldDataCleanupService {
 
     /** 한 번에 지우는 최대 건수(FNC-A-032 처리 순서). 긴 잠금과 큰 트랜잭션을 피한다. */

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,17 +21,13 @@ import com.whiteeyes.common.region.repository.ZoneRepository;
  * 다른 도메인(지도 현황 등)에 지역 계층과 구역을 내주는 조회 서비스(FNC-C-009).
  */
 @Service
+@RequiredArgsConstructor
 public class RegionQueryService {
 
     private static final String PATH_SEPARATOR = " · ";
 
     private final RegionRepository regionRepository;
     private final ZoneRepository zoneRepository;
-
-    public RegionQueryService(RegionRepository regionRepository, ZoneRepository zoneRepository) {
-        this.regionRepository = regionRepository;
-        this.zoneRepository = zoneRepository;
-    }
 
     /**
      * @throws RegionNotFoundException 없는 지역이면(404)

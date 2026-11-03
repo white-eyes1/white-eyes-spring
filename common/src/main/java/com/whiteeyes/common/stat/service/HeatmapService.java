@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ import com.whiteeyes.common.stat.dto.StatTargetType;
  * <p>인원·밀집도는 sample_sec 가중 평균, 유입·유출은 시간당 평균 합계(네 방향 합의 평균)다(처리 순서 2).
  */
 @Service
+@RequiredArgsConstructor
 public class HeatmapService {
 
     private static final int HOURS = 24;
@@ -40,11 +42,6 @@ public class HeatmapService {
 
     private final RegionQueryService regionQueryService;
     private final StatSeriesService statSeriesService;
-
-    public HeatmapService(RegionQueryService regionQueryService, StatSeriesService statSeriesService) {
-        this.regionQueryService = regionQueryService;
-        this.statSeriesService = statSeriesService;
-    }
 
     /**
      * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404)

@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import com.whiteeyes.common.stat.entity.StatValues;
@@ -18,19 +18,13 @@ import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import com.whiteeyes.common.stat.service.StatRollupCalculator;
 
 /** 시간별 통계 저장(FNC-A-029) */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class HourlyStatService {
-
-    private static final Logger log = LoggerFactory.getLogger(HourlyStatService.class);
 
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
-
-    public HourlyStatService(
-            ZoneStatMinuteRepository zoneStatMinuteRepository, ZoneStatHourlyRepository zoneStatHourlyRepository) {
-        this.zoneStatMinuteRepository = zoneStatMinuteRepository;
-        this.zoneStatHourlyRepository = zoneStatHourlyRepository;
-    }
 
     /**
      * 그 1시간의 1분 통계를 구역별로 묶어 시간별 통계로 덮어쓴다. 같은 시각으로 다시 실행해도 결과가 같다.

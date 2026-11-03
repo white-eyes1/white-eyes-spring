@@ -8,8 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.json.JsonMapper;
@@ -18,11 +17,10 @@ import tools.jackson.databind.json.JsonMapper;
  * 내부 API(/internal/**)는 세션 대신 X-Internal-Token 헤더로만 인증한다(FNC-C-003, conventions.md '내부 통신 인증').
  * 서버에 설정된 토큰이 비어 있으면 빈 헤더끼리 같아 보이지 않도록 모든 요청을 거부한다.
  */
+@Slf4j
 public class InternalTokenFilter extends OncePerRequestFilter {
 
     public static final String TOKEN_HEADER = "X-Internal-Token";
-
-    private static final Logger log = LoggerFactory.getLogger(InternalTokenFilter.class);
 
     private final byte[] expectedToken;
     private final JsonMapper jsonMapper;

@@ -4,17 +4,15 @@ import com.whiteeyes.admin.account.repository.AdminAccountRepository;
 import com.whiteeyes.common.account.service.AccountProfile;
 import com.whiteeyes.common.account.service.AccountProfileStore;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** 관리자 앱의 내 정보 조회·수정(FNC-C-006)이 admin_account를 읽고 쓰는 곳. */
 @Component
+@RequiredArgsConstructor
 public class AdminAccountProfileStore implements AccountProfileStore {
 
     private final AdminAccountRepository adminAccountRepository;
-
-    public AdminAccountProfileStore(AdminAccountRepository adminAccountRepository) {
-        this.adminAccountRepository = adminAccountRepository;
-    }
 
     @Override
     public Optional<AccountProfile> findProfile(Long accountId) {

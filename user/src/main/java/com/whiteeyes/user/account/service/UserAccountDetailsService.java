@@ -6,6 +6,7 @@ import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.security.AccountPrincipal;
 import com.whiteeyes.user.config.UserRoles;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -24,15 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
  * </ul>
  */
 @Service
+@RequiredArgsConstructor
 public class UserAccountDetailsService implements UserDetailsService {
 
     private static final String ROLE_PREFIX = "ROLE_";
 
     private final UserAccountRepository userAccountRepository;
-
-    public UserAccountDetailsService(UserAccountRepository userAccountRepository) {
-        this.userAccountRepository = userAccountRepository;
-    }
 
     /**
      * 탈퇴 계정은 아이디가 없는 것과 같이 다룬다. Spring Security가 '아이디 없음'을 틀린 비밀번호와 같은 실패로 바꾸고

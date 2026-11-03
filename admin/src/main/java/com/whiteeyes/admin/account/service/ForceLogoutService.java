@@ -14,8 +14,7 @@ import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>세션 저장소는 웹 앱에만 있으므로 웹 서버 없이 띄우는 1회 작업(--job=…)에서는 등록하지 않는다.
  */
+@Slf4j
 @Service
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class ForceLogoutService {
-
-    private static final Logger log = LoggerFactory.getLogger(ForceLogoutService.class);
 
     private final UserAccountRepository userAccountRepository;
     private final AdminAccountRepository adminAccountRepository;

@@ -1,7 +1,7 @@
 package com.whiteeyes.admin.demo.job;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -17,22 +17,17 @@ import com.whiteeyes.admin.demo.service.DemoDeleteService;
  * 실행 옵션 --job=delete-demo로 시연용 통계를 지우고 앱을 끝낸다(FNC-A-052).
  * 시연용 데이터는 local·dev에만 있으므로(decisions/0004) 이 작업도 local·dev 프로필에서만 등록한다(package-structure.md demo/).
  */
+@Slf4j
 @Component
 @Profile({"local", "dev"})
 @ConditionalOnProperty(name = "job", havingValue = DemoDeleteJobRunner.JOB_NAME)
+@RequiredArgsConstructor
 public class DemoDeleteJobRunner implements ApplicationRunner {
 
     static final String JOB_NAME = "delete-demo";
 
-    private static final Logger log = LoggerFactory.getLogger(DemoDeleteJobRunner.class);
-
     private final DemoDeleteService demoDeleteService;
     private final ConfigurableApplicationContext context;
-
-    public DemoDeleteJobRunner(DemoDeleteService demoDeleteService, ConfigurableApplicationContext context) {
-        this.demoDeleteService = demoDeleteService;
-        this.context = context;
-    }
 
     @Override
     public void run(ApplicationArguments args) {

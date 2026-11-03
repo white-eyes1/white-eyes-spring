@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestClientException;
@@ -27,9 +27,9 @@ import org.springframework.web.client.RestClientException;
  * <p>분석 서버 호출(최대 15초)을 DB 트랜잭션 안에 넣지 않으려고 ① 가동 요청 취소 ② 분석 서버 호출 ③ 정지 상태 기록의
  * 세 단계를 따로 커밋한다. 분석 서버에 전달하지 못해도 앱 쪽은 정지로 저장해야 하므로 호출 실패를 예외로 던지지 않는다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Log4j2
 public class CameraStopService {
 
     private static final String DELIVERY_FAILED_WARNING = "분석 서버에 전달 실패";

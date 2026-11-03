@@ -3,6 +3,7 @@ package com.whiteeyes.common.stat.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import com.whiteeyes.common.stat.dto.TrendResponse;
  * 증감률은 기간 비교 분석(FNC-C-020)과 같은 방식(같은 요일·시간대끼리 평균 비교)의 전체 증감률이다.
  */
 @Service
+@RequiredArgsConstructor
 public class TrendService {
 
     private static final int PERIOD_DAYS = 7;
@@ -24,10 +26,6 @@ public class TrendService {
     private static final int YEAR_AGO_DAYS = 364;
 
     private final CompareService compareService;
-
-    public TrendService(CompareService compareService) {
-        this.compareService = compareService;
-    }
 
     /**
      * @param today 오늘(KST). 대상 기간은 어제까지 7일

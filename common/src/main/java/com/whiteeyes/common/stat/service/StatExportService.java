@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -23,6 +24,7 @@ import com.whiteeyes.common.stat.dto.StatExportRequest;
  * 트랜잭션으로 저장한다. 파일을 만들다 실패하면 기록하지 않는다. 오류(400·404)는 응답을 쓰기 전에 나므로 JSON 오류로 나간다.
  */
 @Service
+@RequiredArgsConstructor
 public class StatExportService {
 
     private static final String EXPORT_KIND = "STATS";
@@ -30,13 +32,6 @@ public class StatExportService {
     private final StatExportReader statExportReader;
     private final WorkRecorder workRecorder;
     private final TransactionTemplate transactionTemplate;
-
-    public StatExportService(
-            StatExportReader statExportReader, WorkRecorder workRecorder, TransactionTemplate transactionTemplate) {
-        this.statExportReader = statExportReader;
-        this.workRecorder = workRecorder;
-        this.transactionTemplate = transactionTemplate;
-    }
 
     /**
      * 엑셀 파일을 만든다. 다 쓰면 {@link StatExportFile#close()}로 임시 파일을 지운다.

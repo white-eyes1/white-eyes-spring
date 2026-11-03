@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,13 +20,10 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 // TODO: 캠 가동·수정 기능에서 일반 CameraService가 필요해지면 합친다(지금 dev에는 CameraRegisterService만 있음)
 /** 분석 결과 수신(FNC-A-024) */
 @Service
+@RequiredArgsConstructor
 public class CameraQueryService {
 
     private final CameraRepository cameraRepository;
-
-    public CameraQueryService(CameraRepository cameraRepository) {
-        this.cameraRepository = cameraRepository;
-    }
 
     /**
      * 분석 결과를 받을 캠(삭제되지 않았고 run_requested=1)만 골라 cameraId → zoneId로 돌려준다(FNC-A-024).

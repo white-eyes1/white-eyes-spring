@@ -5,6 +5,7 @@ import com.whiteeyes.user.account.service.WithdrawService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,13 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 회원 탈퇴 API: DELETE /api/v1/me(FNC-U-004, 사용자 앱만). 성공하면 204이고 세션이 모두 지워진다. */
 @RestController
+@RequiredArgsConstructor
 public class WithdrawApiController {
 
     private final WithdrawService withdrawService;
-
-    public WithdrawApiController(WithdrawService withdrawService) {
-        this.withdrawService = withdrawService;
-    }
 
     @DeleteMapping("/api/v1/me")
     @ResponseStatus(HttpStatus.NO_CONTENT)

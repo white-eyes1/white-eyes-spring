@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,15 +18,12 @@ import com.whiteeyes.common.event.repository.EventRepository;
  * 다른 도메인은 이벤트 리포지토리가 아니라 이 서비스를 부른다.
  */
 @Service
+@RequiredArgsConstructor
 public class TodayEventCountService {
 
     private static final List<EventType> COUNTED_TYPES = List.of(EventType.CONGESTION, EventType.SURGE);
 
     private final EventRepository eventRepository;
-
-    public TodayEventCountService(EventRepository eventRepository) {
-        this.eventRepository = eventRepository;
-    }
 
     /**
      * 구역마다 from 이후에 시작한 혼잡·급증 이벤트 수를 한 번의 쿼리로 센다.

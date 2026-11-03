@@ -26,7 +26,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -78,13 +80,19 @@ public class StatStreamBroadcaster {
     private final boolean autoPoll;
 
     private final List<Subscriber> subscribers = new CopyOnWriteArrayList<>();
-    private ScheduledExecutorService executor;
+    // 5초 확인·하트비트용. 작업은 autoPoll이 켜졌을 때만 예약한다
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "stat-stream");
+        thread.setDaemon(true);
+        return thread;
+    });
     // 구독자별 전송용. 막힌 구독자 수만큼만 스레드가 늘고, 놀면 60초 뒤 정리된다. 막힌 쓰기는 Tomcat 쓰기 제한(60초)에서
     // 끊기고, 연결 수는 서버 접속 제한이 이미 막으므로 구독자 수 상한은 따로 두지 않는다(명세에도 상한 오류가 없다)
     private final ExecutorService sendPool = Executors.newCachedThreadPool(new SendThreadFactory());
-    // 마지막으로 보낸(또는 시작할 때 이미 있던) 분. 시작 전에 저장된 통계를 새 분으로 착각해 보내지 않는다
-    private LocalDateTime lastSeenStatAt;
-    private boolean initialized;
+    // 마지막으로 보낸(또는 시작할 때 이미 있던) 분. 시작 전에 저장된 통계를 새 분으로 착각해 보내지 않는다.
+    // 빈 필드는 final로 두므로(code-conventions.md 3-3) 바뀌는 값은 Atomic으로 감싼다. 읽고 쓰는 곳은 pollOnce(synchronized)뿐이다
+    private final AtomicReference<LocalDateTime> lastSeenStatAt = new AtomicReference<>();
+    private final AtomicBoolean initialized = new AtomicBoolean();
 
     public StatStreamBroadcaster(
             ZoneStatMinuteRepository zoneStatMinuteRepository,
@@ -106,11 +114,6 @@ public class StatStreamBroadcaster {
         if (!autoPoll) {
             return;
         }
-        executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "stat-stream");
-            thread.setDaemon(true);
-            return thread;
-        });
         executor.scheduleWithFixedDelay(this::safePoll, POLL_SECONDS, POLL_SECONDS, TimeUnit.SECONDS);
         executor.scheduleWithFixedDelay(this::safePollNow, POLL_SECONDS, POLL_SECONDS, TimeUnit.SECONDS);
         executor.scheduleWithFixedDelay(this::safeHeartbeat, HEARTBEAT_SECONDS, HEARTBEAT_SECONDS, TimeUnit.SECONDS);
@@ -124,9 +127,7 @@ public class StatStreamBroadcaster {
 
     // 5초 확인 작업을 멈추고 연결을 모두 닫는다. 보내기 풀은 남겨 두어 테스트가 이어서 쓸 수 있다
     public void stop() {
-        if (executor != null) {
-            executor.shutdownNow();
-        }
+        executor.shutdownNow();
         subscribers.forEach(subscriber -> subscriber.emitter().complete());
         subscribers.clear();
     }
@@ -180,15 +181,16 @@ public class StatStreamBroadcaster {
      */
     public synchronized LocalDateTime pollOnce() {
         LocalDateTime latest = zoneStatMinuteRepository.findLatestStatAt();
-        if (!initialized) {
-            initialized = true;
-            lastSeenStatAt = latest;
+        if (!initialized.get()) {
+            initialized.set(true);
+            lastSeenStatAt.set(latest);
             return null;
         }
-        if (latest == null || (lastSeenStatAt != null && !latest.isAfter(lastSeenStatAt))) {
+        LocalDateTime lastSeen = lastSeenStatAt.get();
+        if (latest == null || (lastSeen != null && !latest.isAfter(lastSeen))) {
             return null;
         }
-        lastSeenStatAt = latest;
+        lastSeenStatAt.set(latest);
         if (subscribers.isEmpty()) {
             return latest;
         }

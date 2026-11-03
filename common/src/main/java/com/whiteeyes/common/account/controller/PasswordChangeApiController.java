@@ -5,6 +5,7 @@ import com.whiteeyes.common.account.service.PasswordChangeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,14 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@RequiredArgsConstructor
 public class PasswordChangeApiController {
 
     private final PasswordChangeService passwordChangeService;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
-
-    public PasswordChangeApiController(PasswordChangeService passwordChangeService) {
-        this.passwordChangeService = passwordChangeService;
-    }
 
     @PatchMapping("/api/v1/me/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)

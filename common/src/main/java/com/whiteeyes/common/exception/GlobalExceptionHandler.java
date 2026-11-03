@@ -5,8 +5,8 @@ import java.util.Objects;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -39,10 +39,10 @@ import com.whiteeyes.common.web.ErrorResponse.FieldErrorResponse;
  * 컨트롤러에서 난 예외를 공통 오류 응답(API)과 오류 화면(화면 요청)으로 바꾼다(FNC-C-027).
  * API 요청인지는 경로로 판단한다(conventions.md '인증 오류').
  */
+@Slf4j
 @ControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private static final String ERROR_VIEW = "error";
     private static final String JSON_MODEL_KEY = "error";
@@ -52,10 +52,6 @@ public class GlobalExceptionHandler {
     private static final List<String> API_PATH_PREFIXES = List.of("/api/", "/internal/");
 
     private final JsonMapper jsonMapper;
-
-    public GlobalExceptionHandler(JsonMapper jsonMapper) {
-        this.jsonMapper = jsonMapper;
-    }
 
     @ExceptionHandler(BusinessException.class)
     public ModelAndView handleBusiness(

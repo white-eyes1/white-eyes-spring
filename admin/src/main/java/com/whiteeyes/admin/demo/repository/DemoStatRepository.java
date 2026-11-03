@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +21,7 @@ import com.whiteeyes.common.stat.entity.StatValues;
  * 표 이름은 이 클래스 안의 상수만 받으므로 SQL에 이어 붙여도 된다.
  */
 @Repository
+@RequiredArgsConstructor
 public class DemoStatRepository {
 
     public static final String HOURLY_TABLE = "zone_stat_hourly";
@@ -30,10 +32,6 @@ public class DemoStatRepository {
     private static final String VALUE_PLACEHOLDERS = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1";
 
     private final JdbcTemplate jdbcTemplate;
-
-    public DemoStatRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     /**
      * 시연용 행을 최대 limit건 지운다. 문장마다 바로 커밋된다(트랜잭션으로 묶지 않음).

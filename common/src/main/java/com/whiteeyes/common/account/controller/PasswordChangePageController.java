@@ -2,6 +2,7 @@ package com.whiteeyes.common.account.controller;
 
 import com.whiteeyes.common.security.AccountPrincipal;
 import com.whiteeyes.common.security.LoginAccountResolver;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -13,16 +14,13 @@ import org.springframework.web.bind.annotation.GetMapping;
  * 비밀번호 변경이 강제된 계정(must_change_password=1)은 이 화면만 쓸 수 있어 안내 문구를 보이고 메뉴를 숨긴다.
  */
 @Controller
+@RequiredArgsConstructor
 public class PasswordChangePageController {
 
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
     private static final String ROLE_SUPER_ADMIN = "ROLE_SUPER_ADMIN";
 
     private final LoginAccountResolver loginAccountResolver;
-
-    public PasswordChangePageController(LoginAccountResolver loginAccountResolver) {
-        this.loginAccountResolver = loginAccountResolver;
-    }
 
     @GetMapping("/me/password")
     public String passwordPage(Model model) {

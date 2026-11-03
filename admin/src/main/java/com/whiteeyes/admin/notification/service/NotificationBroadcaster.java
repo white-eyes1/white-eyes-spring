@@ -16,6 +16,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 // 웹 서버 없이 띄우는 실행(--job=… 같은 1회 작업)에는 SSE도 하트비트도 필요 없다
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@RequiredArgsConstructor
 public class NotificationBroadcaster {
 
     static final int HEARTBEAT_SECONDS = 30;
@@ -46,22 +48,16 @@ public class NotificationBroadcaster {
     private final UncheckedEventCountService uncheckedEventCountService;
 
     private final List<Subscriber> subscribers = new CopyOnWriteArrayList<>();
-    private ScheduledExecutorService heartbeatExecutor;
+    private final ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "notification-heartbeat");
+        thread.setDaemon(true);
+        return thread;
+    });
     // 구독자별 전송용. 막힌 구독자 수만큼만 스레드가 늘고, 놀면 60초 뒤 정리된다
     private final ExecutorService sendPool = Executors.newCachedThreadPool(new SendThreadFactory());
 
-    public NotificationBroadcaster(JsonMapper jsonMapper, UncheckedEventCountService uncheckedEventCountService) {
-        this.jsonMapper = jsonMapper;
-        this.uncheckedEventCountService = uncheckedEventCountService;
-    }
-
     @PostConstruct
     void start() {
-        heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "notification-heartbeat");
-            thread.setDaemon(true);
-            return thread;
-        });
         heartbeatExecutor.scheduleWithFixedDelay(
                 this::safeHeartbeat, HEARTBEAT_SECONDS, HEARTBEAT_SECONDS, TimeUnit.SECONDS);
     }
@@ -69,9 +65,7 @@ public class NotificationBroadcaster {
     @PreDestroy
     void shutdown() {
         stop();
-        if (heartbeatExecutor != null) {
-            heartbeatExecutor.shutdownNow();
-        }
+        heartbeatExecutor.shutdownNow();
         sendPool.shutdownNow();
     }
 
