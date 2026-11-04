@@ -2,6 +2,7 @@
 // CSRF 헤더 추가, JSON 변환, 오류 응답({code, message, fieldErrors}) 해석, 401이면 로그인 화면 이동을 맡는다.
 // 400 fieldErrors는 호출한 쪽이 입력 아래에 보이고, 그 밖의 오류는 기본으로 토스트(toast.js)에 message를 띄운다.
 // 호출한 쪽이 직접 보여 줄 때는 세 번째 인자로 { toast: false }를 준다.
+// 세 번째 인자로 absolute(서버가 컨텍스트 경로까지 붙여 준 주소를 그대로 쓴다), signal(요청 취소·시간 제한), cache(fetch의 cache 옵션)도 줄 수 있다.
 // 템플릿은 <meta name="context-path" th:content="@{/}">와 <meta name="_csrf" th:content="${_csrf?.token}">를 둔다.
 
 import { showToast } from './toast.js';
@@ -10,8 +11,9 @@ const CSRF_HEADER = 'X-CSRF-TOKEN';
 const NETWORK_ERROR_MESSAGE = '서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.';
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 const UNAUTHORIZED_MESSAGE = '로그인이 필요합니다.';
+const ABORTED_MESSAGE = '요청이 취소되었습니다.';
 
-/** 오류 응답. status 0은 서버에 닿지 못한 경우다. */
+/** 오류 응답. status 0은 서버에 닿지 못한 경우이고, code ABORTED는 호출한 쪽이 signal로 요청을 끊은 경우다. */
 export class ApiError extends Error {
     constructor(status, code, message, fieldErrors) {
         super(message);
@@ -57,8 +59,9 @@ export function download(path, params, options) {
     return request('GET', path, { params, ...options, file: true });
 }
 
-async function request(method, path, { params, body, toast = true, file = false } = {}) {
-    let target = url(path);
+async function request(method, path, { params, body, toast = true, file = false, absolute = false, signal, cache } = {}) {
+    // absolute: 서버가 준 주소(예: boxesUrl)에는 컨텍스트 경로가 이미 붙어 있어 url()을 거치지 않는다
+    let target = absolute ? path : url(path);
     if (params) {
         target += '?' + new URLSearchParams(params).toString();
     }
@@ -79,8 +82,14 @@ async function request(method, path, { params, body, toast = true, file = false 
             headers,
             body: body === undefined ? undefined : JSON.stringify(body),
             credentials: 'same-origin',
+            signal,
+            cache,
         });
-    } catch {
+    } catch (error) {
+        // 호출한 쪽이 일부러 끊은 것(시간 제한 등)은 연결 오류가 아니므로 토스트를 띄우지 않는다
+        if (error?.name === 'AbortError') {
+            throw new ApiError(0, 'ABORTED', ABORTED_MESSAGE, []);
+        }
         return fail(new ApiError(0, null, NETWORK_ERROR_MESSAGE, []), toast);
     }
 

@@ -1,6 +1,6 @@
 // 캠 카드의 영상 칸(FNC-A-042, SCR-C-003). 가동 중(RUNNING)이고 화면에 보이는 카드만 최신 화면(스냅샷)을
 // 정해진 간격(기본 2초)마다 갱신한다. 요청 순서·개수 제한은 scheduler.js가 정한다. 실패하면 마지막 화면을 두고 '끊김'을 보인다.
-import { url } from '../common/api.js';
+import { download } from '../common/api.js';
 import { createSnapshotScheduler } from './scheduler.js';
 
 const TICK_MS = 500;
@@ -41,11 +41,13 @@ export function createPreviewManager({ onOpen, intervalSec }) {
         const controller = new AbortController();
         const timer = window.setTimeout(() => controller.abort(), SNAPSHOT_TIMEOUT_MS);
         try {
-            const response = await fetch(url(`/live/${id}/snapshot`), { signal: controller.signal, cache: 'no-store' });
-            if (!response.ok) {
-                throw new Error(`snapshot ${response.status}`);
-            }
-            return URL.createObjectURL(await response.blob());
+            // 실패는 카드의 '끊김' 표시로 알리므로 토스트는 띄우지 않는다
+            const { blob } = await download(`/live/${id}/snapshot`, undefined, {
+                signal: controller.signal,
+                cache: 'no-store',
+                toast: false,
+            });
+            return URL.createObjectURL(blob);
         } finally {
             window.clearTimeout(timer);
         }

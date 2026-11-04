@@ -258,12 +258,8 @@ async function loadBoxes(target) {
     clearBoxes();
     boxesFor = target.id;
     try {
-        // boxesUrl은 서버가 컨텍스트 경로(/admin)까지 붙여 준 주소다. 영상 주소처럼 그대로 쓴다(공통 get()은 경로를 한 번 더 붙인다)
-        const response = await fetch(target.boxesUrl, { credentials: 'same-origin' });
-        if (!response.ok) {
-            throw new Error(`좌표 파일 요청 실패 ${response.status}`);
-        }
-        const frames = parseFrames(await response.json());
+        // boxesUrl은 서버가 컨텍스트 경로(/admin)까지 붙여 준 주소다. 영상 주소처럼 absolute로 그대로 쓴다. 없는 것은 정상이라 토스트는 띄우지 않는다
+        const frames = parseFrames(await get(target.boxesUrl, undefined, { absolute: true, toast: false }));
         if (boxesFor !== target.id) {
             return; // 그 사이 다른 녹화로 바뀌었다
         }
