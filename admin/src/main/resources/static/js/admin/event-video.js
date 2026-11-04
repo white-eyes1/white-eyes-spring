@@ -119,16 +119,12 @@ async function loadVideo(zoneId, startedAt, seq) {
     }
 }
 
-// boxesUrl은 서버가 컨텍스트 경로(/admin)까지 붙여 준 주소라 그대로 요청한다(공통 get()은 경로를 한 번 더 붙인다).
+// boxesUrl은 서버가 컨텍스트 경로(/admin)까지 붙여 준 주소라 absolute로 그대로 요청한다.
 // 좌표 파일을 못 받으면 영상만 재생하고 '박스 정보 없음'을 보인다
 async function loadBoxes(boxesUrl, seq) {
     let frames = null;
     try {
-        const response = await fetch(boxesUrl, { credentials: 'same-origin' });
-        if (!response.ok) {
-            throw new Error(`좌표 파일 요청 실패 ${response.status}`);
-        }
-        frames = parseFrames(await response.json());
+        frames = parseFrames(await get(boxesUrl, undefined, { absolute: true, toast: false }));
     } catch {
         frames = null;
     }
