@@ -1,7 +1,10 @@
-// 화면의 API 호출은 모두 이 모듈을 거친다(code-conventions.md 5-3).
+// 화면의 서버 호출은 JSON API·파일 응답 모두 이 모듈을 거친다(code-conventions.md 5-3).
 // CSRF 헤더 추가, JSON 변환, 오류 응답({code, message, fieldErrors}) 해석, 401이면 로그인 화면 이동을 맡는다.
 // 400 fieldErrors는 호출한 쪽이 입력 아래에 보이고, 그 밖의 오류는 기본으로 토스트(toast.js)에 message를 띄운다.
-// 호출한 쪽이 직접 보여 줄 때는 세 번째 인자로 { toast: false }를 준다.
+// 호출한 쪽이 직접 보여 줄 때는 마지막 인자로 { toast: false }를 준다.
+// 마지막 인자의 다른 옵션:
+// - absolute: true면 path를 그대로 쓴다. 서버가 컨텍스트 경로까지 붙여 준 주소(boxesUrl 등)에 쓴다.
+// - signal·cache: fetch에 그대로 넘긴다. signal로 끊기면 status 0 ApiError가 되므로 { toast: false }와 같이 쓴다.
 // 템플릿은 <meta name="context-path" th:content="@{/}">와 <meta name="_csrf" th:content="${_csrf?.token}">를 둔다.
 
 import { showToast } from './toast.js';
@@ -57,8 +60,8 @@ export function download(path, params, options) {
     return request('GET', path, { params, ...options, file: true });
 }
 
-async function request(method, path, { params, body, toast = true, file = false } = {}) {
-    let target = url(path);
+async function request(method, path, { params, body, toast = true, file = false, absolute = false, signal, cache } = {}) {
+    let target = absolute ? path : url(path);
     if (params) {
         target += '?' + new URLSearchParams(params).toString();
     }
@@ -79,6 +82,8 @@ async function request(method, path, { params, body, toast = true, file = false 
             headers,
             body: body === undefined ? undefined : JSON.stringify(body),
             credentials: 'same-origin',
+            signal,
+            cache,
         });
     } catch {
         return fail(new ApiError(0, null, NETWORK_ERROR_MESSAGE, []), toast);
