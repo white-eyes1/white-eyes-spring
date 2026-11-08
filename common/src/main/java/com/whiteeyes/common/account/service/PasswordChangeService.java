@@ -2,7 +2,6 @@ package com.whiteeyes.common.account.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,12 +21,9 @@ import com.whiteeyes.common.security.LoginAccountResolver;
 /**
  * 비밀번호 변경(FNC-C-007). 현재 비밀번호를 확인하고 새 비밀번호로 바꾼 뒤, 이 계정의 다른 세션을 지우고
  * 현재 세션의 로그인 정보에서 must_change_password를 끈다.
- *
- * 세션 저장소는 웹 앱에만 있으므로 웹 서버 없이 띄우는 1회 작업(--job=…)에서는 등록하지 않는다.
  */
 @Slf4j
 @Service
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class PasswordChangeService {
 

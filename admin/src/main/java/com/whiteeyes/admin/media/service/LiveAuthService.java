@@ -6,7 +6,6 @@ import java.util.Set;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -26,8 +25,6 @@ import com.whiteeyes.common.camera.service.CameraRunningService;
  */
 @Slf4j
 @Service
-// 웹 서버 없이 띄우는 실행(--job=… 같은 1회 작업)에는 세션 저장소가 없어 이 서비스도 필요 없다(AdminSecurityConfig와 같은 조건)
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class LiveAuthService {
 

@@ -1,7 +1,6 @@
 package com.whiteeyes.admin.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -35,8 +34,6 @@ import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
  * 경로는 컨텍스트 경로(/admin)를 뗀 것이다.
  */
 @Configuration
-// 웹 서버 없이 띄우는 실행(--job=… 같은 1회 작업)에는 HTTP 보안이 필요 없다
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class AdminSecurityConfig {
 
     private static final String LOGIN_PATH = "/login";

@@ -18,7 +18,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.json.JsonMapper;
@@ -37,8 +36,6 @@ import com.whiteeyes.common.event.service.UncheckedEventCountService;
  */
 @Slf4j
 @Service
-// 웹 서버 없이 띄우는 실행(--job=… 같은 1회 작업)에는 SSE도 하트비트도 필요 없다
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class NotificationBroadcaster {
 

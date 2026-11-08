@@ -1,7 +1,6 @@
 package com.whiteeyes.common.stat.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +15,6 @@ import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
 // 권한 '사용자 이상'은 접근 권한 검사(FNC-C-003)의 공통 규칙으로 붙는다
 /** 실시간 통계 갱신(FNC-C-022): 새 1분 통계를 SSE(event: stat)로 받는다. */
 @RestController
-// 웹 서버 없이 띄우는 실행(--job=… 같은 1회 작업)에는 SSE도 5초 확인도 필요 없다
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class StatStreamController {
 

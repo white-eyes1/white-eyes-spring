@@ -4,7 +4,6 @@ import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,12 +25,9 @@ import com.whiteeyes.common.security.LoginAccount;
  * (권한은 AdminSecurityConfig 권한 표가 막는다). 사용자 대상은 세션 삭제와 작업 기록이 한 트랜잭션이다.
  * 관리자 대상은 관리자 앱 세션 저장소가 삭제를 바로 확정하므로, 지운 수를 먼저 세어 기록에 넣고 삭제는 맨 뒤에 한다
  * (기록이 실패하면 세션이 그대로 남는다).
- *
- * <p>세션 저장소는 웹 앱에만 있으므로 웹 서버 없이 띄우는 1회 작업(--job=…)에서는 등록하지 않는다.
  */
 @Slf4j
 @Service
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class ForceLogoutService {
 

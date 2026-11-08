@@ -1,6 +1,5 @@
 package com.whiteeyes.user.config;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -26,8 +25,6 @@ import com.whiteeyes.user.account.service.UserLoginRecordService;
  * 권한 표(사용자 앱): 공개 /login·/signup·/api/v1/signup/**, PENDING은 /pending·/logout, USER는 그 외 전부.
  */
 @Configuration
-// 웹 서버 없이 띄우는 실행에는 HTTP 보안이 필요 없다(AdminSecurityConfig와 같음)
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class UserSecurityConfig {
 
     static final String PENDING_PATH = "/pending";
