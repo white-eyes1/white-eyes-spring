@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequiredArgsConstructor
-public class PlaybackController {
+public class PlaybackApiController {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 

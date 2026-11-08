@@ -28,10 +28,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/** 캠 관리 API(FNC-A-018~023): 목록, 등록, 수정, 가동, 정지, 삭제. */
 @RestController
 @RequestMapping("/api/v1/manage/cameras")
 @RequiredArgsConstructor
-public class CameraController {
+public class CameraApiController {
 
     private final CameraRegisterService cameraRegisterService;
     private final CameraListService cameraListService;

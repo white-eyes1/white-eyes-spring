@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequiredArgsConstructor
-public class RecordingFileController {
+public class RecordingFileApiController {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final String ACCEL_REDIRECT = "X-Accel-Redirect";
