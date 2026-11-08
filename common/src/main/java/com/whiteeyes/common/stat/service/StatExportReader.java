@@ -1,6 +1,7 @@
 package com.whiteeyes.common.stat.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,13 +33,14 @@ import com.whiteeyes.common.stat.dto.StatTargetType;
  * 통계 엑셀에 쓸 값을 읽는다(FNC-C-023 처리 순서 1·2). 값은 통계 그래프(FNC-C-012)와 같은 계산이다.
  *
  * <p>행이 많아도 메모리에 한꺼번에 올리지 않도록 나눠 읽고, 읽은 묶음은 바로 넘긴다. 한 번에 읽는 원본 행은 약
- * {@value #DEFAULT_ROW_BUDGET}개다(구역 수 × 시각 수). 묶음마다 따로 조회하므로 긴 트랜잭션을 잡지 않는다.
+ * {@value #ROW_BUDGET}개다(구역 수 × 시각 수). 묶음마다 따로 조회하므로 긴 트랜잭션을 잡지 않는다.
  */
 @Service
+@RequiredArgsConstructor
 public class StatExportReader {
 
     /** 한 번에 읽을 원본 행 수의 기준. */
-    static final int DEFAULT_ROW_BUDGET = 50_000;
+    static final int ROW_BUDGET = 50_000;
 
     private static final String ALL_TARGET_NAME = "전체";
     // 삭제된 구역 이름 뒤에 붙인다(FNC-A-017 업무 규칙, 통계 그래프 화면과 같은 표기)
@@ -53,30 +55,6 @@ public class StatExportReader {
     private final RegionRepository regionRepository;
     private final ZoneRepository zoneRepository;
     private final StatSeriesService statSeriesService;
-    private final int rowBudget;
-
-    @Autowired
-    public StatExportReader(
-            RegionQueryService regionQueryService,
-            RegionRepository regionRepository,
-            ZoneRepository zoneRepository,
-            StatSeriesService statSeriesService) {
-        this(regionQueryService, regionRepository, zoneRepository, statSeriesService, DEFAULT_ROW_BUDGET);
-    }
-
-    // 나눠 읽기 시험에서 기준을 작게 줄 때 쓴다
-    StatExportReader(
-            RegionQueryService regionQueryService,
-            RegionRepository regionRepository,
-            ZoneRepository zoneRepository,
-            StatSeriesService statSeriesService,
-            int rowBudget) {
-        this.regionQueryService = regionQueryService;
-        this.regionRepository = regionRepository;
-        this.zoneRepository = zoneRepository;
-        this.statSeriesService = statSeriesService;
-        this.rowBudget = rowBudget;
-    }
 
     /**
      * 대상을 확인하고 대상 줄을 정한 뒤 행 수를 확인한다. 전체(ALL)·지역 기본(구역별)은 삭제되지 않은 구역만 줄로 쓴다
@@ -186,7 +164,7 @@ public class StatExportReader {
     }
 
     // 시각을 잘라 모든 구역을 한 번에 읽고, 시각 순으로 묶어 계획의 줄 순서대로 넘긴다(시각 묶음 정렬, FNC-C-023 처리 순서 2).
-    // 한 토막은 약 rowBudget ÷ 구역 수 개 시각
+    // 한 토막은 약 ROW_BUDGET ÷ 구역 수 개 시각
     private void readPerZone(StatExportPlan plan, BiConsumer<StatExportSeries, StatSeriesPoint> sink) {
         StatExportRequest request = plan.request();
         List<StatExportSeries> series = plan.series();
@@ -195,46 +173,61 @@ public class StatExportReader {
         }
         List<Long> zoneIds = series.stream().map(StatExportSeries::zoneId).toList();
         StatInterval interval = request.interval();
-        int windowSize = Math.max(1, rowBudget / series.size());
-        LocalDateTime start = interval.floor(request.from());
-        while (start.isBefore(request.to())) {
-            LocalDateTime end = start;
-            for (int i = 0; i < windowSize && end.isBefore(request.to()); i++) {
-                end = interval.next(end);
-            }
-            LocalDateTime windowTo = end.isBefore(request.to()) ? end : request.to();
+        int windowSize = windowSize(ROW_BUDGET, series.size());
+        for (TimeWindow window : windows(interval, request.from(), request.to(), windowSize)) {
             Map<Long, List<StatSeriesPoint>> pointsByZone =
-                    statSeriesService.findZoneSeries(zoneIds, interval, start, windowTo);
+                    statSeriesService.findZoneSeries(zoneIds, interval, window.from(), window.to());
             int pointCount = pointsByZone.get(zoneIds.get(0)).size();
             for (int index = 0; index < pointCount; index++) {
                 for (StatExportSeries line : series) {
                     sink.accept(line, pointsByZone.get(line.zoneId()).get(index));
                 }
             }
-            start = end;
         }
     }
 
-    // 줄 하나(구역·지역 합산)는 기간을 잘라 통계 그래프 계산을 여러 번 부른다. 한 토막은 약 rowBudget ÷ 원본 구역 수 개 시각
+    // 줄 하나(구역·지역 합산)는 기간을 잘라 통계 그래프 계산을 여러 번 부른다. 한 토막은 약 ROW_BUDGET ÷ 원본 구역 수 개 시각
     private void readSingle(StatExportPlan plan, BiConsumer<StatExportSeries, StatSeriesPoint> sink) {
         StatExportRequest request = plan.request();
         StatExportSeries line = plan.series().get(0);
         StatTargetType targetType =
                 request.scope() == StatExportScope.ZONE ? StatTargetType.ZONE : StatTargetType.REGION;
         StatInterval interval = request.interval();
-        int windowSize = Math.max(1, rowBudget / Math.max(1, plan.sourceZoneCount()));
-        LocalDateTime start = interval.floor(request.from());
-        while (start.isBefore(request.to())) {
-            LocalDateTime end = start;
-            for (int i = 0; i < windowSize && end.isBefore(request.to()); i++) {
-                end = interval.next(end);
-            }
-            LocalDateTime windowTo = end.isBefore(request.to()) ? end : request.to();
+        int windowSize = windowSize(ROW_BUDGET, plan.sourceZoneCount());
+        for (TimeWindow window : windows(interval, request.from(), request.to(), windowSize)) {
             statSeriesService
-                    .findSeries(new StatSeriesRequest(targetType, request.targetId(), interval, start, windowTo))
+                    .findSeries(new StatSeriesRequest(targetType, request.targetId(), interval, window.from(), window.to()))
                     .items()
                     .forEach(point -> sink.accept(line, point));
-            start = end;
         }
     }
+
+    /**
+     * 한 번에 읽을 시각 수. 시각마다 rowsPerTime개(구역 수)의 원본 행을 읽으므로 rowBudget ÷ rowsPerTime개이고, 적어도 1개다.
+     * rowsPerTime이 0(원본 구역 없음)이면 1로 본다.
+     */
+    static int windowSize(int rowBudget, int rowsPerTime) {
+        return Math.max(1, rowBudget / Math.max(1, rowsPerTime));
+    }
+
+    /**
+     * [from, to)를 시각 windowSize개씩 자른 구간. 첫 구간은 from이 속한 단위의 시작부터이고(통계 그래프와 같은 시각),
+     * 마지막 구간은 to에서 끝난다.
+     */
+    static List<TimeWindow> windows(StatInterval interval, LocalDateTime from, LocalDateTime to, int windowSize) {
+        List<TimeWindow> windows = new ArrayList<>();
+        LocalDateTime start = interval.floor(from);
+        while (start.isBefore(to)) {
+            LocalDateTime end = start;
+            for (int i = 0; i < windowSize && end.isBefore(to); i++) {
+                end = interval.next(end);
+            }
+            windows.add(new TimeWindow(start, end.isBefore(to) ? end : to));
+            start = end;
+        }
+        return windows;
+    }
+
+    /** 한 번에 읽는 기간 [from, to). */
+    record TimeWindow(LocalDateTime from, LocalDateTime to) {}
 }

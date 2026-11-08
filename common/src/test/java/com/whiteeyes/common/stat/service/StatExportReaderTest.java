@@ -36,9 +36,9 @@ class StatExportReaderTest {
     private final StatSeriesService statSeriesService = mock(StatSeriesService.class);
 
     @Test
-    @DisplayName("FNC-C-023 구역별 줄은 기준(구역 수 × 시각 수) 안에서 시각을 잘라 모든 구역을 읽고, 시각 순으로 묶어 계획의 줄 순서대로 넘긴다")
-    void readPerZone_windowsTime() throws BindException {
-        // 1시간 5개 시각(00~04시), 구역 3개, 기준 6행 → 한 번에 시각 2개
+    @DisplayName("FNC-C-023 구역별 줄은 시각마다 모든 구역을 읽고, 시각 순으로 묶어 계획의 줄 순서대로 넘긴다")
+    void readPerZone_ordersByTimeThenPlan() throws BindException {
+        // 1시간 5개 시각(00~04시), 구역 3개 → 기준 안이라 한 번에 읽는다
         StatExportRequest request = request(StatExportScope.ALL, "2099-01-01T00:00", "2099-01-01T05:00");
         List<StatExportSeries> series = List.of(zone(5), zone(3), zone(9));
         List<List<Object>> calls = new ArrayList<>();
@@ -61,21 +61,18 @@ class StatExportReaderTest {
                 });
 
         List<String> rows = new ArrayList<>();
-        reader(6).read(new StatExportPlan(request, "전체", series, 3, 15),
+        reader().read(new StatExportPlan(request, "전체", series, 3, 15),
                 (line, point) -> rows.add(point.at().getHour() + "@" + line.zoneId()));
 
-        assertThat(calls).containsExactly(
-                List.of(List.of(5L, 3L, 9L), at(0), at(2)),
-                List.of(List.of(5L, 3L, 9L), at(2), at(4)),
-                List.of(List.of(5L, 3L, 9L), at(4), at(5)));
+        assertThat(calls).containsExactly(List.of(List.of(5L, 3L, 9L), at(0), at(5)));
         assertThat(rows).containsExactly(
                 "0@5", "0@3", "0@9", "1@5", "1@3", "1@9", "2@5", "2@3", "2@9", "3@5", "3@3", "3@9", "4@5", "4@3", "4@9");
     }
 
     @Test
-    @DisplayName("FNC-C-023 줄 하나(지역 합산)는 기준 ÷ 원본 구역 수만큼 시각을 잘라 통계 그래프 계산을 부르고 이어 붙인다")
-    void readSingle_splitsPeriod() throws BindException {
-        // 1시간 7개 시각(10:30부터라 10시 구간부터), 원본 구역 2개, 기준 6행 → 한 토막 3시간
+    @DisplayName("FNC-C-023 줄 하나(지역 합산)는 통계 그래프 계산으로 읽고, 시작 시각이 속한 구간부터 넘긴다")
+    void readSingle_readsFromFloorOfFrom() throws BindException {
+        // 1시간 7개 시각(10:30부터라 10시 구간부터), 원본 구역 2개 → 기준 안이라 한 번에 읽는다
         StatExportRequest request = request(StatExportScope.REGION, "2099-01-01T10:30", "2099-01-01T17:00");
         StatExportSeries line = new StatExportSeries(null, "서울특별시", "종로구", null, null);
         List<StatSeriesRequest> calls = new ArrayList<>();
@@ -90,13 +87,10 @@ class StatExportReaderTest {
         });
 
         List<Integer> hours = new ArrayList<>();
-        reader(6).read(new StatExportPlan(request, "종로구", List.of(line), 2, 7),
+        reader().read(new StatExportPlan(request, "종로구", List.of(line), 2, 7),
                 (series, point) -> hours.add(point.at().getHour()));
 
-        assertThat(calls).extracting(StatSeriesRequest::from, StatSeriesRequest::to).containsExactly(
-                tuple(at(10), at(13)),
-                tuple(at(13), at(16)),
-                tuple(at(16), at(17)));
+        assertThat(calls).extracting(StatSeriesRequest::from, StatSeriesRequest::to).containsExactly(tuple(at(10), at(17)));
         assertThat(calls).allSatisfy(call -> assertThat(call.targetId()).isEqualTo(7L));
         assertThat(hours).containsExactly(10, 11, 12, 13, 14, 15, 16);
     }
@@ -108,13 +102,46 @@ class StatExportReaderTest {
                 StatExportScope.REGION, 7L, "1h", "2099-01-01T00:00", "2099-01-01T02:00", List.of("COUNT"), false);
         List<StatExportSeries> rows = new ArrayList<>();
 
-        reader(5).read(new StatExportPlan(request, "종로구", List.of(), 0, 0), (line, point) -> rows.add(line));
+        reader().read(new StatExportPlan(request, "종로구", List.of(), 0, 0), (line, point) -> rows.add(line));
 
         assertThat(rows).isEmpty();
     }
 
-    private StatExportReader reader(int rowBudget) {
-        return new StatExportReader(null, null, null, statSeriesService, rowBudget);
+    @Test
+    @DisplayName("FNC-C-023 한 번에 읽는 시각 수는 기준 ÷ 시각마다 읽는 행 수이고, 적어도 1개다")
+    void windowSize_dividesBudgetByRowsPerTime() {
+        assertThat(StatExportReader.windowSize(6, 3)).isEqualTo(2);
+        assertThat(StatExportReader.windowSize(6, 4)).isEqualTo(1);
+        assertThat(StatExportReader.windowSize(2, 5)).isEqualTo(1);
+        // 원본 구역이 없으면 1로 나눈다
+        assertThat(StatExportReader.windowSize(5, 0)).isEqualTo(5);
+        assertThat(StatExportReader.windowSize(StatExportReader.ROW_BUDGET, 9)).isEqualTo(5_555);
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 기간은 시각 windowSize개씩 잘리고 마지막 구간은 끝 시각에서 끝난다")
+    void windows_splitsBySize() {
+        assertThat(StatExportReader.windows(StatInterval.HOUR, at(0), at(5), 2))
+                .extracting(StatExportReader.TimeWindow::from, StatExportReader.TimeWindow::to)
+                .containsExactly(tuple(at(0), at(2)), tuple(at(2), at(4)), tuple(at(4), at(5)));
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 첫 구간은 시작 시각이 속한 단위의 시작부터다")
+    void windows_startsAtFloorOfFrom() {
+        assertThat(StatExportReader.windows(StatInterval.HOUR, T0.withHour(10).withMinute(30), at(17), 3))
+                .extracting(StatExportReader.TimeWindow::from, StatExportReader.TimeWindow::to)
+                .containsExactly(tuple(at(10), at(13)), tuple(at(13), at(16)), tuple(at(16), at(17)));
+    }
+
+    @Test
+    @DisplayName("FNC-C-023 기간이 비면 구간이 없다")
+    void windows_emptyPeriod() {
+        assertThat(StatExportReader.windows(StatInterval.HOUR, at(3), at(3), 2)).isEmpty();
+    }
+
+    private StatExportReader reader() {
+        return new StatExportReader(null, null, null, statSeriesService);
     }
 
     private static StatExportRequest request(StatExportScope scope, String from, String to) throws BindException {
