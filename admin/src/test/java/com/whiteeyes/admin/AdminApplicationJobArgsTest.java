@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
-/** 1회 실행 작업(--job=…)이면 웹 서버 없이 시작하고(spring #280), 실패하면 종료 코드 1로 끝난다(spring #358) */
+/** FNC-A-012·051·052 1회 실행 작업(--job=…)이면 웹 서버 없이 시작하고(spring #280), 실패하면 종료 코드 1로 끝난다(spring #358) */
 class AdminApplicationJobArgsTest {
 
     @Test

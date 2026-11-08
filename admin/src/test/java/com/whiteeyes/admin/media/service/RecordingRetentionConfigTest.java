@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Limit;
 
-/** 녹화 보관 기간 설정(RECORDING_RETENTION_DAYS)을 바꾸면 다시보기·파일 전송의 만료 경계가 같이 바뀐다(#182). */
+/** FNC-A-043·044 녹화 보관 기간 설정(RECORDING_RETENTION_DAYS)을 바꾸면 다시보기·파일 전송의 만료 경계가 같이 바뀐다(#182). */
 @ExtendWith(MockitoExtension.class)
 class RecordingRetentionConfigTest {
 

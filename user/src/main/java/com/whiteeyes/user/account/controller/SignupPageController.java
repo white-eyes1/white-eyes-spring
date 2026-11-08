@@ -3,7 +3,7 @@ package com.whiteeyes.user.account.controller;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
-/** 회원가입 화면(SCR-U-001). */
+/** 회원가입 화면(SCR-U-001, FNC-U-002). */
 @Controller
 public class SignupPageController {
 

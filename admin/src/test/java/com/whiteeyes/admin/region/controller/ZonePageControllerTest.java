@@ -17,7 +17,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** SCR-A-004 구역 관리 화면이 공통 틀 위에 그려지는지 확인한다. */
+/** SCR-A-004(FNC-C-008·A-013·A-014) 구역 관리 화면이 공통 틀 위에 그려지는지 확인한다. */
 @Import(AdminTestUserConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc

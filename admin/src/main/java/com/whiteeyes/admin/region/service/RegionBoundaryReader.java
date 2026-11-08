@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.stereotype.Component;
 
-/** region.boundary(GeoJSON 문자열)를 JTS 도형으로 읽는다. 적재 때 검증을 거친 값이라 읽기 실패는 데이터 이상이다. */
+/** region.boundary(GeoJSON 문자열)를 JTS 도형으로 읽는다(FNC-A-013 소속 동 찾기). 적재 때 검증을 거친 값이라 읽기 실패는 데이터 이상이다. */
 @Component
 @RequiredArgsConstructor
 public class RegionBoundaryReader {

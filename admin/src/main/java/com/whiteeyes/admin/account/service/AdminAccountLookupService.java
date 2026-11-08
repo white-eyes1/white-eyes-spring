@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 다른 도메인(이벤트 엑셀 등)이 관리자 계정을 조회할 때 부르는 계정 도메인의 공개 service. */
+/** 다른 도메인(이벤트 엑셀 등)이 관리자 계정을 조회할 때 부르는 계정 도메인의 공개 service(FNC-A-039 처리자 아이디). */
 @Service
 @RequiredArgsConstructor
 public class AdminAccountLookupService {

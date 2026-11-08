@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
+/** 회원가입 화면(SCR-U-001, FNC-U-002) */
 @SpringBootTest
 @AutoConfigureMockMvc
 class SignupPageControllerTest {

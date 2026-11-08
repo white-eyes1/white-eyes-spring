@@ -19,6 +19,7 @@ import com.whiteeyes.user.account.dto.SignupRequest;
 import com.whiteeyes.user.account.dto.SignupResponse;
 import com.whiteeyes.user.account.service.SignupService;
 
+/** 회원가입 API: 아이디 중복 확인(FNC-U-001), 회원가입(FNC-U-002). */
 @RestController
 @RequestMapping("/api/v1/signup")
 @RequiredArgsConstructor

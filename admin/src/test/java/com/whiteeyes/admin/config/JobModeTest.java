@@ -12,7 +12,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
 
 // job 값은 어떤 작업과도 맞지 않게 둔다. 맞는 작업이 있으면 그 작업이 실행되고 앱이 끝난다
-/** 1회 실행 작업(--job=…)으로 뜨면 예약 작업과 웹 서버를 켜지 않는다(spring #280) */
+/** FNC-A-012·051·052 1회 실행 작업(--job=…)으로 뜨면 예약 작업과 웹 서버를 켜지 않는다(spring #280) */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "job=job-mode-test")
 class JobModeTest {
 
