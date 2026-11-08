@@ -1,0 +1,4 @@
+# git blame에서 건너뛸 커밋(형식만 바꾼 커밋). GitHub blame은 이 파일을 자동으로 읽는다.
+# 로컬: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# style: 포매터·린터 도입과 전체 포맷 적용 (#367, PR #378)
+63401e6309c99ce83778697acf1042e9faf3fe2f

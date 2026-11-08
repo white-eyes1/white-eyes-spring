@@ -383,7 +383,7 @@ function openEmptyMenu(latLng, event) {
             x: event.clientX,
             y: event.clientY,
             title: target.name,
-            items: buildEmptyMenu(latLng),
+            items: buildEmptyMenu(),
         });
     }
 }
@@ -470,7 +470,7 @@ function askDeleteCamera(camera) {
 }
 
 /** 지금 동 안의 빈 곳 우클릭 메뉴 항목 */
-function buildEmptyMenu(latLng) {
+function buildEmptyMenu() {
     const items = [{ label: '구역 등록', onClick: () => zoneRegister.begin() }];
     return items;
 }

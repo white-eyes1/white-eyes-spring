@@ -10,7 +10,7 @@
 import { ApiError, get, url } from '../common/api.js';
 import { formatDateTime, formatDecimal, formatNumber } from '../common/format.js';
 import { createPanelCharts, flowSum } from '../chart/panel-charts.js';
-import { SERIES_ITEMS, createSeriesChart } from '../chart/series-chart.js';
+import { createSeriesChart } from '../chart/series-chart.js';
 import { initExportModal, openExportModal } from '../export/export-modal.js';
 import { crumbLabel, drillDown } from './stats-graph/drill.js';
 
