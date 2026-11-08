@@ -2,11 +2,6 @@ package com.whiteeyes.admin.account.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.whiteeyes.admin.account.dto.UserListItem;
-import com.whiteeyes.admin.account.dto.UserSearchRequest;
-import com.whiteeyes.admin.account.repository.UserRow;
-import com.whiteeyes.common.account.entity.UserAccountStatus;
-import com.whiteeyes.common.web.PageResponse;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -16,8 +11,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.whiteeyes.admin.account.dto.UserListItem;
+import com.whiteeyes.admin.account.dto.UserSearchRequest;
+import com.whiteeyes.admin.account.repository.UserRow;
+import com.whiteeyes.common.account.entity.UserAccountStatus;
+import com.whiteeyes.common.web.PageResponse;
 
 /** 사용자 목록 응답 조립: 최근 활동 붙이기·1,000명 상한·메모리 정렬과 페이지(FNC-A-002). */
 class UserListAssemblerTest {
@@ -78,8 +80,8 @@ class UserListAssemblerTest {
     @DisplayName("FNC-A-002 active로 거르면 전체 개수도 거른 뒤 개수(세션 없이 최근 로그인만 있으면 활동 중 아님, #203)")
     void assembleInMemory_activeFilter() {
         sessions.put("u001", toInstant(NOW.minusMinutes(1)));
-        List<UserRow> rows = List.of(
-                row(1, "u001", null), row(2, "u002", NOW.minusMinutes(10)), row(3, "u003", NOW.minusHours(2)));
+        List<UserRow> rows =
+                List.of(row(1, "u001", null), row(2, "u002", NOW.minusMinutes(10)), row(3, "u003", NOW.minusHours(2)));
 
         PageResponse<UserListItem> active =
                 UserListAssembler.assembleInMemory(rows, activities(), request(true, "loginId,asc", 0, 20));

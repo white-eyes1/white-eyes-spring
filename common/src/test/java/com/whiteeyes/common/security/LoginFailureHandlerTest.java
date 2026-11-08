@@ -3,6 +3,7 @@ package com.whiteeyes.common.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -41,7 +42,8 @@ class LoginFailureHandlerTest {
         MockHttpServletRequest notFound = fail(new UsernameNotFoundException("x"), "nobody");
         MockHttpServletRequest badPassword = fail(new BadCredentialsException("x"), "hong01");
 
-        assertThat(notFound.getSession().getAttribute(LoginAttributes.ERROR_MESSAGE)).isEqualTo(INVALID_MESSAGE);
+        assertThat(notFound.getSession().getAttribute(LoginAttributes.ERROR_MESSAGE))
+                .isEqualTo(INVALID_MESSAGE);
         assertThat(badPassword.getSession().getAttribute(LoginAttributes.ERROR_MESSAGE))
                 .isEqualTo(INVALID_MESSAGE);
     }
@@ -51,7 +53,8 @@ class LoginFailureHandlerTest {
     void failure_disabled_usesDisabledMessage() throws Exception {
         MockHttpServletRequest request = fail(new DisabledException("x"), "hong01");
 
-        assertThat(request.getSession().getAttribute(LoginAttributes.ERROR_MESSAGE)).isEqualTo(DISABLED_MESSAGE);
+        assertThat(request.getSession().getAttribute(LoginAttributes.ERROR_MESSAGE))
+                .isEqualTo(DISABLED_MESSAGE);
     }
 
     @Test
@@ -61,7 +64,8 @@ class LoginFailureHandlerTest {
 
         assertThat(request.getSession().getAttribute(LoginAttributes.LOGIN_ID)).isEqualTo("hong01");
         assertThat(Collections.list(request.getSession().getAttributeNames()))
-                .noneMatch(name -> String.valueOf(request.getSession().getAttribute(name)).contains(RAW_PASSWORD));
+                .noneMatch(name ->
+                        String.valueOf(request.getSession().getAttribute(name)).contains(RAW_PASSWORD));
     }
 
     @Test
@@ -69,6 +73,7 @@ class LoginFailureHandlerTest {
     void failure_longLoginId_truncated() throws Exception {
         MockHttpServletRequest request = fail(new BadCredentialsException("x"), "a".repeat(100));
 
-        assertThat((String) request.getSession().getAttribute(LoginAttributes.LOGIN_ID)).hasSize(20);
+        assertThat((String) request.getSession().getAttribute(LoginAttributes.LOGIN_ID))
+                .hasSize(20);
     }
 }

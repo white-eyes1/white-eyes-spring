@@ -90,8 +90,8 @@ class StatSeriesIntegrationTest {
 
         // 10:00 사직 50명(유입 N1·E2, 유출 E3·S3, 체류 600초/4명), 삼청 30명(유입 S4, 유출 N1·W2, 체류 300초/2명, 30초만 받음)
         insertStat(sajik, T0, "50.00", "0.5000", 60, 40, new int[] {1, 2, 0, 0}, new int[] {0, 3, 3, 0}, 600, 4, 60);
-        insertStat(samcheong, T0, "30.00", "0.1000", 40, 20,
-                new int[] {0, 0, 4, 0}, new int[] {1, 0, 0, 2}, 300, 2, 30);
+        insertStat(
+                samcheong, T0, "30.00", "0.1000", 40, 20, new int[] {0, 0, 4, 0}, new int[] {1, 0, 0, 2}, 300, 2, 30);
         // 10:01 사직은 캠이 끊겨 받은 초 0, 삼청 45명
         insertStat(sajik, T1, "0.00", "0.0000", 0, 0, NONE, NONE, 0, 0, 0);
         insertStat(samcheong, T1, "45.00", "0.1500", 50, 40, NONE, NONE, 0, 0, 60);
@@ -115,8 +115,7 @@ class StatSeriesIntegrationTest {
     void zoneSeries_matchesHandCalculation() {
         List<StatSeriesPoint> items = series(StatTargetType.ZONE, sajik, T0, END);
 
-        assertThat(items).extracting(StatSeriesPoint::at)
-                .containsExactly(kst(T0), kst(T1), kst(T2), kst(T3));
+        assertThat(items).extracting(StatSeriesPoint::at).containsExactly(kst(T0), kst(T1), kst(T2), kst(T3));
 
         StatSeriesPoint t0 = items.get(0);
         assertThat(t0.countAvg()).isEqualByComparingTo("50.00");
@@ -125,10 +124,10 @@ class StatSeriesIntegrationTest {
         assertThat(t0.density()).isEqualByComparingTo("0.5000");
         assertThat(t0.level()).isEqualTo(1);
         // 구역 하나는 이웃이 있어도 그대로 센다
-        assertThat(t0.inflow()).containsExactly(
-                Map.entry("N", 1), Map.entry("E", 2), Map.entry("S", 0), Map.entry("W", 0));
-        assertThat(t0.outflow()).containsExactly(
-                Map.entry("N", 0), Map.entry("E", 3), Map.entry("S", 3), Map.entry("W", 0));
+        assertThat(t0.inflow())
+                .containsExactly(Map.entry("N", 1), Map.entry("E", 2), Map.entry("S", 0), Map.entry("W", 0));
+        assertThat(t0.outflow())
+                .containsExactly(Map.entry("N", 0), Map.entry("E", 3), Map.entry("S", 3), Map.entry("W", 0));
         // 600 ÷ 4
         assertThat(t0.dwellAvgSec()).isEqualByComparingTo("150.0");
         assertThat(t0.sampleSec()).isEqualTo(60);
@@ -162,11 +161,11 @@ class StatSeriesIntegrationTest {
         assertThat(t0.density()).isEqualByComparingTo("0.2000");
         assertThat(t0.level()).isEqualTo(1);
         // 유입: 사직 N1·E2(동쪽 이웃 삼청이 종로구 안이라 뺌), 삼청 S4 → N1·S4
-        assertThat(t0.inflow()).containsExactly(
-                Map.entry("N", 1), Map.entry("E", 0), Map.entry("S", 4), Map.entry("W", 0));
+        assertThat(t0.inflow())
+                .containsExactly(Map.entry("N", 1), Map.entry("E", 0), Map.entry("S", 4), Map.entry("W", 0));
         // 유출: 사직 E3(뺌)·S3, 삼청 N1·W2(서쪽 이웃 사직이 종로구 안이라 뺌) → N1·S3
-        assertThat(t0.outflow()).containsExactly(
-                Map.entry("N", 1), Map.entry("E", 0), Map.entry("S", 3), Map.entry("W", 0));
+        assertThat(t0.outflow())
+                .containsExactly(Map.entry("N", 1), Map.entry("E", 0), Map.entry("S", 3), Map.entry("W", 0));
         // (600 + 300) ÷ (4 + 2)
         assertThat(t0.dwellAvgSec()).isEqualByComparingTo("150.0");
         // 합산한 구역 중 가장 큰 받은 초
@@ -194,7 +193,8 @@ class StatSeriesIntegrationTest {
     @Test
     @DisplayName("FNC-C-012 이웃이 지역 밖이면 그 방향 이동은 그대로 센다(사직동만 보면 동쪽 이웃 삼청은 밖)")
     void regionSeries_neighborOutsideRegion_counted() {
-        StatSeriesPoint t0 = series(StatTargetType.REGION, regionId("11110530"), T0, T1).get(0);
+        StatSeriesPoint t0 =
+                series(StatTargetType.REGION, regionId("11110530"), T0, T1).get(0);
 
         assertThat(t0.inflow()).containsEntry("E", 2);
         assertThat(t0.outflow()).containsEntry("E", 3);
@@ -226,8 +226,12 @@ class StatSeriesIntegrationTest {
     @Test
     @DisplayName("FNC-C-012 API는 명세의 필드 이름으로 내보내고, 시각은 +09:00, 빈 점은 null")
     void api_responseShape() throws Exception {
-        String body = mockMvc.perform(request("REGION", String.valueOf(regionId("11110")), "1m",
-                        "2099-01-01T10:00:00+09:00", "2099-01-01T10:04:00+09:00"))
+        String body = mockMvc.perform(request(
+                        "REGION",
+                        String.valueOf(regionId("11110")),
+                        "1m",
+                        "2099-01-01T10:00:00+09:00",
+                        "2099-01-01T10:04:00+09:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(4))
                 .andExpect(jsonPath("$.items[0].at").value("2099-01-01T10:00:00+09:00"))
@@ -242,9 +246,16 @@ class StatSeriesIntegrationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
-        assertThat(body).contains(
-                "\"countMax\":100", "\"countMin\":60", "\"density\":0.2000", "\"level\":1",
-                "\"countAvg\":null", "\"inflow\":null", "\"outflow\":null", "\"dwellAvgSec\":null");
+        assertThat(body)
+                .contains(
+                        "\"countMax\":100",
+                        "\"countMin\":60",
+                        "\"density\":0.2000",
+                        "\"level\":1",
+                        "\"countAvg\":null",
+                        "\"inflow\":null",
+                        "\"outflow\":null",
+                        "\"dwellAvgSec\":null");
 
         // UTC로 보내도 KST로 바꿔 같은 분을 준다. 1일(1,440분)까지는 된다
         mockMvc.perform(request("ZONE", String.valueOf(sajik), "1m", "2099-01-01T01:00:00Z", "2099-01-01T01:01:00Z"))
@@ -275,7 +286,8 @@ class StatSeriesIntegrationTest {
         mockMvc.perform(request("DONG", "1", "1m", "2099-01-01T10:00", "2099-01-01T10:01"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        mockMvc.perform(get(SERIES_URL).with(AdminTestLogin.admin())
+        mockMvc.perform(get(SERIES_URL)
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "ZONE")
                         .param("interval", "1m"))
                 .andExpect(status().isBadRequest())
@@ -343,8 +355,17 @@ class StatSeriesIntegrationTest {
 
     // in·out은 N·E·S·W 순서
     private void insertStat(
-            long zoneId, LocalDateTime statAt, String countAvg, String density, int countMax, int countMin,
-            int[] in, int[] out, int dwellSumSec, int dwellCount, int sampleSec) {
+            long zoneId,
+            LocalDateTime statAt,
+            String countAvg,
+            String density,
+            int countMax,
+            int countMin,
+            int[] in,
+            int[] out,
+            int dwellSumSec,
+            int dwellCount,
+            int sampleSec) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_minute (zone_id, stat_at, count_avg, count_max, count_min, density,"
                         + " in_n, in_e, in_s, in_w, out_n, out_e, out_s, out_w, dwell_sum_sec, dwell_count, sample_sec)"
@@ -355,8 +376,14 @@ class StatSeriesIntegrationTest {
                 countMax,
                 countMin,
                 new BigDecimal(density),
-                in[0], in[1], in[2], in[3],
-                out[0], out[1], out[2], out[3],
+                in[0],
+                in[1],
+                in[2],
+                in[3],
+                out[0],
+                out[1],
+                out[2],
+                out[3],
                 dwellSumSec,
                 dwellCount,
                 sampleSec);

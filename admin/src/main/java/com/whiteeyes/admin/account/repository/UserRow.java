@@ -1,7 +1,8 @@
 package com.whiteeyes.admin.account.repository;
 
-import com.whiteeyes.common.account.entity.UserAccountStatus;
 import java.time.LocalDateTime;
+
+import com.whiteeyes.common.account.entity.UserAccountStatus;
 
 /**
  * 사용자 목록 한 줄에 필요한 user_account 칼럼(tables.md 'user_account'). 비밀번호처럼 목록에 쓰지 않는 칼럼은 담지 않는다.

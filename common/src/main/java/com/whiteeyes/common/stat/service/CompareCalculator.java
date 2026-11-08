@@ -28,8 +28,7 @@ public final class CompareCalculator {
     private static final int WORK_SCALE = 6;
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
-    private CompareCalculator() {
-    }
+    private CompareCalculator() {}
 
     /**
      * @param target 대상 기간의 시각(정시)별 인원

@@ -40,8 +40,14 @@ export function createMapMenu({ onClose } = {}) {
         menu.hidden = false;
         // 화면 밖으로 나가지 않게 밀어 넣는다
         const rect = menu.getBoundingClientRect();
-        const left = Math.max(EDGE_GAP_PX, Math.min(x, window.innerWidth - rect.width - EDGE_GAP_PX));
-        const top = Math.max(EDGE_GAP_PX, Math.min(y, window.innerHeight - rect.height - EDGE_GAP_PX));
+        const left = Math.max(
+            EDGE_GAP_PX,
+            Math.min(x, window.innerWidth - rect.width - EDGE_GAP_PX),
+        );
+        const top = Math.max(
+            EDGE_GAP_PX,
+            Math.min(y, window.innerHeight - rect.height - EDGE_GAP_PX),
+        );
         menu.style.left = `${left}px`;
         menu.style.top = `${top}px`;
         // 포커스가 문서를 스크롤하면 아래 scroll 규칙이 열자마자 메뉴를 닫으므로, 스크롤 없이 포커스만 준다

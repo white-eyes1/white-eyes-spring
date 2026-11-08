@@ -10,8 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.user.support.UserTestAccounts;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +22,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.user.support.UserTestAccounts;
 
 /**
  * 통계 메인(대시보드) 화면 SCR-C-003(FNC-C-008·009·016)과 사용자 공통 헤더 SCR-U-004(FNC-C-002·003)의 사용자 앱 렌더링.

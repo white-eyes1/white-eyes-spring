@@ -1,9 +1,8 @@
 package com.whiteeyes.admin.account.repository;
 
-import com.whiteeyes.admin.account.dto.AccountSortField;
-import com.whiteeyes.admin.account.dto.AdminSearchRequest;
-import com.whiteeyes.admin.account.entity.AdminAccount;
-import com.whiteeyes.admin.account.entity.AdminStatus;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -12,10 +11,13 @@ import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+
+import com.whiteeyes.admin.account.dto.AccountSortField;
+import com.whiteeyes.admin.account.dto.AdminSearchRequest;
+import com.whiteeyes.admin.account.entity.AdminAccount;
+import com.whiteeyes.admin.account.entity.AdminStatus;
 
 /**
  * 관리자 목록 조회(FNC-A-003 처리 순서 1, 'FNC-A-002와 같은 방식'). 검색어·상태 조건을 골라 붙여야 해서 Criteria로 만든다.
@@ -101,11 +103,12 @@ public class AdminAccountQueryRepository {
     }
 
     private static List<SortKey> sortOrder(AccountSortField field, boolean ascending) {
-        String attribute = switch (field) {
-            case CREATED_AT -> "createdAt";
-            case LOGIN_ID -> "loginId";
-            case LAST_ACTIVE_AT -> throw new IllegalArgumentException("최근 활동은 DB 칼럼이 아니다");
-        };
+        String attribute =
+                switch (field) {
+                    case CREATED_AT -> "createdAt";
+                    case LOGIN_ID -> "loginId";
+                    case LAST_ACTIVE_AT -> throw new IllegalArgumentException("최근 활동은 DB 칼럼이 아니다");
+                };
         return List.of(new SortKey(attribute, ascending), new SortKey("id", ascending));
     }
 

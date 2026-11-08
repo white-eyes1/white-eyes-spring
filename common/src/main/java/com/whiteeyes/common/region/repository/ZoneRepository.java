@@ -1,11 +1,13 @@
 package com.whiteeyes.common.region.repository;
 
-import com.whiteeyes.common.region.entity.Zone;
 import java.util.Collection;
 import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.whiteeyes.common.region.entity.Zone;
 
 public interface ZoneRepository extends JpaRepository<Zone, Long> {
 

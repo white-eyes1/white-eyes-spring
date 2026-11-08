@@ -1,5 +1,15 @@
 package com.whiteeyes.admin.account.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.account.dto.UserListItem;
 import com.whiteeyes.admin.account.dto.UserUpdateRequest;
 import com.whiteeyes.admin.account.exception.InvalidUserStatusException;
@@ -13,14 +23,6 @@ import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 관리자가 사용자의 이름·메일·연락처를 고친다(FNC-A-004). 관리자 이상이 부를 수 있다(권한은 AdminSecurityConfig 권한 표).
@@ -52,9 +54,8 @@ public class UserUpdateService {
         // 로그인하지 않은 요청은 값을 바꾸기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
         // 처리 순서 1: 대상 조회(없으면 404). 동시에 고치는 관리자끼리 이전 값이 엇갈리지 않게 행을 잠근다
-        UserAccount user = userAccountRepository
-                .findByIdForUpdate(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+        UserAccount user =
+                userAccountRepository.findByIdForUpdate(userId).orElseThrow(() -> new UserNotFoundException(userId));
         if (user.getStatus() == UserAccountStatus.WITHDRAWN) {
             throw new InvalidUserStatusException(userId, user.getStatus(), ACTION);
         }

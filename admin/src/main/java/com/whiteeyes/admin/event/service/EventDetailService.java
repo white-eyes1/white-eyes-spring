@@ -1,5 +1,17 @@
 package com.whiteeyes.admin.event.service;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.List;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
 import com.whiteeyes.admin.cleanup.config.RetentionProperties;
 import com.whiteeyes.admin.event.dto.EventDetailResponse;
 import com.whiteeyes.admin.event.dto.EventHistoryItem;
@@ -12,16 +24,6 @@ import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkHistory;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.history.service.WorkHistoryService;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.List;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 이벤트 상세(FNC-A-037): 이벤트 1건과 그 처리 이력(작업 기록의 EVENT_STATUS)을 돌려준다.
@@ -63,7 +65,8 @@ public class EventDetailService {
     // 다시보기 녹화 찾기(FNC-A-043)와 같은 설정을 쓴다. 녹화 파일이 있는지는 다시보기가 안내한다
     private boolean isPlaybackAvailable(Event event) {
         return event.getType() != EventType.CAM_FAULT
-                && !event.getStartedAt().isBefore(LocalDateTime.now(KST).minusDays(retentionProperties.recordingDays()));
+                && !event.getStartedAt()
+                        .isBefore(LocalDateTime.now(KST).minusDays(retentionProperties.recordingDays()));
     }
 
     private EventHistoryItem toHistoryItem(WorkHistory history) {

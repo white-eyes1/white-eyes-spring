@@ -62,7 +62,8 @@ public class RegionQueryService {
      */
     @Transactional(readOnly = true)
     public Zone getActiveZone(long zoneId) {
-        return zoneRepository.findById(zoneId)
+        return zoneRepository
+                .findById(zoneId)
                 .filter(zone -> zone.getDeletedAt() == null)
                 .orElseThrow(ZoneNotFoundException::new);
     }

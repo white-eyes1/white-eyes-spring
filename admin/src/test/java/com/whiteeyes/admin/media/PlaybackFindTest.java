@@ -4,12 +4,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +21,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /**
  * 다시보기 녹화 찾기(FNC-A-043). 검수 기준: 라이브 최근 1~2분은 '영상 없음'.
@@ -82,7 +84,8 @@ class PlaybackFindTest {
                 .andExpect(jsonPath("$.videoUrl").value("/api/v1/recordings/" + recordingId + "/video"))
                 .andExpect(jsonPath("$.boxesUrl").value("/api/v1/recordings/" + recordingId + "/boxes"))
                 .andExpect(jsonPath("$.seekSec").value(37.5))
-                .andExpect(jsonPath("$.startedAt").value(start.atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))
+                .andExpect(jsonPath("$.startedAt")
+                        .value(start.atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))
                 .andExpect(jsonPath("$.endedAt").exists())
                 .andExpect(jsonPath("$.videoPath").doesNotExist())
                 .andExpect(jsonPath("$.boxPath").doesNotExist());
@@ -109,7 +112,9 @@ class PlaybackFindTest {
         LocalDateTime start = now.minusHours(2);
         insertRecording(cameraId, start, start.plusMinutes(1));
 
-        playback(zoneId, start).andExpect(status().isOk()).andExpect(jsonPath("$.seekSec").value(0.0));
+        playback(zoneId, start)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.seekSec").value(0.0));
         playback(zoneId, start.plusMinutes(1))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("RECORDING_NOT_FOUND"));
@@ -181,7 +186,9 @@ class PlaybackFindTest {
     void findAt_zoneWithoutCamera_notFound() throws Exception {
         long emptyZone = insertZone("캠 없는 구역");
 
-        playback(emptyZone, now.minusHours(1)).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("RECORDING_NOT_FOUND"));
+        playback(emptyZone, now.minusHours(1))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECORDING_NOT_FOUND"));
     }
 
     @Test
@@ -215,10 +222,11 @@ class PlaybackFindTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recordingId").value(first))
                 .andExpect(jsonPath("$.seekSec").value(0.0))
-                .andExpect(jsonPath("$.startedAt").value(minuteStart
-                        .plusSeconds(27)
-                        .atOffset(ZoneOffset.ofHours(9))
-                        .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
+                .andExpect(jsonPath("$.startedAt")
+                        .value(minuteStart
+                                .plusSeconds(27)
+                                .atOffset(ZoneOffset.ofHours(9))
+                                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
     }
 
     @Test
@@ -262,10 +270,13 @@ class PlaybackFindTest {
     @DisplayName("FNC-A-043 latest=true면 구역에서 가장 늦게 시작한 녹화를 seekSec 0으로 돌려준다")
     void findLatest_returnsLatestStarted() throws Exception {
         insertRecording(cameraId, now.minusHours(5), now.minusHours(5).plusMinutes(1));
-        long latest = insertRecording(cameraId, now.minusHours(1), now.minusHours(1).plusMinutes(1));
+        long latest =
+                insertRecording(cameraId, now.minusHours(1), now.minusHours(1).plusMinutes(1));
         insertRecording(otherCameraId, now.minusMinutes(10), now.minusMinutes(9));
 
-        mockMvc.perform(get("/api/v1/playback").param("zoneId", String.valueOf(zoneId)).param("latest", "true"))
+        mockMvc.perform(get("/api/v1/playback")
+                        .param("zoneId", String.valueOf(zoneId))
+                        .param("latest", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recordingId").value(latest))
                 .andExpect(jsonPath("$.seekSec").value(0.0));
@@ -276,7 +287,9 @@ class PlaybackFindTest {
     void findLatest_onlyWithin30Days() throws Exception {
         insertRecording(cameraId, now.minusDays(31), now.minusDays(31).plusMinutes(1));
 
-        mockMvc.perform(get("/api/v1/playback").param("zoneId", String.valueOf(zoneId)).param("latest", "true"))
+        mockMvc.perform(get("/api/v1/playback")
+                        .param("zoneId", String.valueOf(zoneId))
+                        .param("latest", "true"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("RECORDING_NOT_FOUND"));
     }
@@ -288,12 +301,19 @@ class PlaybackFindTest {
         long recordingId = insertRecording(cameraId, start, start.plusMinutes(1));
         LocalDateTime target = start.plusSeconds(30);
 
-        String utc = target.atZone(KST).withZoneSameInstant(ZoneOffset.UTC).toOffsetDateTime().toString();
-        mockMvc.perform(get("/api/v1/playback").param("zoneId", String.valueOf(zoneId)).param("at", utc))
+        String utc = target.atZone(KST)
+                .withZoneSameInstant(ZoneOffset.UTC)
+                .toOffsetDateTime()
+                .toString();
+        mockMvc.perform(get("/api/v1/playback")
+                        .param("zoneId", String.valueOf(zoneId))
+                        .param("at", utc))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recordingId").value(recordingId))
                 .andExpect(jsonPath("$.seekSec").value(30.0));
-        mockMvc.perform(get("/api/v1/playback").param("zoneId", String.valueOf(zoneId)).param("at", target.toString()))
+        mockMvc.perform(get("/api/v1/playback")
+                        .param("zoneId", String.valueOf(zoneId))
+                        .param("at", target.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.seekSec").value(30.0));
         mockMvc.perform(get("/api/v1/playback")
@@ -312,13 +332,16 @@ class PlaybackFindTest {
         mockMvc.perform(get("/api/v1/playback").param("zoneId", String.valueOf(zoneId)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        mockMvc.perform(get("/api/v1/playback").param("zoneId", String.valueOf(zoneId)).param("at", "어제"))
+        mockMvc.perform(get("/api/v1/playback")
+                        .param("zoneId", String.valueOf(zoneId))
+                        .param("at", "어제"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
     }
 
     private ResultActions playback(long zone, LocalDateTime at) throws Exception {
-        return mockMvc.perform(get("/api/v1/playback").param("zoneId", String.valueOf(zone)).param("at", offset(at)));
+        return mockMvc.perform(
+                get("/api/v1/playback").param("zoneId", String.valueOf(zone)).param("at", offset(at)));
     }
 
     private String offset(LocalDateTime at) {

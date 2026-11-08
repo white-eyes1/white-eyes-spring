@@ -94,7 +94,21 @@ public abstract class ZoneStatRollup {
 
     /** 상위 통계로 다시 묶을 때 쓰는 값. */
     public StatValues values() {
-        return new StatValues(countAvg, countMax, countMin, density, inN, inE, inS, inW, outN, outE, outS, outW,
-                dwellSumSec, dwellCount, sampleSec);
+        return new StatValues(
+                countAvg,
+                countMax,
+                countMin,
+                density,
+                inN,
+                inE,
+                inS,
+                inW,
+                outN,
+                outE,
+                outS,
+                outW,
+                dwellSumSec,
+                dwellCount,
+                sampleSec);
     }
 }

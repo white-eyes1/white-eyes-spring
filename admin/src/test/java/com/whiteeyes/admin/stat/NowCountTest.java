@@ -3,6 +3,23 @@ package com.whiteeyes.admin.stat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.stat.service.DirectionCounts;
 import com.whiteeyes.admin.stat.service.MemoryNowCountSource;
@@ -17,21 +34,6 @@ import com.whiteeyes.common.stat.service.MapStatusService;
 import com.whiteeyes.common.stat.service.NowCountSource;
 import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 /**
@@ -108,7 +110,10 @@ class NowCountTest {
 
         // 더 새로운 초가 오면 그것을 읽는다
         add(store, samcheongZone, NOW.minusSeconds(1), 9);
-        assertThat(source.findFresh(List.of(samcheongZone), NOW).get(samcheongZone).personCount()).isEqualTo(9);
+        assertThat(source.findFresh(List.of(samcheongZone), NOW)
+                        .get(samcheongZone)
+                        .personCount())
+                .isEqualTo(9);
     }
 
     @Test
@@ -117,7 +122,10 @@ class NowCountTest {
         add(store, samcheongZone, NOW.minusSeconds(12), 3); // 11:59:58
         add(store, samcheongZone, NOW.minusSeconds(8), 4); // 12:00:02
 
-        assertThat(source.findFresh(List.of(samcheongZone), NOW).get(samcheongZone).personCount()).isEqualTo(4);
+        assertThat(source.findFresh(List.of(samcheongZone), NOW)
+                        .get(samcheongZone)
+                        .personCount())
+                .isEqualTo(4);
     }
 
     @Test
@@ -136,7 +144,8 @@ class NowCountTest {
         add(store, samcheongZone, NOW.minusSeconds(3), 12);
         add(store, sajikZone, NOW.minusSeconds(16), 30);
 
-        assertThat(source.sumFresh(List.of(samcheongZone, sajikZone), NOW).getAsInt()).isEqualTo(12);
+        assertThat(source.sumFresh(List.of(samcheongZone, sajikZone), NOW).getAsInt())
+                .isEqualTo(12);
         assertThat(source.sumFresh(List.of(sajikZone), NOW)).isEmpty();
         assertThat(source.sumFresh(List.of(), NOW)).isEmpty();
         assertThat(source.findAllFresh(NOW.plusSeconds(60))).isEmpty();
@@ -167,7 +176,8 @@ class NowCountTest {
 
         assertThat(appNowCountSource.findAllFresh(NOW)).hasSize(1);
 
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM zone_stat_minute", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM zone_stat_minute", Integer.class))
+                .isZero();
         assertThat(broadcaster.pollOnce()).isNull();
     }
 
@@ -197,7 +207,8 @@ class NowCountTest {
         add(sharedStore, samcheongZone, NOW.minusSeconds(3), 12);
         add(sharedStore, sajikZone, NOW.minusSeconds(4), 30);
 
-        DashboardSummaryResponse zone = dashboardSummaryService.findSummary(DashboardTargetType.ZONE, samcheongZone, NOW);
+        DashboardSummaryResponse zone =
+                dashboardSummaryService.findSummary(DashboardTargetType.ZONE, samcheongZone, NOW);
         assertThat(zone.currentCount()).isEqualTo(12);
         assertThat(zone.countAvg()).isNull();
         assertThat(zone.statAt()).isNull();
@@ -218,16 +229,20 @@ class NowCountTest {
         add(sharedStore, samcheongZone, NOW.minusSeconds(3), 12);
         add(sharedStore, sajikZone, NOW.minusSeconds(20), 30);
 
-        List<MapStatusItem> zones =
-                mapStatusService.findMapStatus(regionId("11110"), MapUnit.ZONE, NOW).items();
+        List<MapStatusItem> zones = mapStatusService
+                .findMapStatus(regionId("11110"), MapUnit.ZONE, NOW)
+                .items();
         assertThat(zones)
                 .extracting(MapStatusItem::id, MapStatusItem::currentCount)
                 .containsExactlyInAnyOrder(tuple(samcheongZone, 12), tuple(sajikZone, null));
 
-        List<MapStatusItem> sigungus =
-                mapStatusService.findMapStatus(regionId("11"), MapUnit.CHILD, NOW).items();
-        MapStatusItem jongno =
-                sigungus.stream().filter(item -> item.id() == regionId("11110")).findFirst().orElseThrow();
+        List<MapStatusItem> sigungus = mapStatusService
+                .findMapStatus(regionId("11"), MapUnit.CHILD, NOW)
+                .items();
+        MapStatusItem jongno = sigungus.stream()
+                .filter(item -> item.id() == regionId("11110"))
+                .findFirst()
+                .orElseThrow();
         assertThat(jongno.currentCount()).isEqualTo(12);
         assertThat(jongno.countAvg()).isNull();
     }
@@ -253,7 +268,8 @@ class NowCountTest {
     }
 
     private void add(MinuteAccumulatorStore target, long zoneId, LocalDateTime second, int personCount) {
-        target.add(zoneId, second, new SecondResult(personCount, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of()));
+        target.add(
+                zoneId, second, new SecondResult(personCount, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of()));
     }
 
     private long regionId(String code) {

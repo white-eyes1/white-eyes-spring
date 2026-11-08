@@ -1,5 +1,17 @@
 package com.whiteeyes.admin.media.service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.cleanup.config.RetentionProperties;
 import com.whiteeyes.admin.media.dto.PlaybackRangesResponse;
 import com.whiteeyes.admin.media.dto.PlaybackRangesResponse.Range;
@@ -8,16 +20,6 @@ import com.whiteeyes.admin.media.repository.RecordingRepository;
 import com.whiteeyes.common.camera.service.ZoneCameraService;
 import com.whiteeyes.common.exception.BusinessException;
 import com.whiteeyes.common.exception.ErrorCode;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 구역의 시간 범위 안에서 녹화가 있는 구간을 구한다(FNC-A-043 구간 조회, 다시보기 시간축의 '녹화 있음/없음' 띠). */
 @Service

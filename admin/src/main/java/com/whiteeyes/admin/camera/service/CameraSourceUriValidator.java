@@ -1,8 +1,9 @@
 package com.whiteeyes.admin.camera.service;
 
+import org.springframework.stereotype.Component;
+
 import com.whiteeyes.admin.camera.exception.InvalidSourceUriException;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
-import org.springframework.stereotype.Component;
 
 /**
  * 캠 영상 주소 규칙(conventions.md '입력값 규칙'). 파일·스트림이 실제로 있는지는 가동할 때 분석 서버가 확인한다.
@@ -33,8 +34,8 @@ public class CameraSourceUriValidator {
                 if (!sourceUri.startsWith(DUMMY_PREFIX)
                         || !sourceUri.endsWith(DUMMY_SUFFIX)
                         || sourceUri.contains(PARENT_PATH)) {
-                    throw new InvalidSourceUriException("더미(DUMMY) 영상 주소는 " + DUMMY_PREFIX + " 로 시작하고 "
-                            + DUMMY_SUFFIX + " 로 끝나는 상대경로여야 하며 '..'를 쓸 수 없습니다.");
+                    throw new InvalidSourceUriException("더미(DUMMY) 영상 주소는 " + DUMMY_PREFIX + " 로 시작하고 " + DUMMY_SUFFIX
+                            + " 로 끝나는 상대경로여야 하며 '..'를 쓸 수 없습니다.");
                 }
             }
         }

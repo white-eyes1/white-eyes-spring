@@ -1,8 +1,9 @@
 package com.whiteeyes.common.account.dto;
 
-import com.whiteeyes.common.constant.InputRules;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+
+import com.whiteeyes.common.constant.InputRules;
 
 /** {@link PasswordChangeRules}를 검사한다. */
 public class PasswordChangeRulesValidator implements ConstraintValidator<PasswordChangeRules, PasswordChangeRequest> {

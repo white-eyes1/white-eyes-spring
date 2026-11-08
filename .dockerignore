@@ -4,3 +4,4 @@
 **/out
 .env
 docs
+node_modules

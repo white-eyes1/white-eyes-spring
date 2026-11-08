@@ -50,8 +50,6 @@ class PeakHourUserAppTest {
     }
 
     private static MockHttpServletRequestBuilder targetRequest() {
-        return get("/api/v1/dashboard/peak-hours")
-                .param("targetType", "REGION")
-                .param("targetId", "999999");
+        return get("/api/v1/dashboard/peak-hours").param("targetType", "REGION").param("targetId", "999999");
     }
 }

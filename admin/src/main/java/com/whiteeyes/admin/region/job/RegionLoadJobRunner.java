@@ -1,8 +1,8 @@
 package com.whiteeyes.admin.region.job;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import java.nio.file.Path;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -11,6 +11,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
 
 /** 실행 옵션 --job=load-regions --file={경계 파일}로 행정구역을 적재하고 앱을 끝낸다(FNC-A-012). */
 @Slf4j

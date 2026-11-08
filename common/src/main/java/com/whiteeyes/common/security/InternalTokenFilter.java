@@ -1,17 +1,19 @@
 package com.whiteeyes.common.security;
 
-import com.whiteeyes.common.exception.ErrorCode;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.exception.ErrorCode;
 
 /**
  * 내부 API(/internal/**)는 세션 대신 X-Internal-Token 헤더로만 인증한다(FNC-C-003, conventions.md '내부 통신 인증').
@@ -26,14 +28,12 @@ public class InternalTokenFilter extends OncePerRequestFilter {
     private final JsonMapper jsonMapper;
 
     public InternalTokenFilter(String expectedToken, JsonMapper jsonMapper) {
-        this.expectedToken =
-                StringUtils.hasText(expectedToken) ? expectedToken.getBytes(StandardCharsets.UTF_8) : null;
+        this.expectedToken = StringUtils.hasText(expectedToken) ? expectedToken.getBytes(StandardCharsets.UTF_8) : null;
         this.jsonMapper = jsonMapper;
     }
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         if (isValid(request.getHeader(TOKEN_HEADER))) {
             filterChain.doFilter(request, response);

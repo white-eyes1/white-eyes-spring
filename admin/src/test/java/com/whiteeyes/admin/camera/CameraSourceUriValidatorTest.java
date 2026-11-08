@@ -3,12 +3,13 @@ package com.whiteeyes.admin.camera;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.whiteeyes.admin.camera.exception.InvalidSourceUriException;
-import com.whiteeyes.admin.camera.service.CameraSourceUriValidator;
-import com.whiteeyes.common.camera.entity.CameraSourceType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import com.whiteeyes.admin.camera.exception.InvalidSourceUriException;
+import com.whiteeyes.admin.camera.service.CameraSourceUriValidator;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
 
 /** 캠 영상 주소 검증(FNC-A-018 캠 등록, FNC-A-019 캠 정보 수정) */
 class CameraSourceUriValidatorTest {
@@ -23,7 +24,13 @@ class CameraSourceUriValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"http://192.168.0.10/stream", "RTSP://192.168.0.10/stream", "rtsp:/192.168.0.10", "dummy/videos/a.mp4"})
+    @ValueSource(
+            strings = {
+                "http://192.168.0.10/stream",
+                "RTSP://192.168.0.10/stream",
+                "rtsp:/192.168.0.10",
+                "dummy/videos/a.mp4"
+            })
     @DisplayName("LIVE는 rtsp:// 로 시작하지 않으면 거부")
     void live_invalid(String uri) {
         assertThatThrownBy(() -> validator.validate(CameraSourceType.LIVE, uri))
@@ -38,16 +45,17 @@ class CameraSourceUriValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "videos/a.mp4",
-        "/srv/media/dummy/videos/a.mp4",
-        "/dummy/videos/a.mp4",
-        "dummy/videos/a.avi",
-        "dummy/videos/a.mp4.txt",
-        "dummy/videos/../a.mp4",
-        "dummy/videos/..a.mp4",
-        "rtsp://192.168.0.10/stream"
-    })
+    @ValueSource(
+            strings = {
+                "videos/a.mp4",
+                "/srv/media/dummy/videos/a.mp4",
+                "/dummy/videos/a.mp4",
+                "dummy/videos/a.avi",
+                "dummy/videos/a.mp4.txt",
+                "dummy/videos/../a.mp4",
+                "dummy/videos/..a.mp4",
+                "rtsp://192.168.0.10/stream"
+            })
     @DisplayName("DUMMY는 상대경로 규칙을 어기면 거부")
     void dummy_invalid(String uri) {
         assertThatThrownBy(() -> validator.validate(CameraSourceType.DUMMY, uri))

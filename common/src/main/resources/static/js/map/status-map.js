@@ -10,7 +10,13 @@ const OFF_PAINT = '#4a5768';
 // 지금 보는 지역은 굵은 실선과 옅은 채움으로 강조한다(지역 밖을 어둡게 덮지는 않는다)
 // 꼭짓점을 고치는 구역의 모양(구역 수정, FNC-A-015)
 const EDIT_STYLE = { color: '#76a7ff', weight: 3, fillColor: '#4f8cff', fillOpacity: 0.28 };
-const OUTLINE_TARGET = { color: '#1f3a5f', weight: 3.5, fill: true, fillColor: '#4f8cff', fillOpacity: 0.07 };
+const OUTLINE_TARGET = {
+    color: '#1f3a5f',
+    weight: 3.5,
+    fill: true,
+    fillColor: '#4f8cff',
+    fillOpacity: 0.07,
+};
 const OUTLINE_SIBLING = { color: '#4a5d78', weight: 2, dashArray: '6 4', fill: false };
 // 마우스를 올렸을 때: 칠 진하기를 이만큼 올리되 이 값을 넘기지 않는다(지도가 가려지지 않게)
 const HOVER_FILL_BOOST = 0.2;
@@ -53,7 +59,20 @@ export function createRegionMap(element, region, previous) {
  *   onPinClick: 구역 핀을 눌렀을 때(관리자 앱은 실시간 보기 창). 없으면 구역 정보 팝업을 연다(사용자 앱, FNC-C-009)
  *   levels: GET /meta/levels. 팝업의 혼잡 단계 이름에 쓴다
  */
-export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZoneMenu, onEmptyMenu, isBusy, onViewStart, onViewChange, onPinClick, levels = [] }) {
+export function createStatusLayer(
+    map,
+    {
+        onSelectRegion,
+        onSelectSibling,
+        onZoneMenu,
+        onEmptyMenu,
+        isBusy,
+        onViewStart,
+        onViewChange,
+        onPinClick,
+        levels = [],
+    },
+) {
     // 윤곽선은 단계 색 경계 아래에 깐다. 지금 지역은 눌러도 반응하지 않고, 이웃 지역은 누르면 이동한다
     const outlines = L.layerGroup().addTo(map);
     const boundaries = L.layerGroup().addTo(map);
@@ -74,7 +93,11 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
     if (onZoneMenu || onEmptyMenu) {
         map.on('contextmenu', (event) => {
             L.DomEvent.preventDefault(event.originalEvent);
-            if (!isBusy?.() && onEmptyMenu && regionRings.some((ring) => insideRing(event.latlng, ring))) {
+            if (
+                !isBusy?.() &&
+                onEmptyMenu &&
+                regionRings.some((ring) => insideRing(event.latlng, ring))
+            ) {
                 onEmptyMenu(event.latlng, event.originalEvent);
             }
         });
@@ -85,7 +108,12 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             return;
         }
         // 누를 수 있는 윤곽선은 안쪽도 눌리도록 투명한 채움을 둔다(채움이 없으면 선만 눌린다)
-        const layer = L.geoJSON(boundary, onClick ? { style: { ...style, fill: true, fillOpacity: 0 } } : { style, interactive: false });
+        const layer = L.geoJSON(
+            boundary,
+            onClick
+                ? { style: { ...style, fill: true, fillOpacity: 0 } }
+                : { style, interactive: false },
+        );
         if (onClick) {
             layer.on('click', () => {
                 if (!isBusy?.()) {
@@ -94,7 +122,9 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             });
             // 올리면 영역이 살짝 칠해지고 이름이 뜬다(누를 수 있다는 표시)
             layer.bindTooltip(textTooltip(name, '눌러서 이동'), { sticky: true });
-            layer.on('mouseover', () => layer.setStyle({ weight: style.weight + 1.5, fillOpacity: OUTLINE_HOVER_FILL }));
+            layer.on('mouseover', () =>
+                layer.setStyle({ weight: style.weight + 1.5, fillOpacity: OUTLINE_HOVER_FILL }),
+            );
             layer.on('mouseout', () => layer.setStyle({ weight: style.weight, fillOpacity: 0 }));
         }
         outlines.addLayer(layer);
@@ -113,7 +143,12 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
         const painted = paint?.get(entry.id);
         let style;
         if (paint && painted) {
-            style = { color: painted.color, weight: 1.5, fillColor: painted.color, fillOpacity: painted.fillOpacity };
+            style = {
+                color: painted.color,
+                weight: 1.5,
+                fillColor: painted.color,
+                fillOpacity: painted.fillOpacity,
+            };
         } else if (paint) {
             // 히트맵 값이 없는 칸은 회색(FNC-C-011 예외 상황)
             style = { color: OFF_PAINT, weight: 1, fillColor: OFF_PAINT, fillOpacity: 0.12 };
@@ -121,7 +156,11 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             style = entry.style;
         }
         return entry.hover
-            ? { ...style, weight: style.weight + 1.5, fillOpacity: Math.min(HOVER_MAX_FILL, style.fillOpacity + HOVER_FILL_BOOST) }
+            ? {
+                  ...style,
+                  weight: style.weight + 1.5,
+                  fillOpacity: Math.min(HOVER_MAX_FILL, style.fillOpacity + HOVER_FILL_BOOST),
+              }
             : style;
     }
 
@@ -180,7 +219,17 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
                     });
                 }
                 boundaries.addLayer(layer);
-                const entry = { id, name, layer, style: layer.options.style, item, hover: false, held: false, editing: false, isZone: Boolean(zoom) };
+                const entry = {
+                    id,
+                    name,
+                    layer,
+                    style: layer.options.style,
+                    item,
+                    hover: false,
+                    held: false,
+                    editing: false,
+                    isZone: Boolean(zoom),
+                };
                 layer.on('mouseover', () => {
                     entry.hover = true;
                     layer.setStyle(styleOf(entry));
@@ -201,7 +250,9 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
         /** 우클릭 메뉴가 뜬 구역(zoneId)을 강조한 채로 붙들어 둔다. 마우스가 메뉴로 옮겨가도 풀리지 않는다(releaseZone으로 푼다). */
         holdZone(zoneId) {
             this.releaseZone();
-            const entry = boundaryLayers.find((candidate) => candidate.isZone && candidate.id === zoneId);
+            const entry = boundaryLayers.find(
+                (candidate) => candidate.isZone && candidate.id === zoneId,
+            );
             if (entry) {
                 entry.held = true;
                 entry.hover = true;
@@ -226,7 +277,9 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
          */
         startZoneEdit(zoneId, onChange) {
             this.stopZoneEdit();
-            const entry = boundaryLayers.find((candidate) => candidate.isZone && candidate.id === zoneId);
+            const entry = boundaryLayers.find(
+                (candidate) => candidate.isZone && candidate.id === zoneId,
+            );
             const polygon = entry ? entry.layer.getLayers()[0] : null;
             if (!polygon) {
                 return;
@@ -235,7 +288,10 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             entry.layer.setStyle(EDIT_STYLE);
             entry.layer.bringToFront();
             // 꼭짓점을 지워 3점 아래로 내려가면 구역 모양이 사라지므로, 3점 아래로는 지울 수 없게 한다
-            polygon.pm.enable({ allowSelfIntersection: false, removeLayerBelowMinVertexCount: false });
+            polygon.pm.enable({
+                allowSelfIntersection: false,
+                removeLayerBelowMinVertexCount: false,
+            });
             const handler = () => onChange(polygon.toGeoJSON().geometry);
             polygon.on('pm:edit', handler);
             zoneEditing = { entry, polygon, handler };
@@ -263,7 +319,12 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             outlines.clearLayers();
             regionRings = target.boundary ? outerRings(target.boundary) : [];
             siblings.forEach(({ id, name, boundary }) =>
-                addOutline(boundary, OUTLINE_SIBLING, onSelectSibling ? () => onSelectSibling(id) : undefined, name),
+                addOutline(
+                    boundary,
+                    OUTLINE_SIBLING,
+                    onSelectSibling ? () => onSelectSibling(id) : undefined,
+                    name,
+                ),
             );
             addOutline(target.boundary, OUTLINE_TARGET);
         },
@@ -284,7 +345,10 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
             pins.clearLayers();
             zonePoints = items
                 .filter((item) => item.centerLat !== null && item.centerLat !== undefined)
-                .map((item) => ({ item, latLng: L.latLng(Number(item.centerLat), Number(item.centerLng)) }));
+                .map((item) => ({
+                    item,
+                    latLng: L.latLng(Number(item.centerLat), Number(item.centerLng)),
+                }));
             zonePoints.forEach(({ item, latLng }) => {
                 const marker = L.marker(latLng, { icon: pinIcon(item) });
                 // 올릴 때마다 만들어 그때까지 받은 5초 현재 인원을 담는다
@@ -319,7 +383,11 @@ export function createStatusLayer(map, { onSelectRegion, onSelectSibling, onZone
         /** 지금 지도 화면 안에 핀이 있는 구역 id (캠 패널이 '지도 화면 안 캠'을 거를 때 쓴다) */
         visibleZoneIds() {
             const bounds = map.getBounds();
-            return new Set(zonePoints.filter(({ latLng }) => bounds.contains(latLng)).map(({ item }) => item.id));
+            return new Set(
+                zonePoints
+                    .filter(({ latLng }) => bounds.contains(latLng))
+                    .map(({ item }) => item.id),
+            );
         },
 
         /** 통계 패널을 접고 펼치거나 캠 패널 높이가 바뀌어 지도 칸 크기가 달라진 뒤에 부른다 */
@@ -350,7 +418,10 @@ function insideRing(point, ring) {
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
         const a = ring[i];
         const b = ring[j];
-        if (a.lat > point.lat !== b.lat > point.lat && point.lng < ((b.lng - a.lng) * (point.lat - a.lat)) / (b.lat - a.lat) + a.lng) {
+        if (
+            a.lat > point.lat !== b.lat > point.lat &&
+            point.lng < ((b.lng - a.lng) * (point.lat - a.lat)) / (b.lat - a.lat) + a.lng
+        ) {
             inside = !inside;
         }
     }

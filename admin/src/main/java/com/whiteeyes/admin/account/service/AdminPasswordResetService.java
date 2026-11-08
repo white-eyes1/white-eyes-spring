@@ -1,5 +1,14 @@
 package com.whiteeyes.admin.account.service;
 
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.account.dto.PasswordResetResponse;
 import com.whiteeyes.admin.account.entity.AdminAccount;
 import com.whiteeyes.admin.account.entity.AdminRole;
@@ -10,13 +19,6 @@ import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 관리자(role=ADMIN)에게 임시 비밀번호를 발급한다(FNC-A-010, 처리 순서는 FNC-A-005와 같음).
@@ -64,7 +66,12 @@ public class AdminPasswordResetService {
         admin.resetPassword(passwordEncoder.encode(temporaryPassword));
         // 처리 순서 4: 작업 기록. 계정의 대상 이름은 아이디다(tables.md work_history.target_name)
         workRecorder.record(
-                actor, WorkAction.ACCOUNT_CHANGE, WorkTargetType.ADMIN_ACCOUNT, adminId, admin.getLoginId(), RESET_DETAIL);
+                actor,
+                WorkAction.ACCOUNT_CHANGE,
+                WorkTargetType.ADMIN_ACCOUNT,
+                adminId,
+                admin.getLoginId(),
+                RESET_DETAIL);
         // 처리 순서 3: 대상의 모든 세션 삭제. 되돌릴 수 없어 기록 뒤 맨 끝에 한다
         int deletedSessions = accountSessionService.endAdminSessions(admin.getLoginId());
         log.info("관리자 비밀번호 재설정 adminId={} 삭제한 세션={}", adminId, deletedSessions);

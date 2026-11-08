@@ -1,5 +1,14 @@
 package com.whiteeyes.admin.account.service;
 
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.account.dto.PasswordResetResponse;
 import com.whiteeyes.admin.account.exception.InvalidUserStatusException;
 import com.whiteeyes.admin.account.exception.UserNotFoundException;
@@ -10,13 +19,6 @@ import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 사용자에게 임시 비밀번호를 발급한다(FNC-A-005). 관리자 이상이 부를 수 있다(권한은 AdminSecurityConfig 권한 표).
@@ -52,9 +54,8 @@ public class UserPasswordResetService {
     public PasswordResetResponse reset(Long userId) {
         // 로그인하지 않은 요청은 비밀번호를 바꾸기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
-        UserAccount user = userAccountRepository
-                .findByIdForUpdate(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+        UserAccount user =
+                userAccountRepository.findByIdForUpdate(userId).orElseThrow(() -> new UserNotFoundException(userId));
         if (user.getStatus() == UserAccountStatus.WITHDRAWN) {
             throw new InvalidUserStatusException(userId, user.getStatus(), ACTION);
         }

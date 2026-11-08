@@ -2,13 +2,14 @@ package com.whiteeyes.admin.account.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,7 +18,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 /** 사용자 목록 조회 조건의 기본값과 검증(FNC-A-002). */
 class UserSearchRequestTest {
 
-    private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+    private final Validator validator =
+            Validation.buildDefaultValidatorFactory().getValidator();
 
     @Test
     @DisplayName("FNC-A-002 비운 값은 기본값: 0페이지, 20개, 최근 가입 순")
@@ -74,7 +76,8 @@ class UserSearchRequestTest {
     void joinedRange() {
         LocalDate day = LocalDate.of(2026, 10, 12);
 
-        assertThat(fieldsOf(validator.validate(withJoined(day, day.minusDays(1))))).containsExactly("joinedTo");
+        assertThat(fieldsOf(validator.validate(withJoined(day, day.minusDays(1)))))
+                .containsExactly("joinedTo");
         assertThat(validator.validate(withJoined(day, day))).isEmpty();
     }
 

@@ -1,5 +1,24 @@
 package com.whiteeyes.admin.event.service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.camera.service.CameraQueryService;
 import com.whiteeyes.admin.event.dto.EventListItem;
 import com.whiteeyes.admin.event.dto.EventSearchRequest;
@@ -11,23 +30,6 @@ import com.whiteeyes.common.event.entity.EventType;
 import com.whiteeyes.common.event.repository.EventRepository;
 import com.whiteeyes.common.event.repository.EventSpecifications;
 import com.whiteeyes.common.web.PageResponse;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 이벤트 목록(FNC-A-036): 기간·지역·종류·처리 상태·검색어로 거른 이벤트를 발생 시각 내림차순으로 페이지 단위로 돌려준다.
@@ -54,7 +56,8 @@ public class EventListService {
         if (base.isEmpty()) {
             return PageResponse.of(List.of(), request.page(), request.size(), 0);
         }
-        Specification<Event> condition = Specification.allOf(base.get(), EventSpecifications.ofStatuses(request.statuses()));
+        Specification<Event> condition =
+                Specification.allOf(base.get(), EventSpecifications.ofStatuses(request.statuses()));
         Page<Event> events =
                 eventRepository.findAll(condition, PageRequest.of(request.page(), request.size(), LATEST_FIRST));
 
@@ -74,14 +77,13 @@ public class EventListService {
             return List.of();
         }
         Set<Long> zoneIds = events.stream().map(Event::getZoneId).collect(Collectors.toSet());
-        Set<Long> cameraIds = events.stream()
-                .map(Event::getCameraId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        Set<Long> cameraIds =
+                events.stream().map(Event::getCameraId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, ZoneSummary> zones = zoneService.findSummaries(zoneIds);
         Map<Long, String> regionPaths = regionLookupService.findPaths(
                 zones.values().stream().map(ZoneSummary::dongId).collect(Collectors.toSet()));
-        Map<Long, String> cameraNamesById = cameraIds.isEmpty() ? Map.of() : cameraQueryService.findNamesByIds(cameraIds);
+        Map<Long, String> cameraNamesById =
+                cameraIds.isEmpty() ? Map.of() : cameraQueryService.findNamesByIds(cameraIds);
         LocalDateTime now = LocalDateTime.now(KST);
 
         return events.stream()

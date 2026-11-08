@@ -116,8 +116,12 @@ function clearErrors() {
 openButton.addEventListener('click', openModal);
 passwordInput.addEventListener('input', onPasswordInput);
 form.addEventListener('submit', openConfirm);
-modal.querySelectorAll('[data-withdraw-close]').forEach((button) => button.addEventListener('click', closeModal));
-confirmModal.querySelectorAll('[data-withdraw-confirm-close]').forEach((button) => button.addEventListener('click', closeConfirm));
+modal
+    .querySelectorAll('[data-withdraw-close]')
+    .forEach((button) => button.addEventListener('click', closeModal));
+confirmModal
+    .querySelectorAll('[data-withdraw-confirm-close]')
+    .forEach((button) => button.addEventListener('click', closeConfirm));
 confirmOk.addEventListener('click', withdraw);
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') {

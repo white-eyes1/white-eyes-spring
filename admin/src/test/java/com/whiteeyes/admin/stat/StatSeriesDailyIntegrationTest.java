@@ -105,13 +105,14 @@ class StatSeriesDailyIntegrationTest {
     @DisplayName("FNC-C-012 검수 기준: 1d는 일별 통계(#146이 sample_sec 가중 평균으로 묶은 값)를 그대로 준다")
     void zoneDay_sameAsDailyAggregation() {
         // 9시 10명(밀집 0.1, 3600초), 10시 30명(밀집 0.3, 1800초, 시연용)
-        insertHourly(sajik, D0.atTime(9, 0), "10.00", "0.1000", 20, 5,
-                new int[] {10, 0, 0, 0}, NONE, 1000, 10, 3600, false);
-        insertHourly(sajik, D0.atTime(10, 0), "30.00", "0.3000", 60, 2,
-                new int[] {20, 0, 0, 0}, NONE, 500, 5, 1800, true);
+        insertHourly(
+                sajik, D0.atTime(9, 0), "10.00", "0.1000", 20, 5, new int[] {10, 0, 0, 0}, NONE, 1000, 10, 3600, false);
+        insertHourly(
+                sajik, D0.atTime(10, 0), "30.00", "0.3000", 60, 2, new int[] {20, 0, 0, 0}, NONE, 500, 5, 1800, true);
         dailyStatService.aggregateDay(D0);
 
-        StatSeriesPoint point = series(StatTargetType.ZONE, sajik, D0.atStartOfDay(), D1.atStartOfDay()).get(0);
+        StatSeriesPoint point = series(StatTargetType.ZONE, sajik, D0.atStartOfDay(), D1.atStartOfDay())
+                .get(0);
 
         // 손 계산: 인원 (10×3600 + 30×1800) ÷ 5400 = 16.666…, 밀집도 (0.1×3600 + 0.3×1800) ÷ 5400 = 0.1666…,
         // 최대 60, 최소 2, 유입 N 10+20, 체류 (1000+500) ÷ (10+5) = 100, 받은 초 3600+1800, 시연용 시간이 섞여 시연용
@@ -126,7 +127,8 @@ class StatSeriesDailyIntegrationTest {
         assertThat(point.isDemo()).isTrue();
 
         // #146이 저장한 일별 행과도 같다
-        ZoneStatDaily daily = zoneStatDailyRepository.findById(new ZoneStatDailyId(sajik, D0)).orElseThrow();
+        ZoneStatDaily daily =
+                zoneStatDailyRepository.findById(new ZoneStatDailyId(sajik, D0)).orElseThrow();
         assertThat(point.countAvg()).isEqualByComparingTo(daily.getCountAvg());
         assertThat(point.density()).isEqualByComparingTo(daily.getDensity());
         assertThat(point.countMax()).isEqualTo(daily.getCountMax());
@@ -141,8 +143,8 @@ class StatSeriesDailyIntegrationTest {
         insertDailyRows();
 
         // from이 하루 중간이면 그날부터, to가 0시가 아니면 그날까지
-        List<StatSeriesPoint> items = series(
-                StatTargetType.REGION, regionId("11110"), D0.atTime(12, 0), D3.atTime(6, 0));
+        List<StatSeriesPoint> items =
+                series(StatTargetType.REGION, regionId("11110"), D0.atTime(12, 0), D3.atTime(6, 0));
 
         assertThat(items).extracting(StatSeriesPoint::at).containsExactly(kst(D0), kst(D1), kst(D2), kst(D3));
 
@@ -153,10 +155,10 @@ class StatSeriesDailyIntegrationTest {
         assertThat(d0.countMin()).isEqualTo(80);
         assertThat(d0.density()).isEqualByComparingTo("0.4000");
         // 유입: 사직 N2·E6(뺌), 삼청 S5 / 유출: 사직 E7(뺌)·S1, 삼청 N2·W4(뺌)
-        assertThat(d0.inflow()).containsExactly(
-                Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 5), Map.entry("W", 0));
-        assertThat(d0.outflow()).containsExactly(
-                Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 1), Map.entry("W", 0));
+        assertThat(d0.inflow())
+                .containsExactly(Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 5), Map.entry("W", 0));
+        assertThat(d0.outflow())
+                .containsExactly(Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 1), Map.entry("W", 0));
         assertThat(d0.sampleSec()).isEqualTo(86400);
         // 삼청 행이 시연용
         assertThat(d0.isDemo()).isTrue();
@@ -178,7 +180,8 @@ class StatSeriesDailyIntegrationTest {
     void api_day() throws Exception {
         insertDailyRows();
 
-        mockMvc.perform(get("/api/v1/stats/series").with(AdminTestLogin.admin())
+        mockMvc.perform(get("/api/v1/stats/series")
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "ZONE")
                         .param("targetId", String.valueOf(sajik))
                         .param("interval", "1d")
@@ -193,7 +196,8 @@ class StatSeriesDailyIntegrationTest {
                 .andExpect(jsonPath("$.items[1].at").value("2099-01-02T00:00:00+09:00"))
                 .andExpect(jsonPath("$.items[1].sampleSec").value(0));
 
-        mockMvc.perform(get("/api/v1/stats/series").with(AdminTestLogin.admin())
+        mockMvc.perform(get("/api/v1/stats/series")
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "ZONE")
                         .param("targetId", String.valueOf(sajik))
                         .param("interval", "1d")
@@ -207,10 +211,10 @@ class StatSeriesDailyIntegrationTest {
     // 일별 행을 직접 넣는다(시연용 행은 생성 스크립트가 넣으므로 시간별 통계를 묶어서는 섞을 수 없다)
     private void insertDailyRows() {
         // 1/1: 사직 100명(밀집 1.0, 유입 N2·E6, 유출 E7·S1), 삼청 60명(유입 S5, 유출 N2·W4, 시연용)
-        insertDaily(sajik, D0, "100.00", "1.0000", 150, 50,
-                new int[] {2, 6, 0, 0}, new int[] {0, 7, 1, 0}, 86400, false);
-        insertDaily(samcheong, D0, "60.00", "0.2000", 90, 30,
-                new int[] {0, 0, 5, 0}, new int[] {2, 0, 0, 4}, 43200, true);
+        insertDaily(
+                sajik, D0, "100.00", "1.0000", 150, 50, new int[] {2, 6, 0, 0}, new int[] {0, 7, 1, 0}, 86400, false);
+        insertDaily(
+                samcheong, D0, "60.00", "0.2000", 90, 30, new int[] {0, 0, 5, 0}, new int[] {2, 0, 0, 4}, 43200, true);
         // 1/2: 사직 받은 초 0, 삭제된 구역 30명
         insertDaily(sajik, D1, "0.00", "0.0000", 0, 0, NONE, NONE, 0, false);
         insertDaily(deletedZone, D1, "30.00", "0.3000", 40, 20, NONE, NONE, 86400, false);
@@ -265,28 +269,74 @@ class StatSeriesDailyIntegrationTest {
 
     // in·out은 N·E·S·W 순서
     private void insertHourly(
-            long zoneId, LocalDateTime statAt, String countAvg, String density, int countMax, int countMin,
-            int[] in, int[] out, int dwellSumSec, int dwellCount, int sampleSec, boolean demo) {
+            long zoneId,
+            LocalDateTime statAt,
+            String countAvg,
+            String density,
+            int countMax,
+            int countMin,
+            int[] in,
+            int[] out,
+            int dwellSumSec,
+            int dwellCount,
+            int sampleSec,
+            boolean demo) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_hourly (zone_id, stat_at, count_avg, count_max, count_min, density,"
                         + " in_n, in_e, in_s, in_w, out_n, out_e, out_s, out_w,"
                         + " dwell_sum_sec, dwell_count, sample_sec, is_demo)"
                         + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                zoneId, Timestamp.valueOf(statAt), new BigDecimal(countAvg), countMax, countMin,
-                new BigDecimal(density), in[0], in[1], in[2], in[3], out[0], out[1], out[2], out[3],
-                dwellSumSec, dwellCount, sampleSec, demo);
+                zoneId,
+                Timestamp.valueOf(statAt),
+                new BigDecimal(countAvg),
+                countMax,
+                countMin,
+                new BigDecimal(density),
+                in[0],
+                in[1],
+                in[2],
+                in[3],
+                out[0],
+                out[1],
+                out[2],
+                out[3],
+                dwellSumSec,
+                dwellCount,
+                sampleSec,
+                demo);
     }
 
     // in·out은 N·E·S·W 순서. 체류는 0
     private void insertDaily(
-            long zoneId, LocalDate statDate, String countAvg, String density, int countMax, int countMin,
-            int[] in, int[] out, int sampleSec, boolean demo) {
+            long zoneId,
+            LocalDate statDate,
+            String countAvg,
+            String density,
+            int countMax,
+            int countMin,
+            int[] in,
+            int[] out,
+            int sampleSec,
+            boolean demo) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_daily (zone_id, stat_date, count_avg, count_max, count_min, density,"
                         + " in_n, in_e, in_s, in_w, out_n, out_e, out_s, out_w, sample_sec, is_demo)"
                         + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                zoneId, Date.valueOf(statDate), new BigDecimal(countAvg), countMax, countMin,
-                new BigDecimal(density), in[0], in[1], in[2], in[3], out[0], out[1], out[2], out[3],
-                sampleSec, demo);
+                zoneId,
+                Date.valueOf(statDate),
+                new BigDecimal(countAvg),
+                countMax,
+                countMin,
+                new BigDecimal(density),
+                in[0],
+                in[1],
+                in[2],
+                in[3],
+                out[0],
+                out[1],
+                out[2],
+                out[3],
+                sampleSec,
+                demo);
     }
 }

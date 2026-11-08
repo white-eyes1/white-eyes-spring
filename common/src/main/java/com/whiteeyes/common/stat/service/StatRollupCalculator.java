@@ -19,14 +19,25 @@ import com.whiteeyes.common.stat.entity.ZoneStatMinute;
  */
 public final class StatRollupCalculator {
 
-    private StatRollupCalculator() {
-    }
+    private StatRollupCalculator() {}
 
     public static StatValues of(ZoneStatMinute minute) {
-        return new StatValues(minute.getCountAvg(), minute.getCountMax(), minute.getCountMin(), minute.getDensity(),
-                minute.getInN(), minute.getInE(), minute.getInS(), minute.getInW(),
-                minute.getOutN(), minute.getOutE(), minute.getOutS(), minute.getOutW(),
-                minute.getDwellSumSec(), minute.getDwellCount(), minute.getSampleSec());
+        return new StatValues(
+                minute.getCountAvg(),
+                minute.getCountMax(),
+                minute.getCountMin(),
+                minute.getDensity(),
+                minute.getInN(),
+                minute.getInE(),
+                minute.getInS(),
+                minute.getInW(),
+                minute.getOutN(),
+                minute.getOutE(),
+                minute.getOutS(),
+                minute.getOutW(),
+                minute.getDwellSumSec(),
+                minute.getDwellCount(),
+                minute.getSampleSec());
     }
 
     /**
@@ -34,7 +45,8 @@ public final class StatRollupCalculator {
      * @return 묶은 값. 받은 초가 있는 행이 하나도 없으면 가중 평균을 낼 수 없어 비어 있다
      */
     public static Optional<StatValues> rollUp(List<StatValues> rows) {
-        List<StatValues> sampled = rows.stream().filter(row -> row.sampleSec() > 0).toList();
+        List<StatValues> sampled =
+                rows.stream().filter(row -> row.sampleSec() > 0).toList();
         if (sampled.isEmpty()) {
             return Optional.empty();
         }

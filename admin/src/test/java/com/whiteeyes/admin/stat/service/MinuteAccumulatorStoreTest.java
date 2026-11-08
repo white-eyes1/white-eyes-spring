@@ -36,7 +36,8 @@ class MinuteAccumulatorStoreTest {
     @DisplayName("FNC-A-024 서로 다른 초는 모두 더함")
     void sumsDifferentSeconds() {
         store.add(ZONE_ID, MINUTE.withSecond(6), secondResult(30, new DirectionCounts(0, 1, 0, 0), List.of(5.0)));
-        store.add(ZONE_ID, MINUTE.withSecond(5), secondResult(20, new DirectionCounts(1, 0, 0, 0), List.of(305.2, 41.0)));
+        store.add(
+                ZONE_ID, MINUTE.withSecond(5), secondResult(20, new DirectionCounts(1, 0, 0, 0), List.of(305.2, 41.0)));
 
         MinuteAccumulator accumulator = store.closeMinute(ZONE_ID, MINUTE).orElseThrow();
 
@@ -89,7 +90,8 @@ class MinuteAccumulatorStoreTest {
         store.closeMinute(ZONE_ID, MINUTE.plusMinutes(11));
 
         assertThat(store.add(ZONE_ID, MINUTE.withSecond(10), secondResult(40))).isTrue();
-        assertThat(store.add(ZONE_ID, keptMinute.withSecond(10), secondResult(40))).isFalse();
+        assertThat(store.add(ZONE_ID, keptMinute.withSecond(10), secondResult(40)))
+                .isFalse();
     }
 
     @Test
@@ -105,7 +107,8 @@ class MinuteAccumulatorStoreTest {
         store.add(ZONE_ID, MINUTE.withSecond(10), secondResult(30));
         store.add(ZONE_ID, MINUTE.plusMinutes(1).withSecond(10), secondResult(20));
 
-        assertThat(store.closeMinutesEndedBy(MINUTE.plusMinutes(1).minusSeconds(1))).isEmpty();
+        assertThat(store.closeMinutesEndedBy(MINUTE.plusMinutes(1).minusSeconds(1)))
+                .isEmpty();
 
         List<MinuteAccumulator> closed = store.closeMinutesEndedBy(MINUTE.plusMinutes(1));
 

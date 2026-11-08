@@ -1,12 +1,14 @@
 package com.whiteeyes.common.security;
 
-import com.whiteeyes.common.exception.ErrorCode;
+import java.io.IOException;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.exception.ErrorCode;
 
 /**
  * 권한이 모자란 요청의 처리(FNC-C-003 처리 순서 3): API는 403 공통 오류 응답, 화면은 403 오류 화면이다.

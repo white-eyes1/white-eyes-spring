@@ -1,5 +1,21 @@
 package com.whiteeyes.admin.event.controller;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.whiteeyes.admin.event.dto.EventDetailResponse;
 import com.whiteeyes.admin.event.dto.EventExportRequest;
 import com.whiteeyes.admin.event.dto.EventListItem;
@@ -15,20 +31,6 @@ import com.whiteeyes.admin.event.service.EventSummaryService;
 import com.whiteeyes.common.event.dto.UncheckedCountResponse;
 import com.whiteeyes.common.event.service.UncheckedEventCountService;
 import com.whiteeyes.common.web.PageResponse;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 이벤트 API: 목록 GET /api/v1/events, 요약 /summary(FNC-A-036), 상세 /{id}(FNC-A-037), 엑셀 /export(FNC-A-039),

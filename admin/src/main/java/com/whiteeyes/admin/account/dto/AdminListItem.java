@@ -1,8 +1,9 @@
 package com.whiteeyes.admin.account.dto;
 
+import java.time.OffsetDateTime;
+
 import com.whiteeyes.admin.account.entity.AdminRole;
 import com.whiteeyes.admin.account.entity.AdminStatus;
-import java.time.OffsetDateTime;
 
 /**
  * 관리자 목록 한 줄(GET /api/v1/admins 응답 items, FNC-A-003). 사용자 목록 한 줄과 같은 형식에 role을 더한다(api/public.md).

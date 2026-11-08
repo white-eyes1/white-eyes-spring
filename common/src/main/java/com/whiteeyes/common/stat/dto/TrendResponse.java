@@ -9,5 +9,4 @@ import java.math.BigDecimal;
  * @param monthRate 28일 전 같은 7일 대비 증감률(%)
  * @param yearRate 364일 전 같은 7일 대비 증감률(%)
  */
-public record TrendResponse(BigDecimal weekRate, BigDecimal monthRate, BigDecimal yearRate) {
-}
+public record TrendResponse(BigDecimal weekRate, BigDecimal monthRate, BigDecimal yearRate) {}

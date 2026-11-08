@@ -7,10 +7,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Properties;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -77,7 +78,8 @@ class AdminSessionExpiryTest {
         Cookie session = login();
         idleFor(Duration.ofMinutes(29));
 
-        mockMvc.perform(get("/admin/stats").contextPath("/admin").cookie(session)).andExpect(status().isOk());
+        mockMvc.perform(get("/admin/stats").contextPath("/admin").cookie(session))
+                .andExpect(status().isOk());
     }
 
     @Test

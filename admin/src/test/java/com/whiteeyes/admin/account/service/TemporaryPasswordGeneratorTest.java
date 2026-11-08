@@ -2,11 +2,13 @@ package com.whiteeyes.admin.account.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.whiteeyes.common.constant.InputRules;
 import java.util.HashSet;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.whiteeyes.common.constant.InputRules;
 
 /** 임시 비밀번호 생성(conventions.md '임시 비밀번호', FNC-A-009 처리 순서 2) */
 class TemporaryPasswordGeneratorTest {
@@ -44,7 +46,11 @@ class TemporaryPasswordGeneratorTest {
         TemporaryPasswordGenerator generator = new TemporaryPasswordGenerator();
         Set<String> firstThreeKinds = new HashSet<>();
         for (int i = 0; i < 200; i++) {
-            String head = generator.generate().substring(0, 3).replaceAll("[A-Z]", "U").replaceAll("[a-z]", "L")
+            String head = generator
+                    .generate()
+                    .substring(0, 3)
+                    .replaceAll("[A-Z]", "U")
+                    .replaceAll("[a-z]", "L")
                     .replaceAll("[0-9]", "D");
             firstThreeKinds.add(head);
         }

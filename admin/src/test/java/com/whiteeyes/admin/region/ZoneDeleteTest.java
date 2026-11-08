@@ -7,15 +7,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +27,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** 구역 삭제(FNC-A-017). 검수 기준: 이력 있음/없음 두 경우 확인. */
 @Import(AdminTestUserConfig.class)
@@ -93,7 +95,9 @@ class ZoneDeleteTest {
         insertNeighbor(zoneId, "E", otherZoneId);
         insertNeighbor(otherZoneId, "W", zoneId);
 
-        removeZone(zoneId).andExpect(status().isOk()).andExpect(jsonPath("$.mode").value("HARD"));
+        removeZone(zoneId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("HARD"));
 
         assertThat(count("zone WHERE id = " + zoneId)).isZero();
         assertThat(count("camera WHERE zone_id = " + zoneId)).isZero();
@@ -104,7 +108,9 @@ class ZoneDeleteTest {
     @Test
     @DisplayName("FNC-A-017 캠이 없는 구역도 실제로 지운다(이력 없음)")
     void noCamera_hardDelete() throws Exception {
-        removeZone(zoneId).andExpect(status().isOk()).andExpect(jsonPath("$.mode").value("HARD"));
+        removeZone(zoneId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("HARD"));
 
         assertThat(count("zone WHERE id = " + zoneId)).isZero();
     }
@@ -120,18 +126,23 @@ class ZoneDeleteTest {
         insertNeighbor(third, "N", zoneId);
         insertNeighbor(third, "S", otherZoneId);
 
-        removeZone(zoneId).andExpect(status().isOk()).andExpect(jsonPath("$.mode").value("SOFT"));
+        removeZone(zoneId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("SOFT"));
 
         assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM zone WHERE id = ?", Timestamp.class, zoneId))
                 .isNotNull();
         assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM camera WHERE id = ?", Timestamp.class, camera))
                 .isNotNull();
-        assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM camera WHERE id = ?", Timestamp.class, unstarted))
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT deleted_at FROM camera WHERE id = ?", Timestamp.class, unstarted))
                 .isNotNull();
         // 이 구역이 들어간 행(기준이거나 이웃으로 가리키는 것)만 지우고 다른 구역끼리의 행은 남긴다
         assertThat(count("zone_neighbor")).isEqualTo(1);
-        assertThat(count("zone_neighbor WHERE zone_id = " + third + " AND direction = 'S'")).isEqualTo(1);
-        assertThat(count("zone WHERE id = " + otherZoneId + " AND deleted_at IS NULL")).isEqualTo(1);
+        assertThat(count("zone_neighbor WHERE zone_id = " + third + " AND direction = 'S'"))
+                .isEqualTo(1);
+        assertThat(count("zone WHERE id = " + otherZoneId + " AND deleted_at IS NULL"))
+                .isEqualTo(1);
     }
 
     @Test
@@ -146,8 +157,11 @@ class ZoneDeleteTest {
         };
         for (String insert : inserts) {
             jdbcTemplate.update(insert, zoneId);
-            removeZone(zoneId).andExpect(status().isOk()).andExpect(jsonPath("$.mode").value("SOFT"));
-            assertThat(count("zone WHERE id = " + zoneId + " AND deleted_at IS NOT NULL")).isEqualTo(1);
+            removeZone(zoneId)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.mode").value("SOFT"));
+            assertThat(count("zone WHERE id = " + zoneId + " AND deleted_at IS NOT NULL"))
+                    .isEqualTo(1);
 
             // 다음 종류를 시험하기 위해 처음 상태로 되돌린다
             clearAll();
@@ -163,7 +177,9 @@ class ZoneDeleteTest {
 
         removeZone(zoneId).andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/v1/zones").param("dongId", String.valueOf(dongId)).with(AdminTestLogin.admin()))
+        mockMvc.perform(get("/api/v1/zones")
+                        .param("dongId", String.valueOf(dongId))
+                        .with(AdminTestLogin.admin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].name").value("삼청동 2구역"));
@@ -176,9 +192,12 @@ class ZoneDeleteTest {
         LocalDateTime earlier = LocalDateTime.now().minusDays(5).withNano(0);
         long deletedCamera = insertCamera(zoneId, "STOPPED", LocalDateTime.now().minusDays(9), earlier);
 
-        removeZone(zoneId).andExpect(status().isOk()).andExpect(jsonPath("$.mode").value("SOFT"));
+        removeZone(zoneId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("SOFT"));
 
-        assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM camera WHERE id = ?", Timestamp.class, deletedCamera)
+        assertThat(jdbcTemplate
+                        .queryForObject("SELECT deleted_at FROM camera WHERE id = ?", Timestamp.class, deletedCamera)
                         .toLocalDateTime())
                 .isEqualTo(earlier);
     }
@@ -190,13 +209,19 @@ class ZoneDeleteTest {
         long preparing = insertCamera(zoneId, "PREPARING", LocalDateTime.now().minusMinutes(1), null);
         insertNeighbor(zoneId, "E", otherZoneId);
 
-        removeZone(zoneId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CAMERA_RUNNING"));
+        removeZone(zoneId)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CAMERA_RUNNING"));
 
         jdbcTemplate.update("UPDATE camera SET status = 'RUNNING' WHERE id = ?", preparing);
-        removeZone(zoneId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CAMERA_RUNNING"));
+        removeZone(zoneId)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CAMERA_RUNNING"));
 
-        assertThat(count("zone WHERE id = " + zoneId + " AND deleted_at IS NULL")).isEqualTo(1);
-        assertThat(count("camera WHERE zone_id = " + zoneId + " AND deleted_at IS NULL")).isEqualTo(2);
+        assertThat(count("zone WHERE id = " + zoneId + " AND deleted_at IS NULL"))
+                .isEqualTo(1);
+        assertThat(count("camera WHERE zone_id = " + zoneId + " AND deleted_at IS NULL"))
+                .isEqualTo(2);
         assertThat(count("zone_neighbor")).isEqualTo(1);
         assertThat(count("work_history")).isZero();
     }
@@ -207,8 +232,11 @@ class ZoneDeleteTest {
         long requested = insertCamera(zoneId, "STOPPED", null, null);
         jdbcTemplate.update("UPDATE camera SET run_requested = 1 WHERE id = ?", requested);
 
-        removeZone(zoneId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CAMERA_RUNNING"));
-        assertThat(count("zone WHERE id = " + zoneId + " AND deleted_at IS NULL")).isEqualTo(1);
+        removeZone(zoneId)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CAMERA_RUNNING"));
+        assertThat(count("zone WHERE id = " + zoneId + " AND deleted_at IS NULL"))
+                .isEqualTo(1);
 
         jdbcTemplate.update("UPDATE camera SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", requested);
         removeZone(zoneId).andExpect(status().isOk());
@@ -218,19 +246,29 @@ class ZoneDeleteTest {
     @DisplayName("FNC-A-017 정지(STOPPED)·오류(ERROR) 캠이거나, 이미 삭제된 캠이 가동 중 상태로 남아 있어도 삭제할 수 있다")
     void stoppedErrorOrDeletedRunning_allowed() throws Exception {
         insertCamera(zoneId, "ERROR", LocalDateTime.now().minusDays(1), null);
-        insertCamera(zoneId, "RUNNING", LocalDateTime.now().minusDays(3), LocalDateTime.now().minusDays(2));
+        insertCamera(
+                zoneId,
+                "RUNNING",
+                LocalDateTime.now().minusDays(3),
+                LocalDateTime.now().minusDays(2));
 
-        removeZone(zoneId).andExpect(status().isOk()).andExpect(jsonPath("$.mode").value("SOFT"));
+        removeZone(zoneId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("SOFT"));
     }
 
     @Test
     @DisplayName("FNC-A-017 없는 구역·이미 삭제된 구역은 404 ZONE_NOT_FOUND")
     void notFound() throws Exception {
-        removeZone(999_999L).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
+        removeZone(999_999L)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
 
         insertCamera(zoneId, "STOPPED", LocalDateTime.now().minusDays(1), null);
         removeZone(zoneId).andExpect(status().isOk());
-        removeZone(zoneId).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
+        removeZone(zoneId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
     }
 
     @Test
@@ -294,7 +332,10 @@ class ZoneDeleteTest {
 
     private void insertNeighbor(long zone, String direction, long neighbor) {
         jdbcTemplate.update(
-                "INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, ?, ?)", zone, direction, neighbor);
+                "INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, ?, ?)",
+                zone,
+                direction,
+                neighbor);
     }
 
     private long count(String fromWhere) {

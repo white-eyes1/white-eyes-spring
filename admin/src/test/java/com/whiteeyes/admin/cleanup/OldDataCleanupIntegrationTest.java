@@ -107,7 +107,10 @@ class OldDataCleanupIntegrationTest {
 
     private List<LocalDateTime> statTimes(long zoneId) {
         return jdbcTemplate
-                .queryForList("SELECT stat_at FROM zone_stat_minute WHERE zone_id = ? ORDER BY stat_at", Timestamp.class, zoneId)
+                .queryForList(
+                        "SELECT stat_at FROM zone_stat_minute WHERE zone_id = ? ORDER BY stat_at",
+                        Timestamp.class,
+                        zoneId)
                 .stream()
                 .map(Timestamp::toLocalDateTime)
                 .toList();
@@ -115,7 +118,10 @@ class OldDataCleanupIntegrationTest {
 
     private List<LocalDateTime> recordingTimes(long cameraId) {
         return jdbcTemplate
-                .queryForList("SELECT started_at FROM recording WHERE camera_id = ? ORDER BY started_at", Timestamp.class, cameraId)
+                .queryForList(
+                        "SELECT started_at FROM recording WHERE camera_id = ? ORDER BY started_at",
+                        Timestamp.class,
+                        cameraId)
                 .stream()
                 .map(Timestamp::toLocalDateTime)
                 .toList();
@@ -147,7 +153,8 @@ class OldDataCleanupIntegrationTest {
     private long insertZone(String regionCode) {
         jdbcTemplate.update("INSERT INTO region (level, code, name, boundary, center_lat, center_lng)"
                 + " VALUES ('EMD', '" + regionCode + "', '정리 테스트동', '{}', 37.600000, 127.002000)");
-        Long dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '" + regionCode + "'", Long.class);
+        Long dongId =
+                jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '" + regionCode + "'", Long.class);
         jdbcTemplate.update(
                 "INSERT INTO zone (dong_id, name, area_m2, boundary, center_lat, center_lng)"
                         + " VALUES (?, '정리 구역', ?, '{}', 37.600000, 127.002000)",

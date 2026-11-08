@@ -8,11 +8,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.support.AdminTestLogin;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +26,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 // 권한은 계정마다 로그인 화면(POST /login)으로 실제 로그인한 세션 쿠키로 확인한다(#47과 같음)
 /** 관리자 비밀번호 재설정(FNC-A-010): 임시 비밀번호, 변경 강제, 세션 삭제, 작업 기록, 최고 관리자 대상 거부, 권한 */
@@ -90,7 +92,9 @@ class AdminPasswordResetTest {
         String stored = (String) row.get("PASSWORD");
         assertThat(stored).startsWith("$2").isNotEqualTo(temporaryPassword);
         assertThat(passwordEncoder.matches(temporaryPassword, stored)).isTrue();
-        assertThat(passwordEncoder.matches(OLD_TARGET_PASSWORD, stored)).as("이전 비밀번호는 더 쓸 수 없다").isFalse();
+        assertThat(passwordEncoder.matches(OLD_TARGET_PASSWORD, stored))
+                .as("이전 비밀번호는 더 쓸 수 없다")
+                .isFalse();
         assertThat(((Number) row.get("MUST_CHANGE_PASSWORD")).intValue()).isEqualTo(1);
     }
 
@@ -111,9 +115,7 @@ class AdminPasswordResetTest {
                 .getResponse()
                 .getCookie("SESSION");
         assertThat(session).isNotNull();
-        mockMvc.perform(get("/admin/stats")
-                        .contextPath(CONTEXT_PATH)
-                        .cookie(session))
+        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(session))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/admin/me/password"));
     }
@@ -145,8 +147,12 @@ class AdminPasswordResetTest {
 
         assertThat(sessionsOf("SPRING_SESSION_ADMIN", "kim01")).isZero();
         assertThat(sessionsOf("SPRING_SESSION_ADMIN", "admin01")).isOne();
-        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "super01")).as("호출한 최고 관리자 세션").isOne();
-        assertThat(sessionsOf("SPRING_SESSION_USER", "kim01")).as("결정 0005: 표가 달라 섞이지 않음").isOne();
+        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "super01"))
+                .as("호출한 최고 관리자 세션")
+                .isOne();
+        assertThat(sessionsOf("SPRING_SESSION_USER", "kim01"))
+                .as("결정 0005: 표가 달라 섞이지 않음")
+                .isOne();
     }
 
     @Test
@@ -170,7 +176,8 @@ class AdminPasswordResetTest {
     }
 
     @Test
-    @DisplayName("FNC-A-010 작업 기록: ACCOUNT_CHANGE·ADMIN_ACCOUNT, 대상 이름은 아이디, detail은 {\"password\":\"변경됨\"}이고 비밀번호 값은 없다")
+    @DisplayName(
+            "FNC-A-010 작업 기록: ACCOUNT_CHANGE·ADMIN_ACCOUNT, 대상 이름은 아이디, detail은 {\"password\":\"변경됨\"}이고 비밀번호 값은 없다")
     void recordsAccountChange() throws Exception {
         long targetId = insertAdmin("kim01", "ADMIN", "ACTIVE", OLD_TARGET_PASSWORD);
 
@@ -258,7 +265,9 @@ class AdminPasswordResetTest {
                 .as("비밀번호 변경이 취소됐다")
                 .isTrue();
         assertThat(((Number) row.get("MUST_CHANGE_PASSWORD")).intValue()).isZero();
-        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "kim01")).as("세션 삭제는 기록 뒤에 하므로 남아 있다").isOne();
+        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "kim01"))
+                .as("세션 삭제는 기록 뒤에 하므로 남아 있다")
+                .isOne();
         assertThat(count("work_history")).isZero();
     }
 
@@ -280,12 +289,11 @@ class AdminPasswordResetTest {
     }
 
     private Cookie login(String loginId) throws Exception {
-        Cookie session = mockMvc.perform(
-                        post("/admin/login")
-                                .contextPath(CONTEXT_PATH)
-                                .param("username", loginId)
-                                .param("password", PASSWORD)
-                                .with(csrf()))
+        Cookie session = mockMvc.perform(post("/admin/login")
+                        .contextPath(CONTEXT_PATH)
+                        .param("username", loginId)
+                        .param("password", PASSWORD)
+                        .with(csrf()))
                 .andExpect(status().isFound())
                 .andReturn()
                 .getResponse()

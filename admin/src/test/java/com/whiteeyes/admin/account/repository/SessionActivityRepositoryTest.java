@@ -9,10 +9,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +22,8 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.jdbc.Sql;
+
+import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
 
 /** 세션의 마지막 접근 시각 조회(FNC-A-002·003). */
 @SpringBootTest
@@ -43,7 +45,8 @@ class SessionActivityRepositoryTest {
     @Test
     @DisplayName("FNC-A-002 아이디별 세션 마지막 접근 시각의 최댓값을 돌려주고, 만료됐지만 남은 세션도 넣는다")
     void findLastAccessTimes_maxPerLoginId_includesExpiredSessions() {
-        Map<String, Instant> result = sessionActivityRepository.findLastAccessTimes(SessionTable.USER, List.of("hong01", "kim02"));
+        Map<String, Instant> result =
+                sessionActivityRepository.findLastAccessTimes(SessionTable.USER, List.of("hong01", "kim02"));
 
         assertThat(result)
                 .containsOnly(
@@ -54,7 +57,8 @@ class SessionActivityRepositoryTest {
     @Test
     @DisplayName("FNC-A-002 세션이 없는 아이디는 결과에 없다")
     void findLastAccessTimes_noSession_absent() {
-        Map<String, Instant> result = sessionActivityRepository.findLastAccessTimes(SessionTable.USER, List.of("lee03", "kim02"));
+        Map<String, Instant> result =
+                sessionActivityRepository.findLastAccessTimes(SessionTable.USER, List.of("lee03", "kim02"));
 
         assertThat(result).containsOnlyKeys("kim02");
     }
@@ -70,7 +74,8 @@ class SessionActivityRepositoryTest {
     @Test
     @DisplayName("FNC-A-002 아이디가 없으면 쿼리를 보내지 않는다")
     void findLastAccessTimes_empty_noQuery() {
-        assertThat(sessionActivityRepository.findLastAccessTimes(SessionTable.USER, List.of())).isEmpty();
+        assertThat(sessionActivityRepository.findLastAccessTimes(SessionTable.USER, List.of()))
+                .isEmpty();
         verifyNoInteractions(jdbcTemplate);
     }
 
@@ -78,8 +83,9 @@ class SessionActivityRepositoryTest {
     @DisplayName("FNC-A-003 ADMIN을 고르면 관리자 앱 세션 표(SPRING_SESSION_ADMIN)만 읽는다")
     void findLastAccessTimes_adminTable() {
         // 사용자 앱 세션 표에는 hong01·kim02가 있다(@Sql). 관리자 세션 표에는 kim02만 넣는다
-        jdbcTemplate.getJdbcTemplate().update(
-                "INSERT INTO SPRING_SESSION_ADMIN (PRIMARY_ID, SESSION_ID, CREATION_TIME, LAST_ACCESS_TIME,"
+        jdbcTemplate
+                .getJdbcTemplate()
+                .update("INSERT INTO SPRING_SESSION_ADMIN (PRIMARY_ID, SESSION_ID, CREATION_TIME, LAST_ACCESS_TIME,"
                         + " MAX_INACTIVE_INTERVAL, EXPIRY_TIME, PRINCIPAL_NAME)"
                         + " VALUES ('20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001',"
                         + " 1792000000000, 1792000900000, 1800, 4102444800000, 'kim02')");

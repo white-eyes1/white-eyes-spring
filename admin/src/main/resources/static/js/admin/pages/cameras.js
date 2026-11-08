@@ -70,8 +70,7 @@ function render(cameras) {
     rowsEl.replaceChildren(...cameras.map(buildRow));
     emptyEl.hidden = cameras.length > 0;
     const count = (status) => cameras.filter((camera) => camera.status === status).length;
-    summaryEl.textContent =
-        `총 ${cameras.length}대 · 가동 ${count('RUNNING')} · 준비 ${count('PREPARING')} · 오류 ${count('ERROR')}`;
+    summaryEl.textContent = `총 ${cameras.length}대 · 가동 ${count('RUNNING')} · 준비 ${count('PREPARING')} · 오류 ${count('ERROR')}`;
 }
 
 function buildRow(camera) {
@@ -274,7 +273,9 @@ initLiveView();
 // 캠 등록·수정 창은 대시보드와 같은 창을 쓴다(camera/camera-form.js). 저장이 끝나면 목록을 다시 읽는다
 const cameraForm = initCameraForm({ onSaved: loadCameras });
 document.getElementById('camera-add').addEventListener('click', () => cameraForm.openRegister());
-deleteModal.querySelectorAll('[data-delete-close]').forEach((button) => button.addEventListener('click', closeDeleteModal));
+deleteModal
+    .querySelectorAll('[data-delete-close]')
+    .forEach((button) => button.addEventListener('click', closeDeleteModal));
 deleteModal.addEventListener('mousedown', (event) => {
     if (event.target === deleteModal) {
         closeDeleteModal();

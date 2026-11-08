@@ -1,12 +1,14 @@
 package com.whiteeyes.admin.media.controller;
 
-import com.whiteeyes.admin.media.service.LiveAuthService;
+import java.io.IOException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.whiteeyes.admin.media.service.LiveAuthService;
 
 /**
  * 실시간 화면·카드 미리보기 권한 확인(FNC-A-041). nginx의 auth_request가 부르는 GET /api/v1/live/auth 에

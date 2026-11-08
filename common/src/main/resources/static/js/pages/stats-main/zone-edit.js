@@ -7,10 +7,12 @@ import { showToast } from '../../common/toast.js';
 
 // 구역 관리 화면(admin/pages/zones.js)과 같은 문구
 const ERROR_MESSAGES = {
-    INVALID_POLYGON: '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
+    INVALID_POLYGON:
+        '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
     OUT_OF_SERVICE_AREA: '서비스 지역 밖입니다. 서비스 지역 안에서 다시 그려 주세요.',
     DUPLICATE_ZONE_NAME: '이미 사용 중인 구역 이름입니다.',
-    DONG_CHANGE_NOT_ALLOWED: '다른 동으로 바뀌어 저장할 수 없습니다. 같은 동 안에서만 모양을 바꿀 수 있습니다.',
+    DONG_CHANGE_NOT_ALLOWED:
+        '다른 동으로 바뀌어 저장할 수 없습니다. 같은 동 안에서만 모양을 바꿀 수 있습니다.',
 };
 
 /**
@@ -72,7 +74,11 @@ export function createZoneEdit({ getLayer, dongName, onChanged, onActiveChange }
         showError('');
         updateSubmit();
         try {
-            const preview = await post('/api/v1/manage/zones/preview', { boundary }, { toast: false });
+            const preview = await post(
+                '/api/v1/manage/zones/preview',
+                { boundary },
+                { toast: false },
+            );
             if (!edit || request !== previewRequest) {
                 return;
             }
@@ -123,7 +129,10 @@ export function createZoneEdit({ getLayer, dongName, onChanged, onActiveChange }
         } catch (failure) {
             reportFailure(
                 failure,
-                (message) => (failure.code === 'DUPLICATE_ZONE_NAME' ? setNameError(message) : showError(message)),
+                (message) =>
+                    failure.code === 'DUPLICATE_ZONE_NAME'
+                        ? setNameError(message)
+                        : showError(message),
                 setNameError,
             );
             updateSubmit();

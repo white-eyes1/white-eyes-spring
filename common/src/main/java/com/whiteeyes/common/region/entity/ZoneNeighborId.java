@@ -1,6 +1,7 @@
 package com.whiteeyes.common.region.entity;
 
 import java.io.Serializable;
+
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

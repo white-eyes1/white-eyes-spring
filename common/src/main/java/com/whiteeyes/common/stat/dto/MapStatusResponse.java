@@ -7,5 +7,4 @@ import java.util.List;
  *
  * @param unitType 항목의 단위: ZONE, SIGUNGU, EMD
  */
-public record MapStatusResponse(String unitType, List<MapStatusItem> items) {
-}
+public record MapStatusResponse(String unitType, List<MapStatusItem> items) {}

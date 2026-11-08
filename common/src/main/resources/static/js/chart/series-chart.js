@@ -7,18 +7,51 @@ import { DEMO_FILL, GRID_COLOR, TICK_COLOR, shadePlugin } from './chart-theme.js
 // 밀집도 선 점선(인원 선과 구분, 결정 0016)
 const DENSITY_DASH = [5, 4];
 // 하위 비교 선 색(최대 10개, FNC-C-014). 어두운 배경에서 서로 구분되는 색
-const COMPARE_COLORS = ['#4f8cff', '#f59e0b', '#3bc99b', '#ef4d55', '#a78bfa', '#22c3e6', '#f472b6', '#facc15', '#94a3b8', '#fb923c'];
+const COMPARE_COLORS = [
+    '#4f8cff',
+    '#f59e0b',
+    '#3bc99b',
+    '#ef4d55',
+    '#a78bfa',
+    '#22c3e6',
+    '#f472b6',
+    '#facc15',
+    '#94a3b8',
+    '#fb923c',
+];
 
 /**
  * 항목 정의. axis: count(명) | density(명/㎡) | dwell(초). 색은 결정 0016(인원 인디고, 유입 라벤더, 유출 짙은 인디고, 밀집도 연한 점선).
  * bandColor가 있는 항목은 최대~최소를 그 색 띠로 함께 그릴 수 있다(인원, '최대·최소 띠'를 켰을 때).
  */
 export const SERIES_ITEMS = {
-    count: { label: '인원', axis: 'count', color: '#818cf8', width: 3, unit: '명', bandColor: 'rgba(129, 140, 248, .16)' },
-    density: { label: '밀집도', axis: 'density', color: '#e0e7ff', width: 2, unit: '명/㎡', decimals: 2, dash: DENSITY_DASH },
+    count: {
+        label: '인원',
+        axis: 'count',
+        color: '#818cf8',
+        width: 3,
+        unit: '명',
+        bandColor: 'rgba(129, 140, 248, .16)',
+    },
+    density: {
+        label: '밀집도',
+        axis: 'density',
+        color: '#e0e7ff',
+        width: 2,
+        unit: '명/㎡',
+        decimals: 2,
+        dash: DENSITY_DASH,
+    },
     inflow: { label: '유입', axis: 'count', color: '#a5b4fc', width: 2, unit: '명' },
     outflow: { label: '유출', axis: 'count', color: '#4f46e5', width: 2, unit: '명' },
-    dwellAvgSec: { label: '평균 체류', axis: 'dwell', color: '#a78bfa', width: 2, unit: '초', decimals: 1 },
+    dwellAvgSec: {
+        label: '평균 체류',
+        axis: 'dwell',
+        color: '#a78bfa',
+        width: 2,
+        unit: '초',
+        decimals: 1,
+    },
 };
 
 const AXES = {
@@ -54,15 +87,37 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
                 return [line];
             }
             // 띠: 최대 선에서 바로 다음 데이터셋(최소 선)까지 칠한다. 두 선은 보이지 않게 하고 범례·툴팁에서 뺀다
-            const edge = { bandOf: key, yAxisID: item.axis, borderWidth: 0, pointRadius: 0, pointHoverRadius: 0, spanGaps: false, tension: 0.2 };
+            const edge = {
+                bandOf: key,
+                yAxisID: item.axis,
+                borderWidth: 0,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                spanGaps: false,
+                tension: 0.2,
+            };
             return [
                 line,
-                { ...edge, label: `${item.label} 최대`, data: series.high, backgroundColor: item.bandColor, fill: '+1' },
-                { ...edge, label: `${item.label} 최소`, data: series.low, backgroundColor: item.bandColor, fill: false },
+                {
+                    ...edge,
+                    label: `${item.label} 최대`,
+                    data: series.high,
+                    backgroundColor: item.bandColor,
+                    fill: '+1',
+                },
+                {
+                    ...edge,
+                    label: `${item.label} 최소`,
+                    data: series.low,
+                    backgroundColor: item.bandColor,
+                    fill: false,
+                },
             ];
         });
         const usedAxes = new Set(keys.map((key) => SERIES_ITEMS[key].axis));
-        const demoTitles = titles.map((title, index) => (demo[index] ? `${title} · 시연용` : title));
+        const demoTitles = titles.map((title, index) =>
+            demo[index] ? `${title} · 시연용` : title,
+        );
         draw(labels, demoTitles, datasets, usedAxes, demo, (context) => {
             const key = context.dataset.itemKey;
             const series = seriesByItem[key];
@@ -81,10 +136,21 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
     function compare(labels, titles, key, seriesList) {
         const item = SERIES_ITEMS[key];
         const datasets = seriesList.map((series, index) =>
-            lineDataset(key, series.name, series.values, COMPARE_COLORS[index % COMPARE_COLORS.length], 2),
+            lineDataset(
+                key,
+                series.name,
+                series.values,
+                COMPARE_COLORS[index % COMPARE_COLORS.length],
+                2,
+            ),
         );
-        draw(labels, titles, datasets, new Set([item.axis]), [], (context) =>
-            `${context.dataset.label} ${valueText(key, context.parsed.y)}`,
+        draw(
+            labels,
+            titles,
+            datasets,
+            new Set([item.axis]),
+            [],
+            (context) => `${context.dataset.label} ${valueText(key, context.parsed.y)}`,
         );
     }
 
@@ -106,13 +172,18 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
     }
 
     function draw(labels, titles, datasets, usedAxes, demo, tooltipLabel) {
-        const scales = { x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, maxTicksLimit: 12 } } };
+        const scales = {
+            x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, maxTicksLimit: 12 } },
+        };
         Object.entries(AXES).forEach(([id, axis]) => {
             scales[id] = {
                 display: usedAxes.has(id),
                 position: axis.position,
                 beginAtZero: true,
-                grid: { color: GRID_COLOR, drawOnChartArea: id === 'count' || !usedAxes.has('count') },
+                grid: {
+                    color: GRID_COLOR,
+                    drawOnChartArea: id === 'count' || !usedAxes.has('count'),
+                },
                 ticks: { color: TICK_COLOR },
                 title: { display: true, text: axis.title, color: TICK_COLOR },
             };
@@ -147,7 +218,8 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
                             color: TICK_COLOR,
                             boxWidth: 10,
                             boxHeight: 10,
-                            filter: (legendItem, data) => !data.datasets[legendItem.datasetIndex].bandOf,
+                            filter: (legendItem, data) =>
+                                !data.datasets[legendItem.datasetIndex].bandOf,
                         },
                     },
                     tooltip: {
@@ -170,7 +242,14 @@ export function createSeriesChart(canvas, { onPointClick, clickable = () => true
     function pointIndexAt(event) {
         const area = chart?.chartArea;
         const count = chart?.data.labels.length ?? 0;
-        if (!area || count === 0 || event.x < area.left || event.x > area.right || event.y < area.top || event.y > area.bottom) {
+        if (
+            !area ||
+            count === 0 ||
+            event.x < area.left ||
+            event.x > area.right ||
+            event.y < area.top ||
+            event.y > area.bottom
+        ) {
             return null;
         }
         const index = Math.round(chart.scales.x.getValueForPixel(event.x));
@@ -190,16 +269,19 @@ function tooltipLine(key, value, high, low) {
     if (!item.bandColor) {
         return `${item.label} ${format(value)}${item.unit}`;
     }
-    const range = high === null || high === undefined || low === null || low === undefined
-        ? ''
-        : ` (최대 ${format(high)} · 최소 ${format(low)})`;
+    const range =
+        high === null || high === undefined || low === null || low === undefined
+            ? ''
+            : ` (최대 ${format(high)} · 최소 ${format(low)})`;
     return `${item.label} 평균 ${format(value)}${item.unit}${range}`;
 }
 
 // 하위 비교 툴팁 값: '120명', 값이 없으면 '데이터 없음'
 function valueText(key, value) {
     const item = SERIES_ITEMS[key];
-    return value === null || value === undefined ? '데이터 없음' : `${formatValue(item, value)}${item.unit}`;
+    return value === null || value === undefined
+        ? '데이터 없음'
+        : `${formatValue(item, value)}${item.unit}`;
 }
 
 function formatValue(item, number) {

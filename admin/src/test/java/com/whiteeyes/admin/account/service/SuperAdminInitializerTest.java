@@ -4,11 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.whiteeyes.admin.account.config.SuperAdminProperties;
-import com.whiteeyes.admin.account.entity.AdminAccount;
-import com.whiteeyes.admin.account.entity.AdminRole;
-import com.whiteeyes.admin.account.entity.AdminStatus;
-import com.whiteeyes.admin.account.repository.AdminAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +14,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.whiteeyes.admin.account.config.SuperAdminProperties;
+import com.whiteeyes.admin.account.entity.AdminAccount;
+import com.whiteeyes.admin.account.entity.AdminRole;
+import com.whiteeyes.admin.account.entity.AdminStatus;
+import com.whiteeyes.admin.account.repository.AdminAccountRepository;
 
 @SpringBootTest
 class SuperAdminInitializerTest {
@@ -70,10 +71,7 @@ class SuperAdminInitializerTest {
         initializer(LOGIN_ID, RAW_PASSWORD).registerIfAbsent();
 
         String saved = adminAccountRepository.findAll().get(0).getPassword();
-        assertThat(saved)
-                .doesNotContain(RAW_PASSWORD)
-                .hasSize(BCRYPT_LENGTH)
-                .startsWith(BCRYPT_STRENGTH_10_PREFIX);
+        assertThat(saved).doesNotContain(RAW_PASSWORD).hasSize(BCRYPT_LENGTH).startsWith(BCRYPT_STRENGTH_10_PREFIX);
         assertThat(passwordEncoder.matches(RAW_PASSWORD, saved)).isTrue();
     }
 

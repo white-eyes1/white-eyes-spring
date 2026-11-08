@@ -25,8 +25,8 @@ import com.whiteeyes.common.region.service.RegionQueryService;
 import com.whiteeyes.common.stat.dto.MapStatusItem;
 import com.whiteeyes.common.stat.dto.MapStatusResponse;
 import com.whiteeyes.common.stat.dto.MapUnit;
-import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
+import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.service.RecentZoneStatReader.LatestMinuteSum;
 
 /**
@@ -68,20 +68,20 @@ public class MapStatusService {
                 ? Map.of()
                 : nowCounts.findFresh(zones.stream().map(Zone::getId).toList(), now);
         // 오늘 이벤트 수는 삭제된 구역의 것까지 센다(FNC-C-017)
-        List<Zone> allZones = emdCodeById.isEmpty()
-                ? List.of()
-                : regionQueryService.findAllZonesInDongs(emdCodeById.keySet());
+        List<Zone> allZones =
+                emdCodeById.isEmpty() ? List.of() : regionQueryService.findAllZonesInDongs(emdCodeById.keySet());
         Map<Long, Integer> eventCountByZone = todayEventCountService.countByZone(
                 allZones.stream().map(Zone::getId).toList(), now.toLocalDate().atStartOfDay());
         // 진행 중 이벤트는 지도에 보이는(삭제되지 않은) 구역만 본다(FNC-C-009 처리 순서 5)
-        Set<Long> ongoingZoneIds =
-                ongoingEventService.findZoneIdsWithOngoingEvent(zones.stream().map(Zone::getId).toList());
+        Set<Long> ongoingZoneIds = ongoingEventService.findZoneIdsWithOngoingEvent(
+                zones.stream().map(Zone::getId).toList());
 
         if (unit == MapUnit.ZONE || region.getLevel() == RegionLevel.EMD) {
             // 구역 핀 툴팁의 구·동 이름(SCR-C-003)
             Map<Long, String> regionPathByDong = zones.isEmpty()
                     ? Map.of()
-                    : regionQueryService.findPaths(zones.stream().map(Zone::getDongId).collect(Collectors.toSet()));
+                    : regionQueryService.findPaths(
+                            zones.stream().map(Zone::getDongId).collect(Collectors.toSet()));
             List<MapStatusItem> items = zones.stream()
                     .map(zone -> toZoneItem(
                             zone,
@@ -154,16 +154,8 @@ public class MapStatusService {
         return recentZoneStatReader
                 .sumAtLatestMinute(zones, latestStatByZone)
                 .map(sum -> toRegionItem(child, sum, currentCount, todayEventCount, ongoingEvent))
-                .orElseGet(
-                        () -> noDataItem(
-                                child.getId(),
-                                child.getName(),
-                                null,
-                                null,
-                                null,
-                                currentCount,
-                                todayEventCount,
-                                ongoingEvent));
+                .orElseGet(() -> noDataItem(
+                        child.getId(), child.getName(), null, null, null, currentCount, todayEventCount, ongoingEvent));
     }
 
     private MapStatusItem toRegionItem(
@@ -196,8 +188,18 @@ public class MapStatusService {
             int todayEventCount,
             boolean ongoingEvent) {
         return new MapStatusItem(
-                id, name, regionPath, centerLat, centerLng, null, currentCount, null, null, null,
-                todayEventCount, ongoingEvent);
+                id,
+                name,
+                regionPath,
+                centerLat,
+                centerLng,
+                null,
+                currentCount,
+                null,
+                null,
+                null,
+                todayEventCount,
+                ongoingEvent);
     }
 
     // 신선한 현재 인원이 있는 구역만 더한다. 하나도 없으면 null(화면은 1분 평균으로 되돌린다)
@@ -206,7 +208,9 @@ public class MapStatusService {
                 .map(zone -> nowCountByZone.get(zone.getId()))
                 .filter(java.util.Objects::nonNull)
                 .toList();
-        return found.isEmpty() ? null : found.stream().mapToInt(NowCount::personCount).sum();
+        return found.isEmpty()
+                ? null
+                : found.stream().mapToInt(NowCount::personCount).sum();
     }
 
     private boolean hasOngoingEvent(List<Zone> zones, Set<Long> ongoingZoneIds) {
@@ -214,7 +218,9 @@ public class MapStatusService {
     }
 
     private int sumEventCount(List<Zone> zones, Map<Long, Integer> eventCountByZone) {
-        return zones.stream().mapToInt(zone -> eventCountByZone.getOrDefault(zone.getId(), 0)).sum();
+        return zones.stream()
+                .mapToInt(zone -> eventCountByZone.getOrDefault(zone.getId(), 0))
+                .sum();
     }
 
     // 하위 지역 코드가 구역 소속 읍·면·동 코드의 앞자리면 그 하위 지역 아래의 구역이다(decisions/0014)

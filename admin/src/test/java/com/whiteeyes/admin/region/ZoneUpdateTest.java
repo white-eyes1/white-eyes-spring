@@ -7,13 +7,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +26,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** 구역 수정(FNC-A-015). 검수 기준: 동 경계를 넘는 수정 거부. */
 @Import(AdminTestUserConfig.class)
@@ -95,7 +97,8 @@ class ZoneUpdateTest {
                 .andExpect(jsonPath("$.name").value("삼청동 새 구역"))
                 .andExpect(jsonPath("$.areaM2").value(39190.0));
 
-        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT name, area_m2, center_lat FROM zone WHERE id = ?", zoneId);
+        Map<String, Object> row =
+                jdbcTemplate.queryForMap("SELECT name, area_m2, center_lat FROM zone WHERE id = ?", zoneId);
         assertThat(row.get("NAME")).isEqualTo("삼청동 새 구역");
         assertThat(((Number) row.get("AREA_M2")).doubleValue()).isEqualTo(39_190.0);
     }
@@ -133,7 +136,8 @@ class ZoneUpdateTest {
         update(zoneId, "{\"boundary\":" + SAMCHEONG_SMALL + ",\"areaM2\":1,\"dongId\":999999}")
                 .andExpect(status().isOk());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT area_m2 FROM zone WHERE id = ?", Number.class, zoneId)
+        assertThat(jdbcTemplate
+                        .queryForObject("SELECT area_m2 FROM zone WHERE id = ?", Number.class, zoneId)
                         .doubleValue())
                 .isGreaterThan(5_000);
         assertThat(jdbcTemplate.queryForObject("SELECT dong_id FROM zone WHERE id = ?", Long.class, zoneId))
@@ -147,7 +151,8 @@ class ZoneUpdateTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("DONG_CHANGE_NOT_ALLOWED"));
 
-        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT name, area_m2, dong_id FROM zone WHERE id = ?", zoneId);
+        Map<String, Object> row =
+                jdbcTemplate.queryForMap("SELECT name, area_m2, dong_id FROM zone WHERE id = ?", zoneId);
         assertThat(row.get("NAME")).isEqualTo("삼청동 1구역");
         assertThat(((Number) row.get("AREA_M2")).doubleValue()).isEqualTo(39_190.0);
         assertThat(((Number) row.get("DONG_ID")).longValue()).isEqualTo(dongId("삼청동"));
@@ -164,7 +169,8 @@ class ZoneUpdateTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_POLYGON"));
 
-        assertThat(jdbcTemplate.queryForObject("SELECT area_m2 FROM zone WHERE id = ?", Number.class, zoneId)
+        assertThat(jdbcTemplate
+                        .queryForObject("SELECT area_m2 FROM zone WHERE id = ?", Number.class, zoneId)
                         .doubleValue())
                 .isEqualTo(39_190.0);
     }
@@ -210,7 +216,9 @@ class ZoneUpdateTest {
     @Test
     @DisplayName("FNC-A-015 name·boundary 둘 다 없거나, 이름이 비었거나 50자를 넘으면 400 INVALID_INPUT")
     void invalid_input() throws Exception {
-        update(zoneId, "{}").andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+        update(zoneId, "{}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
         update(zoneId, "{\"name\":\"   \"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
@@ -223,7 +231,8 @@ class ZoneUpdateTest {
     @Test
     @DisplayName("FNC-A-015 수정하면 work_history에 ZONE_CHANGE(op UPDATE)가 이전·이후 이름·면적과 함께 남는다")
     void records_work_history() throws Exception {
-        update(zoneId, "{\"name\":\"작은 구역\",\"boundary\":" + SAMCHEONG_SMALL + "}").andExpect(status().isOk());
+        update(zoneId, "{\"name\":\"작은 구역\",\"boundary\":" + SAMCHEONG_SMALL + "}")
+                .andExpect(status().isOk());
 
         Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM work_history");
         assertThat(row.get("ACTION")).isEqualTo("ZONE_CHANGE");

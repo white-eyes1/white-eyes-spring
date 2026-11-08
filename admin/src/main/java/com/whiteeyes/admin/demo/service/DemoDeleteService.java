@@ -35,8 +35,10 @@ public class DemoDeleteService {
 
     /** @return 표별 지운 건수 */
     public DemoDeleteResult deleteAll() {
-        long hourly = deleteInBatches(() -> demoStatRepository.deleteDemoRows(DemoStatRepository.HOURLY_TABLE, batchSize));
-        long daily = deleteInBatches(() -> demoStatRepository.deleteDemoRows(DemoStatRepository.DAILY_TABLE, batchSize));
+        long hourly =
+                deleteInBatches(() -> demoStatRepository.deleteDemoRows(DemoStatRepository.HOURLY_TABLE, batchSize));
+        long daily =
+                deleteInBatches(() -> demoStatRepository.deleteDemoRows(DemoStatRepository.DAILY_TABLE, batchSize));
         return new DemoDeleteResult(hourly, daily);
     }
 

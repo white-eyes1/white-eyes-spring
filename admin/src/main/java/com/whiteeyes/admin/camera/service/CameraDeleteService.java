@@ -1,5 +1,14 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.camera.dto.CameraDeleteResponse;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
 import com.whiteeyes.admin.camera.exception.CameraNotStoppedException;
@@ -10,13 +19,6 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 캠을 삭제한다(FNC-A-023). 가동한 적이 없으면 행을 지우고, 있으면 삭제 표시만 한다. */
 @Service

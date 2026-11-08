@@ -136,7 +136,8 @@ class SignupServiceTest {
     }
 
     private int countRows(String loginId) {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM user_account WHERE login_id = ?", Integer.class, loginId);
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM user_account WHERE login_id = ?", Integer.class, loginId);
     }
 
     // 엔티티에 생성자를 열지 않으려고 테스트 행은 SQL로 넣는다

@@ -118,7 +118,9 @@ class AdminPasswordChangeTest {
         Cookie session = login(CURRENT);
 
         getPage(session, "/stats").andExpect(status().isFound()).andExpect(redirectedUrl("/admin/me/password"));
-        getPage(session, "/me/password").andExpect(status().isOk()).andExpect(content().string(containsString(FORCED_NOTICE)))
+        getPage(session, "/me/password")
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(FORCED_NOTICE)))
                 // 강제 상태에서는 로그아웃만 보이고 다른 메뉴는 숨긴다(SCR-C-002)
                 .andExpect(content().string(containsString("data-header=\"forced\"")))
                 .andExpect(content().string(not(containsString("data-header=\"admin\""))))

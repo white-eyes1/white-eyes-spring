@@ -5,8 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.user.support.UserTestAccounts;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.user.support.UserTestAccounts;
 
 /**
  * 강제 로그아웃(FNC-A-008) 검수 기준 중 사용자 앱 쪽: 관리자 앱이 사용자의 세션을 세션 표에서 지우면 그 브라우저는

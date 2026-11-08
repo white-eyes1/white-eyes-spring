@@ -31,12 +31,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.support.AdminTestLogin;
-
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /** 통계 엑셀 다운로드(FNC-C-023) API: 파일 응답, 시연용 열 없음, 100만 행 제한, 작업 기록 저장 */
 @SpringBootTest
@@ -86,11 +85,13 @@ class StatExportApiTest {
                         .param("items", "COUNT", "DENSITY")
                         .with(AdminTestLogin.admin()))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .andExpect(header().string("Content-Disposition", containsString("attachment")))
-                .andExpect(header().string("Content-Disposition", containsString(
-                        "filename*=UTF-8''stats_%EC%82%AC%EC%A7%81%EB%8F%99%201%EA%B5%AC%EC%97%AD_20990101_20990101.xlsx")))
+                .andExpect(
+                        header().string(
+                                        "Content-Disposition",
+                                        containsString(
+                                                "filename*=UTF-8''stats_%EC%82%AC%EC%A7%81%EB%8F%99%201%EA%B5%AC%EC%97%AD_20990101_20990101.xlsx")))
                 .andReturn()
                 .getResponse()
                 .getContentAsByteArray();
@@ -121,8 +122,11 @@ class StatExportApiTest {
                         .param("items", "COUNT")
                         .with(AdminTestLogin.admin()))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", containsString(
-                        "filename*=UTF-8''stats_%EC%82%AC%EC%A7%81%EB%8F%99%201%EA%B5%AC%EC%97%AD_20990101_20990101.xlsx")))
+                .andExpect(
+                        header().string(
+                                        "Content-Disposition",
+                                        containsString(
+                                                "filename*=UTF-8''stats_%EC%82%AC%EC%A7%81%EB%8F%99%201%EA%B5%AC%EC%97%AD_20990101_20990101.xlsx")))
                 .andReturn()
                 .getResponse()
                 .getContentAsByteArray();
@@ -217,7 +221,8 @@ class StatExportApiTest {
                 }
                 // 10시 두 줄은 회색, 11시 두 줄은 흰색
                 String color = ((XSSFCellStyle) row.getCell(1).getCellStyle())
-                        .getFillForegroundXSSFColor().getARGBHex();
+                        .getFillForegroundXSSFColor()
+                        .getARGBHex();
                 assertThat(color).isEqualTo(i < 2 ? "FFD1D1D1" : "FFFFFFFF");
             }
             assertThat(sheet.getRow(1).getCell(5).getNumericCellValue()).isEqualTo(100.0);
@@ -262,10 +267,12 @@ class StatExportApiTest {
                         .param("items", "COUNT")
                         .with(AdminTestLogin.admin()))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", containsString(
-                        "stats_%EC%A0%84%EC%B2%B4_20990101_20990102.xlsx")));
+                .andExpect(header().string(
+                                "Content-Disposition",
+                                containsString("stats_%EC%A0%84%EC%B2%B4_20990101_20990102.xlsx")));
 
-        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT target_type, target_id, target_name FROM work_history");
+        Map<String, Object> row =
+                jdbcTemplate.queryForMap("SELECT target_type, target_id, target_name FROM work_history");
         assertThat(row.get("TARGET_TYPE")).isEqualTo("ALL");
         assertThat(row.get("TARGET_ID")).isNull();
         assertThat(row.get("TARGET_NAME")).isEqualTo("전체");
@@ -359,6 +366,9 @@ class StatExportApiTest {
                         + " in_n, in_e, in_s, in_w, out_n, out_e, out_s, out_w,"
                         + " dwell_sum_sec, dwell_count, sample_sec, is_demo)"
                         + " VALUES (?, ?, ?, 0, 0, 0.1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3600, ?)",
-                zoneId, Timestamp.valueOf(statAt), new BigDecimal(countAvg), demo);
+                zoneId,
+                Timestamp.valueOf(statAt),
+                new BigDecimal(countAvg),
+                demo);
     }
 }

@@ -174,7 +174,10 @@ public class StatExcelWriter implements AutoCloseable {
     }
 
     private static BigDecimal sum(Map<String, Integer> flow) {
-        return flow == null ? null : BigDecimal.valueOf(flow.values().stream().mapToInt(Integer::intValue).sum());
+        return flow == null
+                ? null
+                : BigDecimal.valueOf(
+                        flow.values().stream().mapToInt(Integer::intValue).sum());
     }
 
     // 같은 서식은 한 번만 만든다(엑셀은 서식 수에 제한이 있다)
@@ -245,6 +248,5 @@ public class StatExcelWriter implements AutoCloseable {
     }
 
     /** 항목 값 열 하나. */
-    private record Column(String header, int decimals, Function<StatSeriesPoint, BigDecimal> value) {
-    }
+    private record Column(String header, int decimals, Function<StatSeriesPoint, BigDecimal> value) {}
 }

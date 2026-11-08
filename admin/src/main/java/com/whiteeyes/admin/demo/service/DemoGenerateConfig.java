@@ -39,10 +39,24 @@ public record DemoGenerateConfig(
                 20261024L,
                 new ZoneSetting(null, 30.0, 600),
                 List.of(),
-                List.of(0.2, 0.1, 0.1, 0.1, 0.1, 0.2, 0.4, 0.9, 1.4, 1.0, 0.8, 1.0,
-                        1.4, 1.2, 0.9, 0.9, 1.0, 1.2, 1.6, 1.5, 1.2, 0.9, 0.6, 0.4),
-                Map.of(DayOfWeek.MONDAY, 1.0, DayOfWeek.TUESDAY, 1.0, DayOfWeek.WEDNESDAY, 1.0,
-                        DayOfWeek.THURSDAY, 1.0, DayOfWeek.FRIDAY, 1.1, DayOfWeek.SATURDAY, 1.4, DayOfWeek.SUNDAY, 1.3),
+                List.of(
+                        0.2, 0.1, 0.1, 0.1, 0.1, 0.2, 0.4, 0.9, 1.4, 1.0, 0.8, 1.0, 1.4, 1.2, 0.9, 0.9, 1.0, 1.2, 1.6,
+                        1.5, 1.2, 0.9, 0.6, 0.4),
+                Map.of(
+                        DayOfWeek.MONDAY,
+                        1.0,
+                        DayOfWeek.TUESDAY,
+                        1.0,
+                        DayOfWeek.WEDNESDAY,
+                        1.0,
+                        DayOfWeek.THURSDAY,
+                        1.0,
+                        DayOfWeek.FRIDAY,
+                        1.1,
+                        DayOfWeek.SATURDAY,
+                        1.4,
+                        DayOfWeek.SUNDAY,
+                        1.3),
                 Map.of(Season.SPRING, 1.1, Season.SUMMER, 0.9, Season.AUTUMN, 1.2, Season.WINTER, 0.7),
                 List.of());
     }
@@ -52,15 +66,13 @@ public record DemoGenerateConfig(
      * @param baseCount 기본 인원(가중치 1일 때의 시간 평균 인원)
      * @param avgDwellSec 평균 체류(초)
      */
-    public record ZoneSetting(Long zoneId, Double baseCount, Integer avgDwellSec) {
-    }
+    public record ZoneSetting(Long zoneId, Double baseCount, Integer avgDwellSec) {}
 
     /**
      * @param date 급증하는 날짜(KST)
      * @param weight 그날의 가중치
      */
-    public record SurgeDay(LocalDate date, Double weight) {
-    }
+    public record SurgeDay(LocalDate date, Double weight) {}
 
     /** 계절. 3~5월 봄, 6~8월 여름, 9~11월 가을, 12~2월 겨울. */
     public enum Season {

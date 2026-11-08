@@ -1,18 +1,20 @@
 package com.whiteeyes.admin.history.repository;
 
-import com.whiteeyes.common.history.entity.ActorType;
-import com.whiteeyes.common.history.entity.WorkAction;
-import com.whiteeyes.common.history.entity.WorkHistory;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+
+import com.whiteeyes.common.history.entity.ActorType;
+import com.whiteeyes.common.history.entity.WorkAction;
+import com.whiteeyes.common.history.entity.WorkHistory;
 
 /**
  * 작업 기록 조회(FNC-A-053 처리 순서 1). 조건을 골라 붙여야 해서 Criteria로 만든다.

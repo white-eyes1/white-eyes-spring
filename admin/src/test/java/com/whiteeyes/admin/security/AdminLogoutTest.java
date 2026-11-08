@@ -7,9 +7,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +58,10 @@ class AdminLogoutTest {
         Cookie session = login();
         assertThat(sessionRows()).isEqualTo(1);
 
-        mockMvc.perform(post("/admin/logout").contextPath("/admin").cookie(session).with(csrf()))
+        mockMvc.perform(post("/admin/logout")
+                        .contextPath("/admin")
+                        .cookie(session)
+                        .with(csrf()))
                 .andExpect(status().isFound())
                 .andExpect(header().string("Location", LOGIN_REDIRECT));
 
@@ -68,9 +72,13 @@ class AdminLogoutTest {
     @DisplayName("FNC-C-002 검수 기준: 로그아웃 뒤 이전 화면 주소로 접근하면 로그인 화면으로 이동")
     void afterLogout_previousPage_redirectsToLogin() throws Exception {
         Cookie session = login();
-        mockMvc.perform(get("/admin/stats").contextPath("/admin").cookie(session)).andExpect(status().isOk());
+        mockMvc.perform(get("/admin/stats").contextPath("/admin").cookie(session))
+                .andExpect(status().isOk());
 
-        mockMvc.perform(post("/admin/logout").contextPath("/admin").cookie(session).with(csrf()))
+        mockMvc.perform(post("/admin/logout")
+                        .contextPath("/admin")
+                        .cookie(session)
+                        .with(csrf()))
                 .andExpect(status().isFound());
 
         mockMvc.perform(get("/admin/stats").contextPath("/admin").cookie(session))

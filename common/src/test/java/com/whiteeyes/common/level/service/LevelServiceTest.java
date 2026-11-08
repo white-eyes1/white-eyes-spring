@@ -27,14 +27,7 @@ class LevelServiceTest {
     }
 
     @ParameterizedTest(name = "밀집도 {0} → {1}")
-    @CsvSource({
-        "0, NORMAL",
-        "0.6999, NORMAL",
-        "0.7000, CAUTION",
-        "1.4999, CAUTION",
-        "1.5000, DANGER",
-        "3.2, DANGER"
-    })
+    @CsvSource({"0, NORMAL", "0.6999, NORMAL", "0.7000, CAUTION", "1.4999, CAUTION", "1.5000, DANGER", "3.2, DANGER"})
     @DisplayName("FNC-C-025 경계 바로 아래는 낮은 단계, 자릿수가 달라도 같은 값은 같은 단계")
     void judgeLevel_aroundThresholds_expectedLevel(String density, CongestionLevel expected) {
         assertThat(levelService.judgeLevel(ZONE, new BigDecimal(density))).isEqualTo(expected);

@@ -31,8 +31,7 @@ public record StatChildrenRequest(
      * @throws RangeTooLongException 단위별 최대 기간을 넘으면(400 RANGE_TOO_LONG)
      */
     public static StatChildrenRequest parse(
-            long regionId, String itemCode, String intervalCode, String fromText, String toText)
-            throws BindException {
+            long regionId, String itemCode, String intervalCode, String fromText, String toText) throws BindException {
         MapBindingResult errors = new MapBindingResult(new HashMap<>(), OBJECT_NAME);
         Optional<StatExportItem> item = StatExportItem.fromCode(itemCode);
         if (item.isEmpty()) {

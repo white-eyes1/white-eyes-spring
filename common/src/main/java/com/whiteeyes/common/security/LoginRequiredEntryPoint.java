@@ -1,14 +1,16 @@
 package com.whiteeyes.common.security;
 
-import com.whiteeyes.common.exception.ErrorCode;
+import java.io.IOException;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.RedirectStrategy;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.exception.ErrorCode;
 
 /**
  * 세션이 없는 요청의 처리(FNC-C-003 처리 순서 2): API는 401 공통 오류 응답, 화면은 로그인 화면으로 보낸다.

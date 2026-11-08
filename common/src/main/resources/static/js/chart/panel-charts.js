@@ -45,36 +45,47 @@ export function createPanelCharts(canvases) {
             type: 'bar',
             data: {
                 labels,
-                datasets: [{
-                    data: counts,
-                    backgroundColor: levels.map((level) => LEVEL_COLORS[level] ?? GRID_COLOR),
-                    borderRadius: 3,
-                    maxBarThickness: 22,
-                }],
+                datasets: [
+                    {
+                        data: counts,
+                        backgroundColor: levels.map((level) => LEVEL_COLORS[level] ?? GRID_COLOR),
+                        borderRadius: 3,
+                        maxBarThickness: 22,
+                    },
+                ],
             },
-            options: options(titles, (context) => {
-                const level = levels[context.dataIndex];
-                return `인원 ${countText(context.parsed.y)} · ${LEVEL_NAMES[level] ?? '단계 없음'}`;
-            }, { yTitle: '명' }),
+            options: options(
+                titles,
+                (context) => {
+                    const level = levels[context.dataIndex];
+                    return `인원 ${countText(context.parsed.y)} · ${LEVEL_NAMES[level] ?? '단계 없음'}`;
+                },
+                { yTitle: '명' },
+            ),
         });
 
         draw('count', {
             type: 'line',
             data: {
                 labels,
-                datasets: [{
-                    data: counts,
-                    borderColor: COUNT_COLOR,
-                    backgroundColor: COUNT_FILL,
-                    fill: true,
-                    borderWidth: 3,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
-                    spanGaps: false,
-                    tension: 0.2,
-                }],
+                datasets: [
+                    {
+                        data: counts,
+                        borderColor: COUNT_COLOR,
+                        backgroundColor: COUNT_FILL,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        spanGaps: false,
+                        tension: 0.2,
+                    },
+                ],
             },
-            options: options(titles, (context) => `인원 평균 ${countText(context.parsed.y)}`, { yTitle: '명', hideX: true }),
+            options: options(titles, (context) => `인원 평균 ${countText(context.parsed.y)}`, {
+                yTitle: '명',
+                hideX: true,
+            }),
             plugins: [shadePlugin(congested, CONGESTION_FILL)],
         });
 
@@ -83,7 +94,14 @@ export function createPanelCharts(canvases) {
             data: {
                 labels,
                 datasets: [
-                    { label: '유입', data: inflow, backgroundColor: INFLOW_COLOR, stack: 'flow', borderRadius: 2, maxBarThickness: 22 },
+                    {
+                        label: '유입',
+                        data: inflow,
+                        backgroundColor: INFLOW_COLOR,
+                        stack: 'flow',
+                        borderRadius: 2,
+                        maxBarThickness: 22,
+                    },
                     {
                         label: '유출',
                         data: outflow.map((value) => (value === null ? null : -value)),
@@ -94,29 +112,56 @@ export function createPanelCharts(canvases) {
                     },
                 ],
             },
-            options: options(titles, (context) => `${context.dataset.label} ${countText(Math.abs(context.parsed.y))}`, {
-                yTitle: '명',
-                stacked: true,
-                absoluteTicks: true,
-            }),
+            options: options(
+                titles,
+                (context) => `${context.dataset.label} ${countText(Math.abs(context.parsed.y))}`,
+                {
+                    yTitle: '명',
+                    stacked: true,
+                    absoluteTicks: true,
+                },
+            ),
             plugins: [shadePlugin(congested, CONGESTION_FILL)],
         });
 
-        const totals = DIRECTIONS.map(([key]) => [directionSum(points, 'inflow', key), directionSum(points, 'outflow', key)]);
+        const totals = DIRECTIONS.map(([key]) => [
+            directionSum(points, 'inflow', key),
+            directionSum(points, 'outflow', key),
+        ]);
         draw('direction', {
             type: 'bar',
             data: {
                 labels: DIRECTIONS.map(([, name]) => name),
                 datasets: [
-                    { label: '유입', data: totals.map(([sum]) => sum), backgroundColor: INFLOW_COLOR, borderRadius: 3, maxBarThickness: 12 },
-                    { label: '유출', data: totals.map(([, sum]) => sum), backgroundColor: OUTFLOW_COLOR, borderRadius: 3, maxBarThickness: 12 },
+                    {
+                        label: '유입',
+                        data: totals.map(([sum]) => sum),
+                        backgroundColor: INFLOW_COLOR,
+                        borderRadius: 3,
+                        maxBarThickness: 12,
+                    },
+                    {
+                        label: '유출',
+                        data: totals.map(([, sum]) => sum),
+                        backgroundColor: OUTFLOW_COLOR,
+                        borderRadius: 3,
+                        maxBarThickness: 12,
+                    },
                 ],
             },
             options: {
-                ...options(null, (context) => `${context.dataset.label} ${countText(context.parsed.x)}`, {}),
+                ...options(
+                    null,
+                    (context) => `${context.dataset.label} ${countText(context.parsed.x)}`,
+                    {},
+                ),
                 indexAxis: 'y',
                 scales: {
-                    x: { beginAtZero: true, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR } },
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: GRID_COLOR },
+                        ticks: { color: TICK_COLOR },
+                    },
                     y: { grid: { display: false }, ticks: { color: TICK_COLOR } },
                 },
             },
@@ -149,12 +194,22 @@ function options(titles, label, { yTitle, hideX = false, stacked = false, absolu
             },
         },
         scales: {
-            x: { display: !hideX, stacked, grid: { display: false }, ticks: { color: TICK_COLOR, maxTicksLimit: 12 } },
+            x: {
+                display: !hideX,
+                stacked,
+                grid: { display: false },
+                ticks: { color: TICK_COLOR, maxTicksLimit: 12 },
+            },
             y: {
                 stacked,
                 beginAtZero: true,
                 grid: { color: GRID_COLOR },
-                ticks: { color: TICK_COLOR, ...(absoluteTicks ? { callback: (value) => formatNumber(Math.abs(value)) } : {}) },
+                ticks: {
+                    color: TICK_COLOR,
+                    ...(absoluteTicks
+                        ? { callback: (value) => formatNumber(Math.abs(value)) }
+                        : {}),
+                },
                 title: { display: Boolean(yTitle), text: yTitle, color: TICK_COLOR },
             },
         },
@@ -175,5 +230,7 @@ function directionSum(points, field, direction) {
 }
 
 function countText(value) {
-    return value === null || value === undefined ? '데이터 없음' : `${formatNumber(Math.round(value))}명`;
+    return value === null || value === undefined
+        ? '데이터 없음'
+        : `${formatNumber(Math.round(value))}명`;
 }

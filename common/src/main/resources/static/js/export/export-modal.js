@@ -28,7 +28,9 @@ export function initExportModal() {
     if (!modal) {
         return;
     }
-    modal.querySelectorAll('[data-export-close]').forEach((button) => button.addEventListener('click', closeExportModal));
+    modal
+        .querySelectorAll('[data-export-close]')
+        .forEach((button) => button.addEventListener('click', closeExportModal));
     modal.addEventListener('mousedown', (event) => {
         if (event.target === modal) {
             closeExportModal();
@@ -43,7 +45,9 @@ export function initExportModal() {
         renderSum();
         validate();
     });
-    ['export-from', 'export-end', 'export-interval'].forEach((id) => byId(id).addEventListener('change', validate));
+    ['export-from', 'export-end', 'export-interval'].forEach((id) =>
+        byId(id).addEventListener('change', validate),
+    );
     itemBoxes().forEach((box) => box.addEventListener('change', validate));
     modal.querySelector('form').addEventListener('submit', (event) => {
         event.preventDefault();
@@ -70,12 +74,14 @@ export function openExportModal({ zone = null, region = null, interval, from, to
     }
     scopes.push({ scope: 'ALL', targetId: null, label: '전체' });
     const scopeSelect = byId('export-scope');
-    scopeSelect.replaceChildren(...scopes.map((entry, index) => {
-        const option = document.createElement('option');
-        option.value = String(index);
-        option.textContent = entry.label;
-        return option;
-    }));
+    scopeSelect.replaceChildren(
+        ...scopes.map((entry, index) => {
+            const option = document.createElement('option');
+            option.value = String(index);
+            option.textContent = entry.label;
+            return option;
+        }),
+    );
     scopeSelect.value = '0';
     // 지역은 기본 소속 구역별 행, 합산은 직접 고를 때만(FNC-C-023 업무 규칙)
     byId('export-sum').checked = false;
@@ -124,7 +130,9 @@ function readConditions() {
     if (to > shift(from, spec.max)) {
         return { reason: `${spec.label} 단위는 최대 ${spec.maxLabel}까지 내려받을 수 있습니다.` };
     }
-    const items = itemBoxes().filter((box) => box.checked).map((box) => box.value);
+    const items = itemBoxes()
+        .filter((box) => box.checked)
+        .map((box) => box.value);
     if (items.length === 0) {
         return { reason: '항목을 하나 이상 골라 주세요.' };
     }

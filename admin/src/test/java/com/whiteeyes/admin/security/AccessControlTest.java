@@ -7,9 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.security.AccountPrincipal;
 import java.util.List;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import com.whiteeyes.common.security.AccountPrincipal;
+
 /**
  * 관리자 앱 접근 권한 검사(FNC-C-003): 권한 표의 각 경로를 역할별로 호출해 허용/거부를 확인한다.
  * 관리자 앱은 컨텍스트 경로가 /admin이라 요청에 같은 경로를 붙여 보낸다.
@@ -41,13 +43,15 @@ class AccessControlTest {
     private static final String PASSWORD_CHANGE_REDIRECT = "/admin/me/password";
 
     // 권한 표(관리자 앱): ADMIN 이상이 쓰는 경로 / SUPER_ADMIN만 쓰는 경로
-    private static final List<String> ADMIN_SCREENS = List.of("/stats", "/cameras", "/me", "/events", "/administrators");
-    private static final List<String> ADMIN_APIS =
-            List.of("/api/v1/manage/zones/1", "/api/v1/events", "/api/v1/me", "/api/v1/users", "/api/v1/administrators");
+    private static final List<String> ADMIN_SCREENS =
+            List.of("/stats", "/cameras", "/me", "/events", "/administrators");
+    private static final List<String> ADMIN_APIS = List.of(
+            "/api/v1/manage/zones/1", "/api/v1/events", "/api/v1/me", "/api/v1/users", "/api/v1/administrators");
     private static final List<String> SUPER_SCREENS = List.of("/admins", "/admins/1", "/histories", "/histories/1");
-    private static final List<String> SUPER_APIS = List.of(
-            "/api/v1/admins", "/api/v1/admins/1", "/api/v1/admins/1/disable", "/api/v1/histories");
-    private static final List<String> STATIC_FILES = List.of("/css/app.css", "/js/app.js", "/images/logo.png", "/favicon.ico");
+    private static final List<String> SUPER_APIS =
+            List.of("/api/v1/admins", "/api/v1/admins/1", "/api/v1/admins/1/disable", "/api/v1/histories");
+    private static final List<String> STATIC_FILES =
+            List.of("/css/app.css", "/js/app.js", "/images/logo.png", "/favicon.ico");
 
     @Autowired
     private MockMvc mockMvc;
@@ -101,7 +105,9 @@ class AccessControlTest {
     private void assertAllowed(MvcResult result) {
         int status = result.getResponse().getStatus();
         assertThat(status).as("허용이어야 하는 요청의 상태").isNotIn(401, 403);
-        assertThat(result.getResponse().getRedirectedUrl()).as("로그인·변경 화면으로 이동하지 않아야 함").isNull();
+        assertThat(result.getResponse().getRedirectedUrl())
+                .as("로그인·변경 화면으로 이동하지 않아야 함")
+                .isNull();
     }
 
     static Stream<String> adminPaths() {
@@ -146,17 +152,13 @@ class AccessControlTest {
     @ValueSource(strings = {"/stats", "/admins", "/histories/1", "/cameras"})
     @DisplayName("FNC-C-003 세션 없이 화면을 요청하면 로그인 화면으로 이동한다")
     void anonymous_screen_redirectsToLogin(String path) throws Exception {
-        mockMvc.perform(get(path))
-                .andExpect(status().isFound())
-                .andExpect(header().string("Location", LOGIN_REDIRECT));
+        mockMvc.perform(get(path)).andExpect(status().isFound()).andExpect(header().string("Location", LOGIN_REDIRECT));
     }
 
     @Test
     @DisplayName("FNC-C-003 세션 없이 앱 주소(/admin/)를 열면 로그인 화면으로 이동한다")
     void anonymous_root_redirectsToLogin() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(status().isFound())
-                .andExpect(header().string("Location", LOGIN_REDIRECT));
+        mockMvc.perform(get("/")).andExpect(status().isFound()).andExpect(header().string("Location", LOGIN_REDIRECT));
     }
 
     @Test
@@ -239,14 +241,17 @@ class AccessControlTest {
     @Test
     @DisplayName("FNC-C-003 로그인한 관리자도 CSRF 토큰 없이 쓰기 요청을 보내면 403이다")
     void admin_postWithoutCsrf_forbidden() throws Exception {
-        mockMvc.perform(request(HttpMethod.POST, "/api/v1/manage/cameras/1/start").with(asAdmin()))
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/manage/cameras/1/start")
+                        .with(asAdmin()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("FNC-C-003 CSRF 토큰을 같이 보내면 쓰기 요청이 권한 검사를 통과한다")
     void admin_postWithCsrf_allowed() throws Exception {
-        assertAllowed(mockMvc.perform(request(HttpMethod.POST, "/api/v1/manage/unknown").with(asAdmin()).with(csrf()))
+        assertAllowed(mockMvc.perform(request(HttpMethod.POST, "/api/v1/manage/unknown")
+                        .with(asAdmin())
+                        .with(csrf()))
                 .andReturn());
     }
 
@@ -264,7 +269,9 @@ class AccessControlTest {
                         .with(asMustChangePassword())
                         .with(csrf()))
                 .andReturn());
-        mockMvc.perform(request(HttpMethod.POST, "/logout").with(asMustChangePassword()).with(csrf()))
+        mockMvc.perform(request(HttpMethod.POST, "/logout")
+                        .with(asMustChangePassword())
+                        .with(csrf()))
                 .andExpect(status().isFound())
                 .andExpect(header().string("Location", LOGIN_REDIRECT));
     }

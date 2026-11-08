@@ -1,13 +1,5 @@
 package com.whiteeyes.admin.event.service;
 
-import com.whiteeyes.admin.camera.service.CameraQueryService;
-import com.whiteeyes.admin.event.dto.EventSearchRequest;
-import com.whiteeyes.admin.region.service.RegionLookupService;
-import com.whiteeyes.admin.region.service.ZoneService;
-import com.whiteeyes.common.event.entity.Event;
-import com.whiteeyes.common.event.repository.EventSpecifications;
-import com.whiteeyes.common.exception.BusinessException;
-import com.whiteeyes.common.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -16,10 +8,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.admin.camera.service.CameraQueryService;
+import com.whiteeyes.admin.event.dto.EventSearchRequest;
+import com.whiteeyes.admin.region.service.RegionLookupService;
+import com.whiteeyes.admin.region.service.ZoneService;
+import com.whiteeyes.common.event.entity.Event;
+import com.whiteeyes.common.event.repository.EventSpecifications;
+import com.whiteeyes.common.exception.BusinessException;
+import com.whiteeyes.common.exception.ErrorCode;
 
 /**
  * 이벤트 목록·요약(FNC-A-036)이 함께 쓰는 조회 조건을 만든다. 처리 상태 조건은 넣지 않는다(요약은 상태를 무시하므로
@@ -55,9 +57,10 @@ public class EventConditionService {
 
         List<Specification<Event>> conditions = new ArrayList<>();
         // overlap=true면 기간과 겹치는 이벤트(발생이 기간 앞이어도 이어진 것 포함), 아니면 발생 시각이 기간 안인 것(명세 기본)
-        conditions.add(request.overlap()
-                ? EventSpecifications.overlapping(toKst(request.from()), toKst(request.to()))
-                : EventSpecifications.startedBetween(toKst(request.from()), toKst(request.to())));
+        conditions.add(
+                request.overlap()
+                        ? EventSpecifications.overlapping(toKst(request.from()), toKst(request.to()))
+                        : EventSpecifications.startedBetween(toKst(request.from()), toKst(request.to())));
         conditions.add(EventSpecifications.ofTypes(request.types()));
         if (zoneIds != null) {
             conditions.add(EventSpecifications.inZones(zoneIds));

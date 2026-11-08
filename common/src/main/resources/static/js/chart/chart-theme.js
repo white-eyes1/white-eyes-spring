@@ -25,8 +25,15 @@ export function shadePlugin(flags, fill) {
             if (!flags.some(Boolean)) {
                 return;
             }
-            const { ctx, chartArea: area, scales: { x } } = chart;
-            const step = flags.length > 1 ? Math.abs(x.getPixelForValue(1) - x.getPixelForValue(0)) : area.right - area.left;
+            const {
+                ctx,
+                chartArea: area,
+                scales: { x },
+            } = chart;
+            const step =
+                flags.length > 1
+                    ? Math.abs(x.getPixelForValue(1) - x.getPixelForValue(0))
+                    : area.right - area.left;
             ctx.save();
             ctx.fillStyle = fill;
             flags.forEach((flag, index) => {

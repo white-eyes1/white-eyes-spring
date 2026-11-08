@@ -1,5 +1,15 @@
 package com.whiteeyes.admin.region.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.admin.region.dto.ZoneCalculation;
 import com.whiteeyes.admin.region.dto.ZoneUpdateResponse;
@@ -13,14 +23,6 @@ import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.repository.ZoneRepository;
 import com.whiteeyes.common.security.LoginAccount;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.JsonNode;
 
 /** 구역의 이름과 다각형을 고친다(FNC-A-015). 다각형은 같은 동 안에서만 바꿀 수 있다. */
 @Service
@@ -47,7 +49,9 @@ public class ZoneUpdateService {
         if (name == null && boundary == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "name 또는 boundary 중 하나는 보내야 합니다.");
         }
-        Zone zone = zoneRepository.findById(zoneId).filter(found -> found.getDeletedAt() == null)
+        Zone zone = zoneRepository
+                .findById(zoneId)
+                .filter(found -> found.getDeletedAt() == null)
                 .orElseThrow(() -> new ZoneNotFoundException(zoneId));
         String beforeName = zone.getName();
         BigDecimal beforeArea = zone.getAreaM2();

@@ -35,10 +35,7 @@ class PasswordEncoderConfigTest {
     void encode_result_isBcryptStrength10() {
         String encoded = passwordEncoder.encode(RAW_PASSWORD);
 
-        assertThat(encoded)
-                .doesNotContain(RAW_PASSWORD)
-                .hasSize(BCRYPT_LENGTH)
-                .startsWith(BCRYPT_STRENGTH_10_PREFIX);
+        assertThat(encoded).doesNotContain(RAW_PASSWORD).hasSize(BCRYPT_LENGTH).startsWith(BCRYPT_STRENGTH_10_PREFIX);
     }
 
     @Test

@@ -1,5 +1,20 @@
 package com.whiteeyes.admin.notification.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+
+import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import com.whiteeyes.admin.notification.dto.CameraStatusMessage;
 import com.whiteeyes.admin.notification.dto.EventCreatedMessage;
 import com.whiteeyes.admin.region.dto.ZoneSummary;
@@ -7,19 +22,6 @@ import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.event.entity.EventType;
 import com.whiteeyes.common.event.service.UncheckedEventCountService;
-import jakarta.annotation.PreDestroy;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 관리자 알림 스트림(FNC-A-048)에 알림을 내보내는 notification 도메인의 공개 service. 이벤트 판정(FNC-A-033~035),
@@ -60,7 +62,11 @@ public class NotificationPublisher {
     public void eventCreated(long eventId, EventType type, long zoneId, Integer level, LocalDateTime startedAt) {
         afterCommit(() -> {
             EventCreatedMessage message = new EventCreatedMessage(
-                    eventId, type, zoneNameOf(zoneId), level, startedAt.atZone(KST).toOffsetDateTime());
+                    eventId,
+                    type,
+                    zoneNameOf(zoneId),
+                    level,
+                    startedAt.atZone(KST).toOffsetDateTime());
             broadcaster().broadcast("event-created", message);
         });
     }

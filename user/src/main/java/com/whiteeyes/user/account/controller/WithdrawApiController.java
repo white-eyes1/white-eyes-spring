@@ -1,7 +1,5 @@
 package com.whiteeyes.user.account.controller;
 
-import com.whiteeyes.user.account.dto.WithdrawRequest;
-import com.whiteeyes.user.account.service.WithdrawService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -12,6 +10,9 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.whiteeyes.user.account.dto.WithdrawRequest;
+import com.whiteeyes.user.account.service.WithdrawService;
 
 /** 회원 탈퇴 API: DELETE /api/v1/me(FNC-U-004, 사용자 앱만). 성공하면 204이고 세션이 모두 지워진다. */
 @RestController

@@ -235,7 +235,12 @@ function clearResult() {
     rowsEl.replaceChildren();
     emptyEl.hidden = true;
     pagesEl.replaceChildren();
-    for (const id of ['summary-total', 'summary-unchecked', 'summary-checked', 'summary-resolved']) {
+    for (const id of [
+        'summary-total',
+        'summary-unchecked',
+        'summary-checked',
+        'summary-resolved',
+    ]) {
         document.getElementById(id).textContent = '-';
     }
 }
@@ -252,9 +257,10 @@ async function loadLevelNames() {
 // ---- 요약 카드 ----
 
 function renderSummary(summary) {
-    summaryTotalLabel.textContent = fromInput.value === toInput.value && fromInput.value === formatDate(new Date())
-        ? '전체 (오늘)'
-        : '전체';
+    summaryTotalLabel.textContent =
+        fromInput.value === toInput.value && fromInput.value === formatDate(new Date())
+            ? '전체 (오늘)'
+            : '전체';
     document.getElementById('summary-total').textContent = formatNumber(summary.total);
     document.getElementById('summary-unchecked').textContent = formatNumber(summary.unchecked);
     document.getElementById('summary-checked').textContent = formatNumber(summary.checked);
@@ -339,7 +345,11 @@ function endedText(event) {
 
 function typeChip(event) {
     const chipClass =
-        event.type === 'CONGESTION' ? (LEVEL_CHIP[event.peakLevel] ?? 'l2') : event.type === 'SURGE' ? 'surge' : 'cam';
+        event.type === 'CONGESTION'
+            ? (LEVEL_CHIP[event.peakLevel] ?? 'l2')
+            : event.type === 'SURGE'
+              ? 'surge'
+              : 'cam';
     return el('span', `chip ${chipClass}`, TYPE_LABEL[event.type] ?? event.type);
 }
 
@@ -360,7 +370,9 @@ function valueText(event) {
 }
 
 function peakCountText(event) {
-    return event.peakCount === null || event.peakCount === undefined ? '' : `최고 ${formatNumber(event.peakCount)}명`;
+    return event.peakCount === null || event.peakCount === undefined
+        ? ''
+        : `최고 ${formatNumber(event.peakCount)}명`;
 }
 
 function durationText(seconds) {
@@ -372,7 +384,9 @@ function durationText(seconds) {
         return `${minutes}분`;
     }
     const rest = minutes % 60;
-    return rest === 0 ? `${Math.floor(minutes / 60)}시간` : `${Math.floor(minutes / 60)}시간 ${rest}분`;
+    return rest === 0
+        ? `${Math.floor(minutes / 60)}시간`
+        : `${Math.floor(minutes / 60)}시간 ${rest}분`;
 }
 
 function statusChip(status) {
@@ -389,7 +403,9 @@ function bindDetail() {
             openDetailOf(event.target);
         }
     });
-    detailModal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeDetail));
+    detailModal
+        .querySelectorAll('[data-close]')
+        .forEach((button) => button.addEventListener('click', closeDetail));
     detailModal.addEventListener('mousedown', (event) => {
         if (event.target === detailModal) {
             closeDetail();
@@ -461,7 +477,9 @@ function renderDetail(detail) {
     if (detail.handledAt) {
         rows.push(['처리 일시', formatDateTime(detail.handledAt)]);
     }
-    detailInfo.replaceChildren(...rows.flatMap(([label, value]) => [el('dt', '', label), definition(value)]));
+    detailInfo.replaceChildren(
+        ...rows.flatMap(([label, value]) => [el('dt', '', label), definition(value)]),
+    );
 
     detailHistories.replaceChildren(
         ...(detail.histories.length > 0
@@ -496,7 +514,10 @@ function peakNode(detail) {
     }
     const fragment = document.createDocumentFragment();
     if (detail.type === 'CONGESTION') {
-        fragment.append(el('span', `chip ${LEVEL_CHIP[detail.peakLevel] ?? 'l2'}`, peakTitle(detail)), ' ');
+        fragment.append(
+            el('span', `chip ${LEVEL_CHIP[detail.peakLevel] ?? 'l2'}`, peakTitle(detail)),
+            ' ',
+        );
         fragment.append(`${formatDecimal(detail.peakValue, 2)}명/㎡`);
     } else {
         fragment.append(`+${formatDecimal(detail.peakValue, 0)}%`);
@@ -514,7 +535,12 @@ function thresholdText(detail) {
     if (detail.type === 'CAM_FAULT' && has(snapshot.timeoutSec)) {
         return `결과 없음 ${snapshot.timeoutSec}초 이상`;
     }
-    if (detail.type === 'SURGE' && has(snapshot.window) && has(snapshot.rate) && has(snapshot.minDensity)) {
+    if (
+        detail.type === 'SURGE' &&
+        has(snapshot.window) &&
+        has(snapshot.rate) &&
+        has(snapshot.minDensity)
+    ) {
         return `${snapshot.window}분 전보다 +${snapshot.rate}% 이상 · 최소 밀집도 ${snapshot.minDensity}명/㎡`;
     }
     return '-';

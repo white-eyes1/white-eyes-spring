@@ -7,13 +7,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.common.security.AccountPrincipal;
-import com.whiteeyes.user.support.UserTestAccounts;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +30,10 @@ import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.user.support.UserTestAccounts;
 
 /**
  * 사용자 앱 로그아웃(FNC-C-002). 세션 삭제는 세션을 저장소에 직접 만들어 확인하고,
@@ -138,7 +140,9 @@ class UserLogoutTest {
         session.setAttribute("SPRING_SECURITY_CONTEXT", new SecurityContextImpl(authentication));
         // JdbcSession 클래스가 비공개라 저장은 인터페이스(SessionRepository)로 한다
         ((SessionRepository<Session>) (SessionRepository<?>) sessionRepository).save(session);
-        return new Cookie(SESSION_COOKIE, Base64.getEncoder().encodeToString(session.getId().getBytes(StandardCharsets.UTF_8)));
+        return new Cookie(
+                SESSION_COOKIE,
+                Base64.getEncoder().encodeToString(session.getId().getBytes(StandardCharsets.UTF_8)));
     }
 
     private long sessionRows() {

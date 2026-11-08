@@ -4,13 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-import com.whiteeyes.common.account.entity.UserAccount;
-import com.whiteeyes.common.account.repository.UserAccountRepository;
 import jakarta.servlet.http.Cookie;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import com.whiteeyes.common.account.entity.UserAccount;
+import com.whiteeyes.common.account.repository.UserAccountRepository;
 
 /**
  * 사용자 앱 권한 시험에서 user_account에 계정을 넣고 실제 로그인(POST /login)하는 도구.
@@ -47,7 +48,8 @@ public final class UserTestAccounts {
 
     /** 비밀번호가 PASSWORD인 계정을 넣고 계정 번호를 돌려준다. status는 PENDING·ACTIVE·WITHDRAWN. */
     public Long insert(String loginId, String status, boolean mustChangePassword) {
-        UserAccount account = UserAccount.createPending(loginId, passwordEncoder.encode(PASSWORD), "테스트 사용자", null, null);
+        UserAccount account =
+                UserAccount.createPending(loginId, passwordEncoder.encode(PASSWORD), "테스트 사용자", null, null);
         Long id = userAccountRepository.save(account).getId();
         jdbcTemplate.update(
                 "UPDATE user_account SET status = ?, must_change_password = ? WHERE id = ?",

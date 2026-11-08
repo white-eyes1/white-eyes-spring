@@ -51,6 +51,8 @@ public class TodayEventCountService {
      */
     @Transactional(readOnly = true)
     public int countTotal(Collection<Long> zoneIds, LocalDateTime from) {
-        return countByZone(zoneIds, from).values().stream().mapToInt(Integer::intValue).sum();
+        return countByZone(zoneIds, from).values().stream()
+                .mapToInt(Integer::intValue)
+                .sum();
     }
 }

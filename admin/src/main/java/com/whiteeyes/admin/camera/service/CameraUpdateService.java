@@ -1,5 +1,12 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.camera.dto.CameraResponse;
 import com.whiteeyes.admin.camera.dto.CameraUpdateRequest;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
@@ -14,11 +21,6 @@ import com.whiteeyes.common.exception.ErrorCode;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 정지 상태인 캠의 이름·입력 방식·영상 주소를 고친다(FNC-A-019). */
 @Service
@@ -41,7 +43,8 @@ public class CameraUpdateService {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "name, sourceType, sourceUri 중 하나는 보내야 합니다.");
         }
         // 행을 잠가서 읽는다: 상태 확인과 저장 사이에 가동 요청이 끼어드는 것을 막는다(캠 삭제와 같은 방식)
-        Camera camera = cameraRepository.findWithLockByIdAndDeletedAtIsNull(cameraId)
+        Camera camera = cameraRepository
+                .findWithLockByIdAndDeletedAtIsNull(cameraId)
                 .orElseThrow(() -> new CameraNotFoundException(cameraId));
         // 처리 순서 1: 정지 상태(STOPPED)이고 가동 요청이 없을 때만 고칠 수 있다(가동 중·준비 중·오류는 먼저 정지)
         if (camera.getStatus() != CameraStatus.STOPPED || camera.isRunRequested()) {
@@ -50,7 +53,9 @@ public class CameraUpdateService {
         // 처리 순서 2: 바뀐 뒤의 입력 방식과 영상 주소로 규칙 검사 후 저장
         String name = request.name() == null ? camera.getName() : request.name().trim();
         CameraSourceType sourceType = request.sourceType() == null ? camera.getSourceType() : request.sourceType();
-        String sourceUri = request.sourceUri() == null ? camera.getSourceUri() : request.sourceUri().trim();
+        String sourceUri = request.sourceUri() == null
+                ? camera.getSourceUri()
+                : request.sourceUri().trim();
         sourceUriValidator.validate(sourceType, sourceUri);
         Map<String, Object> before = snapshot(camera);
         camera.updateInfo(name, sourceType, sourceUri);
@@ -61,7 +66,8 @@ public class CameraUpdateService {
         detail.put("zoneId", camera.getZoneId());
         detail.put("before", before);
         detail.put("after", snapshot(camera));
-        workRecorder.record(actor, WorkAction.CAMERA_CHANGE, WorkTargetType.CAMERA, camera.getId(), camera.getName(), detail);
+        workRecorder.record(
+                actor, WorkAction.CAMERA_CHANGE, WorkTargetType.CAMERA, camera.getId(), camera.getName(), detail);
         return CameraResponse.from(camera);
     }
 

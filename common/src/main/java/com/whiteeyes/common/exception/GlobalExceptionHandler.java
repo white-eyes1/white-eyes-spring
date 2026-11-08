@@ -54,8 +54,7 @@ public class GlobalExceptionHandler {
     private final JsonMapper jsonMapper;
 
     @ExceptionHandler(BusinessException.class)
-    public ModelAndView handleBusiness(
-            BusinessException ex, HttpServletRequest request, HttpServletResponse response) {
+    public ModelAndView handleBusiness(BusinessException ex, HttpServletRequest request, HttpServletResponse response) {
         ErrorCode errorCode = ex.getErrorCode();
         String uri = request.getRequestURI();
         // 외부 연결 실패(502)는 재시도로 풀릴 수 있어 ResourceAccessException과 같이 WARN, 그 밖의 5xx는 사람이
@@ -151,7 +150,8 @@ public class GlobalExceptionHandler {
             } else {
                 log.debug("요청 오류 status={} uri={}", status.value(), request.getRequestURI());
             }
-            springError.getHeaders()
+            springError
+                    .getHeaders()
                     .forEach((name, values) -> values.forEach(value -> response.addHeader(name, value)));
             ErrorCode errorCode = toErrorCode(status);
             return render(request, response, status, ErrorResponse.of(errorCode.name(), errorCode.getMessage()));

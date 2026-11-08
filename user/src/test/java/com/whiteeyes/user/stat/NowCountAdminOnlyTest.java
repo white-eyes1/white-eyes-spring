@@ -5,13 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.region.entity.Region;
-import com.whiteeyes.common.region.entity.RegionLevel;
-import com.whiteeyes.common.region.repository.RegionRepository;
-import com.whiteeyes.common.stat.service.NowCountSource;
-import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +17,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.common.region.entity.Region;
+import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.repository.RegionRepository;
+import com.whiteeyes.common.stat.service.NowCountSource;
+import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
 
 /**
  * 5초 현재 인원(FNC-A-054, 결정 0018)은 관리자 앱만 낸다. 사용자 앱에는 현재 인원을 내는 빈이 없어
@@ -55,14 +57,21 @@ class NowCountAdminOnlyTest {
     @Test
     @DisplayName("FNC-A-054 사용자 앱에는 현재 인원을 내는 빈이 없다")
     void noNowCountSourceBean() {
-        assertThat(context.getBeanProvider(NowCountSource.class).getIfAvailable()).isNull();
+        assertThat(context.getBeanProvider(NowCountSource.class).getIfAvailable())
+                .isNull();
     }
 
     @Test
     @DisplayName("FNC-C-016 사용자 앱의 요약은 currentCount가 null이다(countAvg 기준 유지)")
     void summary_currentCountIsNull() throws Exception {
         Region sido = regionRepository.save(new Region(
-                null, RegionLevel.SIDO, "11", "서울특별시", BOUNDARY, new BigDecimal("37.600000"), new BigDecimal("127.020000")));
+                null,
+                RegionLevel.SIDO,
+                "11",
+                "서울특별시",
+                BOUNDARY,
+                new BigDecimal("37.600000"),
+                new BigDecimal("127.020000")));
 
         mockMvc.perform(get("/api/v1/dashboard/summary")
                         .param("targetType", "REGION")
@@ -76,6 +85,7 @@ class NowCountAdminOnlyTest {
     void stream_noNowEvent() {
         broadcaster.subscribe(null);
 
-        assertThat(broadcaster.pollNowOnce(LocalDateTime.of(2099, 1, 1, 12, 0, 0))).isZero();
+        assertThat(broadcaster.pollNowOnce(LocalDateTime.of(2099, 1, 1, 12, 0, 0)))
+                .isZero();
     }
 }

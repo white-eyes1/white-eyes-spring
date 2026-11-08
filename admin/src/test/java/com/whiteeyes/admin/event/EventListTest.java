@@ -10,20 +10,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
-import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
-import com.whiteeyes.admin.support.ThreadStatementCounter;
-import com.whiteeyes.common.camera.entity.CameraSourceType;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +30,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
+import com.whiteeyes.admin.camera.service.CameraRegisterService;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.admin.support.ThreadStatementCounter;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
 
 /** 이벤트 목록(FNC-A-036) GET /api/v1/events. 이벤트 행은 처리 상태·종류가 다양해야 해서 SQL로 직접 넣는다. */
 @Import(AdminTestUserConfig.class)
@@ -107,8 +109,7 @@ class EventListTest {
     @Test
     @DisplayName("FNC-A-036 이벤트가 없으면 빈 페이지")
     void list_noEvents_emptyPage() throws Exception {
-        list()
-                .andExpect(status().isOk())
+        list().andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", empty()))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(20))
@@ -120,10 +121,10 @@ class EventListTest {
     @DisplayName("FNC-A-036 행에 구역 이름·구 동 경로·진행 중 여부·지속 시간·최고 값이 담긴다(혼잡의 캠 이름은 null)")
     void list_returnsRowFields() throws Exception {
         createCamera(samcheongZoneId, "삼청동 캠");
-        long eventId = insertEvent("CONGESTION", samcheongZoneId, null, T0, T0.plusMinutes(10), 3, "1.6400", 48, "CHECKED");
+        long eventId =
+                insertEvent("CONGESTION", samcheongZoneId, null, T0, T0.plusMinutes(10), 3, "1.6400", 48, "CHECKED");
 
-        list()
-                .andExpect(status().isOk())
+        list().andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].id").value(eventId))
                 .andExpect(jsonPath("$.items[0].type").value("CONGESTION"))
@@ -150,8 +151,7 @@ class EventListTest {
         long sameTimeLater =
                 insertEvent("CONGESTION", sajikZoneId, null, T0.plusHours(1), null, 2, "0.8000", 10, "UNCHECKED");
 
-        list()
-                .andExpect(jsonPath("$.items[*].id").value(contains((int) sameTimeLater, (int) newer, (int) older)));
+        list().andExpect(jsonPath("$.items[*].id").value(contains((int) sameTimeLater, (int) newer, (int) older)));
     }
 
     @Test
@@ -166,7 +166,8 @@ class EventListTest {
                 .getResponse()
                 .getContentAsString();
 
-        long durationSec = jsonMapper.readTree(body).get("items").get(0).get("durationSec").asLong();
+        long durationSec =
+                jsonMapper.readTree(body).get("items").get(0).get("durationSec").asLong();
         assertThat(durationSec).isBetween(30 * 60L - 2, 31 * 60L);
     }
 
@@ -203,7 +204,8 @@ class EventListTest {
     void list_period_halfOpen() throws Exception {
         insertEvent("CONGESTION", samcheongZoneId, null, T0.minusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
         long atFrom = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
-        long inside = insertEvent("CONGESTION", samcheongZoneId, null, T0.plusHours(1), null, 2, "0.8000", 10, "UNCHECKED");
+        long inside =
+                insertEvent("CONGESTION", samcheongZoneId, null, T0.plusHours(1), null, 2, "0.8000", 10, "UNCHECKED");
         insertEvent("CONGESTION", samcheongZoneId, null, T0.plusHours(2), null, 2, "0.8000", 10, "UNCHECKED");
 
         list(param("from", "2026-10-12T09:00:00+09:00"), param("to", "2026-10-12T11:00:00+09:00"))
@@ -216,17 +218,46 @@ class EventListTest {
     void list_overlap_includesEventsContinuingIntoPeriod() throws Exception {
         // 기간: 10:00 이상 12:00 미만(T0는 09:00)
         // 07:00 시작, 08:30 종료: 기간 앞에서 끝났다 → overlap에서도 뺀다
-        insertEvent("CONGESTION", samcheongZoneId, null, T0.minusHours(2), T0.minusMinutes(30), 2, "0.8000", 10, "UNCHECKED");
+        insertEvent(
+                "CONGESTION",
+                samcheongZoneId,
+                null,
+                T0.minusHours(2),
+                T0.minusMinutes(30),
+                2,
+                "0.8000",
+                10,
+                "UNCHECKED");
         // 08:00 시작, 10:30 종료: 기간 앞에서 시작해 기간 안에서 끝났다 → overlap에서 포함
-        long endsAfterFrom = insertEvent("CONGESTION", samcheongZoneId, null, T0.minusHours(1), T0.plusMinutes(90), 2, "0.8000", 10, "UNCHECKED");
+        long endsAfterFrom = insertEvent(
+                "CONGESTION",
+                samcheongZoneId,
+                null,
+                T0.minusHours(1),
+                T0.plusMinutes(90),
+                2,
+                "0.8000",
+                10,
+                "UNCHECKED");
         // 06:00 시작, 진행 중: 기간 앞에서 시작해 이어지는 중이다 → overlap에서 포함
-        long ongoing = insertEvent("SURGE", samcheongZoneId, null, T0.minusHours(3), null, null, "150.0000", 10, "UNCHECKED");
+        long ongoing =
+                insertEvent("SURGE", samcheongZoneId, null, T0.minusHours(3), null, null, "150.0000", 10, "UNCHECKED");
         // 11:00 시작, 11:05 종료: 기간 안 → 기본·overlap 모두 포함
-        long inside = insertEvent("CONGESTION", samcheongZoneId, null, T0.plusHours(2), T0.plusHours(2).plusMinutes(5), 2, "0.8000", 10, "UNCHECKED");
+        long inside = insertEvent(
+                "CONGESTION",
+                samcheongZoneId,
+                null,
+                T0.plusHours(2),
+                T0.plusHours(2).plusMinutes(5),
+                2,
+                "0.8000",
+                10,
+                "UNCHECKED");
         // 12:00 시작(to 정각): 기간 끝에 시작했다 → 기본·overlap 모두 뺀다
         insertEvent("CONGESTION", samcheongZoneId, null, T0.plusHours(3), null, 2, "0.8000", 10, "UNCHECKED");
         // 08:00 시작, 10:00 종료(from 정각): 끝이 정확히 from이라 겹치지 않는다 → overlap에서 뺀다
-        insertEvent("CONGESTION", samcheongZoneId, null, T0.minusHours(1), T0.plusHours(1), 2, "0.8000", 10, "UNCHECKED");
+        insertEvent(
+                "CONGESTION", samcheongZoneId, null, T0.minusHours(1), T0.plusHours(1), 2, "0.8000", 10, "UNCHECKED");
 
         // 기본(overlap 없음)은 발생 시각이 기간 안인 것만: inside 하나(발생이 10:00~12:00 사이인 것)
         list(param("from", "2026-10-12T10:00:00+09:00"), param("to", "2026-10-12T12:00:00+09:00"))
@@ -235,7 +266,10 @@ class EventListTest {
 
         // overlap=true: 기간 앞에서 시작해 이어진 것(endsAfterFrom, ongoing)과 기간 안(inside)만 준다. 08:30에 끝난 것, 10:00에 끝난 것,
         // 12:00에 시작한 것은 뺀다. 발생 시각 내림차순
-        list(param("from", "2026-10-12T10:00:00+09:00"), param("to", "2026-10-12T12:00:00+09:00"), param("overlap", "true"))
+        list(
+                        param("from", "2026-10-12T10:00:00+09:00"),
+                        param("to", "2026-10-12T12:00:00+09:00"),
+                        param("overlap", "true"))
                 .andExpect(jsonPath("$.totalElements").value(3))
                 .andExpect(jsonPath("$.items[*].id").value(contains((int) inside, (int) endsAfterFrom, (int) ongoing)));
 
@@ -259,8 +293,10 @@ class EventListTest {
         insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
         insertEvent("CONGESTION", samcheongZoneId, null, T0.plusHours(5), null, 2, "0.8000", 10, "UNCHECKED");
 
-        list(param("from", "2026-10-12T12:00:00+09:00")).andExpect(jsonPath("$.totalElements").value(1));
-        list(param("to", "2026-10-12T12:00:00+09:00")).andExpect(jsonPath("$.totalElements").value(1));
+        list(param("from", "2026-10-12T12:00:00+09:00"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+        list(param("to", "2026-10-12T12:00:00+09:00"))
+                .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test
@@ -277,8 +313,10 @@ class EventListTest {
     @DisplayName("FNC-A-036 regionId는 구·동 아래 소속 구역을 모두 포함한다")
     void list_byRegion_includesChildZones() throws Exception {
         long samcheong = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
-        long sajik = insertEvent("CONGESTION", sajikZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
-        long sogong = insertEvent("CONGESTION", sogongZoneId, null, T0.plusMinutes(2), null, 2, "0.8000", 10, "UNCHECKED");
+        long sajik =
+                insertEvent("CONGESTION", sajikZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
+        long sogong =
+                insertEvent("CONGESTION", sogongZoneId, null, T0.plusMinutes(2), null, 2, "0.8000", 10, "UNCHECKED");
 
         list(param("regionId", String.valueOf(regionId("종로구"))))
                 .andExpect(jsonPath("$.items[*].id").value(contains((int) sajik, (int) samcheong)));
@@ -290,19 +328,22 @@ class EventListTest {
     @DisplayName("FNC-A-036 types는 여러 개를 함께 줄 수 있다")
     void list_byTypes_multiple() throws Exception {
         long congestion = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
-        long surge = insertEvent("SURGE", samcheongZoneId, null, T0.plusMinutes(1), null, null, "55.0000", 30, "UNCHECKED");
+        long surge =
+                insertEvent("SURGE", samcheongZoneId, null, T0.plusMinutes(1), null, null, "55.0000", 30, "UNCHECKED");
         insertEvent("CAM_FAULT", samcheongZoneId, null, T0.plusMinutes(2), null, null, null, null, "UNCHECKED");
 
         list(param("types", "CONGESTION"), param("types", "SURGE"))
                 .andExpect(jsonPath("$.items[*].id").value(contains((int) surge, (int) congestion)));
-        list(param("types", "CONGESTION,CAM_FAULT")).andExpect(jsonPath("$.totalElements").value(2));
+        list(param("types", "CONGESTION,CAM_FAULT"))
+                .andExpect(jsonPath("$.totalElements").value(2));
     }
 
     @Test
     @DisplayName("FNC-A-036 statuses는 여러 개를 함께 줄 수 있다")
     void list_byStatuses_multiple() throws Exception {
         long unchecked = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
-        long checked = insertEvent("CONGESTION", samcheongZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "CHECKED");
+        long checked =
+                insertEvent("CONGESTION", samcheongZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "CHECKED");
         insertEvent("CONGESTION", samcheongZoneId, null, T0.plusMinutes(2), null, 2, "0.8000", 10, "RESOLVED");
 
         list(param("statuses", "UNCHECKED"), param("statuses", "CHECKED"))
@@ -314,8 +355,10 @@ class EventListTest {
     void list_byKeyword_zoneCameraRegionNames() throws Exception {
         createCamera(samcheongZoneId, "북쪽 정문 캠");
         long samcheong = insertEvent("CONGESTION", samcheongZoneId, null, T0, null, 2, "0.8000", 10, "UNCHECKED");
-        long sogong = insertEvent("CONGESTION", sogongZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
-        long sajik = insertEvent("CONGESTION", sajikZoneId, null, T0.plusMinutes(2), null, 2, "0.8000", 10, "UNCHECKED");
+        long sogong =
+                insertEvent("CONGESTION", sogongZoneId, null, T0.plusMinutes(1), null, 2, "0.8000", 10, "UNCHECKED");
+        long sajik =
+                insertEvent("CONGESTION", sajikZoneId, null, T0.plusMinutes(2), null, 2, "0.8000", 10, "UNCHECKED");
 
         // 구역 이름
         list(param("keyword", "소공동 1")).andExpect(jsonPath("$.items[*].id").value(contains((int) sogong)));
@@ -324,8 +367,7 @@ class EventListTest {
         // 소속 동 이름
         list(param("keyword", "사직")).andExpect(jsonPath("$.items[*].id").value(contains((int) sajik)));
         // 소속 구 이름: 종로구의 삼청동·사직동 구역
-        list(param("keyword", "종로"))
-                .andExpect(jsonPath("$.items[*].id").value(contains((int) sajik, (int) samcheong)));
+        list(param("keyword", "종로")).andExpect(jsonPath("$.items[*].id").value(contains((int) sajik, (int) samcheong)));
         // 일치하는 것이 없으면 빈 페이지
         list(param("keyword", "없는이름")).andExpect(jsonPath("$.items", empty()));
     }
@@ -445,9 +487,15 @@ class EventListTest {
     @Test
     @DisplayName("FNC-A-036 size는 1~100, page는 0 이상이 아니면 400 INVALID_INPUT")
     void list_invalidPaging_400() throws Exception {
-        list(param("size", "101")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        list(param("size", "0")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        list(param("page", "-1")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+        list(param("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+        list(param("size", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+        list(param("page", "-1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
         list(param("size", "100")).andExpect(status().isOk());
     }
 
@@ -491,7 +539,16 @@ class EventListTest {
         long withOne = countStatementsOfList();
 
         for (int i = 1; i <= 9; i++) {
-            insertEvent("CONGESTION", i % 2 == 0 ? sogongZoneId : sajikZoneId, null, T0.plusMinutes(i), null, 2, "0.8000", 10, "UNCHECKED");
+            insertEvent(
+                    "CONGESTION",
+                    i % 2 == 0 ? sogongZoneId : sajikZoneId,
+                    null,
+                    T0.plusMinutes(i),
+                    null,
+                    2,
+                    "0.8000",
+                    10,
+                    "UNCHECKED");
         }
         long withTen = countStatementsOfList();
 
@@ -519,7 +576,9 @@ class EventListTest {
 
     private void runEventCountQuery() {
         try (EntityManager entityManager = entityManagerFactory.createEntityManager()) {
-            entityManager.createQuery("select count(e) from Event e", Long.class).getSingleResult();
+            entityManager
+                    .createQuery("select count(e) from Event e", Long.class)
+                    .getSingleResult();
         }
     }
 

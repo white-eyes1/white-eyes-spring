@@ -67,8 +67,8 @@ public class StatExportReader {
      */
     @Transactional(readOnly = true)
     public StatExportPlan plan(StatExportRequest request) {
-        Map<Long, Region> regions = regionRepository.findAll().stream()
-                .collect(Collectors.toMap(Region::getId, Function.identity()));
+        Map<Long, Region> regions =
+                regionRepository.findAll().stream().collect(Collectors.toMap(Region::getId, Function.identity()));
         return switch (request.scope()) {
             case ZONE -> {
                 Zone zone = regionQueryService.getZoneIncludingDeleted(request.targetId());
@@ -99,15 +99,18 @@ public class StatExportReader {
 
     private StatExportPlan regionPlan(StatExportRequest request, Map<Long, Region> regions) {
         Region region = regionQueryService.getRegion(request.targetId());
-        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream().map(Region::getId).toList();
+        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream()
+                .map(Region::getId)
+                .toList();
         if (!request.sum()) {
-            List<StatExportSeries> series = dongIds.isEmpty()
-                    ? List.of()
-                    : zoneSeries(regionQueryService.findZonesInDongs(dongIds), regions);
+            List<StatExportSeries> series =
+                    dongIds.isEmpty() ? List.of() : zoneSeries(regionQueryService.findZonesInDongs(dongIds), regions);
             return new StatExportPlan(
                     request, region.getName(), series, series.size(), request.checkRowLimit(series.size()));
         }
-        int sourceZoneCount = dongIds.isEmpty() ? 0 : regionQueryService.findAllZonesInDongs(dongIds).size();
+        int sourceZoneCount = dongIds.isEmpty()
+                ? 0
+                : regionQueryService.findAllZonesInDongs(dongIds).size();
         return new StatExportPlan(
                 request,
                 region.getName(),
@@ -160,7 +163,9 @@ public class StatExportReader {
     }
 
     private static Region parentOf(Region region, Map<Long, Region> regions) {
-        return region.getParent() == null ? null : regions.get(region.getParent().getId());
+        return region.getParent() == null
+                ? null
+                : regions.get(region.getParent().getId());
     }
 
     // 시각을 잘라 모든 구역을 한 번에 읽고, 시각 순으로 묶어 계획의 줄 순서대로 넘긴다(시각 묶음 정렬, FNC-C-023 처리 순서 2).
@@ -196,7 +201,8 @@ public class StatExportReader {
         int windowSize = windowSize(ROW_BUDGET, plan.sourceZoneCount());
         for (TimeWindow window : windows(interval, request.from(), request.to(), windowSize)) {
             statSeriesService
-                    .findSeries(new StatSeriesRequest(targetType, request.targetId(), interval, window.from(), window.to()))
+                    .findSeries(
+                            new StatSeriesRequest(targetType, request.targetId(), interval, window.from(), window.to()))
                     .items()
                     .forEach(point -> sink.accept(line, point));
         }

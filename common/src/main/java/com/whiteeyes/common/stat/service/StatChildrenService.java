@@ -51,9 +51,8 @@ public class StatChildrenService {
     @Transactional(readOnly = true)
     public StatChildrenResponse findChildren(StatChildrenRequest request) {
         Region region = regionQueryService.getRegion(request.regionId());
-        List<ChildSeries> children = region.getLevel() == RegionLevel.EMD
-                ? zoneChildren(region, request)
-                : regionChildren(region, request);
+        List<ChildSeries> children =
+                region.getLevel() == RegionLevel.EMD ? zoneChildren(region, request) : regionChildren(region, request);
 
         Set<Long> shown = topByCountAvg(children);
         List<StatChildrenResponse.Series> series = children.stream()
@@ -126,7 +125,8 @@ public class StatChildrenService {
     private static BigDecimal sum(Map<String, Integer> flow) {
         return flow == null
                 ? null
-                : BigDecimal.valueOf(flow.values().stream().mapToLong(Integer::longValue).sum());
+                : BigDecimal.valueOf(
+                        flow.values().stream().mapToLong(Integer::longValue).sum());
     }
 
     /** 하위 단위 하나와 그 계열(통계 그래프의 점). */

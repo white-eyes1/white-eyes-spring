@@ -1,15 +1,17 @@
 package com.whiteeyes.admin.config;
 
-import com.whiteeyes.common.exception.ErrorCode;
-import com.whiteeyes.common.security.SecurityErrorWriter;
+import java.io.IOException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UrlPathHelper;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.exception.ErrorCode;
+import com.whiteeyes.common.security.SecurityErrorWriter;
 
 /**
  * /internal/** 은 내부 포트로만, 내부 포트로는 /internal/** 만 받는다(FNC-C-003, conventions.md '모듈·포트').
@@ -31,8 +33,7 @@ public class InternalPortFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         boolean onInternalPort = request.getLocalPort() == internalPort;
         boolean internalPath = isInternalPath(request);

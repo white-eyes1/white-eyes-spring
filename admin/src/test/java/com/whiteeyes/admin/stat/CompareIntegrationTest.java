@@ -144,7 +144,8 @@ class CompareIntegrationTest {
     @Test
     @DisplayName("FNC-C-020 API는 명세의 응답 모양을 내보내고, 기간 오류는 400 INVALID_RANGE")
     void api() throws Exception {
-        String body = mockMvc.perform(get(COMPARE_URL).with(AdminTestLogin.admin())
+        String body = mockMvc.perform(get(COMPARE_URL)
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "REGION")
                         .param("targetId", String.valueOf(regionId("11110")))
                         .param("from", "2099-01-05")
@@ -163,10 +164,12 @@ class CompareIntegrationTest {
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
         // 비교 불가 칸도 필드를 빼지 않고 null로 내보낸다(화면 JS가 rate === null로 회색 칸을 고른다)
-        assertThat(body).contains(
-                "{\"weekday\":1,\"hour\":0,\"targetAvg\":null,\"baseAvg\":null,\"rate\":null,\"abnormal\":false}");
+        assertThat(body)
+                .contains(
+                        "{\"weekday\":1,\"hour\":0,\"targetAvg\":null,\"baseAvg\":null,\"rate\":null,\"abnormal\":false}");
 
-        mockMvc.perform(get(COMPARE_URL).with(AdminTestLogin.admin())
+        mockMvc.perform(get(COMPARE_URL)
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "REGION")
                         .param("targetId", String.valueOf(regionId("11110")))
                         .param("from", "2099-01-11")
@@ -174,7 +177,8 @@ class CompareIntegrationTest {
                         .param("basePreset", "LAST_MONTH"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_RANGE"));
-        mockMvc.perform(get(COMPARE_URL).with(AdminTestLogin.admin())
+        mockMvc.perform(get(COMPARE_URL)
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "REGION")
                         .param("targetId", String.valueOf(regionId("11110")))
                         .param("from", "2099-01-05")
@@ -184,7 +188,8 @@ class CompareIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("thresholdPct"));
-        mockMvc.perform(get(COMPARE_URL).with(AdminTestLogin.admin())
+        mockMvc.perform(get(COMPARE_URL)
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "ZONE")
                         .param("targetId", String.valueOf(deletedZone))
                         .param("from", "2099-01-05")

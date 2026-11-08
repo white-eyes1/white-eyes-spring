@@ -8,5 +8,4 @@ package com.whiteeyes.admin.demo.service;
  * @param daily 넣은 일별 건수
  * @param deleted 먼저 지운 기존 시연용 데이터
  */
-public record DemoGenerateResult(int zones, long hourly, long daily, DemoDeleteResult deleted) {
-}
+public record DemoGenerateResult(int zones, long hourly, long daily, DemoDeleteResult deleted) {}

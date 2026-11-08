@@ -60,18 +60,23 @@ public class DashboardSummaryService {
     @Transactional(readOnly = true)
     public DashboardSummaryResponse findSummary(DashboardTargetType targetType, long targetId, LocalDateTime now) {
         Target target = targetType == DashboardTargetType.ZONE ? zoneTarget(targetId) : regionTarget(targetId);
-        List<Long> activeZoneIds = target.activeZones().stream().map(Zone::getId).toList();
+        List<Long> activeZoneIds =
+                target.activeZones().stream().map(Zone::getId).toList();
         int cameraCount = cameraCountService.countCameras(activeZoneIds);
         int runningCameraCount = cameraCountService.countRunningCameras(activeZoneIds);
         Integer todayMaxCount = findTodayMaxCount(target.allZoneIds(), now);
         // 통계가 없어도 센다. 삭제된 구역의 오늘 이벤트도 포함(FNC-C-017)
-        int todayEventCount = todayEventCountService.countTotal(target.allZoneIds(), now.toLocalDate().atStartOfDay());
+        int todayEventCount = todayEventCountService.countTotal(
+                target.allZoneIds(), now.toLocalDate().atStartOfDay());
 
         // 5초마다 갱신되는 현재 인원(FNC-A-054, 관리자 앱만). 1분 통계가 아직 없어도 값이 있을 수 있다
         NowCountSource nowCounts = nowCountSource.getIfAvailable();
         Integer currentCount = nowCounts == null
                 ? null
-                : nowCounts.sumFresh(activeZoneIds, now).stream().boxed().findFirst().orElse(null);
+                : nowCounts.sumFresh(activeZoneIds, now).stream()
+                        .boxed()
+                        .findFirst()
+                        .orElse(null);
 
         Map<Long, ZoneStatMinute> latestStatByZone = recentZoneStatReader.findLatestStats(target.activeZones(), now);
         return recentZoneStatReader
@@ -79,8 +84,18 @@ public class DashboardSummaryService {
                 .map(sum -> toResponse(
                         target, sum, currentCount, cameraCount, runningCameraCount, todayEventCount, todayMaxCount))
                 .orElseGet(() -> new DashboardSummaryResponse(
-                        null, null, currentCount, null, null, null, null, null,
-                        todayEventCount, cameraCount, runningCameraCount, todayMaxCount));
+                        null,
+                        null,
+                        currentCount,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        todayEventCount,
+                        cameraCount,
+                        runningCameraCount,
+                        todayMaxCount));
     }
 
     private Target zoneTarget(long zoneId) {
@@ -91,7 +106,9 @@ public class DashboardSummaryService {
     // 현재 값·캠 수는 삭제되지 않은 구역으로, 오늘 기록은 삭제된 구역까지 포함해 센다(FNC-C-017과 같은 기준)
     private Target regionTarget(long regionId) {
         Region region = regionQueryService.getRegion(regionId);
-        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream().map(Region::getId).toList();
+        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream()
+                .map(Region::getId)
+                .toList();
         if (dongIds.isEmpty()) {
             return new Target(LevelTarget.region(regionId), List.of(), List.of(), false);
         }
@@ -107,7 +124,9 @@ public class DashboardSummaryService {
         if (zoneIds.isEmpty()) {
             return null;
         }
-        return zoneStatMinuteRepository.sumCountMaxByStatAt(zoneIds, now.toLocalDate().atStartOfDay()).stream()
+        return zoneStatMinuteRepository
+                .sumCountMaxByStatAt(zoneIds, now.toLocalDate().atStartOfDay())
+                .stream()
                 .max(Long::compare)
                 .map(Long::intValue)
                 .orElse(null);
@@ -127,8 +146,7 @@ public class DashboardSummaryService {
         int[] outByDirection = new int[DIRECTIONS.size()];
         // 지역은 지역 안 구역끼리 주고받은 이동을 뺀다(stats-008): 이웃이 같은 지역 구역인 방향의 유입·유출은 세지 않는다.
         // 구역 하나는 이웃이 자기 밖이므로 그대로 센다
-        Map<Long, Map<ZoneDirection, Long>> neighborsByZone =
-                target.isZone() ? Map.of() : findNeighbors(sum.stats());
+        Map<Long, Map<ZoneDirection, Long>> neighborsByZone = target.isZone() ? Map.of() : findNeighbors(sum.stats());
         Set<Long> targetZoneIds = new HashSet<>();
         target.activeZones().forEach(zone -> targetZoneIds.add(zone.getId()));
         for (ZoneStatMinute stat : sum.stats()) {

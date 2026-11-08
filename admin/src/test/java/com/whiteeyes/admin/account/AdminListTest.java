@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -15,6 +14,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -191,7 +192,12 @@ class AdminListTest {
     }
 
     private void insertAccount(
-            String loginId, String name, String role, String status, LocalDateTime createdAt, LocalDateTime lastLoginAt) {
+            String loginId,
+            String name,
+            String role,
+            String status,
+            LocalDateTime createdAt,
+            LocalDateTime lastLoginAt) {
         jdbcTemplate.update(
                 "INSERT INTO admin_account (login_id, password, name, email, phone, role, status, must_change_password,"
                         + " last_login_at, created_at) VALUES (?, ?, ?, NULL, NULL, ?, ?, 0, ?, ?)",

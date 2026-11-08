@@ -3,13 +3,14 @@ package com.whiteeyes.admin.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.whiteeyes.admin.AdminApplication;
-import com.whiteeyes.admin.account.entity.AdminAccount;
-import com.whiteeyes.admin.account.repository.AdminAccountRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
+
+import com.whiteeyes.admin.AdminApplication;
+import com.whiteeyes.admin.account.entity.AdminAccount;
+import com.whiteeyes.admin.account.repository.AdminAccountRepository;
 
 /**
  * 관리자 앱을 실제로 두 번 띄워서 재시작을 흉내 낸다. 테스트마다 DB 이름을 따로 써서 다른 테스트와 섞이지 않는다.
@@ -55,7 +56,6 @@ class SuperAdminRestartTest {
     @Test
     @DisplayName("FNC-A-001 최고 관리자가 없는데 환경변수도 없으면 앱이 시작되지 않고 이유가 남는다")
     void start_withoutEnvironment_fails() {
-        assertThatThrownBy(() -> startAdminApp("restart-fail", "", ""))
-                .hasStackTraceContaining("SUPER_ADMIN_LOGIN_ID");
+        assertThatThrownBy(() -> startAdminApp("restart-fail", "", "")).hasStackTraceContaining("SUPER_ADMIN_LOGIN_ID");
     }
 }

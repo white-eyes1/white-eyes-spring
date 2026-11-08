@@ -8,14 +8,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.support.AdminTestLogin;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +29,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 // 권한은 계정마다 로그인 화면(POST /login)으로 실제 로그인한 세션 쿠키로 확인한다(#47과 같음)
 /** 강제 로그아웃(FNC-A-008): 세션 삭제, 권한, 자기 자신 불가, 작업 기록, 대상 브라우저의 다음 요청 */
@@ -115,7 +117,8 @@ class ForceLogoutTest {
     void admin_notActiveRightAfterForceLogout() throws Exception {
         login("admin01");
         Cookie superSession = login("super01");
-        adminList("admin01", superSession).andExpect(jsonPath("$.items[0].active").value(true));
+        adminList("admin01", superSession)
+                .andExpect(jsonPath("$.items[0].active").value(true));
 
         adminLogout(adminId, superSession).andExpect(status().isOk());
 
@@ -133,7 +136,9 @@ class ForceLogoutTest {
 
         userLogout(hongId, login("admin01")).andExpect(status().isOk());
 
-        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "hong01")).as("결정 0005: 표가 달라 섞이지 않음").isOne();
+        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "hong01"))
+                .as("결정 0005: 표가 달라 섞이지 않음")
+                .isOne();
     }
 
     @Test
@@ -211,7 +216,8 @@ class ForceLogoutTest {
     @DisplayName("FNC-A-008 검수 기준: 강제 로그아웃한 관리자의 브라우저는 다음 요청에서 로그인 화면으로 이동한다")
     void admin_targetBrowser_redirectedToLoginOnNextRequest() throws Exception {
         Cookie target = login("admin01");
-        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(target)).andExpect(status().isOk());
+        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(target))
+                .andExpect(status().isOk());
 
         adminLogout(adminId, login("super01"))
                 .andExpect(status().isOk())
@@ -220,7 +226,9 @@ class ForceLogoutTest {
         mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(target))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/admin/login"));
-        mockMvc.perform(get("/admin/api/v1/meta/levels").contextPath(CONTEXT_PATH).cookie(target))
+        mockMvc.perform(get("/admin/api/v1/meta/levels")
+                        .contextPath(CONTEXT_PATH)
+                        .cookie(target))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -231,7 +239,9 @@ class ForceLogoutTest {
 
         adminLogout(adminId, login("super01")).andExpect(status().isOk());
 
-        assertThat(sessionsOf("SPRING_SESSION_USER", "admin01")).as("결정 0005: 표가 달라 섞이지 않음").isOne();
+        assertThat(sessionsOf("SPRING_SESSION_USER", "admin01"))
+                .as("결정 0005: 표가 달라 섞이지 않음")
+                .isOne();
     }
 
     @Test
@@ -253,7 +263,8 @@ class ForceLogoutTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
 
-        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(own)).andExpect(status().isOk());
+        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(own))
+                .andExpect(status().isOk());
         assertThat(count("work_history")).isZero();
     }
 
@@ -267,7 +278,8 @@ class ForceLogoutTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
 
-        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(other)).andExpect(status().isOk());
+        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(other))
+                .andExpect(status().isOk());
         assertThat(otherId).isPositive();
         assertThat(count("work_history")).isZero();
     }
@@ -275,7 +287,9 @@ class ForceLogoutTest {
     @Test
     @DisplayName("FNC-A-008 로그인하지 않으면 401")
     void admin_anonymous_unauthorized() throws Exception {
-        mockMvc.perform(post(ADMIN_LOGOUT_URL, adminId).contextPath(CONTEXT_PATH).with(csrf()))
+        mockMvc.perform(post(ADMIN_LOGOUT_URL, adminId)
+                        .contextPath(CONTEXT_PATH)
+                        .with(csrf()))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -323,13 +337,17 @@ class ForceLogoutTest {
     }
 
     private ResultActions userLogout(long userId, Cookie session) throws Exception {
-        return mockMvc.perform(
-                post(USER_LOGOUT_URL, userId).contextPath(CONTEXT_PATH).cookie(session).with(csrf()));
+        return mockMvc.perform(post(USER_LOGOUT_URL, userId)
+                .contextPath(CONTEXT_PATH)
+                .cookie(session)
+                .with(csrf()));
     }
 
     private ResultActions adminLogout(long targetId, Cookie session) throws Exception {
-        return mockMvc.perform(
-                post(ADMIN_LOGOUT_URL, targetId).contextPath(CONTEXT_PATH).cookie(session).with(csrf()));
+        return mockMvc.perform(post(ADMIN_LOGOUT_URL, targetId)
+                .contextPath(CONTEXT_PATH)
+                .cookie(session)
+                .with(csrf()));
     }
 
     private ResultActions userList(String keyword, Cookie session) throws Exception {
@@ -337,8 +355,12 @@ class ForceLogoutTest {
     }
 
     private ResultActions userList(String keyword, Cookie session, String active) throws Exception {
-        var request = get("/admin/api/v1/users").contextPath(CONTEXT_PATH).cookie(session).param("keyword", keyword);
-        return mockMvc.perform(active == null ? request : request.param("active", active)).andExpect(status().isOk());
+        var request = get("/admin/api/v1/users")
+                .contextPath(CONTEXT_PATH)
+                .cookie(session)
+                .param("keyword", keyword);
+        return mockMvc.perform(active == null ? request : request.param("active", active))
+                .andExpect(status().isOk());
     }
 
     private ResultActions adminList(String keyword, Cookie session) throws Exception {

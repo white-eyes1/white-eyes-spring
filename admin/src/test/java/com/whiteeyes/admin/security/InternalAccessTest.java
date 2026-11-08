@@ -70,7 +70,8 @@ class InternalAccessTest {
     @Test
     @DisplayName("FNC-C-003 관리자로 로그인한 세션이 있어도 토큰이 없으면 401이다(세션을 쓰지 않음)")
     void internalPort_sessionWithoutToken_unauthorized() throws Exception {
-        mockMvc.perform(post("/internal/v1/results", INTERNAL_PORT).with(user("admin01").roles("SUPER_ADMIN")))
+        mockMvc.perform(post("/internal/v1/results", INTERNAL_PORT)
+                        .with(user("admin01").roles("SUPER_ADMIN")))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -86,7 +87,8 @@ class InternalAccessTest {
     @DisplayName("FNC-C-003 %로 인코딩해 쓴 /internal 경로도 웹 포트로는 받지 않는다")
     void webPort_encodedInternalPath_notFound() throws Exception {
         // 문자열로 넘기면 %가 한 번 더 인코딩되므로 URI로 그대로 넘긴다
-        mockMvc.perform(MockMvcRequestBuilders.request(HttpMethod.POST, java.net.URI.create("/admin/%69nternal/v1/results"))
+        mockMvc.perform(MockMvcRequestBuilders.request(
+                                HttpMethod.POST, java.net.URI.create("/admin/%69nternal/v1/results"))
                         .contextPath(CONTEXT_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[]")

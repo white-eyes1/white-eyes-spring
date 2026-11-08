@@ -20,7 +20,9 @@ window.setInterval(() => {
 export function setNowCounts(items) {
     counts.clear();
     const receivedAt = Date.now();
-    items.forEach((item) => counts.set(Number(item.zoneId), { count: Number(item.currentCount), receivedAt }));
+    items.forEach((item) =>
+        counts.set(Number(item.zoneId), { count: Number(item.currentCount), receivedAt }),
+    );
     notify();
 }
 
@@ -58,7 +60,9 @@ export function bindNowCount(element, zoneId, fallback, suffix = '') {
 function render(element) {
     const count = nowCountOf(element.dataset.nowZone);
     element.textContent =
-        count === undefined ? element.dataset.nowFallback : `${formatNumber(count)}${element.dataset.nowSuffix}`;
+        count === undefined
+            ? element.dataset.nowFallback
+            : `${formatNumber(count)}${element.dataset.nowSuffix}`;
 }
 
 function notify() {

@@ -1,9 +1,10 @@
 package com.whiteeyes.admin.account.dto;
 
-import com.whiteeyes.common.constant.InputRules;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
+import com.whiteeyes.common.constant.InputRules;
 
 /**
  * 관리자 정보 수정 요청(PATCH /api/v1/admins/{id}, FNC-A-010). 사용자 정보 수정(FNC-A-004)과 같은 규칙이다.

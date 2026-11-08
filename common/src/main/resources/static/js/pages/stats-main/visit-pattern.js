@@ -67,13 +67,18 @@ export function createVisitPatternPanel() {
     function render(pattern) {
         const rows = WEEKDAYS.map((label, index) => ({
             label,
-            values: pattern.cells.slice(index * HOURS, (index + 1) * HOURS).map((cell) => cell.avgCount),
+            values: pattern.cells
+                .slice(index * HOURS, (index + 1) * HOURS)
+                .map((cell) => cell.avgCount),
         }));
         // 평일(월~금)·주말(토·일) 행은 요일 행 아래에 따로 둔다(FNC-C-028 처리 순서 3)
         rows.push({ label: '평일', values: pattern.weekdayAvg, separated: true });
         rows.push({ label: '주말', values: pattern.weekendAvg });
 
-        const numbers = rows.flatMap((row) => row.values).filter((value) => value !== null).map(Number);
+        const numbers = rows
+            .flatMap((row) => row.values)
+            .filter((value) => value !== null)
+            .map(Number);
         const min = numbers.length > 0 ? Math.min(...numbers) : 0;
         const max = numbers.length > 0 ? Math.max(...numbers) : 0;
         grid.replaceChildren(...rows.flatMap((row) => rowElements(row, min, max)));

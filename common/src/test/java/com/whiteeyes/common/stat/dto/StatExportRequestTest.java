@@ -39,15 +39,20 @@ class StatExportRequestTest {
     @DisplayName("FNC-C-023 항목은 여러 번 보내도, 쉼표로 이어 보내도 되고 요청 순서대로 중복 없이 남는다")
     void parse_items() throws BindException {
         StatExportRequest repeated = StatExportRequest.parse(
-                StatExportScope.ZONE, 1L, "1h", "2099-01-01", "2099-01-02",
-                List.of("DWELL", "COUNT", "DWELL"), false);
+                StatExportScope.ZONE, 1L, "1h", "2099-01-01", "2099-01-02", List.of("DWELL", "COUNT", "DWELL"), false);
         assertThat(repeated.items()).containsExactly(StatExportItem.DWELL, StatExportItem.COUNT);
 
         StatExportRequest joined = StatExportRequest.parse(
-                StatExportScope.ZONE, 1L, "1h", "2099-01-01", "2099-01-02",
-                List.of("COUNT,DENSITY, INFLOW", "OUTFLOW"), false);
-        assertThat(joined.items()).containsExactly(
-                StatExportItem.COUNT, StatExportItem.DENSITY, StatExportItem.INFLOW, StatExportItem.OUTFLOW);
+                StatExportScope.ZONE,
+                1L,
+                "1h",
+                "2099-01-01",
+                "2099-01-02",
+                List.of("COUNT,DENSITY, INFLOW", "OUTFLOW"),
+                false);
+        assertThat(joined.items())
+                .containsExactly(
+                        StatExportItem.COUNT, StatExportItem.DENSITY, StatExportItem.INFLOW, StatExportItem.OUTFLOW);
     }
 
     @Test
@@ -73,8 +78,8 @@ class StatExportRequestTest {
     @Test
     @DisplayName("FNC-C-023 단위·시각 형식이 틀리거나 끝이 시작보다 늦지 않으면 칸별 오류를 한 번에 돌려준다")
     void parse_fieldErrors() {
-        assertThatThrownBy(() -> StatExportRequest.parse(
-                        StatExportScope.ZONE, 1L, "2h", "어제", "2099-01-01", COUNT, false))
+        assertThatThrownBy(
+                        () -> StatExportRequest.parse(StatExportScope.ZONE, 1L, "2h", "어제", "2099-01-01", COUNT, false))
                 .isInstanceOfSatisfying(BindException.class, ex -> assertThat(ex.getFieldErrors())
                         .extracting(FieldError::getField)
                         .containsExactlyInAnyOrder("interval", "from"));
@@ -95,8 +100,8 @@ class StatExportRequestTest {
                         .extracting(FieldError::getField, FieldError::getDefaultMessage)
                         .containsExactly(tuple("targetId", "대상을 골라 주세요.")));
 
-        StatExportRequest all = StatExportRequest.parse(
-                StatExportScope.ALL, 7L, "1h", "2099-01-01", "2099-01-02", COUNT, true);
+        StatExportRequest all =
+                StatExportRequest.parse(StatExportScope.ALL, 7L, "1h", "2099-01-01", "2099-01-02", COUNT, true);
         assertThat(all.targetId()).isNull();
         assertThat(StatExportRequest.parse(StatExportScope.ALL, null, "1h", "2099-01-01", "2099-01-02", COUNT, false)
                         .scope())
@@ -106,9 +111,15 @@ class StatExportRequestTest {
     @Test
     @DisplayName("FNC-C-023 지역 합산(sum)은 지역(REGION)일 때만 켜지고, 지역은 합산을 고르지 않으면 구역별 행")
     void parse_sumOnlyForRegion() throws BindException {
-        assertThat(parse(StatExportScope.REGION, "1h", "2099-01-01", "2099-01-02", true).sum()).isTrue();
-        assertThat(parse(StatExportScope.REGION, "1h", "2099-01-01", "2099-01-02", false).sum()).isFalse();
-        assertThat(parse(StatExportScope.ZONE, "1h", "2099-01-01", "2099-01-02", true).sum()).isFalse();
+        assertThat(parse(StatExportScope.REGION, "1h", "2099-01-01", "2099-01-02", true)
+                        .sum())
+                .isTrue();
+        assertThat(parse(StatExportScope.REGION, "1h", "2099-01-01", "2099-01-02", false)
+                        .sum())
+                .isFalse();
+        assertThat(parse(StatExportScope.ZONE, "1h", "2099-01-01", "2099-01-02", true)
+                        .sum())
+                .isFalse();
         assertThat(StatExportRequest.parse(StatExportScope.ALL, null, "1h", "2099-01-01", "2099-01-02", COUNT, true)
                         .sum())
                 .isFalse();
@@ -126,7 +137,9 @@ class StatExportRequestTest {
     @DisplayName("FNC-C-023 처리 순서 1: 단위별 최대 기간(EXPORT_MAX_RANGE)과 같으면 되고 넘으면 RANGE_TOO_LONG")
     void parse_maxRange(String interval, String from, String allowedTo, String tooLongTo, String message)
             throws BindException {
-        assertThat(parse(StatExportScope.ZONE, interval, from, allowedTo, false).interval().getCode())
+        assertThat(parse(StatExportScope.ZONE, interval, from, allowedTo, false)
+                        .interval()
+                        .getCode())
                 .isEqualTo(interval);
 
         assertThatThrownBy(() -> parse(StatExportScope.ZONE, interval, from, tooLongTo, false))
@@ -139,15 +152,19 @@ class StatExportRequestTest {
     @Test
     @DisplayName("FNC-C-023 시각 수는 from이 든 구간부터 to 앞까지 센다(1m 7일 10,080, 1h 93일 2,232, 1M 달 중간 포함)")
     void pointCount() throws BindException {
-        assertThat(parse(StatExportScope.ZONE, "1m", "2099-01-01", "2099-01-08", false).pointCount())
+        assertThat(parse(StatExportScope.ZONE, "1m", "2099-01-01", "2099-01-08", false)
+                        .pointCount())
                 .isEqualTo(10_080);
-        assertThat(parse(StatExportScope.ZONE, "1h", "2099-01-01", "2099-04-04", false).pointCount())
+        assertThat(parse(StatExportScope.ZONE, "1h", "2099-01-01", "2099-04-04", false)
+                        .pointCount())
                 .isEqualTo(2_232);
         // 10:30부터 12:00 앞까지 → 10시·11시 2개
-        assertThat(parse(StatExportScope.ZONE, "1h", "2099-01-01T10:30", "2099-01-01T12:00", false).pointCount())
+        assertThat(parse(StatExportScope.ZONE, "1h", "2099-01-01T10:30", "2099-01-01T12:00", false)
+                        .pointCount())
                 .isEqualTo(2);
         // 1월 15일 ~ 3월 2일 → 1·2·3월 3개
-        assertThat(parse(StatExportScope.ZONE, "1M", "2099-01-15", "2099-03-02", false).pointCount())
+        assertThat(parse(StatExportScope.ZONE, "1M", "2099-01-15", "2099-03-02", false)
+                        .pointCount())
                 .isEqualTo(3);
     }
 
@@ -170,8 +187,8 @@ class StatExportRequestTest {
         assertThat(exact.checkRowLimit(1_000)).isEqualTo(1_000_000);
     }
 
-    private static StatExportRequest parse(
-            StatExportScope scope, String interval, String from, String to, boolean sum) throws BindException {
+    private static StatExportRequest parse(StatExportScope scope, String interval, String from, String to, boolean sum)
+            throws BindException {
         Long targetId = scope == StatExportScope.ALL ? null : 1L;
         return StatExportRequest.parse(scope, targetId, interval, from, to, COUNT, sum);
     }

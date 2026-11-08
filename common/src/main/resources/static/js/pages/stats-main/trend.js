@@ -54,8 +54,11 @@ export function createTrendPanel() {
                 return; // 더 늦게 보낸 요청이 있다(지역 변경 등)
             }
             loadedRegionId = requestedRegionId;
-            list.replaceChildren(...RATES.map(([field, label]) =>
-                row(label, trend[field], graphLink(requestedRegionId))));
+            list.replaceChildren(
+                ...RATES.map(([field, label]) =>
+                    row(label, trend[field], graphLink(requestedRegionId)),
+                ),
+            );
         } catch {
             if (requestId === latestRequestId) {
                 const message = document.createElement('span');

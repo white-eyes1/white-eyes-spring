@@ -60,7 +60,11 @@ export function download(path, params, options) {
     return request('GET', path, { params, ...options, file: true });
 }
 
-async function request(method, path, { params, body, toast = true, file = false, absolute = false, signal, cache } = {}) {
+async function request(
+    method,
+    path,
+    { params, body, toast = true, file = false, absolute = false, signal, cache } = {},
+) {
     let target = absolute ? path : url(path);
     if (params) {
         target += '?' + new URLSearchParams(params).toString();

@@ -1,11 +1,12 @@
 package com.whiteeyes.admin.account.dto;
 
-import jakarta.validation.Constraint;
-import jakarta.validation.Payload;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
 
 /** 가입일 끝이 시작보다 앞서지 않는지 본다. 오류는 화면의 가입일 끝 칸에 붙도록 joinedTo 필드로 낸다. */
 @Target(ElementType.TYPE)

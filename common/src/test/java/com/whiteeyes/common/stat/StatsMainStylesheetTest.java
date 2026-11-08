@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,8 @@ class StatsMainStylesheetTest {
 
     /** 선택자가 정확히 일치하는 규칙의 선언부를 돌려준다 */
     private static String declarations(String selector) {
-        Matcher matcher = Pattern.compile("(?m)^" + Pattern.quote(selector) + "\\s*\\{([^}]*)\\}").matcher(css);
+        Matcher matcher = Pattern.compile("(?m)^" + Pattern.quote(selector) + "\\s*\\{([^}]*)\\}")
+                .matcher(css);
         assertThat(matcher.find()).as("규칙 '%s'", selector).isTrue();
         return matcher.group(1);
     }

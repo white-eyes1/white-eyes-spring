@@ -19,7 +19,9 @@ export function createConfirmDialog() {
     let current = null;
     let working = false;
 
-    modal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', close));
+    modal
+        .querySelectorAll('[data-close]')
+        .forEach((button) => button.addEventListener('click', close));
     modal.addEventListener('mousedown', (event) => {
         if (event.target === modal) {
             close();

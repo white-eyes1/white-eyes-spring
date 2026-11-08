@@ -3,13 +3,6 @@ package com.whiteeyes.admin.history;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.whiteeyes.common.history.dto.WorkHistoryCommand;
-import com.whiteeyes.common.history.entity.ActorType;
-import com.whiteeyes.common.history.entity.WorkAction;
-import com.whiteeyes.common.history.entity.WorkHistory;
-import com.whiteeyes.common.history.entity.WorkTargetType;
-import com.whiteeyes.common.history.repository.WorkHistoryRepository;
-import com.whiteeyes.common.history.service.WorkHistoryService;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +22,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.whiteeyes.common.history.dto.WorkHistoryCommand;
+import com.whiteeyes.common.history.entity.ActorType;
+import com.whiteeyes.common.history.entity.WorkAction;
+import com.whiteeyes.common.history.entity.WorkHistory;
+import com.whiteeyes.common.history.entity.WorkTargetType;
+import com.whiteeyes.common.history.repository.WorkHistoryRepository;
+import com.whiteeyes.common.history.service.WorkHistoryService;
 
 @SpringBootTest
 class WorkHistoryServiceTest {
@@ -86,7 +88,8 @@ class WorkHistoryServiceTest {
         assertThat(row.get("TARGET_TYPE")).isEqualTo("USER_ACCOUNT");
         assertThat(row.get("TARGET_ID")).isEqualTo(12L);
         assertThat(row.get("TARGET_NAME")).isEqualTo("user01");
-        assertThat(new String((byte[]) row.get("DETAIL"), StandardCharsets.UTF_8)).contains("변경됨");
+        assertThat(new String((byte[]) row.get("DETAIL"), StandardCharsets.UTF_8))
+                .contains("변경됨");
         assertThat(row.get("CREATED_AT")).isNotNull();
     }
 
@@ -127,8 +130,7 @@ class WorkHistoryServiceTest {
                         "ZONE_CHANGE",
                         "CAMERA_CHANGE");
         assertThat(jdbcTemplate.queryForList("SELECT DISTINCT target_type FROM work_history", String.class))
-                .containsExactlyInAnyOrder(
-                        "USER_ACCOUNT", "ADMIN_ACCOUNT", "ZONE", "CAMERA", "EVENT", "REGION", "ALL");
+                .containsExactlyInAnyOrder("USER_ACCOUNT", "ADMIN_ACCOUNT", "ZONE", "CAMERA", "EVENT", "REGION", "ALL");
         assertThat(jdbcTemplate.queryForList("SELECT DISTINCT actor_type FROM work_history", String.class))
                 .containsExactlyInAnyOrder("ADMIN", "USER");
     }
@@ -148,14 +150,7 @@ class WorkHistoryServiceTest {
     @DisplayName("FNC-C-026 기록 저장이 실패하면 원래 작업도 취소된다")
     void record_failureCancelsOriginalWork() {
         WorkHistoryCommand invalid = new WorkHistoryCommand(
-                ActorType.ADMIN,
-                7L,
-                TOO_LONG_LOGIN_ID,
-                WorkAction.ZONE_CHANGE,
-                WorkTargetType.ZONE,
-                1L,
-                "zone",
-                null);
+                ActorType.ADMIN, 7L, TOO_LONG_LOGIN_ID, WorkAction.ZONE_CHANGE, WorkTargetType.ZONE, 1L, "zone", null);
 
         assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
                     jdbcTemplate.update("INSERT INTO tx_probe (id) VALUES (1)");
@@ -171,14 +166,7 @@ class WorkHistoryServiceTest {
     @DisplayName("FNC-C-026 호출한 쪽이 기록 저장 실패를 잡아도 원래 작업은 취소된다")
     void record_failureSwallowedByCaller_stillCancelsOriginalWork() {
         WorkHistoryCommand invalid = new WorkHistoryCommand(
-                ActorType.ADMIN,
-                7L,
-                TOO_LONG_LOGIN_ID,
-                WorkAction.ZONE_CHANGE,
-                WorkTargetType.ZONE,
-                1L,
-                "zone",
-                null);
+                ActorType.ADMIN, 7L, TOO_LONG_LOGIN_ID, WorkAction.ZONE_CHANGE, WorkTargetType.ZONE, 1L, "zone", null);
         AtomicReference<RuntimeException> swallowed = new AtomicReference<>();
 
         // 기록 저장이 실패하면 트랜잭션이 rollback-only가 되어 호출한 쪽이 예외를 잡아도 커밋되지 않는다

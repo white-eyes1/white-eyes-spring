@@ -17,6 +17,7 @@ public class AdminTestUserConfig {
 
     @Bean
     public MockMvcBuilderCustomizer adminUserMockMvcCustomizer() {
-        return builder -> builder.defaultRequest(get("/").with(user("admin01").roles("ADMIN")).with(csrf()));
+        return builder -> builder.defaultRequest(
+                get("/").with(user("admin01").roles("ADMIN")).with(csrf()));
     }
 }

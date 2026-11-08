@@ -97,7 +97,8 @@ export function findMinute(items, ms) {
  * 통계가 없는 분(sampleSec=0, 값은 null)은 버린다. 그 자리가 비어 시간축 선이 끊기고 '-'로 보인다(SCR-C-004 끊김 규칙).
  */
 export function normalizeSeries(items) {
-    const sum = (flow) => (flow ? Object.values(flow).reduce((total, value) => total + (Number(value) || 0), 0) : 0);
+    const sum = (flow) =>
+        flow ? Object.values(flow).reduce((total, value) => total + (Number(value) || 0), 0) : 0;
     return items
         .filter((item) => item.sampleSec !== 0)
         .map((item) => ({
@@ -123,7 +124,9 @@ export function normalizeSeries(items) {
 export function normalizeRanges(items) {
     return items
         .map((item) => ({ from: Date.parse(item.from), to: Date.parse(item.to) }))
-        .filter((item) => Number.isFinite(item.from) && Number.isFinite(item.to) && item.from < item.to);
+        .filter(
+            (item) => Number.isFinite(item.from) && Number.isFinite(item.to) && item.from < item.to,
+        );
 }
 
 export function normalizeEvents(items) {
@@ -149,7 +152,11 @@ export function eventsStartedIn(events, from, to) {
 
 /** 그 시각이 걸쳐 있는 이벤트(시작 ≤ 시각, 끝이 없거나 시각 < 끝). 없으면 null. */
 export function eventAt(events, ms) {
-    return events.find((event) => event.startedAt <= ms && (event.endedAt === null || ms < event.endedAt)) ?? null;
+    return (
+        events.find(
+            (event) => event.startedAt <= ms && (event.endedAt === null || ms < event.endedAt),
+        ) ?? null
+    );
 }
 
 /** 시각 앞쪽에서 가장 가까운 이벤트 시작. 같은 순간(±1초)은 건너뛴다. */
@@ -182,13 +189,19 @@ export function buildChart(items, metricKey, from, to, width, height, thresholds
     const metric = METRICS[metricKey] ?? METRICS.count;
     const visible = items.filter((item) => item.at >= from && item.at <= to);
     const keys = [metric.line, metric.second, metric.high].filter(Boolean);
-    const dataMax = Math.max(0, ...visible.flatMap((item) => keys.map((key) => Number(item[key]) || 0)));
+    const dataMax = Math.max(
+        0,
+        ...visible.flatMap((item) => keys.map((key) => Number(item[key]) || 0)),
+    );
     const max = (dataMax || 1) * CHART_HEADROOM;
     const x = (ms) => fraction(ms, from, to) * width;
     const y = (value) => height - (Math.max(0, Number(value) || 0) / max) * height;
 
     const lineKeys = [metric.line, metric.second].filter(Boolean);
-    const lines = lineKeys.map((key) => ({ key, segments: splitSegments(visible, (item) => [x(item.at), y(item[key])]) }));
+    const lines = lineKeys.map((key) => ({
+        key,
+        segments: splitSegments(visible, (item) => [x(item.at), y(item[key])]),
+    }));
 
     let band = null;
     if (metric.low && visible.length > 0) {
@@ -200,7 +213,9 @@ export function buildChart(items, metricKey, from, to, width, height, thresholds
     const guides =
         visible.length === 0
             ? []
-            : thresholds.filter((t) => Number(t.value) > 0 && Number(t.value) <= max).map((t) => ({ key: t.key, y: y(t.value) }));
+            : thresholds
+                  .filter((t) => Number(t.value) > 0 && Number(t.value) <= max)
+                  .map((t) => ({ key: t.key, y: y(t.value) }));
     return { lines, band, guides, max };
 }
 
@@ -229,5 +244,7 @@ export function toPath(points) {
         return '';
     }
     const list = points.length === 1 ? [points[0], [points[0][0] + 0.5, points[0][1]]] : points;
-    return list.map(([px, py], index) => `${index === 0 ? 'M' : 'L'}${px.toFixed(1)} ${py.toFixed(1)}`).join(' ');
+    return list
+        .map(([px, py], index) => `${index === 0 ? 'M' : 'L'}${px.toFixed(1)} ${py.toFixed(1)}`)
+        .join(' ');
 }

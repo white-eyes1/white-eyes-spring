@@ -71,8 +71,7 @@ public class MinuteStatService {
     // 실패하면 로그만 남기고 그 누적기는 버린다(재시도 없음, FNC-A-028). 누적기는 이미 마감돼 store에서 빠져 있다
     private void save(MinuteAccumulator accumulator, BigDecimal areaM2) {
         if (areaM2 == null) {
-            log.error("1분 통계 저장 실패: 구역 면적 없음 zoneId={} statAt={}",
-                    accumulator.getZoneId(), accumulator.getMinute());
+            log.error("1분 통계 저장 실패: 구역 면적 없음 zoneId={} statAt={}", accumulator.getZoneId(), accumulator.getMinute());
             return;
         }
         ZoneStatMinute stat;
@@ -84,8 +83,11 @@ public class MinuteStatService {
             return;
         }
         // 1분마다 구역 수만큼 반복되는 처리라 DEBUG로만 남김(code-conventions 7-3)
-        log.debug("1분 통계 저장 zoneId={} statAt={} sampleSec={}",
-                accumulator.getZoneId(), accumulator.getMinute(), accumulator.getSampleSec());
+        log.debug(
+                "1분 통계 저장 zoneId={} statAt={} sampleSec={}",
+                accumulator.getZoneId(),
+                accumulator.getMinute(),
+                accumulator.getSampleSec());
         judgeCongestionEvent(stat);
         judgeSurgeEvent(stat);
     }

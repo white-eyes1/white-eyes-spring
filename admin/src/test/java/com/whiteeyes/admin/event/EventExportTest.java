@@ -7,13 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
-import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
-import com.whiteeyes.common.camera.entity.CameraSourceType;
-import jakarta.persistence.EntityManagerFactory;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -23,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipFile;
+
+import jakarta.persistence.EntityManagerFactory;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -38,17 +33,23 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
+import com.whiteeyes.admin.camera.service.CameraRegisterService;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
 
 /**
  * 이벤트 엑셀 다운로드(FNC-A-039) GET /api/v1/events/export. 이벤트 행은 SQL로 직접 넣는다.
  * SQL 수 시험은 SessionFactory 전체를 세므로 예약 작업을 끈다(spring #350).
  */
-@SpringBootTest(
-        properties = {"spring.jpa.properties.hibernate.generate_statistics=true", "scheduling.enabled=false"})
+@SpringBootTest(properties = {"spring.jpa.properties.hibernate.generate_statistics=true", "scheduling.enabled=false"})
 @AutoConfigureMockMvc
 class EventExportTest {
 
@@ -119,8 +120,7 @@ class EventExportTest {
     void export_responseIsXlsxWithFileName() throws Exception {
         insertEvent("CONGESTION", samcheongZoneId, T0, T0.plusMinutes(10), 3, "1.6400", 48, "UNCHECKED");
 
-        MvcResult result = export(
-                        param("from", "2026-10-12T00:00:00+09:00"), param("to", "2026-10-13T00:00:00+09:00"))
+        MvcResult result = export(param("from", "2026-10-12T00:00:00+09:00"), param("to", "2026-10-13T00:00:00+09:00"))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -155,7 +155,15 @@ class EventExportTest {
     void export_allEvents_latestFirst() throws Exception {
         insertEvent("CONGESTION", samcheongZoneId, T0, T0.plusMinutes(5), 2, "0.8000", 10, "UNCHECKED");
         insertEvent("SURGE", sogongZoneId, T0.plusHours(2), null, null, "70.0000", 20, "CHECKED");
-        insertEvent("CONGESTION", sajikZoneId, T0.plusHours(1), T0.plusHours(1).plusMinutes(5), 3, "1.6000", 40, "RESOLVED");
+        insertEvent(
+                "CONGESTION",
+                sajikZoneId,
+                T0.plusHours(1),
+                T0.plusHours(1).plusMinutes(5),
+                3,
+                "1.6000",
+                40,
+                "RESOLVED");
 
         List<Row> rows = rowsOf(export().andExpect(status().isOk()).andReturn());
 
@@ -172,9 +180,10 @@ class EventExportTest {
         insertEvent("CONGESTION", samcheongZoneId, T0, null, 2, "0.8000", 10, "UNCHECKED");
         insertEvent("CONGESTION", samcheongZoneId, T0.plusHours(1), null, 2, "0.8000", 10, "UNCHECKED");
 
-        List<Row> rows = rowsOf(export(param("from", "2026-10-12T09:00:00+09:00"), param("to", "2026-10-12T10:00:00+09:00"))
-                .andExpect(status().isOk())
-                .andReturn());
+        List<Row> rows =
+                rowsOf(export(param("from", "2026-10-12T09:00:00+09:00"), param("to", "2026-10-12T10:00:00+09:00"))
+                        .andExpect(status().isOk())
+                        .andReturn());
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).getCell(0).getLocalDateTimeCellValue()).isEqualTo(T0);
@@ -184,7 +193,8 @@ class EventExportTest {
     @DisplayName("FNC-A-039 overlap=true면 기간과 겹치는 이벤트를 포함하고, 목록과 같은 건수가 나온다(#310)")
     void export_overlap_sameAsList() throws Exception {
         // 기간 09:00~10:00. 발생이 앞이어도 기간 안에서 이어진 이벤트(종료가 from 뒤이거나 진행 중)는 겹침
-        insertEvent("CONGESTION", samcheongZoneId, T0.minusMinutes(30), T0.plusMinutes(10), 2, "0.8000", 10, "RESOLVED");
+        insertEvent(
+                "CONGESTION", samcheongZoneId, T0.minusMinutes(30), T0.plusMinutes(10), 2, "0.8000", 10, "RESOLVED");
         insertEvent("CONGESTION", samcheongZoneId, T0.minusMinutes(30), null, 2, "0.8000", 10, "UNCHECKED");
         insertEvent("CONGESTION", samcheongZoneId, T0.minusHours(2), T0.minusHours(1), 2, "0.8000", 10, "RESOLVED");
         insertEvent("CONGESTION", samcheongZoneId, T0.plusMinutes(30), null, 2, "0.8000", 10, "UNCHECKED");
@@ -216,7 +226,8 @@ class EventExportTest {
         insertEvent("CONGESTION", sajikZoneId, T0.plusMinutes(3), null, 2, "0.9000", 15, "UNCHECKED");
 
         assertThat(rowCount(param("types", "SURGE"))).isEqualTo(1);
-        assertThat(rowCount(param("types", "SURGE"), param("types", "CONGESTION"))).isEqualTo(4);
+        assertThat(rowCount(param("types", "SURGE"), param("types", "CONGESTION")))
+                .isEqualTo(4);
         assertThat(rowCount(param("statuses", "UNCHECKED"))).isEqualTo(2);
         assertThat(rowCount(param("zoneId", String.valueOf(sogongZoneId)))).isEqualTo(1);
         assertThat(rowCount(param("regionId", String.valueOf(regionId("종로구"))))).isEqualTo(3);
@@ -239,7 +250,8 @@ class EventExportTest {
     @DisplayName("FNC-A-039 열 값: 구역·지역·단계·처리 정보(처리자 아이디 포함)")
     void export_rowValues() throws Exception {
         long adminId = jdbcTemplate.queryForObject("SELECT id FROM admin_account LIMIT 1", Long.class);
-        String adminLoginId = jdbcTemplate.queryForObject("SELECT login_id FROM admin_account WHERE id = ?", String.class, adminId);
+        String adminLoginId =
+                jdbcTemplate.queryForObject("SELECT login_id FROM admin_account WHERE id = ?", String.class, adminId);
         long eventId = insertEvent("CONGESTION", samcheongZoneId, T0, T0.plusMinutes(10), 3, "1.6400", 48, "RESOLVED");
         jdbcTemplate.update(
                 "UPDATE event SET action_code = 'STAFF', action_note = '인력 2명 배치', handled_by = ?, handled_at = ? WHERE id = ?",
@@ -295,8 +307,11 @@ class EventExportTest {
     void export_recordsWorkHistory() throws Exception {
         insertEvent("CONGESTION", samcheongZoneId, T0, null, 2, "0.8000", 10, "UNCHECKED");
 
-        export(param("from", "2026-10-12T00:00:00+09:00"), param("to", "2026-10-13T00:00:00+09:00"),
-                        param("types", "CONGESTION"), param("keyword", "삼청"))
+        export(
+                        param("from", "2026-10-12T00:00:00+09:00"),
+                        param("to", "2026-10-13T00:00:00+09:00"),
+                        param("types", "CONGESTION"),
+                        param("keyword", "삼청"))
                 .andExpect(status().isOk());
 
         List<Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT * FROM work_history");
@@ -344,7 +359,8 @@ class EventExportTest {
         export(param("regionId", String.valueOf(regionId("종로구")))).andExpect(status().isOk());
         export(param("zoneId", String.valueOf(samcheongZoneId))).andExpect(status().isOk());
 
-        List<String> names = jdbcTemplate.queryForList("SELECT target_name FROM work_history ORDER BY id", String.class);
+        List<String> names =
+                jdbcTemplate.queryForList("SELECT target_name FROM work_history ORDER BY id", String.class);
         assertThat(names).containsExactly("전체", "종로구", "삼청동 1구역");
     }
 
@@ -398,7 +414,15 @@ class EventExportTest {
         long withOne = countStatements();
 
         for (int i = 1; i <= 9; i++) {
-            insertEvent("CONGESTION", i % 2 == 0 ? sogongZoneId : sajikZoneId, T0.plusMinutes(i), null, 2, "0.8000", 10, "UNCHECKED");
+            insertEvent(
+                    "CONGESTION",
+                    i % 2 == 0 ? sogongZoneId : sajikZoneId,
+                    T0.plusMinutes(i),
+                    null,
+                    2,
+                    "0.8000",
+                    10,
+                    "UNCHECKED");
         }
         long withTen = countStatements();
 
@@ -406,7 +430,8 @@ class EventExportTest {
     }
 
     private long countStatements() throws Exception {
-        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        Statistics statistics =
+                entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
         export().andExpect(status().isOk());
         return statistics.getPrepareStatementCount();
@@ -425,7 +450,8 @@ class EventExportTest {
     }
 
     private static Sheet sheetOf(MvcResult result) throws Exception {
-        XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result.getResponse().getContentAsByteArray()));
+        XSSFWorkbook workbook =
+                new XSSFWorkbook(new ByteArrayInputStream(result.getResponse().getContentAsByteArray()));
         return workbook.getSheetAt(0);
     }
 
@@ -445,7 +471,8 @@ class EventExportTest {
             java.nio.file.Files.write(file, result.getResponse().getContentAsByteArray());
             try (ZipFile zip = new ZipFile(file.toFile())) {
                 String xml = new String(
-                        zip.getInputStream(zip.getEntry("xl/worksheets/sheet1.xml")).readAllBytes(),
+                        zip.getInputStream(zip.getEntry("xl/worksheets/sheet1.xml"))
+                                .readAllBytes(),
                         StandardCharsets.UTF_8);
                 return xml.split("<row ", -1).length - 1;
             }

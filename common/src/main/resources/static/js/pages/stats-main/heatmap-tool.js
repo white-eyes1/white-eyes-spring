@@ -12,7 +12,12 @@ const HEAT_COLOR = '#4f8cff';
 // 칠 진하기 범위(min이 연하게, max가 진하게)
 const MIN_OPACITY = 0.12;
 const MAX_OPACITY = 0.8;
-const ITEM_UNITS = { COUNT: ['평균 인원', '명', 0], DENSITY: ['평균 밀집도', '명/㎡', 2], INFLOW: ['시간당 유입', '명', 1], OUTFLOW: ['시간당 유출', '명', 1] };
+const ITEM_UNITS = {
+    COUNT: ['평균 인원', '명', 0],
+    DENSITY: ['평균 밀집도', '명/㎡', 2],
+    INFLOW: ['시간당 유입', '명', 1],
+    OUTFLOW: ['시간당 유출', '명', 1],
+};
 const TOO_LONG = '기간은 최대 1년까지 고를 수 있습니다.';
 const REVERSED = '끝 날짜는 시작 날짜보다 앞설 수 없습니다.';
 const LOAD_ERROR = '히트맵을 불러오지 못했습니다.';
@@ -51,7 +56,9 @@ export function createHeatmapTool() {
             layer?.paintBoundaries(null);
         }
     });
-    [fromInput, toInput, itemSelect, dayTypeSelect].forEach((input) => input.addEventListener('change', load));
+    [fromInput, toInput, itemSelect, dayTypeSelect].forEach((input) =>
+        input.addEventListener('change', load),
+    );
     slider.addEventListener('input', paint);
     playButton.addEventListener('click', () => (playTimer ? stop() : play()));
     render();
@@ -137,9 +144,10 @@ export function createHeatmapTool() {
         const [label, unit, decimals] = ITEM_UNITS[itemSelect.value];
         const min = data.min === null ? 0 : Number(data.min);
         const max = data.max === null ? 0 : Number(data.max);
-        range.textContent = data.min === null
-            ? ''
-            : `${formatDecimal(min, decimals)} ~ ${formatDecimal(max, decimals)}${unit}`;
+        range.textContent =
+            data.min === null
+                ? ''
+                : `${formatDecimal(min, decimals)} ~ ${formatDecimal(max, decimals)}${unit}`;
         const painted = new Map();
         data.units.forEach((unitId) => {
             const value = data.values[String(unitId)]?.[hour];

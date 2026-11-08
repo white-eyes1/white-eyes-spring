@@ -7,10 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +21,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /**
  * 녹화 파일 전송(FNC-A-044). 검수 기준: 파일 주소를 직접 입력하면 404 —
@@ -90,7 +92,8 @@ class RecordingFileTransferTest {
 
         mockMvc.perform(get("/api/v1/recordings/" + id + "/boxes"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("X-Accel-Redirect", "/protected/media/recordings/live/cam7/2026-10-12%2014.json.gz"));
+                .andExpect(header().string(
+                                "X-Accel-Redirect", "/protected/media/recordings/live/cam7/2026-10-12%2014.json.gz"));
     }
 
     @Test

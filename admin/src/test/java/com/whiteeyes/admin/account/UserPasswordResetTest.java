@@ -6,11 +6,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.support.AdminTestLogin;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +26,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 // 권한은 계정마다 로그인 화면(POST /login)으로 실제 로그인한 세션 쿠키로 확인한다(#47과 같음)
 /** 사용자 비밀번호 재설정(FNC-A-005): 임시 비밀번호, 변경 강제, 세션 삭제, 작업 기록, 권한 */
@@ -90,7 +92,9 @@ class UserPasswordResetTest {
         String stored = (String) row.get("PASSWORD");
         assertThat(stored).startsWith("$2").isNotEqualTo(temporaryPassword);
         assertThat(passwordEncoder.matches(temporaryPassword, stored)).isTrue();
-        assertThat(passwordEncoder.matches(OLD_USER_PASSWORD, stored)).as("이전 비밀번호는 더 쓸 수 없다").isFalse();
+        assertThat(passwordEncoder.matches(OLD_USER_PASSWORD, stored))
+                .as("이전 비밀번호는 더 쓸 수 없다")
+                .isFalse();
         assertThat(((Number) row.get("MUST_CHANGE_PASSWORD")).intValue()).isEqualTo(1);
     }
 
@@ -120,7 +124,9 @@ class UserPasswordResetTest {
 
         assertThat(sessionsOf("SPRING_SESSION_USER", "hong01")).isZero();
         assertThat(sessionsOf("SPRING_SESSION_USER", "kim02")).isOne();
-        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "hong01")).as("결정 0005: 표가 달라 섞이지 않음").isOne();
+        assertThat(sessionsOf("SPRING_SESSION_ADMIN", "hong01"))
+                .as("결정 0005: 표가 달라 섞이지 않음")
+                .isOne();
     }
 
     @Test
@@ -159,11 +165,13 @@ class UserPasswordResetTest {
         assertThat(jdbcTemplate.queryForObject(
                         "SELECT must_change_password FROM user_account WHERE id = ?", Integer.class, id))
                 .isZero();
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM work_history", Long.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM work_history", Long.class))
+                .isZero();
     }
 
     @Test
-    @DisplayName("FNC-A-005 작업 기록: ACCOUNT_CHANGE·USER_ACCOUNT, 대상 이름은 아이디, detail은 {\"password\":\"변경됨\"}이고 비밀번호 값은 없다")
+    @DisplayName(
+            "FNC-A-005 작업 기록: ACCOUNT_CHANGE·USER_ACCOUNT, 대상 이름은 아이디, detail은 {\"password\":\"변경됨\"}이고 비밀번호 값은 없다")
     void recordsAccountChange() throws Exception {
         long hongId = insertUser("hong01", "ACTIVE");
 
@@ -211,12 +219,11 @@ class UserPasswordResetTest {
         long hongId = insertUser("hong01", "ACTIVE");
         insertSession("SPRING_SESSION_USER", "hong01");
 
-        mockMvc.perform(post(RESET_URL, hongId)
-                        .contextPath(CONTEXT_PATH)
-                        .with(csrf()))
+        mockMvc.perform(post(RESET_URL, hongId).contextPath(CONTEXT_PATH).with(csrf()))
                 .andExpect(status().isUnauthorized());
 
-        assertThat(passwordEncoder.matches(OLD_USER_PASSWORD, storedPasswordOf(hongId))).isTrue();
+        assertThat(passwordEncoder.matches(OLD_USER_PASSWORD, storedPasswordOf(hongId)))
+                .isTrue();
         assertThat(sessionsOf("SPRING_SESSION_USER", "hong01")).isOne();
         assertThat(count("work_history")).isZero();
     }
@@ -228,8 +235,7 @@ class UserPasswordResetTest {
         insertSession("SPRING_SESSION_USER", "hong01");
 
         // 행동한 계정 아이디가 work_history 칸(20자)보다 길면 기록 저장이 실패한다
-        mockMvc.perform(post(
-                                "/api/v1/users/{id}/reset-password", hongId)
+        mockMvc.perform(post("/api/v1/users/{id}/reset-password", hongId)
                         .with(csrf())
                         .with(AdminTestLogin.admin("a".repeat(21))))
                 .andExpect(status().isInternalServerError());
@@ -254,20 +260,18 @@ class UserPasswordResetTest {
     }
 
     private ResultActions resetRequest(long userId, Cookie session) throws Exception {
-        return mockMvc.perform(post(
-                        RESET_URL, userId)
+        return mockMvc.perform(post(RESET_URL, userId)
                 .contextPath(CONTEXT_PATH)
                 .cookie(session)
                 .with(csrf()));
     }
 
     private Cookie login(String loginId) throws Exception {
-        Cookie session = mockMvc.perform(
-                        post("/admin/login")
-                                .contextPath(CONTEXT_PATH)
-                                .param("username", loginId)
-                                .param("password", PASSWORD)
-                                .with(csrf()))
+        Cookie session = mockMvc.perform(post("/admin/login")
+                        .contextPath(CONTEXT_PATH)
+                        .param("username", loginId)
+                        .param("password", PASSWORD)
+                        .with(csrf()))
                 .andExpect(status().isFound())
                 .andReturn()
                 .getResponse()

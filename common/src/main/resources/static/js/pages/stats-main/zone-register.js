@@ -8,7 +8,8 @@ import { createZoneDrawTool } from '../../map/zone-draw-tool.js';
 
 // 구역 관리 화면(admin/pages/zones.js)과 같은 문구
 const ERROR_MESSAGES = {
-    INVALID_POLYGON: '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
+    INVALID_POLYGON:
+        '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
     OUT_OF_SERVICE_AREA: '서비스 지역 밖입니다. 서비스 지역 안에서 다시 그려 주세요.',
     DUPLICATE_ZONE_NAME: '이미 사용 중인 구역 이름입니다.',
 };
@@ -40,7 +41,9 @@ export function createZoneRegister({ onRegistered }) {
     // 동 단계이고 지도가 이 도구를 쓸 수 있으면 true(안내 문구를 보인다)
     let available = false;
 
-    confirmModal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeConfirm));
+    confirmModal
+        .querySelectorAll('[data-close]')
+        .forEach((button) => button.addEventListener('click', closeConfirm));
     confirmModal.addEventListener('mousedown', (event) => {
         if (event.target === confirmModal) {
             closeConfirm();
@@ -122,7 +125,11 @@ export function createZoneRegister({ onRegistered }) {
         updateSubmit();
         const request = ++previewRequest;
         try {
-            const result = await post('/api/v1/manage/zones/preview', { boundary }, { toast: false });
+            const result = await post(
+                '/api/v1/manage/zones/preview',
+                { boundary },
+                { toast: false },
+            );
             if (request !== previewRequest) {
                 return; // 그 사이 다시 그리기·취소를 눌렀다
             }
@@ -149,14 +156,21 @@ export function createZoneRegister({ onRegistered }) {
         }
         submit.disabled = true;
         try {
-            const created = await post('/api/v1/manage/zones', { name, boundary: draft.boundary }, { toast: false });
+            const created = await post(
+                '/api/v1/manage/zones',
+                { name, boundary: draft.boundary },
+                { toast: false },
+            );
             cancel();
             showToast(`'${created.name}' 구역을 등록했습니다.`);
             await onRegistered(created);
         } catch (failure) {
             reportFailure(
                 failure,
-                (message) => (failure.code === 'DUPLICATE_ZONE_NAME' ? setNameError(message) : showError(message)),
+                (message) =>
+                    failure.code === 'DUPLICATE_ZONE_NAME'
+                        ? setNameError(message)
+                        : showError(message),
                 setNameError,
             );
             updateSubmit();

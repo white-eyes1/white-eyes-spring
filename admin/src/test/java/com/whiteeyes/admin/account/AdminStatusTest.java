@@ -10,11 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.security.AccountPrincipal;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +30,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.security.AccountPrincipal;
 
 // 권한은 계정마다 로그인 화면(POST /login)으로 실제 로그인한 세션 쿠키로 확인한다(#47과 같음)
 /** 관리자 비활성화·활성화(FNC-A-011): 상태 변경, 세션 삭제, 최고 관리자 불가, 409, 권한, 작업 기록 */
@@ -87,7 +89,8 @@ class AdminStatusTest {
     void disable_endsTargetSessionsImmediately() throws Exception {
         Cookie target = login("admin01");
         Cookie other = login("admin02");
-        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(target)).andExpect(status().isOk());
+        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(target))
+                .andExpect(status().isOk());
 
         disable(adminId, login("super01")).andExpect(status().isNoContent());
 
@@ -95,7 +98,8 @@ class AdminStatusTest {
         mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(target))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/admin/login"));
-        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(other)).andExpect(status().isOk());
+        mockMvc.perform(get("/admin/stats").contextPath(CONTEXT_PATH).cookie(other))
+                .andExpect(status().isOk());
         mockMvc.perform(post("/admin/login")
                         .contextPath(CONTEXT_PATH)
                         .param("username", "admin01")
@@ -175,7 +179,9 @@ class AdminStatusTest {
         disable(otherAdminId, login("admin01"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
-        mockMvc.perform(post(DISABLE_URL, otherAdminId).contextPath(CONTEXT_PATH).with(csrf()))
+        mockMvc.perform(post(DISABLE_URL, otherAdminId)
+                        .contextPath(CONTEXT_PATH)
+                        .with(csrf()))
                 .andExpect(status().isUnauthorized());
 
         assertThat(statusOf(otherAdminId)).isEqualTo("ACTIVE");
@@ -250,11 +256,17 @@ class AdminStatusTest {
     }
 
     private ResultActions disable(long targetId, Cookie session) throws Exception {
-        return mockMvc.perform(post(DISABLE_URL, targetId).contextPath(CONTEXT_PATH).cookie(session).with(csrf()));
+        return mockMvc.perform(post(DISABLE_URL, targetId)
+                .contextPath(CONTEXT_PATH)
+                .cookie(session)
+                .with(csrf()));
     }
 
     private ResultActions enable(long targetId, Cookie session) throws Exception {
-        return mockMvc.perform(post(ENABLE_URL, targetId).contextPath(CONTEXT_PATH).cookie(session).with(csrf()));
+        return mockMvc.perform(post(ENABLE_URL, targetId)
+                .contextPath(CONTEXT_PATH)
+                .cookie(session)
+                .with(csrf()));
     }
 
     private Cookie login(String loginId) throws Exception {

@@ -7,10 +7,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.support.AdminTestLogin;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 // 권한은 계정마다 로그인 화면(POST /login)으로 실제 로그인한 세션 쿠키로 확인한다(#47과 같음)
 /** 사용자 정보 수정(FNC-A-004): 저장, 작업 기록의 이전·이후 값, 입력값 규칙, 권한 */
@@ -245,12 +247,11 @@ class UserUpdateTest {
     }
 
     private Cookie login(String loginId) throws Exception {
-        Cookie session = mockMvc.perform(
-                        post("/admin/login")
-                                .contextPath(CONTEXT_PATH)
-                                .param("username", loginId)
-                                .param("password", PASSWORD)
-                                .with(csrf()))
+        Cookie session = mockMvc.perform(post("/admin/login")
+                        .contextPath(CONTEXT_PATH)
+                        .param("username", loginId)
+                        .param("password", PASSWORD)
+                        .with(csrf()))
                 .andExpect(status().isFound())
                 .andReturn()
                 .getResponse()

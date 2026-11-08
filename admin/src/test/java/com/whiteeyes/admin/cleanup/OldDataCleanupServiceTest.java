@@ -7,13 +7,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.whiteeyes.admin.cleanup.config.RetentionProperties;
-import com.whiteeyes.admin.cleanup.service.OldDataCleanupService;
-import com.whiteeyes.admin.media.repository.RecordingRepository;
-import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
@@ -23,6 +20,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
+import com.whiteeyes.admin.cleanup.service.OldDataCleanupService;
+import com.whiteeyes.admin.media.repository.RecordingRepository;
+import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /** 오래된 데이터 정리(FNC-A-032) — 한쪽이 실패해도 다른 쪽은 계속한다 */
 class OldDataCleanupServiceTest {
@@ -70,7 +72,8 @@ class OldDataCleanupServiceTest {
 
         service.cleanUp(NOW);
 
-        verify(recordingRepository).deleteStartedBefore(LocalDateTime.of(2098, 12, 4, 12, 30), OldDataCleanupService.BATCH_SIZE);
+        verify(recordingRepository)
+                .deleteStartedBefore(LocalDateTime.of(2098, 12, 4, 12, 30), OldDataCleanupService.BATCH_SIZE);
         assertThat(logs).anyMatch(l -> l.startsWith("ERROR 오래된 1분 통계 삭제 실패"));
         assertThat(logs).anyMatch(l -> l.startsWith("INFO 오래된 녹화 기록 삭제 3건"));
     }

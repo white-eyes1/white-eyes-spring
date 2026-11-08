@@ -26,26 +26,24 @@ class JobModeTest {
     @DisplayName("작업 모드에서도 관리자 앱이 웹 서버 없이 뜨고 예약 작업은 등록되지 않는다")
     void bootsWithoutWebServerAndScheduling() {
         assertThat(context).isNotInstanceOf(WebServerApplicationContext.class);
-        assertThat(context.getBeansOfType(ScheduledAnnotationBeanPostProcessor.class)).isEmpty();
+        assertThat(context.getBeansOfType(ScheduledAnnotationBeanPostProcessor.class))
+                .isEmpty();
     }
 
     @Test
     @DisplayName("job 옵션이 없으면 예약 작업을 켜고, 있으면 켜지 않는다")
     void schedulingOnlyWithoutJob() {
         schedulingRunner.run(context -> assertThat(context).hasSingleBean(ScheduledAnnotationBeanPostProcessor.class));
-        schedulingRunner
-                .withPropertyValues("job=generate-demo")
-                .run(context -> assertThat(context).doesNotHaveBean(ScheduledAnnotationBeanPostProcessor.class));
+        schedulingRunner.withPropertyValues("job=generate-demo").run(context -> assertThat(context)
+                .doesNotHaveBean(ScheduledAnnotationBeanPostProcessor.class));
     }
 
     @Test
     @DisplayName("scheduling.enabled=false면 job 옵션이 없어도 예약 작업을 켜지 않는다(시험용, spring #350)")
     void schedulingOffBySwitch() {
-        schedulingRunner
-                .withPropertyValues("scheduling.enabled=false")
-                .run(context -> assertThat(context).doesNotHaveBean(ScheduledAnnotationBeanPostProcessor.class));
-        schedulingRunner
-                .withPropertyValues("scheduling.enabled=true")
-                .run(context -> assertThat(context).hasSingleBean(ScheduledAnnotationBeanPostProcessor.class));
+        schedulingRunner.withPropertyValues("scheduling.enabled=false").run(context -> assertThat(context)
+                .doesNotHaveBean(ScheduledAnnotationBeanPostProcessor.class));
+        schedulingRunner.withPropertyValues("scheduling.enabled=true").run(context -> assertThat(context)
+                .hasSingleBean(ScheduledAnnotationBeanPostProcessor.class));
     }
 }

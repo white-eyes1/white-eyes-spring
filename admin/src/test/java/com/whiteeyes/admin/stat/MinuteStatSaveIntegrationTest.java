@@ -26,11 +26,11 @@ import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
+import com.whiteeyes.common.region.entity.Zone;
+import com.whiteeyes.common.region.repository.ZoneRepository;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
-import com.whiteeyes.common.region.entity.Zone;
-import com.whiteeyes.common.region.repository.ZoneRepository;
 
 // INSERT … ON DUPLICATE KEY UPDATE와 수신 → 마감 → 저장 흐름이 실제 DB에서 맞게 동작하는지 H2로 확인한다.
 // 앱의 스케줄러는 실제 현재 시각으로 돌기 때문에, 테스트 시각은 스케줄러가 마감하지 않을 먼 미래(2099년)로 둔다
@@ -69,8 +69,9 @@ class MinuteStatSaveIntegrationTest {
         zoneStatMinuteRepository.upsert(stat(zoneId, "20.50", (short) 60));
 
         assertThat(zoneStatMinuteRepository.count()).isEqualTo(1);
-        ZoneStatMinute saved =
-                zoneStatMinuteRepository.findById(new ZoneStatMinuteId(zoneId, MINUTE)).orElseThrow();
+        ZoneStatMinute saved = zoneStatMinuteRepository
+                .findById(new ZoneStatMinuteId(zoneId, MINUTE))
+                .orElseThrow();
         assertThat(saved.getCountAvg()).isEqualByComparingTo("20.50");
         assertThat(saved.getSampleSec()).isEqualTo((short) 60);
     }
@@ -91,8 +92,9 @@ class MinuteStatSaveIntegrationTest {
         assertThat(zoneStatMinuteRepository.findAll())
                 .extracting(ZoneStatMinute::getStatAt, ZoneStatMinute::getSampleSec)
                 .containsExactlyInAnyOrder(tuple(MINUTE, (short) 60), tuple(MINUTE.plusMinutes(1), (short) 60));
-        ZoneStatMinute first =
-                zoneStatMinuteRepository.findById(new ZoneStatMinuteId(zoneId, MINUTE)).orElseThrow();
+        ZoneStatMinute first = zoneStatMinuteRepository
+                .findById(new ZoneStatMinuteId(zoneId, MINUTE))
+                .orElseThrow();
         // 10명 ÷ 50㎡
         assertThat(first.getDensity()).isEqualByComparingTo("0.2000");
     }
@@ -120,7 +122,12 @@ class MinuteStatSaveIntegrationTest {
         jdbcTemplate.update("INSERT INTO region (level, code, name, boundary, center_lat, center_lng)"
                 + " VALUES ('EMD', '99999991', '통계 테스트동', '{}', 37.600000, 127.002000)");
         Long dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '99999991'", Long.class);
-        Zone zone = new Zone(dongId, "통계 1구역", new BigDecimal(areaM2), "{}", new BigDecimal("37.600000"),
+        Zone zone = new Zone(
+                dongId,
+                "통계 1구역",
+                new BigDecimal(areaM2),
+                "{}",
+                new BigDecimal("37.600000"),
                 new BigDecimal("127.002000"));
         return zoneRepository.save(zone).getId();
     }

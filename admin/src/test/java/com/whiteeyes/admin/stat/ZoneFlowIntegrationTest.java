@@ -84,10 +84,11 @@ class ZoneFlowIntegrationTest {
 
         List<ZoneFlowItem> flows = flows(regionId("11110"), DAY1.atTime(10, 0), DAY1.atTime(11, 0));
 
-        assertThat(flows).containsExactly(
-                new ZoneFlowItem(sajik, null, "N", 3),
-                new ZoneFlowItem(sajik, samcheong, "E", 7),
-                new ZoneFlowItem(samcheong, sajik, "W", 4));
+        assertThat(flows)
+                .containsExactly(
+                        new ZoneFlowItem(sajik, null, "N", 3),
+                        new ZoneFlowItem(sajik, samcheong, "E", 7),
+                        new ZoneFlowItem(samcheong, sajik, "W", 4));
     }
 
     @Test
@@ -202,20 +203,35 @@ class ZoneFlowIntegrationTest {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_minute (zone_id, stat_at, count_avg, count_max, count_min, density,"
                         + " out_n, out_e, out_s, out_w, sample_sec) VALUES (?, ?, 10, 10, 10, 0.1, ?, ?, ?, ?, 60)",
-                zoneId, Timestamp.valueOf(statAt), outN, outE, outS, outW);
+                zoneId,
+                Timestamp.valueOf(statAt),
+                outN,
+                outE,
+                outS,
+                outW);
     }
 
     private void insertHourly(LocalDateTime statAt, long zoneId, int outN, int outE, int outS, int outW) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_hourly (zone_id, stat_at, count_avg, count_max, count_min, density,"
                         + " out_n, out_e, out_s, out_w, sample_sec) VALUES (?, ?, 10, 10, 10, 0.1, ?, ?, ?, ?, 3600)",
-                zoneId, Timestamp.valueOf(statAt), outN, outE, outS, outW);
+                zoneId,
+                Timestamp.valueOf(statAt),
+                outN,
+                outE,
+                outS,
+                outW);
     }
 
     private void insertDaily(LocalDate statDate, long zoneId, int outN, int outE, int outS, int outW) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_daily (zone_id, stat_date, count_avg, count_max, count_min, density,"
                         + " out_n, out_e, out_s, out_w, sample_sec) VALUES (?, ?, 10, 10, 10, 0.1, ?, ?, ?, ?, 86400)",
-                zoneId, Date.valueOf(statDate), outN, outE, outS, outW);
+                zoneId,
+                Date.valueOf(statDate),
+                outN,
+                outE,
+                outS,
+                outW);
     }
 }

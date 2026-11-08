@@ -41,8 +41,8 @@ class ZoneServiceTest {
 
     // id는 생성자로 정할 수 없어 직접 넣는다
     private Zone zone(long id, String areaM2) {
-        Zone zone = new Zone(1L, "구역" + id, new BigDecimal(areaM2), "{}", new BigDecimal("37.600000"),
-                new BigDecimal("127.002000"));
+        Zone zone = new Zone(
+                1L, "구역" + id, new BigDecimal(areaM2), "{}", new BigDecimal("37.600000"), new BigDecimal("127.002000"));
         ReflectionTestUtils.setField(zone, "id", id);
         return zone;
     }

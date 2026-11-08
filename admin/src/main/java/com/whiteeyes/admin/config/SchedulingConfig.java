@@ -11,5 +11,4 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @ConditionalOnExpression("'${job:}'.isEmpty() and ${scheduling.enabled:true}")
 @EnableScheduling
-public class SchedulingConfig {
-}
+public class SchedulingConfig {}

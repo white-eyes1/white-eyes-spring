@@ -10,14 +10,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.whiteeyes.common.account.dto.PasswordChangeRequest;
-import com.whiteeyes.common.exception.BusinessException;
-import com.whiteeyes.common.exception.ErrorCode;
-import com.whiteeyes.common.security.AccountPrincipal;
-import com.whiteeyes.common.security.LoginAccountResolver;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +26,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
+
+import com.whiteeyes.common.account.dto.PasswordChangeRequest;
+import com.whiteeyes.common.exception.BusinessException;
+import com.whiteeyes.common.exception.ErrorCode;
+import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.common.security.LoginAccountResolver;
 
 /**
  * 비밀번호 변경의 처리 순서(FNC-C-007). 계정 저장소와 세션 저장소는 가짜로 두고 순서·호출만 확인한다.
@@ -122,9 +124,8 @@ class PasswordChangeServiceTest {
         when(store.findEncodedPassword(ACCOUNT_ID)).thenReturn(Optional.of(passwordEncoder.encode(CURRENT)));
 
         assertThatThrownBy(() -> service.change(request("wrong-pass9!"), CURRENT_SESSION))
-                .isInstanceOfSatisfying(
-                        BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.WRONG_PASSWORD));
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getErrorCode())
+                        .isEqualTo(ErrorCode.WRONG_PASSWORD));
 
         verify(store, never()).changePassword(anyLong(), anyString());
         verify(sessions, never()).deleteById(anyString());
@@ -139,9 +140,8 @@ class PasswordChangeServiceTest {
         when(store.findEncodedPassword(ACCOUNT_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.change(request(CURRENT), CURRENT_SESSION))
-                .isInstanceOfSatisfying(
-                        BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getErrorCode())
+                        .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 
     @Test
@@ -150,8 +150,7 @@ class PasswordChangeServiceTest {
         SecurityContextHolder.clearContext();
 
         assertThatThrownBy(() -> service.change(request(CURRENT), CURRENT_SESSION))
-                .isInstanceOfSatisfying(
-                        BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getErrorCode())
+                        .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 }

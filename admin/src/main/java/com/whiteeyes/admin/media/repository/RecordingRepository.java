@@ -28,8 +28,7 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
     @Modifying(clearAutomatically = true)
     @Query("update Recording r set r.endedAt = :closedAt"
             + " where r.cameraId = :cameraId and r.endedAt is null and r.startedAt < :closedAt")
-    int closeOpenRecordingsStartedBefore(
-            @Param("cameraId") Long cameraId, @Param("closedAt") LocalDateTime closedAt);
+    int closeOpenRecordingsStartedBefore(@Param("cameraId") Long cameraId, @Param("closedAt") LocalDateTime closedAt);
 
     /**
      * 주어진 캠들의 녹화 중 at 시각을 포함하는 것(started_at ≤ at, ended_at이 없거나 at보다 뒤)을 시작이 늦은 순으로(FNC-A-043).

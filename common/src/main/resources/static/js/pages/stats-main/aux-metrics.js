@@ -112,7 +112,9 @@ export function createAuxMetricsPanel(levels) {
             foldIds.forEach((id) => renderFold(id, series));
         } catch {
             if (requestId === latestRequestId) {
-                foldIds.filter((id) => FOLDS[id].length > 0).forEach((id) => showMessage(id, LOAD_ERROR));
+                foldIds
+                    .filter((id) => FOLDS[id].length > 0)
+                    .forEach((id) => showMessage(id, LOAD_ERROR));
             }
         }
     }
@@ -249,7 +251,9 @@ function bar(ratio, color, alignEnd) {
 
 // 최근 1시간 값은 분마다의 평균 체류를 다시 평균한다(응답에 체류를 잰 사람 수가 없어 가중 평균을 못 한다)
 function renderDwell(lastHour, todayHourly) {
-    const minuteValues = lastHour.map((point) => point.dwellAvgSec).filter((value) => value !== null);
+    const minuteValues = lastHour
+        .map((point) => point.dwellAvgSec)
+        .filter((value) => value !== null);
     const hourlyValues = todayHourly.map((point) =>
         point.dwellAvgSec === null ? null : Number(point.dwellAvgSec),
     );
@@ -494,7 +498,8 @@ function lineGraph(values, color, height, label) {
             line.setAttribute('r', '2');
             line.setAttribute('fill', color);
         } else {
-            const xy = (index) => `${xAt(index, values.length).toFixed(1)},${yAt(values[index]).toFixed(1)}`;
+            const xy = (index) =>
+                `${xAt(index, values.length).toFixed(1)},${yAt(values[index]).toFixed(1)}`;
             line.setAttribute('points', segment.map(xy).join(' '));
             line.setAttribute('fill', 'none');
             line.setAttribute('stroke', color);
@@ -514,14 +519,18 @@ function bandGraph(points) {
     const max = Math.max(...present.map((point) => point.countMax)) || 1;
     const yAt = (value) => height - 3 - (value / max) * (height - 6);
     segments(points.map((point) => point.countAvg)).forEach((segment) => {
-        const xy = (index, value) => `${xAt(index, points.length).toFixed(1)},${yAt(value).toFixed(1)}`;
+        const xy = (index, value) =>
+            `${xAt(index, points.length).toFixed(1)},${yAt(value).toFixed(1)}`;
         const top = segment.map((index) => xy(index, points[index].countMax));
         const bottom = [...segment].reverse().map((index) => xy(index, points[index].countMin));
         const band = document.createElementNS(SVG_NS, 'polygon');
         band.setAttribute('points', [...top, ...bottom].join(' '));
         band.setAttribute('fill', SPREAD_BAND_COLOR);
         const line = document.createElementNS(SVG_NS, 'polyline');
-        line.setAttribute('points', segment.map((index) => xy(index, Number(points[index].countAvg))).join(' '));
+        line.setAttribute(
+            'points',
+            segment.map((index) => xy(index, Number(points[index].countAvg))).join(' '),
+        );
         line.setAttribute('fill', 'none');
         line.setAttribute('stroke', SPREAD_COLOR);
         line.setAttribute('stroke-width', '2');

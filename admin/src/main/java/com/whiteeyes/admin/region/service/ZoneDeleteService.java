@@ -1,5 +1,14 @@
 package com.whiteeyes.admin.region.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.admin.region.dto.ZoneDeleteResponse;
 import com.whiteeyes.admin.region.exception.CameraRunningException;
@@ -15,13 +24,6 @@ import com.whiteeyes.common.security.LoginAccount;
 import com.whiteeyes.common.stat.repository.ZoneStatDailyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 구역을 삭제한다(FNC-A-017). 가동 이력이 없으면 실제로 지우고, 있으면 삭제 표시만 한다. */
 @Service
@@ -47,7 +49,9 @@ public class ZoneDeleteService {
     public ZoneDeleteResponse delete(Long zoneId) {
         // 로그인하지 않은 요청은 지우기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
-        Zone zone = zoneRepository.findById(zoneId).filter(found -> found.getDeletedAt() == null)
+        Zone zone = zoneRepository
+                .findById(zoneId)
+                .filter(found -> found.getDeletedAt() == null)
                 .orElseThrow(() -> new ZoneNotFoundException(zoneId));
         // 처리 순서 1: 소속 캠 중 PREPARING·RUNNING이 있으면 거부
         if (zoneCameraService.hasStartingOrRunningCamera(zoneId)) {

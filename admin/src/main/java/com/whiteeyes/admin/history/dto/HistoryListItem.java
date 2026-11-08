@@ -1,10 +1,12 @@
 package com.whiteeyes.admin.history.dto;
 
+import java.time.OffsetDateTime;
+
+import tools.jackson.databind.JsonNode;
+
 import com.whiteeyes.common.history.entity.ActorType;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
-import java.time.OffsetDateTime;
-import tools.jackson.databind.JsonNode;
 
 /**
  * 작업 기록 목록의 한 행(api/public.md GET /api/v1/histories, FNC-A-053).

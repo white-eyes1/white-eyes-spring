@@ -101,7 +101,11 @@ async function save(event) {
     try {
         await patch(
             `${USERS_API}/${current.id}`,
-            { name: nameInput.value.trim(), email: emailInput.value.trim(), phone: phoneInput.value.trim() },
+            {
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim(),
+                phone: phoneInput.value.trim(),
+            },
             { toast: false },
         );
         changed = true;
@@ -153,8 +157,7 @@ function showFieldError(field, message) {
 }
 
 function openConfirm() {
-    confirmMessage.textContent =
-        `'${current.loginId}' 사용자의 비밀번호를 재설정할까요? 임시 비밀번호가 발급되고 이전 비밀번호는 쓸 수 없으며, 열려 있는 모든 세션이 종료됩니다.`;
+    confirmMessage.textContent = `'${current.loginId}' 사용자의 비밀번호를 재설정할까요? 임시 비밀번호가 발급되고 이전 비밀번호는 쓸 수 없으며, 열려 있는 모든 세션이 종료됩니다.`;
     confirmOk.disabled = false;
     confirmModal.hidden = false;
     confirmOk.focus();
@@ -177,7 +180,9 @@ async function reset() {
     resetting = true;
     confirmOk.disabled = true;
     try {
-        const result = await post(`${USERS_API}/${current.id}/reset-password`, undefined, { toast: false });
+        const result = await post(`${USERS_API}/${current.id}/reset-password`, undefined, {
+            toast: false,
+        });
         showTempPassword(result.temporaryPassword);
         changed = true;
     } catch (error) {
@@ -228,14 +233,18 @@ async function copyTempPassword() {
     }
 }
 
-detailModal.querySelectorAll('[data-detail-close]').forEach((button) => button.addEventListener('click', closeDetail));
+detailModal
+    .querySelectorAll('[data-detail-close]')
+    .forEach((button) => button.addEventListener('click', closeDetail));
 detailModal.addEventListener('mousedown', (event) => {
     // 임시 비밀번호를 보여 주는 중에는 바깥을 눌러 실수로 닫히지 않게 한다
     if (event.target === detailModal && tempBox.hidden) {
         closeDetail();
     }
 });
-confirmModal.querySelectorAll('[data-reset-close]').forEach((button) => button.addEventListener('click', closeConfirm));
+confirmModal
+    .querySelectorAll('[data-reset-close]')
+    .forEach((button) => button.addEventListener('click', closeConfirm));
 confirmModal.addEventListener('mousedown', (event) => {
     if (event.target === confirmModal) {
         closeConfirm();

@@ -1,14 +1,16 @@
 package com.whiteeyes.common.event.repository;
 
-import com.whiteeyes.common.event.entity.Event;
-import com.whiteeyes.common.event.entity.EventStatus;
-import com.whiteeyes.common.event.entity.EventType;
-import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+
+import com.whiteeyes.common.event.entity.Event;
+import com.whiteeyes.common.event.entity.EventStatus;
+import com.whiteeyes.common.event.entity.EventType;
 
 /** 이벤트 목록·요약(FNC-A-036)의 조회 조건. 조건마다 하나씩 만들어 {@link Specification#allOf}로 묶어 쓴다. */
 public final class EventSpecifications {
@@ -51,17 +53,20 @@ public final class EventSpecifications {
 
     /** 구역이 주어진 것 중 하나. 빈 목록이면 아무것도 맞지 않는다. */
     public static Specification<Event> inZones(Collection<Long> zoneIds) {
-        return (root, query, cb) -> zoneIds.isEmpty() ? cb.disjunction() : root.get("zoneId").in(zoneIds);
+        return (root, query, cb) ->
+                zoneIds.isEmpty() ? cb.disjunction() : root.get("zoneId").in(zoneIds);
     }
 
     /** 종류가 주어진 것 중 하나. 빈 목록이면 거르지 않는다. */
     public static Specification<Event> ofTypes(Collection<EventType> types) {
-        return (root, query, cb) -> types.isEmpty() ? cb.conjunction() : root.get("type").in(types);
+        return (root, query, cb) ->
+                types.isEmpty() ? cb.conjunction() : root.get("type").in(types);
     }
 
     /** 처리 상태가 주어진 것 중 하나. 빈 목록이면 거르지 않는다. */
     public static Specification<Event> ofStatuses(Collection<EventStatus> statuses) {
-        return (root, query, cb) -> statuses.isEmpty() ? cb.conjunction() : root.get("status").in(statuses);
+        return (root, query, cb) ->
+                statuses.isEmpty() ? cb.conjunction() : root.get("status").in(statuses);
     }
 
     /** 처리 상태가 정확히 이것. */

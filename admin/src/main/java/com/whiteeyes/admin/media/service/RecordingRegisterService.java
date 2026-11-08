@@ -44,8 +44,8 @@ public class RecordingRegisterService {
         validateEndedAt(sourceType, startedAt, endedAt);
         recordingPathValidator.validate(sourceType, request.videoPath(), request.boxPath());
 
-        Recording recording = recordingRepository.save(Recording.register(
-                request.cameraId(), startedAt, endedAt, request.videoPath(), request.boxPath()));
+        Recording recording = recordingRepository.save(
+                Recording.register(request.cameraId(), startedAt, endedAt, request.videoPath(), request.boxPath()));
         // 더미 캠은 반복마다 endedAt 없이 등록되므로 이번 시작 시각으로 이전 반복을 닫는다(FNC-A-026 처리 순서 2)
         int closedCount = sourceType == CameraSourceType.DUMMY
                 ? recordingRepository.closeOpenRecordingsStartedBefore(request.cameraId(), startedAt)

@@ -207,12 +207,14 @@ function unapproveButton(user) {
     button.type = 'button';
     button.className = 'btn secondary sm';
     button.textContent = '승인 취소';
-    button.addEventListener('click', () => openConfirm({
-        title: '승인 취소',
-        message: `'${user.loginId}' 사용자의 승인을 취소할까요? 미승인 상태로 돌아가고 열려 있는 모든 세션이 종료됩니다.`,
-        okLabel: '승인 취소',
-        run: () => unapprove(user),
-    }));
+    button.addEventListener('click', () =>
+        openConfirm({
+            title: '승인 취소',
+            message: `'${user.loginId}' 사용자의 승인을 취소할까요? 미승인 상태로 돌아가고 열려 있는 모든 세션이 종료됩니다.`,
+            okLabel: '승인 취소',
+            run: () => unapprove(user),
+        }),
+    );
     return button;
 }
 
@@ -220,7 +222,9 @@ function unapproveButton(user) {
 async function unapprove(user) {
     try {
         await post(`${USERS_API}/${user.id}/unapprove`, undefined, { toast: false });
-        const row = [...tableBody.rows].find((candidate) => candidate.dataset.userId === String(user.id));
+        const row = [...tableBody.rows].find(
+            (candidate) => candidate.dataset.userId === String(user.id),
+        );
         row?.replaceWith(toRow({ ...user, status: 'PENDING', active: false }));
     } catch (error) {
         if (error instanceof ApiError && error.code === 'INVALID_STATUS') {
@@ -239,12 +243,14 @@ function forceLogoutButton(user) {
     button.type = 'button';
     button.className = 'btn secondary sm';
     button.textContent = '강제 로그아웃';
-    button.addEventListener('click', () => openConfirm({
-        title: '강제 로그아웃',
-        message: `'${user.loginId}' 사용자를 로그아웃시킬까요? 열려 있는 모든 세션이 종료됩니다.`,
-        okLabel: '로그아웃',
-        run: () => forceLogout(user),
-    }));
+    button.addEventListener('click', () =>
+        openConfirm({
+            title: '강제 로그아웃',
+            message: `'${user.loginId}' 사용자를 로그아웃시킬까요? 열려 있는 모든 세션이 종료됩니다.`,
+            okLabel: '로그아웃',
+            run: () => forceLogout(user),
+        }),
+    );
     return button;
 }
 
@@ -290,7 +296,9 @@ async function runConfirm() {
     closeConfirm();
 }
 
-confirmModal.querySelectorAll('[data-confirm-close]').forEach((button) => button.addEventListener('click', closeConfirm));
+confirmModal
+    .querySelectorAll('[data-confirm-close]')
+    .forEach((button) => button.addEventListener('click', closeConfirm));
 confirmModal.addEventListener('mousedown', (event) => {
     if (event.target === confirmModal) {
         closeConfirm();
@@ -387,7 +395,8 @@ function showError(error) {
         errorNotice.textContent = DEFAULT_ERROR_MESSAGE;
     } else if (error.fieldErrors.length > 0) {
         const details = error.fieldErrors.map(
-            (fieldError) => `${FIELD_LABELS[fieldError.field] ?? fieldError.field}: ${fieldError.message}`,
+            (fieldError) =>
+                `${FIELD_LABELS[fieldError.field] ?? fieldError.field}: ${fieldError.message}`,
         );
         errorNotice.textContent = `${error.message} (${details.join(' / ')})`;
     } else {

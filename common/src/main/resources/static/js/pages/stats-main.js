@@ -40,7 +40,9 @@ const LEVEL_LABELS = ['시·도', '시·군·구', '읍·면·동'];
 const EMD = 'EMD';
 
 const isAdmin = document.getElementById('dash').dataset.admin === 'true';
-const selects = ['filter-sido', 'filter-sigungu', 'filter-emd'].map((id) => document.getElementById(id));
+const selects = ['filter-sido', 'filter-sigungu', 'filter-emd'].map((id) =>
+    document.getElementById(id),
+);
 const backButton = document.getElementById('map-back');
 
 let levels = [];
@@ -172,7 +174,10 @@ async function refreshSafely() {
 async function children(parentId) {
     const key = parentId ?? 'root';
     if (!childrenCache.has(key)) {
-        childrenCache.set(key, await get('/api/v1/regions', parentId === null ? undefined : { parentId }));
+        childrenCache.set(
+            key,
+            await get('/api/v1/regions', parentId === null ? undefined : { parentId }),
+        );
     }
     return childrenCache.get(key);
 }
@@ -227,7 +232,12 @@ async function applyPath(newPath, pushUrl) {
 async function renderFilter() {
     for (let depth = 0; depth < selects.length; depth++) {
         const select = selects[depth];
-        const options = depth === 0 ? await children(null) : path[depth - 1] ? await children(path[depth - 1].id) : [];
+        const options =
+            depth === 0
+                ? await children(null)
+                : path[depth - 1]
+                  ? await children(path[depth - 1].id)
+                  : [];
         select.replaceChildren(...optionList(options, depth));
         select.value = path[depth] ? String(path[depth].id) : '';
         select.disabled = options.length === 0 || (depth > 0 && !path[depth - 1]);
@@ -357,14 +367,24 @@ function openZoneMenu(zoneId, event) {
     if (zone && path[path.length - 1].level === EMD) {
         // 메뉴가 떠 있는 동안 그 구역이 강조된 채로 남게 한다
         layer.holdZone(zoneId);
-        mapMenu.open({ x: event.clientX, y: event.clientY, title: zone.name, items: buildZoneMenu(zone) });
+        mapMenu.open({
+            x: event.clientX,
+            y: event.clientY,
+            title: zone.name,
+            items: buildZoneMenu(zone),
+        });
     }
 }
 
 function openEmptyMenu(latLng, event) {
     const target = path[path.length - 1];
     if (target.level === EMD) {
-        mapMenu.open({ x: event.clientX, y: event.clientY, title: target.name, items: buildEmptyMenu(latLng) });
+        mapMenu.open({
+            x: event.clientX,
+            y: event.clientY,
+            title: target.name,
+            items: buildEmptyMenu(latLng),
+        });
     }
 }
 
@@ -373,7 +393,9 @@ function buildZoneMenu(zone) {
     const items = [{ label: '구역 수정', onClick: () => zoneEdit.begin(zone) }];
     // 가동 중이거나 가동을 요청한 캠이 있는 구역은 지울 수 없다(구역 관리 화면과 같은 규칙)
     const camera = deck?.cameraByZone(zone.id);
-    const running = camera && (camera.status === 'RUNNING' || camera.status === 'PREPARING' || camera.runRequested);
+    const running =
+        camera &&
+        (camera.status === 'RUNNING' || camera.status === 'PREPARING' || camera.runRequested);
     items.push({
         label: '구역 삭제',
         danger: true,
@@ -395,7 +417,10 @@ function buildZoneMenu(zone) {
             danger: true,
             disabled: camera.status !== 'STOPPED' || Boolean(camera.runRequested),
             // 가동 요청 안내는 정지 상태인데 요청만 남은 때(캠 관리 화면과 같은 규칙). 가동 중·준비 중이면 정지부터 하라고 안내한다
-            hint: camera.status === 'STOPPED' && camera.runRequested ? CAMERA_RUN_PENDING : CAMERA_DELETE_BLOCKED,
+            hint:
+                camera.status === 'STOPPED' && camera.runRequested
+                    ? CAMERA_RUN_PENDING
+                    : CAMERA_DELETE_BLOCKED,
             onClick: () => askDeleteCamera(camera),
         });
     }
@@ -405,7 +430,8 @@ function buildZoneMenu(zone) {
 const CAMERA_DELETE_BLOCKED = '정지 상태에서만 삭제할 수 있습니다. 먼저 정지해 주세요.';
 const CAMERA_RUN_PENDING = '가동 요청 처리 중입니다. 잠시 뒤 다시 시도하거나 정지해 주세요';
 const CAMERA_EDIT_BLOCKED = '정지 상태에서만 고칠 수 있습니다. 먼저 정지해 주세요.';
-const ZONE_DELETE_BLOCKED = '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.';
+const ZONE_DELETE_BLOCKED =
+    '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.';
 
 // 구역 삭제(FNC-A-017): 확인 뒤 DELETE. 삭제되면 지도·핀·통계·캠 패널을 다시 읽는다
 function askDeleteZone(zone) {
@@ -489,19 +515,33 @@ async function refresh() {
     } else if (isDong) {
         // 동이면 하위 단위가 구역이라 구역 경계를 칠한다
         layer.showBoundaries(
-            zoneShapes.map((zone) => ({ id: zone.id, name: zone.name, boundary: zone.boundary, item: statusById.get(zone.id), zoom: true })),
+            zoneShapes.map((zone) => ({
+                id: zone.id,
+                name: zone.name,
+                boundary: zone.boundary,
+                item: statusById.get(zone.id),
+                zoom: true,
+            })),
             true,
         );
     } else {
         const kids = await children(target.id);
         layer.showBoundaries(
-            kids.map((region) => ({ id: region.id, name: region.name, boundary: region.boundary, item: statusById.get(region.id) })),
+            kids.map((region) => ({
+                id: region.id,
+                name: region.name,
+                boundary: region.boundary,
+                item: statusById.get(region.id),
+            })),
             true,
         );
     }
     // 하위 단위로 내려가도 지역 경계가 남도록, 지금 지역(동이면 이웃 동도)의 윤곽선을 함께 그린다
     const parent = path.length >= 2 ? path[path.length - 2] : null;
-    const siblings = isDong && parent ? (await children(parent.id)).filter((region) => region.id !== target.id) : [];
+    const siblings =
+        isDong && parent
+            ? (await children(parent.id)).filter((region) => region.id !== target.id)
+            : [];
     if (target !== path[path.length - 1]) {
         return; // 이웃 동 목록을 읽는 동안 지역이 바뀌었다(새 지도에 옛 윤곽선을 그리지 않는다)
     }

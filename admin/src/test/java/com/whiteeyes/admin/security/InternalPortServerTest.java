@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -59,8 +60,9 @@ class InternalPortServerTest {
     }
 
     private int get(int port, String path) throws Exception {
-        HttpRequest request =
-                HttpRequest.newBuilder(URI.create("http://localhost:" + port + path)).GET().build();
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                .GET()
+                .build();
         return HttpClient.newHttpClient()
                 .send(request, HttpResponse.BodyHandlers.discarding())
                 .statusCode();

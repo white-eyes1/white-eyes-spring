@@ -43,8 +43,8 @@ public class HourlyStatService {
      * @param zoneIds 묶을 구역 번호. null이면 그 시간의 전 구역
      */
     public synchronized void aggregateHour(LocalDateTime hourStart, Collection<Long> zoneIds) {
-        List<ZoneStatMinute> minutes = zoneStatMinuteRepository
-                .findByStatAtGreaterThanEqualAndStatAtLessThan(hourStart, hourStart.plusHours(1));
+        List<ZoneStatMinute> minutes = zoneStatMinuteRepository.findByStatAtGreaterThanEqualAndStatAtLessThan(
+                hourStart, hourStart.plusHours(1));
         Map<Long, List<ZoneStatMinute>> minutesByZone = minutes.stream()
                 .filter(minute -> zoneIds == null || zoneIds.contains(minute.getZoneId()))
                 .collect(Collectors.groupingBy(ZoneStatMinute::getZoneId));
@@ -60,7 +60,8 @@ public class HourlyStatService {
     }
 
     private void save(Long zoneId, LocalDateTime hourStart, List<ZoneStatMinute> zoneMinutes) {
-        List<StatValues> rows = zoneMinutes.stream().map(StatRollupCalculator::of).toList();
+        List<StatValues> rows =
+                zoneMinutes.stream().map(StatRollupCalculator::of).toList();
         StatValues rolledUp = StatRollupCalculator.rollUp(rows).orElse(null);
         if (rolledUp == null) {
             log.warn("시간별 통계 건너뜀: 받은 초가 있는 1분 통계 없음 zoneId={} statAt={}", zoneId, hourStart);

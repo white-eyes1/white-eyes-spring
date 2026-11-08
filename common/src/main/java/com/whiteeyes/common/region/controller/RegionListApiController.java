@@ -1,14 +1,16 @@
 package com.whiteeyes.common.region.controller;
 
-import com.whiteeyes.common.region.dto.RegionResponse;
-import com.whiteeyes.common.region.dto.ZoneResponse;
-import com.whiteeyes.common.region.service.RegionListService;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.whiteeyes.common.region.dto.RegionResponse;
+import com.whiteeyes.common.region.dto.ZoneResponse;
+import com.whiteeyes.common.region.service.RegionListService;
 
 // 두 앱이 함께 등록한다. 관리자 앱에서는 컨텍스트 경로가 붙어 /admin/api/v1/regions
 // 권한 '사용자 이상'은 접근 권한 검사(FNC-C-003)의 공통 규칙으로 붙는다

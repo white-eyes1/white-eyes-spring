@@ -1,15 +1,17 @@
 package com.whiteeyes.common.camera.service;
 
-import com.whiteeyes.common.camera.entity.CameraStatus;
-import com.whiteeyes.common.camera.repository.CameraRepository;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.common.camera.entity.CameraStatus;
+import com.whiteeyes.common.camera.repository.CameraRepository;
 
 /** 다른 도메인(지역·구역 목록, 다시보기, 구역 삭제)이 구역의 캠을 묻거나 바꿀 때 부르는 camera 도메인의 공개 service(FNC-C-008, FNC-A-043, FNC-A-017). */
 @Service
@@ -36,7 +38,8 @@ public class ZoneCameraService {
     /** 그 구역에 준비 중(PREPARING)·가동 중(RUNNING)이거나 가동 요청(run_requested=1) 상태인 삭제되지 않은 캠이 있는지(구역 삭제 FNC-A-017 처리 순서 1). */
     @Transactional(readOnly = true)
     public boolean hasStartingOrRunningCamera(Long zoneId) {
-        return cameraRepository.existsActiveOrRunRequested(zoneId, List.of(CameraStatus.PREPARING, CameraStatus.RUNNING));
+        return cameraRepository.existsActiveOrRunRequested(
+                zoneId, List.of(CameraStatus.PREPARING, CameraStatus.RUNNING));
     }
 
     /** 그 구역의 캠 중 한 번이라도 가동한 것이 있는지. 삭제된 캠도 본다(구역 삭제 FNC-A-017 처리 순서 2). */

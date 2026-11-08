@@ -7,9 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -111,7 +112,8 @@ class AdminCreateTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
-        String temporaryPassword = jsonMapper.readTree(body).get("temporaryPassword").asString();
+        String temporaryPassword =
+                jsonMapper.readTree(body).get("temporaryPassword").asString();
 
         mockMvc.perform(loginRequest("admin09", temporaryPassword))
                 .andExpect(status().isFound())
@@ -157,7 +159,8 @@ class AdminCreateTest {
                 .andExpect(jsonPath("$.code").value("DUPLICATE_LOGIN_ID"));
         mockMvc.perform(create("{\"loginId\": \"off01\", \"name\": \"중복\"}").cookie(session))
                 .andExpect(status().isConflict());
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM work_history", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM work_history", Integer.class))
+                .isZero();
 
         jdbcTemplate.update(
                 "INSERT INTO user_account (login_id, password, name, status) VALUES ('user01', 'x', '사용자', 'ACTIVE')");
@@ -171,17 +174,19 @@ class AdminCreateTest {
         Cookie session = login("super01", PASSWORD);
 
         mockMvc.perform(create(
-                        "{\"loginId\": \"Admin\", \"name\": \" \", \"email\": \"not-mail\", \"phone\": \"010-abcd\"}")
+                                "{\"loginId\": \"Admin\", \"name\": \" \", \"email\": \"not-mail\", \"phone\": \"010-abcd\"}")
                         .cookie(session))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.fieldErrors.length()").value(4));
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM admin_account", Integer.class)).isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM admin_account", Integer.class))
+                .isEqualTo(3);
 
         mockMvc.perform(create("{\"loginId\": \"admin10\", \"name\": \"선택 없음\", \"email\": \"\", \"phone\": \"\"}")
                         .cookie(session))
                 .andExpect(status().isCreated());
-        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT email, phone FROM admin_account WHERE login_id = 'admin10'");
+        Map<String, Object> row =
+                jdbcTemplate.queryForMap("SELECT email, phone FROM admin_account WHERE login_id = 'admin10'");
         assertThat(row.get("EMAIL")).isNull();
         assertThat(row.get("PHONE")).isNull();
     }
@@ -221,7 +226,8 @@ class AdminCreateTest {
     }
 
     private long countAccounts(String loginId) {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM admin_account WHERE login_id = ?", Long.class, loginId);
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM admin_account WHERE login_id = ?", Long.class, loginId);
     }
 
     private long insertAccount(String loginId, String role, String status) {

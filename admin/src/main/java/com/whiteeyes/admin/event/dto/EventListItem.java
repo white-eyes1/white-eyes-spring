@@ -1,9 +1,10 @@
 package com.whiteeyes.admin.event.dto;
 
-import com.whiteeyes.common.event.entity.EventStatus;
-import com.whiteeyes.common.event.entity.EventType;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+
+import com.whiteeyes.common.event.entity.EventStatus;
+import com.whiteeyes.common.event.entity.EventType;
 
 /**
  * 이벤트 목록의 한 행(api/public.md GET /api/v1/events, FNC-A-036).

@@ -49,13 +49,15 @@ public class HeatmapService {
     @Transactional(readOnly = true)
     public HeatmapResponse findHeatmap(HeatmapRequest request) {
         Region region = regionQueryService.getRegion(request.regionId());
-        Map<Long, List<StatSeriesPoint>> pointsByUnit = region.getLevel() == RegionLevel.EMD
-                ? zoneUnits(region, request)
-                : regionUnits(region, request);
+        Map<Long, List<StatSeriesPoint>> pointsByUnit =
+                region.getLevel() == RegionLevel.EMD ? zoneUnits(region, request) : regionUnits(region, request);
 
         Map<String, List<BigDecimal>> values = new LinkedHashMap<>();
         pointsByUnit.forEach((unitId, points) -> values.put(String.valueOf(unitId), averageByHour(points, request)));
-        List<BigDecimal> all = values.values().stream().flatMap(List::stream).filter(Objects::nonNull).toList();
+        List<BigDecimal> all = values.values().stream()
+                .flatMap(List::stream)
+                .filter(Objects::nonNull)
+                .toList();
         return new HeatmapResponse(
                 List.copyOf(pointsByUnit.keySet()),
                 values,
@@ -92,7 +94,8 @@ public class HeatmapService {
         long[] weights = new long[HOURS];
         for (StatSeriesPoint point : points) {
             // 값이 없는 점(받은 초 0·통계 없음)과 요일 조건에 맞지 않는 점은 넣지 않는다
-            if (point.countAvg() == null || !request.dayType().matches(point.at().getDayOfWeek())) {
+            if (point.countAvg() == null
+                    || !request.dayType().matches(point.at().getDayOfWeek())) {
                 continue;
             }
             int hour = point.at().getHour();
@@ -106,9 +109,11 @@ public class HeatmapService {
         }
         List<BigDecimal> result = new ArrayList<>(HOURS);
         for (int hour = 0; hour < HOURS; hour++) {
-            result.add(weights[hour] == 0
-                    ? null
-                    : weighted[hour].divide(BigDecimal.valueOf(weights[hour]), scale(request.item()), RoundingMode.HALF_UP));
+            result.add(
+                    weights[hour] == 0
+                            ? null
+                            : weighted[hour].divide(
+                                    BigDecimal.valueOf(weights[hour]), scale(request.item()), RoundingMode.HALF_UP));
         }
         return result;
     }
@@ -123,7 +128,8 @@ public class HeatmapService {
     }
 
     private static BigDecimal sum(Map<String, Integer> flow) {
-        return BigDecimal.valueOf(flow.values().stream().mapToLong(Integer::longValue).sum());
+        return BigDecimal.valueOf(
+                flow.values().stream().mapToLong(Integer::longValue).sum());
     }
 
     private static int scale(HeatmapRequest.Item item) {

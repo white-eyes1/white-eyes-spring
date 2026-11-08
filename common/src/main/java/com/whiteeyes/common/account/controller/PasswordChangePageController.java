@@ -1,13 +1,14 @@
 package com.whiteeyes.common.account.controller;
 
-import com.whiteeyes.common.security.AccountPrincipal;
-import com.whiteeyes.common.security.LoginAccountResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+
+import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.common.security.LoginAccountResolver;
 
 /**
  * 비밀번호 변경 화면(SCR-C-002 비밀번호 변경 영역, FNC-C-007). 사용자 앱 /me/password, 관리자 앱 /admin/me/password.

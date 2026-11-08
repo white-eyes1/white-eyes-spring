@@ -1,7 +1,8 @@
 package com.whiteeyes.admin.account.dto;
 
-import com.whiteeyes.common.account.entity.UserAccountStatus;
 import java.time.OffsetDateTime;
+
+import com.whiteeyes.common.account.entity.UserAccountStatus;
 
 /**
  * 사용자 목록 한 줄(GET /api/v1/users 응답 items, FNC-A-002 정상 결과).

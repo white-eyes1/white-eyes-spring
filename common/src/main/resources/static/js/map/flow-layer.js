@@ -94,17 +94,17 @@ export function createFlowLayer(map) {
         const unit = L.point((b.x - a.x) / length, (b.y - a.y) / length);
         const side = L.point(-unit.y * SIDE_OFFSET_PX, unit.x * SIDE_OFFSET_PX);
         const gap = Math.min(END_GAP_PX, length / 3);
-        return [
-            a.add(unit.multiplyBy(gap)).add(side),
-            b.subtract(unit.multiplyBy(gap)).add(side),
-        ];
+        return [a.add(unit.multiplyBy(gap)).add(side), b.subtract(unit.multiplyBy(gap)).add(side)];
     }
 
     function outsidePoints(from, direction) {
         const a = point(from);
         const [dx, dy] = DIRECTION_VECTORS[direction] ?? [0, -1];
         const unit = L.point(dx, dy);
-        return [a.add(unit.multiplyBy(END_GAP_PX)), a.add(unit.multiplyBy(END_GAP_PX + OUTSIDE_LENGTH_PX))];
+        return [
+            a.add(unit.multiplyBy(END_GAP_PX)),
+            a.add(unit.multiplyBy(END_GAP_PX + OUTSIDE_LENGTH_PX)),
+        ];
     }
 
     return { show, clear };

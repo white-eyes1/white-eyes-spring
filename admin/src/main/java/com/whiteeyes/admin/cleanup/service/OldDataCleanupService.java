@@ -1,14 +1,16 @@
 package com.whiteeyes.admin.cleanup.service;
 
-import com.whiteeyes.admin.cleanup.config.RetentionProperties;
-import com.whiteeyes.admin.media.repository.RecordingRepository;
-import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import java.time.LocalDateTime;
 import java.util.function.IntSupplier;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
+
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
+import com.whiteeyes.admin.media.repository.RecordingRepository;
+import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 
 /** 오래된 데이터 정리(FNC-A-032) */
 @Slf4j
@@ -31,7 +33,8 @@ public class OldDataCleanupService {
      */
     public void cleanUp(LocalDateTime now) {
         // 1분 통계는 날짜 단위(오늘 0시 − 보관 일수), 녹화 기록은 현재 시각 − 보관 일수
-        LocalDateTime statCutoff = now.toLocalDate().minusDays(properties.statMinuteDays()).atStartOfDay();
+        LocalDateTime statCutoff =
+                now.toLocalDate().minusDays(properties.statMinuteDays()).atStartOfDay();
         LocalDateTime recordingCutoff = now.minusDays(properties.recordingDays());
 
         deleteInBatches("1분 통계", statCutoff, () -> zoneStatMinuteRepository.deleteOlderThan(statCutoff, BATCH_SIZE));

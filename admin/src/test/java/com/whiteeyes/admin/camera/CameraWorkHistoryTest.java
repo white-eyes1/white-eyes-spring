@@ -6,14 +6,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +30,10 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** 캠 등록·가동·정지의 작업 기록 연결(FNC-A-018·020·021, FNC-C-026). 분석 서버는 가짜 HTTP 서버로 대신한다. */
 // 운영 설정(open-in-view: false)과 같게 맞춘다. 가동·정지는 단계별로 따로 커밋해 요청 하나가 영속성 컨텍스트를 공유하면 검증이 틀어진다
@@ -125,7 +127,9 @@ class CameraWorkHistoryTest {
     @Test
     @DisplayName("FNC-C-026 로그인하지 않고 캠을 등록하면 401이고 캠도 작업 기록도 생기지 않는다")
     void register_notLoggedIn_unauthorized() throws Exception {
-        registerCamera(null).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+        registerCamera(null)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
 
         assertThat(count("camera")).isZero();
         assertThat(count("work_history")).isZero();
@@ -232,7 +236,8 @@ class CameraWorkHistoryTest {
         callCamera(cameraId, "stop", null).andExpect(status().isUnauthorized());
 
         assertThat(ANALYZER.callCount).isZero();
-        Map<String, Object> camera = jdbcTemplate.queryForMap("SELECT status, run_requested FROM camera WHERE id = ?", cameraId);
+        Map<String, Object> camera =
+                jdbcTemplate.queryForMap("SELECT status, run_requested FROM camera WHERE id = ?", cameraId);
         assertThat(camera.get("STATUS")).isEqualTo("RUNNING");
         assertThat(count("work_history")).isZero();
     }
@@ -264,7 +269,8 @@ class CameraWorkHistoryTest {
     }
 
     private ResultActions registerCamera(RequestPostProcessor login) throws Exception {
-        String body = "{\"zoneId\":" + zoneId + ",\"name\":\"삼청동 캠\",\"sourceType\":\"DUMMY\",\"sourceUri\":\"" + DUMMY_URI + "\"}";
+        String body = "{\"zoneId\":" + zoneId + ",\"name\":\"삼청동 캠\",\"sourceType\":\"DUMMY\",\"sourceUri\":\""
+                + DUMMY_URI + "\"}";
         return perform(post(CAMERAS_URL).contentType(MediaType.APPLICATION_JSON).content(body), login);
     }
 

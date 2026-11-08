@@ -27,7 +27,9 @@ export function initCameraForm({ onSaved }) {
     // 수정 창이 열려 있는 캠(등록 창이면 null)
     let editing = null;
 
-    modal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeModal));
+    modal
+        .querySelectorAll('[data-close]')
+        .forEach((button) => button.addEventListener('click', closeModal));
     modal.addEventListener('mousedown', (event) => {
         if (event.target === modal) {
             closeModal();
@@ -39,7 +41,9 @@ export function initCameraForm({ onSaved }) {
         }
     });
     form.addEventListener('submit', submitForm);
-    form.querySelectorAll('input[name="sourceType"]').forEach((radio) => radio.addEventListener('change', updateUriHint));
+    form.querySelectorAll('input[name="sourceType"]').forEach((radio) =>
+        radio.addEventListener('change', updateUriHint),
+    );
     updateUriHint();
 
     // camera가 있으면 수정 창(구역은 읽기 전용, 값을 채워 연다), 없으면 등록 창. preferredZoneId가 있으면 등록 창의 구역을 그 구역으로 고른다
@@ -93,7 +97,8 @@ export function initCameraForm({ onSaved }) {
 
     function updateUriHint() {
         uriHint.textContent = URI_HINT[form.elements.sourceType.value];
-        uriInput.placeholder = form.elements.sourceType.value === 'LIVE' ? 'rtsp://…' : 'dummy/videos/….mp4';
+        uriInput.placeholder =
+            form.elements.sourceType.value === 'LIVE' ? 'rtsp://…' : 'dummy/videos/….mp4';
     }
 
     function clearErrors() {
@@ -131,7 +136,11 @@ export function initCameraForm({ onSaved }) {
             if (editing) {
                 await saveEdit(values);
             } else {
-                await post('/api/v1/manage/cameras', { zoneId: zoneSelect.value ? Number(zoneSelect.value) : null, ...values }, { toast: false });
+                await post(
+                    '/api/v1/manage/cameras',
+                    { zoneId: zoneSelect.value ? Number(zoneSelect.value) : null, ...values },
+                    { toast: false },
+                );
                 closeModal();
                 await onSaved();
             }

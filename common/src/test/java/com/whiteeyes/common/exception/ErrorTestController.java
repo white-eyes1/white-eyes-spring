@@ -39,8 +39,7 @@ class ErrorTestController {
     @GetMapping("/api/v1/test/not-found-with-cause")
     @ResponseBody
     String notFoundWithCause() {
-        throw new BusinessException(
-                ErrorCode.NOT_FOUND, "구역을 찾을 수 없습니다.", new IllegalStateException("감싼 원인 예외"));
+        throw new BusinessException(ErrorCode.NOT_FOUND, "구역을 찾을 수 없습니다.", new IllegalStateException("감싼 원인 예외"));
     }
 
     @GetMapping("/api/v1/test/zones/{id}")

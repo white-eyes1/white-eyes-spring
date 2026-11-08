@@ -6,8 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.user.support.UserTestAccounts;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +20,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.user.support.UserTestAccounts;
 
 /**
  * 사용자 앱 접근 권한 검사(FNC-C-003): 권한 표(사용자 앱)의 경로를 비로그인·PENDING·USER로 호출해 허용/거부를 확인한다.
@@ -67,7 +68,9 @@ class UserAccessControlTest {
 
     private void assertAllowed(MvcResult result) {
         assertThat(result.getResponse().getStatus()).as("허용이어야 하는 요청의 상태").isNotIn(401, 403);
-        assertThat(result.getResponse().getRedirectedUrl()).as("로그인·승인 대기 화면으로 이동하지 않아야 함").isNull();
+        assertThat(result.getResponse().getRedirectedUrl())
+                .as("로그인·승인 대기 화면으로 이동하지 않아야 함")
+                .isNull();
     }
 
     @ParameterizedTest(name = "{0}")
@@ -93,8 +96,15 @@ class UserAccessControlTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(
-            strings = {"/api/v1/regions", "/api/v1/zones", ZONE_DETAIL, STAT_SERIES, COMPARE, "/api/v1/meta/levels",
-                    "/api/v1/me"})
+            strings = {
+                "/api/v1/regions",
+                "/api/v1/zones",
+                ZONE_DETAIL,
+                STAT_SERIES,
+                COMPARE,
+                "/api/v1/meta/levels",
+                "/api/v1/me"
+            })
     @DisplayName("FNC-C-003 세션 없이 사용자 이상 API를 요청하면 공통 오류 형식의 401을 돌려준다")
     void anonymous_api_unauthorized(String path) throws Exception {
         mockMvc.perform(get(path))
@@ -104,8 +114,8 @@ class UserAccessControlTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"/api/v1/regions", "/api/v1/zones", ZONE_DETAIL, STAT_SERIES, COMPARE,
-            "/api/v1/meta/levels"})
+    @ValueSource(
+            strings = {"/api/v1/regions", "/api/v1/zones", ZONE_DETAIL, STAT_SERIES, COMPARE, "/api/v1/meta/levels"})
     @DisplayName("FNC-C-003 로그인한 USER는 사용자 이상 API를 쓸 수 있다")
     void user_api_allowed(String path) throws Exception {
         Cookie session = accounts.loginAs("user01", "ACTIVE", false);
@@ -114,8 +124,8 @@ class UserAccessControlTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"/api/v1/regions", "/api/v1/zones", ZONE_DETAIL, STAT_SERIES, COMPARE,
-            "/api/v1/meta/levels"})
+    @ValueSource(
+            strings = {"/api/v1/regions", "/api/v1/zones", ZONE_DETAIL, STAT_SERIES, COMPARE, "/api/v1/meta/levels"})
     @DisplayName("FNC-U-003 로그인한 PENDING 계정이 사용자 이상 API를 요청하면 403")
     void pending_api_forbidden(String path) throws Exception {
         Cookie session = accounts.loginAs("wait01", "PENDING", false);
@@ -131,8 +141,7 @@ class UserAccessControlTest {
         jdbcTemplate.update("INSERT INTO zone (dong_id, name, area_m2, boundary, center_lat, center_lng)"
                 + " VALUES (1, '접근 시험 구역', 100.00, '{}', 37.600000, 127.002000)");
         try {
-            long zoneId = jdbcTemplate.queryForObject(
-                    "SELECT id FROM zone WHERE name = '접근 시험 구역'", Long.class);
+            long zoneId = jdbcTemplate.queryForObject("SELECT id FROM zone WHERE name = '접근 시험 구역'", Long.class);
             Cookie session = accounts.loginAs("user04", "ACTIVE", false);
 
             mockMvc.perform(get("/api/v1/zones/" + zoneId).cookie(session))

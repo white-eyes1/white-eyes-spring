@@ -1,10 +1,11 @@
 package com.whiteeyes.common.camera.service;
 
-import com.whiteeyes.common.camera.entity.CameraStatus;
-import com.whiteeyes.common.camera.repository.CameraRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.common.camera.entity.CameraStatus;
+import com.whiteeyes.common.camera.repository.CameraRepository;
 
 /** 다른 도메인(실시간 화면 권한 확인)이 캠이 지금 가동 중인지 물을 때 부르는 camera 도메인의 공개 service(FNC-A-041). */
 @Service

@@ -23,5 +23,4 @@ public record DashboardSummaryResponse(
         int todayEventCount,
         int cameraCount,
         int runningCameraCount,
-        Integer todayMaxCount) {
-}
+        Integer todayMaxCount) {}

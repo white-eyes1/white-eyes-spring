@@ -34,7 +34,8 @@ public class StatAggregationScheduler {
     // 매시 01분 30초(FNC-A-029). 직전 정시 시작 시각부터 지난 1시간을 묶는다
     @Scheduled(cron = "30 1 * * * *", zone = KST_ID)
     public void aggregateLastHour() {
-        hourlyStatService.aggregateHour(LocalDateTime.now(KST).truncatedTo(ChronoUnit.HOURS).minusHours(1));
+        hourlyStatService.aggregateHour(
+                LocalDateTime.now(KST).truncatedTo(ChronoUnit.HOURS).minusHours(1));
         // 매시 집계 뒤에 놓친 시간·날짜가 있으면 채운다(FNC-A-031). 같은 스레드에서 이어 돌아 정시 집계와 겹치지 않는다
         fillMissing();
     }

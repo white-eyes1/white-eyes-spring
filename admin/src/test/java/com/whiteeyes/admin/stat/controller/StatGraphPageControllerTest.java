@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,6 +16,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /** 통계 그래프 화면 SCR-C-004(FNC-C-012)와 통계 메인의 '그래프 보기' 버튼 */
 @Import(AdminTestUserConfig.class)
@@ -42,7 +43,8 @@ class StatGraphPageControllerTest {
                 .andExpect(content().string(containsString("<title>통계 그래프 - White Eyes</title>")))
                 .andExpect(content().string(containsString("data-header=\"admin\"")))
                 .andExpect(content().string(containsString("class=\"tab on\" href=\"/stats/graph\"")))
-                .andExpect(content().string(containsString("src=\"https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js\"")))
+                .andExpect(
+                        content().string(containsString("src=\"https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js\"")))
                 .andExpect(content().string(containsString("href=\"/css/stats-graph.css\"")))
                 .andExpect(content().string(containsString("src=\"/js/common/header.js\"")))
                 .andExpect(content().string(containsString("src=\"/js/pages/stats-graph.js\"")));
@@ -55,13 +57,26 @@ class StatGraphPageControllerTest {
     @DisplayName("SCR-C-004 대상(시·구·동·구역)·단위 탭 6개·기간·항목 체크박스 5개(인원은 하나)가 있다")
     void graphPage_hasConditions() throws Exception {
         String[] expected = {
-            "id=\"target-sido\"", "id=\"target-sigungu\"", "id=\"target-emd\"", "id=\"target-zone\"",
-            "data-interval=\"1m\"", "data-interval=\"1h\"", "data-interval=\"1d\"",
-            "data-interval=\"1w\"", "data-interval=\"1M\"", "data-interval=\"1y\"",
-            "id=\"period-from\"", "id=\"period-end\"",
-            "value=\"count\"", "value=\"density\"",
-            "value=\"inflow\"", "value=\"outflow\"", "value=\"dwellAvgSec\"",
-            "id=\"series-chart\"", "id=\"graph-empty\"", "id=\"graph-error\""
+            "id=\"target-sido\"",
+            "id=\"target-sigungu\"",
+            "id=\"target-emd\"",
+            "id=\"target-zone\"",
+            "data-interval=\"1m\"",
+            "data-interval=\"1h\"",
+            "data-interval=\"1d\"",
+            "data-interval=\"1w\"",
+            "data-interval=\"1M\"",
+            "data-interval=\"1y\"",
+            "id=\"period-from\"",
+            "id=\"period-end\"",
+            "value=\"count\"",
+            "value=\"density\"",
+            "value=\"inflow\"",
+            "value=\"outflow\"",
+            "value=\"dwellAvgSec\"",
+            "id=\"series-chart\"",
+            "id=\"graph-empty\"",
+            "id=\"graph-error\""
         };
         var result = mockMvc.perform(get("/stats/graph")).andExpect(status().isOk());
         for (String fragment : expected) {
@@ -77,8 +92,9 @@ class StatGraphPageControllerTest {
     @DisplayName("FNC-C-024 제목 옆에 '시연용 데이터 포함' 배지 자리가 있고 처음엔 숨겨져 있다(시연용 점이 있을 때 화면 JS가 보임)")
     void graphPage_hasDemoBadge() throws Exception {
         mockMvc.perform(get("/stats/graph"))
-                .andExpect(content().string(containsString(
-                        "<span class=\"chip demo\" id=\"demo-badge\" hidden>시연용 데이터 포함</span>")));
+                .andExpect(content()
+                        .string(containsString(
+                                "<span class=\"chip demo\" id=\"demo-badge\" hidden>시연용 데이터 포함</span>")));
         // 시연용 점은 점선이 아니라 칸 배경으로 칠한다(결정 0016)
         mockMvc.perform(get("/js/chart/series-chart.js"))
                 .andExpect(content().string(containsString("shadePlugin(demo, DEMO_FILL)")));
@@ -88,10 +104,17 @@ class StatGraphPageControllerTest {
     @DisplayName("SCR-C-004 통합 그래프 아래에 혼잡 단계 막대·인원·유입·유출·방향별 흐름 칸과 최대·최소 띠 토글이 있다(결정 0016)")
     void graphPage_hasPanelsBelowMainChart() throws Exception {
         String[] expected = {
-            "id=\"band-toggle\"", ">최대·최소 띠", "id=\"graph-panels\"",
-            "<h2>시간별 인원 · 혼잡 단계</h2>", "id=\"level-chart\"",
-            "<h2>인원 · 유입·유출</h2>", "id=\"count-chart\"", "id=\"flow-chart\"",
-            "<h2>방향별 흐름 <span class=\"muted\">선택한 기간 합계</span></h2>", "id=\"direction-chart\"", "id=\"direction-empty\""
+            "id=\"band-toggle\"",
+            ">최대·최소 띠",
+            "id=\"graph-panels\"",
+            "<h2>시간별 인원 · 혼잡 단계</h2>",
+            "id=\"level-chart\"",
+            "<h2>인원 · 유입·유출</h2>",
+            "id=\"count-chart\"",
+            "id=\"flow-chart\"",
+            "<h2>방향별 흐름 <span class=\"muted\">선택한 기간 합계</span></h2>",
+            "id=\"direction-chart\"",
+            "id=\"direction-empty\""
         };
         var result = mockMvc.perform(get("/stats/graph")).andExpect(status().isOk());
         for (String fragment : expected) {
@@ -100,9 +123,12 @@ class StatGraphPageControllerTest {
         // 띠 토글은 항목 체크박스 묶음 밖에 있다(항목 선택에 끼지 않음)
         String html = result.andReturn().getResponse().getContentAsString();
         int itemsEnd = html.indexOf("</div>", html.indexOf("id=\"graph-items\""));
-        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"band-toggle\"")).isGreaterThan(itemsEnd);
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"band-toggle\""))
+                .isGreaterThan(itemsEnd);
         // 띠 토글은 기본 끔(checked 없음)
-        String bandInput = html.substring(html.lastIndexOf("<input", html.indexOf("id=\"band-toggle\"")), html.indexOf(">", html.indexOf("id=\"band-toggle\"")));
+        String bandInput = html.substring(
+                html.lastIndexOf("<input", html.indexOf("id=\"band-toggle\"")),
+                html.indexOf(">", html.indexOf("id=\"band-toggle\"")));
         org.assertj.core.api.Assertions.assertThat(bandInput).doesNotContain("checked");
         // 하위 비교 중에는 아래 세 칸을 숨기고, 인원을 끄거나 하위 비교 중이면 띠 토글을 비활성으로
         mockMvc.perform(get("/js/pages/stats-graph.js"))
@@ -119,8 +145,7 @@ class StatGraphPageControllerTest {
     @DisplayName("SCR-C-004 이 이슈 범위 밖인 기간 비교 버튼은 두지 않는다")
     void graphPage_hasNoOutOfScopeElements() throws Exception {
         // 머리 주석에는 이름이 나오므로 요소(글자)만 본다. 엑셀 버튼은 #28, 하위 비교는 #57, 이동 경로는 #56에서 붙였다
-        mockMvc.perform(get("/stats/graph"))
-                .andExpect(content().string(not(containsString(">기간 비교<"))));
+        mockMvc.perform(get("/stats/graph")).andExpect(content().string(not(containsString(">기간 비교<"))));
     }
 
     @Test
@@ -140,9 +165,15 @@ class StatGraphPageControllerTest {
     @DisplayName("SCR-C-004 그래프 패널 머리에 하위 비교 토글과 항목 선택(인원·밀집도·유입·유출·평균 체류)이 있다(FNC-C-014)")
     void graphPage_hasChildrenCompare() throws Exception {
         String[] expected = {
-            ">하위 비교", "id=\"compare-toggle\"", "role=\"switch\"", "id=\"compare-item\"", "id=\"compare-omitted\"",
-            "<option value=\"COUNT\">인원</option>", "<option value=\"DENSITY\">밀집도</option>",
-            "<option value=\"INFLOW\">유입</option>", "<option value=\"OUTFLOW\">유출</option>",
+            ">하위 비교",
+            "id=\"compare-toggle\"",
+            "role=\"switch\"",
+            "id=\"compare-item\"",
+            "id=\"compare-omitted\"",
+            "<option value=\"COUNT\">인원</option>",
+            "<option value=\"DENSITY\">밀집도</option>",
+            "<option value=\"INFLOW\">유입</option>",
+            "<option value=\"OUTFLOW\">유출</option>",
             "<option value=\"DWELL\">평균 체류</option>"
         };
         var result = mockMvc.perform(get("/stats/graph")).andExpect(status().isOk());
@@ -156,10 +187,23 @@ class StatGraphPageControllerTest {
     @DisplayName("SCR-C-003·004 '엑셀 다운로드' 버튼과 엑셀 다운로드 창(SCR-C-006, FNC-C-023)이 있다")
     void graphAndStatsPage_haveExportButton(String path) throws Exception {
         String[] expected = {
-            "id=\"export-open\"", ">엑셀 다운로드<", "id=\"export-modal\"", "id=\"export-scope\"",
-            "id=\"export-sum\"", ">지역 합산으로 받기<", ">체크하면 지역을 합산해 한 줄로 받습니다. 체크하지 않으면 소속 구역별로 받습니다<", "id=\"export-from\"", "id=\"export-end\"", "id=\"export-interval\"",
-            "value=\"COUNT\"", "value=\"DENSITY\"", "value=\"INFLOW\"", "value=\"OUTFLOW\"", "value=\"DWELL\"",
-            "id=\"export-submit\"", "href=\"/css/stats-export.css\""
+            "id=\"export-open\"",
+            ">엑셀 다운로드<",
+            "id=\"export-modal\"",
+            "id=\"export-scope\"",
+            "id=\"export-sum\"",
+            ">지역 합산으로 받기<",
+            ">체크하면 지역을 합산해 한 줄로 받습니다. 체크하지 않으면 소속 구역별로 받습니다<",
+            "id=\"export-from\"",
+            "id=\"export-end\"",
+            "id=\"export-interval\"",
+            "value=\"COUNT\"",
+            "value=\"DENSITY\"",
+            "value=\"INFLOW\"",
+            "value=\"OUTFLOW\"",
+            "value=\"DWELL\"",
+            "id=\"export-submit\"",
+            "href=\"/css/stats-export.css\""
         };
         var result = mockMvc.perform(get(path)).andExpect(status().isOk());
         for (String fragment : expected) {
@@ -180,11 +224,12 @@ class StatGraphPageControllerTest {
 
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 관리자 앱에서 내려가는지 본다
     @ParameterizedTest
-    @ValueSource(strings = {
-        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js",
-        "/js/chart/chart-theme.js", "/js/chart/panel-charts.js", "/css/stats-graph.css",
-        "/js/export/export-modal.js", "/css/stats-export.css"
-    })
+    @ValueSource(
+            strings = {
+                "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js",
+                "/js/chart/chart-theme.js", "/js/chart/panel-charts.js", "/css/stats-graph.css",
+                "/js/export/export-modal.js", "/css/stats-export.css"
+            })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 관리자 앱이 내려준다")
     void graphPage_staticFilesServed(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isOk());

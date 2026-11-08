@@ -27,15 +27,24 @@ const GAP_RATIO = 0.18;
 export function levelBars(points, { height, max, warn = null, label }) {
     const svg = svgBox(height, label);
     const step = WIDTH / Math.max(points.length, 1);
-    const nowIndex = points.findLastIndex((point) => point.value !== null && point.value !== undefined);
+    const nowIndex = points.findLastIndex(
+        (point) => point.value !== null && point.value !== undefined,
+    );
     points.forEach((point, index) => {
         if (point.value === null || point.value === undefined) {
             return;
         }
         const barHeight = Math.max(1, (point.value / max) * (height - 2));
         const isNow = index === nowIndex;
-        svg.append(rect(index * step + (step * GAP_RATIO) / 2, height - barHeight, step * (1 - GAP_RATIO), barHeight,
-            isNow ? NOW_COLOR : LEVEL_COLORS[point.level] ?? EMPTY_COLOR));
+        svg.append(
+            rect(
+                index * step + (step * GAP_RATIO) / 2,
+                height - barHeight,
+                step * (1 - GAP_RATIO),
+                barHeight,
+                isNow ? NOW_COLOR : (LEVEL_COLORS[point.level] ?? EMPTY_COLOR),
+            ),
+        );
     });
     if (warn !== null && warn > 0 && warn <= max) {
         const y = height - (warn / max) * (height - 2);
@@ -53,15 +62,20 @@ export function countLine(points, { height, max, label }) {
     const svg = svgBox(height, label);
     const step = WIDTH / Math.max(points.length, 1);
     shadeCongested(svg, points, step, height);
-    const xy = points.map((point, index) => (point.value === null || point.value === undefined
-        ? null
-        : [index * step + step / 2, height - 1 - (point.value / max) * (height - 4)]));
+    const xy = points.map((point, index) =>
+        point.value === null || point.value === undefined
+            ? null
+            : [index * step + step / 2, height - 1 - (point.value / max) * (height - 4)],
+    );
     // 값이 없는 분에서 선을 끊는다
     let run = [];
     const flush = () => {
         if (run.length > 1) {
             const area = document.createElementNS(SVG_NS, 'polygon');
-            area.setAttribute('points', [...run, [run[run.length - 1][0], height], [run[0][0], height]].map(pair).join(' '));
+            area.setAttribute(
+                'points',
+                [...run, [run[run.length - 1][0], height], [run[0][0], height]].map(pair).join(' '),
+            );
             area.setAttribute('fill', COUNT_FILL);
             svg.append(area);
             const polyline = document.createElementNS(SVG_NS, 'polyline');

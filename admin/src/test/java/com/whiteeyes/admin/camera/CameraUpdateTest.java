@@ -6,10 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +23,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** 캠 정보 수정(FNC-A-019). 정지 상태인 캠의 이름·입력 방식·영상 주소를 고친다. */
 @Import(AdminTestUserConfig.class)
@@ -81,7 +83,8 @@ class CameraUpdateTest {
                 .andExpect(jsonPath("$.sourceUri").value(DUMMY_URI))
                 .andExpect(jsonPath("$.status").value("STOPPED"));
 
-        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT name, source_type, source_uri, status FROM camera WHERE id = ?", cameraId);
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT name, source_type, source_uri, status FROM camera WHERE id = ?", cameraId);
         assertThat(row.get("NAME")).isEqualTo("고친 캠");
         assertThat(row.get("SOURCE_TYPE")).isEqualTo("DUMMY");
         assertThat(row.get("SOURCE_URI")).isEqualTo(DUMMY_URI);
@@ -91,13 +94,16 @@ class CameraUpdateTest {
     @Test
     @DisplayName("FNC-A-019 보낸 필드만 바뀐다(이름만, 영상 주소만)하고 이름 앞뒤 공백은 지운다")
     void update_onlySentFields() throws Exception {
-        update(cameraId, "{\"name\":\"  이름만  \"}").andExpect(status().isOk()).andExpect(jsonPath("$.name").value("이름만"));
+        update(cameraId, "{\"name\":\"  이름만  \"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("이름만"));
         assertThat(jdbcTemplate.queryForObject("SELECT source_uri FROM camera WHERE id = ?", String.class, cameraId))
                 .isEqualTo(LIVE_URI);
 
         String other = "rtsp://192.168.0.20:554/stream2";
         update(cameraId, "{\"sourceUri\":\"" + other + "\"}").andExpect(status().isOk());
-        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT name, source_type, source_uri FROM camera WHERE id = ?", cameraId);
+        Map<String, Object> row =
+                jdbcTemplate.queryForMap("SELECT name, source_type, source_uri FROM camera WHERE id = ?", cameraId);
         assertThat(row.get("NAME")).isEqualTo("이름만");
         assertThat(row.get("SOURCE_TYPE")).isEqualTo("LIVE");
         assertThat(row.get("SOURCE_URI")).isEqualTo(other);
@@ -116,7 +122,8 @@ class CameraUpdateTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
 
-        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT source_type, source_uri FROM camera WHERE id = ?", cameraId);
+        Map<String, Object> row =
+                jdbcTemplate.queryForMap("SELECT source_type, source_uri FROM camera WHERE id = ?", cameraId);
         assertThat(row.get("SOURCE_TYPE")).isEqualTo("LIVE");
         assertThat(row.get("SOURCE_URI")).isEqualTo(LIVE_URI);
         assertThat(count("work_history")).isZero();
@@ -136,7 +143,8 @@ class CameraUpdateTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CAMERA_NOT_STOPPED"));
 
-        assertThat(jdbcTemplate.queryForObject("SELECT name FROM camera WHERE id = ?", String.class, cameraId)).isEqualTo("캠");
+        assertThat(jdbcTemplate.queryForObject("SELECT name FROM camera WHERE id = ?", String.class, cameraId))
+                .isEqualTo("캠");
         assertThat(count("work_history")).isZero();
     }
 
@@ -152,7 +160,9 @@ class CameraUpdateTest {
     @Test
     @DisplayName("FNC-A-019 보낸 것이 없거나, 이름이 비었거나 50자를 넘거나, 영상 주소가 255자를 넘으면 400 INVALID_INPUT")
     void update_invalidInput() throws Exception {
-        update(cameraId, "{}").andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+        update(cameraId, "{}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
         update(cameraId, "{\"name\":\"   \"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
@@ -198,7 +208,8 @@ class CameraUpdateTest {
                         .content("{\"name\":\"몰래 수정\"}"))
                 .andExpect(status().isUnauthorized());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT name FROM camera WHERE id = ?", String.class, cameraId)).isEqualTo("캠");
+        assertThat(jdbcTemplate.queryForObject("SELECT name FROM camera WHERE id = ?", String.class, cameraId))
+                .isEqualTo("캠");
     }
 
     private ResultActions update(long id, String body) throws Exception {

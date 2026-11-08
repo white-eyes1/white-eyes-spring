@@ -11,15 +11,10 @@ import java.util.List;
  * @param rows 시트(=파일)의 행 수(대상 줄 수 × 시각 수)
  */
 public record StatExportPlan(
-        StatExportRequest request,
-        String targetName,
-        List<StatExportSeries> series,
-        int sourceZoneCount,
-        long rows) {
+        StatExportRequest request, String targetName, List<StatExportSeries> series, int sourceZoneCount, long rows) {
 
     /** 대상 줄마다 구역 시계열을 따로 읽는지(지역 기본·전체). 아니면(구역, 지역 합산) 줄 하나를 통계 그래프와 같은 방법으로 읽는다. */
     public boolean perZone() {
-        return request.scope() == StatExportScope.ALL
-                || (request.scope() == StatExportScope.REGION && !request.sum());
+        return request.scope() == StatExportScope.ALL || (request.scope() == StatExportScope.REGION && !request.sum());
     }
 }

@@ -1,12 +1,14 @@
 package com.whiteeyes.common.region.repository;
 
-import com.whiteeyes.common.region.entity.Region;
-import com.whiteeyes.common.region.entity.RegionLevel;
 import java.util.Collection;
 import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.whiteeyes.common.region.entity.Region;
+import com.whiteeyes.common.region.entity.RegionLevel;
 
 public interface RegionRepository extends JpaRepository<Region, Long> {
 
@@ -35,7 +37,8 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
      * 이름 또는 상위 지역 이름에 검색어가 들어 있는 한 단위의 지역 번호. 읍·면·동에 쓰면 "동 이름이나 소속 구 이름이 맞는 동"이다
      * (이벤트 목록 검색, FNC-A-036).
      */
-    @Query("""
+    @Query(
+            """
             select r.id from Region r
             left join r.parent p
             where r.level = :level
@@ -48,7 +51,8 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
      * 지역(시·도, 시·군·구, 읍·면·동 중 아무거나) 아래에 있는 읍·면·동 번호를 구한다. 읍·면·동 자신을 주면 자기 자신이다
      * (FNC-A-022 regionId 필터).
      */
-    @Query("""
+    @Query(
+            """
             select r.id from Region r
             left join r.parent p
             left join p.parent g

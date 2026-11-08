@@ -8,5 +8,4 @@ package com.whiteeyes.common.stat.dto;
  * @param direction 나간 방향 N·E·S·W
  * @param count 기간의 그 방향 유출 합
  */
-public record ZoneFlowItem(long fromZoneId, Long toZoneId, String direction, long count) {
-}
+public record ZoneFlowItem(long fromZoneId, Long toZoneId, String direction, long count) {}

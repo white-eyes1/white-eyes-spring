@@ -20,6 +20,7 @@ public class MissingStatFillService {
 
     /** 시간별은 최근 48시간, 일별은 최근 7일까지 찾는다(FNC-A-031 처리 순서). */
     static final int HOURLY_LOOKBACK_HOURS = 48;
+
     static final int DAILY_LOOKBACK_DAYS = 7;
 
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;

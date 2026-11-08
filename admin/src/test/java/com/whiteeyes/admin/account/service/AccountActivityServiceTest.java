@@ -4,17 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.whiteeyes.admin.account.config.ActiveWindowProperties;
-import com.whiteeyes.admin.account.repository.SessionActivityRepository;
-import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.whiteeyes.admin.account.config.ActiveWindowProperties;
+import com.whiteeyes.admin.account.repository.SessionActivityRepository;
+import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
 
 /** 최근 활동 시각과 활동 중 판정(FNC-A-002). */
 class AccountActivityServiceTest {
@@ -63,7 +65,9 @@ class AccountActivityServiceTest {
         AccountActivities activities = load("hong01", NOW.minusMinutes(30));
 
         assertThat(activities.activityOf("hong01", null).active()).isTrue();
-        assertThat(activities.activityOf("kim02", NOW.minusMinutes(30).minusSeconds(1)).active())
+        assertThat(activities
+                        .activityOf("kim02", NOW.minusMinutes(30).minusSeconds(1))
+                        .active())
                 .isFalse();
     }
 

@@ -39,9 +39,7 @@ class SuperAdminPropertiesTest {
     void toString_masksInitialPassword() {
         SuperAdminProperties properties = new SuperAdminProperties("env-super-admin", "env-password-1");
 
-        assertThat(properties.toString())
-                .contains("env-super-admin")
-                .doesNotContain("env-password-1");
+        assertThat(properties.toString()).contains("env-super-admin").doesNotContain("env-password-1");
     }
 
     @Configuration

@@ -92,8 +92,7 @@ class StatExportReaderIntegrationTest {
         StatExportPlan plan = statExportReader.plan(request(StatExportScope.ZONE, sajik, false));
 
         assertThat(plan.targetName()).isEqualTo("사직동 1구역");
-        assertThat(plan.series()).containsExactly(
-                new StatExportSeries(sajik, "서울특별시", "종로구", "사직동", "사직동 1구역"));
+        assertThat(plan.series()).containsExactly(new StatExportSeries(sajik, "서울특별시", "종로구", "사직동", "사직동 1구역"));
         assertThat(plan.rows()).isEqualTo(4);
     }
 
@@ -103,8 +102,8 @@ class StatExportReaderIntegrationTest {
         StatExportPlan plan = statExportReader.plan(request(StatExportScope.ZONE, deletedZone, false));
 
         assertThat(plan.targetName()).isEqualTo("삼청동 삭제된 구역");
-        assertThat(plan.series()).containsExactly(
-                new StatExportSeries(deletedZone, "서울특별시", "종로구", "삼청동", "삼청동 삭제된 구역 (삭제됨)"));
+        assertThat(plan.series())
+                .containsExactly(new StatExportSeries(deletedZone, "서울특별시", "종로구", "삼청동", "삼청동 삭제된 구역 (삭제됨)"));
     }
 
     @Test
@@ -122,8 +121,7 @@ class StatExportReaderIntegrationTest {
         StatExportPlan plan = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), true));
 
         assertThat(plan.targetName()).isEqualTo("종로구");
-        assertThat(plan.series()).containsExactly(
-                new StatExportSeries(null, "서울특별시", "종로구", "(지역 합산)", "(지역 합산)"));
+        assertThat(plan.series()).containsExactly(new StatExportSeries(null, "서울특별시", "종로구", "(지역 합산)", "(지역 합산)"));
         assertThat(plan.sourceZoneCount()).isEqualTo(4);
         assertThat(plan.perZone()).isFalse();
     }
@@ -134,10 +132,8 @@ class StatExportReaderIntegrationTest {
         StatExportPlan sido = statExportReader.plan(request(StatExportScope.REGION, regionId("11"), true));
         StatExportPlan dong = statExportReader.plan(request(StatExportScope.REGION, regionId("11110540"), true));
 
-        assertThat(sido.series()).containsExactly(
-                new StatExportSeries(null, "서울특별시", "(지역 합산)", "(지역 합산)", "(지역 합산)"));
-        assertThat(dong.series()).containsExactly(
-                new StatExportSeries(null, "서울특별시", "종로구", "삼청동", "(지역 합산)"));
+        assertThat(sido.series()).containsExactly(new StatExportSeries(null, "서울특별시", "(지역 합산)", "(지역 합산)", "(지역 합산)"));
+        assertThat(dong.series()).containsExactly(new StatExportSeries(null, "서울특별시", "종로구", "삼청동", "(지역 합산)"));
     }
 
     @Test
@@ -153,8 +149,7 @@ class StatExportReaderIntegrationTest {
                         tuple(samcheong2, "삼청동", "삼청동 2구역"));
         assertThat(plan.rows()).isEqualTo(3 * 4);
         assertThat(plan.perZone()).isTrue();
-        assertThat(plan.series().get(0))
-                .isEqualTo(new StatExportSeries(sajik, "서울특별시", "종로구", "사직동", "사직동 1구역"));
+        assertThat(plan.series().get(0)).isEqualTo(new StatExportSeries(sajik, "서울특별시", "종로구", "사직동", "사직동 1구역"));
     }
 
     @Test
@@ -166,10 +161,12 @@ class StatExportReaderIntegrationTest {
         StatExportPlan region = statExportReader.plan(request(StatExportScope.REGION, regionId("11110"), false));
         StatExportPlan all = statExportReader.plan(request(StatExportScope.ALL, null, false));
 
-        assertThat(region.series()).extracting(StatExportSeries::zoneId)
+        assertThat(region.series())
+                .extracting(StatExportSeries::zoneId)
                 .containsExactly(sajik, ga, samcheong1, samcheong1Again, samcheong2);
         // 시·군·구는 종로구, 중구 순
-        assertThat(all.series()).extracting(StatExportSeries::zoneId)
+        assertThat(all.series())
+                .extracting(StatExportSeries::zoneId)
                 .containsExactly(sajik, ga, samcheong1, samcheong1Again, samcheong2, sogong);
     }
 
@@ -182,8 +179,7 @@ class StatExportReaderIntegrationTest {
         assertThat(plan.series())
                 .extracting(StatExportSeries::zoneId, StatExportSeries::sigungu)
                 .containsExactly(
-                        tuple(sajik, "종로구"), tuple(samcheong1, "종로구"), tuple(samcheong2, "종로구"),
-                        tuple(sogong, "중구"));
+                        tuple(sajik, "종로구"), tuple(samcheong1, "종로구"), tuple(samcheong2, "종로구"), tuple(sogong, "중구"));
     }
 
     @Test
@@ -209,12 +205,15 @@ class StatExportReaderIntegrationTest {
 
         List<StatSeriesPoint> exported = readPoints(plan).get(null);
 
-        List<StatSeriesPoint> series = statSeriesService.findSeries(new StatSeriesRequest(
-                StatTargetType.REGION, regionId("11110"), StatInterval.HOUR, H0, H0.plusHours(4))).items();
+        List<StatSeriesPoint> series = statSeriesService
+                .findSeries(new StatSeriesRequest(
+                        StatTargetType.REGION, regionId("11110"), StatInterval.HOUR, H0, H0.plusHours(4)))
+                .items();
         assertThat(exported).isEqualTo(series);
         // 10시: 사직 100 + 삼청1 60 = 160명(삭제된 구역 11시 30명도 합산), 12시는 통계 없음
-        assertThat(exported).extracting(StatSeriesPoint::countAvg).containsExactly(
-                new BigDecimal("160.00"), new BigDecimal("30.00"), null, new BigDecimal("150.00"));
+        assertThat(exported)
+                .extracting(StatSeriesPoint::countAvg)
+                .containsExactly(new BigDecimal("160.00"), new BigDecimal("30.00"), null, new BigDecimal("150.00"));
         assertThat(exported.get(0).isDemo()).isTrue();
     }
 
@@ -228,12 +227,17 @@ class StatExportReaderIntegrationTest {
 
         assertThat(exported.keySet()).containsExactly(sajik, samcheong1, samcheong2);
         for (long zoneId : List.of(sajik, samcheong1, samcheong2)) {
-            assertThat(exported.get(zoneId)).isEqualTo(statSeriesService.findSeries(new StatSeriesRequest(
-                    StatTargetType.ZONE, zoneId, StatInterval.HOUR, H0, H0.plusHours(4))).items());
+            assertThat(exported.get(zoneId))
+                    .isEqualTo(statSeriesService
+                            .findSeries(new StatSeriesRequest(
+                                    StatTargetType.ZONE, zoneId, StatInterval.HOUR, H0, H0.plusHours(4)))
+                            .items());
         }
-        assertThat(exported.get(samcheong2)).hasSize(4).allSatisfy(point -> assertThat(point.countAvg()).isNull());
+        assertThat(exported.get(samcheong2)).hasSize(4).allSatisfy(point -> assertThat(point.countAvg())
+                .isNull());
         // 시연용 표시는 구역 줄에도 그대로(삼청1 10시)
-        assertThat(exported.get(samcheong1)).extracting(StatSeriesPoint::isDemo)
+        assertThat(exported.get(samcheong1))
+                .extracting(StatSeriesPoint::isDemo)
                 .containsExactly(true, false, false, false);
     }
 
@@ -246,17 +250,26 @@ class StatExportReaderIntegrationTest {
         List<String> rows = new ArrayList<>();
         statExportReader.read(plan, (line, point) -> rows.add(point.at().getHour() + "@" + line.zoneId()));
 
-        assertThat(rows).containsExactly(
-                "10@" + sajik, "10@" + samcheong1, "10@" + samcheong2,
-                "11@" + sajik, "11@" + samcheong1, "11@" + samcheong2,
-                "12@" + sajik, "12@" + samcheong1, "12@" + samcheong2,
-                "13@" + sajik, "13@" + samcheong1, "13@" + samcheong2);
+        assertThat(rows)
+                .containsExactly(
+                        "10@" + sajik,
+                        "10@" + samcheong1,
+                        "10@" + samcheong2,
+                        "11@" + sajik,
+                        "11@" + samcheong1,
+                        "11@" + samcheong2,
+                        "12@" + sajik,
+                        "12@" + samcheong1,
+                        "12@" + samcheong2,
+                        "13@" + sajik,
+                        "13@" + samcheong1,
+                        "13@" + samcheong2);
     }
 
     private Map<Long, List<StatSeriesPoint>> readPoints(StatExportPlan plan) {
         Map<Long, List<StatSeriesPoint>> result = new LinkedHashMap<>();
-        statExportReader.read(plan, (line, point) ->
-                result.computeIfAbsent(line.zoneId(), id -> new ArrayList<>()).add(point));
+        statExportReader.read(plan, (line, point) -> result.computeIfAbsent(line.zoneId(), id -> new ArrayList<>())
+                .add(point));
         return result;
     }
 
@@ -269,8 +282,7 @@ class StatExportReaderIntegrationTest {
     }
 
     // 10시부터 4시간, 인원만
-    private static StatExportRequest request(StatExportScope scope, Long targetId, boolean sum)
-            throws BindException {
+    private static StatExportRequest request(StatExportScope scope, Long targetId, boolean sum) throws BindException {
         return StatExportRequest.parse(
                 scope, targetId, "1h", "2099-01-01T10:00", "2099-01-01T14:00", List.of("COUNT"), sum);
     }
@@ -297,14 +309,26 @@ class StatExportReaderIntegrationTest {
     }
 
     private void insertHourly(
-            long zoneId, LocalDateTime statAt, String countAvg, String density, int countMax, int countMin,
-            int sampleSec, boolean demo) {
+            long zoneId,
+            LocalDateTime statAt,
+            String countAvg,
+            String density,
+            int countMax,
+            int countMin,
+            int sampleSec,
+            boolean demo) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_hourly (zone_id, stat_at, count_avg, count_max, count_min, density,"
                         + " in_n, in_e, in_s, in_w, out_n, out_e, out_s, out_w,"
                         + " dwell_sum_sec, dwell_count, sample_sec, is_demo)"
                         + " VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ?, ?)",
-                zoneId, Timestamp.valueOf(statAt), new BigDecimal(countAvg), countMax, countMin,
-                new BigDecimal(density), sampleSec, demo);
+                zoneId,
+                Timestamp.valueOf(statAt),
+                new BigDecimal(countAvg),
+                countMax,
+                countMin,
+                new BigDecimal(density),
+                sampleSec,
+                demo);
     }
 }

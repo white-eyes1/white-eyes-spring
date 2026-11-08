@@ -140,8 +140,8 @@ class DashboardSummaryIntegrationTest {
     @Test
     @DisplayName("FNC-C-016 최근 5분 안에 통계가 없으면 데이터 없음, 유출이 없으면 주요 방향 없음")
     void noDataAndNoOutflow() {
-        DashboardSummaryResponse noData = dashboardSummaryService.findSummary(
-                DashboardTargetType.REGION, regionIdLong("11140"), NOW);
+        DashboardSummaryResponse noData =
+                dashboardSummaryService.findSummary(DashboardTargetType.REGION, regionIdLong("11140"), NOW);
         assertThat(noData.statAt()).isNull();
         assertThat(noData.countAvg()).isNull();
         assertThat(noData.level()).isNull();
@@ -150,7 +150,8 @@ class DashboardSummaryIntegrationTest {
         assertThat(noData.todayMaxCount()).isNull();
 
         // 1분 늦은 통계만 있는 구역 하나: 유출이 0이라 방향 없음
-        DashboardSummaryResponse noOutflow = dashboardSummaryService.findSummary(DashboardTargetType.ZONE, lagging, NOW);
+        DashboardSummaryResponse noOutflow =
+                dashboardSummaryService.findSummary(DashboardTargetType.ZONE, lagging, NOW);
         assertThat(noOutflow.countAvg()).isEqualByComparingTo("800.00");
         assertThat(noOutflow.outflow()).isZero();
         assertThat(noOutflow.mainDirection()).isNull();
@@ -166,24 +167,44 @@ class DashboardSummaryIntegrationTest {
     @Test
     @DisplayName("FNC-C-016 API는 명세의 필드를 모두 내보내고, 없는 지역·구역은 404, 형식 오류는 400")
     void api() throws Exception {
-        String body = mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "REGION").param("targetId", regionId("11140")))
+        String body = mockMvc.perform(get(SUMMARY_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("targetType", "REGION")
+                        .param("targetId", regionId("11140")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cameraCount").value(0))
                 .andExpect(jsonPath("$.todayEventCount").value(0))
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
-        assertThat(body).contains(
-                "\"statAt\":null", "\"countAvg\":null", "\"density\":null", "\"level\":null", "\"inflow\":null",
-                "\"outflow\":null", "\"mainDirection\":null", "\"runningCameraCount\":0", "\"todayMaxCount\":null");
+        assertThat(body)
+                .contains(
+                        "\"statAt\":null",
+                        "\"countAvg\":null",
+                        "\"density\":null",
+                        "\"level\":null",
+                        "\"inflow\":null",
+                        "\"outflow\":null",
+                        "\"mainDirection\":null",
+                        "\"runningCameraCount\":0",
+                        "\"todayMaxCount\":null");
 
-        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "REGION").param("targetId", "999999"))
+        mockMvc.perform(get(SUMMARY_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("targetType", "REGION")
+                        .param("targetId", "999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"));
-        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "ZONE").param("targetId", String.valueOf(deletedZone)))
+        mockMvc.perform(get(SUMMARY_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("targetType", "ZONE")
+                        .param("targetId", String.valueOf(deletedZone)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
-        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "DONG").param("targetId", "1"))
+        mockMvc.perform(get(SUMMARY_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("targetType", "DONG")
+                        .param("targetId", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
         mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "ZONE"))
@@ -195,8 +216,10 @@ class DashboardSummaryIntegrationTest {
     @DisplayName("FNC-C-016 지역은 지역 안 구역끼리 주고받은 이동을 빼고(stats-008) 구역은 그대로 센다")
     void regionSummary_excludesMovesBetweenZonesInRegion() {
         // 사직 1구역의 동쪽 = 삼청 1구역(삼청의 서쪽 = 사직). 둘 다 종로구 안
-        jdbcTemplate.update("INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'E', ?)", sajik, samcheong);
-        jdbcTemplate.update("INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'W', ?)", samcheong, sajik);
+        jdbcTemplate.update(
+                "INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'E', ?)", sajik, samcheong);
+        jdbcTemplate.update(
+                "INSERT INTO zone_neighbor (zone_id, direction, neighbor_id) VALUES (?, 'W', ?)", samcheong, sajik);
 
         DashboardSummaryResponse jongno =
                 dashboardSummaryService.findSummary(DashboardTargetType.REGION, regionIdLong("11110"), NOW);
@@ -250,10 +273,19 @@ class DashboardSummaryIntegrationTest {
     @Test
     @DisplayName("FNC-C-017 API 응답에 todayEventCount가 실제 값으로 나온다")
     void todayEventCount_inApiResponse() throws Exception {
-        insertEvent(sajik, "CONGESTION", LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay().plusSeconds(1));
-        insertEvent(sajik, "CAM_FAULT", LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay().plusSeconds(1));
+        insertEvent(
+                sajik,
+                "CONGESTION",
+                LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay().plusSeconds(1));
+        insertEvent(
+                sajik,
+                "CAM_FAULT",
+                LocalDate.now(ZoneId.of("Asia/Seoul")).atStartOfDay().plusSeconds(1));
 
-        mockMvc.perform(get(SUMMARY_URL).with(AdminTestLogin.admin()).param("targetType", "ZONE").param("targetId", String.valueOf(sajik)))
+        mockMvc.perform(get(SUMMARY_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("targetType", "ZONE")
+                        .param("targetId", String.valueOf(sajik)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.todayEventCount").value(1));
     }
@@ -315,7 +347,13 @@ class DashboardSummaryIntegrationTest {
                 new BigDecimal(countAvg),
                 countMax,
                 new BigDecimal(density),
-                in[0], in[1], in[2], in[3],
-                out[0], out[1], out[2], out[3]);
+                in[0],
+                in[1],
+                in[2],
+                in[3],
+                out[0],
+                out[1],
+                out[2],
+                out[3]);
     }
 }

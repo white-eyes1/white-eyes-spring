@@ -1,9 +1,10 @@
 package com.whiteeyes.common;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
-import com.whiteeyes.common.architecture.ArchitectureRules;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.whiteeyes.common.architecture.ArchitectureRules;
 
 /** common 모듈의 빈 필드·엔티티 Lombok 규칙(code-conventions.md 3-3·3-6), 컨트롤러 이름 접미사(3-2) */
 class ArchitectureTest {
@@ -19,7 +20,9 @@ class ArchitectureTest {
     @Test
     @DisplayName("엔티티에 Lombok이 만든 toString·equals·hashCode가 없다")
     void entitiesHaveNoLombokEqualsOrToString() {
-        ArchitectureRules.entitiesHaveNoLombokEqualsOrToString().allowEmptyShould(true).check(CLASSES);
+        ArchitectureRules.entitiesHaveNoLombokEqualsOrToString()
+                .allowEmptyShould(true)
+                .check(CLASSES);
     }
 
     @Test

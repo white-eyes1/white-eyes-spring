@@ -36,10 +36,10 @@ class DemoStatGeneratorTest {
     private static final LocalDateTime END_AT = END.plusDays(1).atStartOfDay();
 
     // 1번 구역의 동쪽 이웃이 2번(2번의 서쪽 이웃이 1번)
-    private static final DemoZone WEST = new DemoZone(
-            1L, new BigDecimal("100.00"), 40, 600, START_AT, END_AT, Map.of(ZoneDirection.E, 2L));
-    private static final DemoZone EAST = new DemoZone(
-            2L, new BigDecimal("50.00"), 20, 300, START_AT, END_AT, Map.of(ZoneDirection.W, 1L));
+    private static final DemoZone WEST =
+            new DemoZone(1L, new BigDecimal("100.00"), 40, 600, START_AT, END_AT, Map.of(ZoneDirection.E, 2L));
+    private static final DemoZone EAST =
+            new DemoZone(2L, new BigDecimal("50.00"), 20, 300, START_AT, END_AT, Map.of(ZoneDirection.W, 1L));
 
     @Test
     @DisplayName("FNC-A-051 같은 seed면 같은 결과, 다른 seed면 다른 결과")
@@ -55,10 +55,11 @@ class DemoStatGeneratorTest {
     @Test
     @DisplayName("FNC-A-051 이웃 쌍은 A의 d 방향 유출 = B의 반대 방향 유입, 이웃 없는 방향은 바깥과 따로 주고받는다")
     void neighborFlowsArePaired() {
-        List<DemoHourlyStat> rows = new DemoStatGenerator(config(7L, flatHours(), List.of()), List.of(WEST, EAST))
-                .generateDay(MONDAY);
+        List<DemoHourlyStat> rows =
+                new DemoStatGenerator(config(7L, flatHours(), List.of()), List.of(WEST, EAST)).generateDay(MONDAY);
         Map<String, StatValues> byKey = rows.stream()
-                .collect(Collectors.toMap(row -> row.zoneId() + "@" + row.statAt().getHour(), DemoHourlyStat::values));
+                .collect(Collectors.toMap(
+                        row -> row.zoneId() + "@" + row.statAt().getHour(), DemoHourlyStat::values));
 
         for (int hour = 0; hour < 24; hour++) {
             StatValues west = byKey.get("1@" + hour);
@@ -85,7 +86,8 @@ class DemoStatGeneratorTest {
     }
 
     @Test
-    @DisplayName("FNC-A-051 count_max = avg×1.3, count_min = avg×0.7, density = avg÷면적, dwell_count = 유출 합, sample_sec = 3600")
+    @DisplayName(
+            "FNC-A-051 count_max = avg×1.3, count_min = avg×0.7, density = avg÷면적, dwell_count = 유출 합, sample_sec = 3600")
     void derivedColumns() {
         List<DemoHourlyStat> rows = generateWeek(config(7L, flatHours(), List.of()));
 
@@ -96,11 +98,12 @@ class DemoStatGeneratorTest {
             assertThat(values.countMin()).isEqualTo(round(values.countAvg().multiply(new BigDecimal("0.7"))));
             assertThat(values.density())
                     .isEqualByComparingTo(values.countAvg().divide(zone.areaM2(), 4, RoundingMode.HALF_UP));
-            assertThat(values.dwellCount())
-                    .isEqualTo(values.outN() + values.outE() + values.outS() + values.outW());
+            assertThat(values.dwellCount()).isEqualTo(values.outN() + values.outE() + values.outS() + values.outW());
             // 체류 합 = 유출 합 × 평균 체류(±20%)
             assertThat((double) values.dwellSumSec())
-                    .isBetween(values.dwellCount() * zone.avgDwellSec() * 0.8, values.dwellCount() * zone.avgDwellSec() * 1.2);
+                    .isBetween(
+                            values.dwellCount() * zone.avgDwellSec() * 0.8,
+                            values.dwellCount() * zone.avgDwellSec() * 1.2);
             assertThat(values.sampleSec()).isEqualTo(3600);
         });
     }
@@ -112,24 +115,24 @@ class DemoStatGeneratorTest {
         hourWeights.set(3, 0.0);
         hourWeights.set(18, 2.0);
         LocalDate surge = MONDAY.plusDays(2);
-        Map<String, BigDecimal> avg = generateWeek(config(7L, hourWeights, List.of(new SurgeDay(surge, 3.0))))
-                .stream()
+        Map<String, BigDecimal> avg = generateWeek(config(7L, hourWeights, List.of(new SurgeDay(surge, 3.0)))).stream()
                 .filter(row -> row.zoneId() == 1L)
-                .collect(Collectors.toMap(row -> row.statAt().toString(), row -> row.values().countAvg()));
+                .collect(Collectors.toMap(
+                        row -> row.statAt().toString(), row -> row.values().countAvg()));
 
         // 기본 40 × 겨울 0.5 = 20, 평일 1, 주말 1.5
         assertThat(avg.get(MONDAY.atTime(3, 0).toString())).isEqualByComparingTo("0");
         assertThat(avg.get(MONDAY.atTime(10, 0).toString()).doubleValue()).isBetween(18.0, 22.0);
         assertThat(avg.get(MONDAY.atTime(18, 0).toString()).doubleValue()).isBetween(36.0, 44.0);
-        assertThat(avg.get(MONDAY.plusDays(5).atTime(10, 0).toString()).doubleValue()).isBetween(27.0, 33.0);
+        assertThat(avg.get(MONDAY.plusDays(5).atTime(10, 0).toString()).doubleValue())
+                .isBetween(27.0, 33.0);
         assertThat(avg.get(surge.atTime(10, 0).toString()).doubleValue()).isBetween(54.0, 66.0);
     }
 
     @Test
     @DisplayName("FNC-A-051 시작 시각 전과 끝 시각부터는 만들지 않는다(끝 시각이 13시면 그날 0~12시만)")
     void onlyBetweenStartAndEnd() {
-        DemoZone endsAt13 = new DemoZone(
-                3L, new BigDecimal("10.00"), 10, 600, START_AT, END.atTime(13, 0), Map.of());
+        DemoZone endsAt13 = new DemoZone(3L, new BigDecimal("10.00"), 10, 600, START_AT, END.atTime(13, 0), Map.of());
         DemoStatGenerator generator =
                 new DemoStatGenerator(config(7L, flatHours(), List.of()), List.of(WEST, EAST, endsAt13));
 
@@ -146,10 +149,20 @@ class DemoStatGeneratorTest {
     void sameValuesRegardlessOfStartAndOrder() {
         DemoGenerateConfig config = config(7L, flatHours(), List.of());
         DemoZone westFromEarlier = new DemoZone(
-                1L, WEST.areaM2(), WEST.baseCount(), WEST.avgDwellSec(), START_AT.minusDays(30), END_AT,
+                1L,
+                WEST.areaM2(),
+                WEST.baseCount(),
+                WEST.avgDwellSec(),
+                START_AT.minusDays(30),
+                END_AT,
                 WEST.neighborIds());
         DemoZone eastFromEarlier = new DemoZone(
-                2L, EAST.areaM2(), EAST.baseCount(), EAST.avgDwellSec(), START_AT.minusDays(30), END_AT,
+                2L,
+                EAST.areaM2(),
+                EAST.baseCount(),
+                EAST.avgDwellSec(),
+                START_AT.minusDays(30),
+                END_AT,
                 EAST.neighborIds());
         DemoStatGenerator later = new DemoStatGenerator(config, List.of(WEST, EAST));
         DemoStatGenerator earlier = new DemoStatGenerator(config, List.of(westFromEarlier, eastFromEarlier));
@@ -169,7 +182,8 @@ class DemoStatGeneratorTest {
                 new DemoStatGenerator(config, List.of(WEST, EAST), Set.of(1L)).generateDay(MONDAY);
 
         assertThat(westOnly).extracting(DemoHourlyStat::zoneId).containsOnly(1L);
-        assertThat(westOnly).isEqualTo(both.stream().filter(row -> row.zoneId() == 1L).toList());
+        assertThat(westOnly)
+                .isEqualTo(both.stream().filter(row -> row.zoneId() == 1L).toList());
     }
 
     private static List<DemoHourlyStat> generateWeek(DemoGenerateConfig config) {
@@ -188,9 +202,14 @@ class DemoStatGeneratorTest {
         for (Season value : Season.values()) {
             season.put(value, value == Season.WINTER ? 0.5 : 1.0);
         }
-        DemoGenerateConfig config =
-                new DemoGenerateConfig(seed, new DemoGenerateConfig.ZoneSetting(null, 1.0, 600), List.of(), hourWeights,
-                        dayOfWeek, season, surgeDays);
+        DemoGenerateConfig config = new DemoGenerateConfig(
+                seed,
+                new DemoGenerateConfig.ZoneSetting(null, 1.0, 600),
+                List.of(),
+                hourWeights,
+                dayOfWeek,
+                season,
+                surgeDays);
         config.validate();
         return config;
     }

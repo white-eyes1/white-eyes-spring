@@ -38,7 +38,9 @@ class CamFaultSchedulerTest {
     @Test
     @DisplayName("FNC-A-035 감지 중 예외가 나도 밖으로 던지지 않아 다음 주기가 계속된다")
     void absorbsRuntimeException() {
-        willThrow(new IllegalStateException("db down")).given(camFaultEventService).detect(any(LocalDateTime.class));
+        willThrow(new IllegalStateException("db down"))
+                .given(camFaultEventService)
+                .detect(any(LocalDateTime.class));
 
         assertThatCode(camFaultScheduler::detect).doesNotThrowAnyException();
         assertThatCode(camFaultScheduler::detect).doesNotThrowAnyException();

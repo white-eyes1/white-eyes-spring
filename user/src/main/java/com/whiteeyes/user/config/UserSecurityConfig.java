@@ -1,12 +1,5 @@
 package com.whiteeyes.user.config;
 
-import com.whiteeyes.common.security.LoginFailureHandler;
-import com.whiteeyes.common.security.LoginRequiredEntryPoint;
-import com.whiteeyes.common.security.LoginSuccessHandler;
-import com.whiteeyes.common.security.LogoutSupport;
-import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
-import com.whiteeyes.user.account.service.UserAccountDetailsService;
-import com.whiteeyes.user.account.service.UserLoginRecordService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +12,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.security.LoginFailureHandler;
+import com.whiteeyes.common.security.LoginRequiredEntryPoint;
+import com.whiteeyes.common.security.LoginSuccessHandler;
+import com.whiteeyes.common.security.LogoutSupport;
+import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
+import com.whiteeyes.user.account.service.UserAccountDetailsService;
+import com.whiteeyes.user.account.service.UserLoginRecordService;
 
 /**
  * 사용자 앱 로그인(FNC-C-001), 로그아웃(FNC-C-002), 접근 권한 검사(FNC-C-003), 승인 대기 안내(FNC-U-003).
@@ -47,13 +48,17 @@ public class UserSecurityConfig {
         http.authenticationProvider(userAuthenticationProvider)
                 .authorizeHttpRequests(requests -> requests
                         // 승인 대기 중에는 가입 화면도 열 수 없다(SCR-U-003). 거부되면 PendingAccessDeniedHandler가 /pending으로 보낸다
-                        .requestMatchers(SIGNUP_PATH).access((authentication, context) -> new AuthorizationDecision(
-                                authentication.get().getAuthorities().stream()
+                        .requestMatchers(SIGNUP_PATH)
+                        .access((authentication, context) ->
+                                new AuthorizationDecision(authentication.get().getAuthorities().stream()
                                         .noneMatch(a -> UserRoles.PENDING_AUTHORITY.equals(a.getAuthority()))))
-                        .requestMatchers(PUBLIC_PATHS).permitAll()
+                        .requestMatchers(PUBLIC_PATHS)
+                        .permitAll()
                         // /logout은 로그아웃 필터가 권한 검사 전에 처리하므로 PENDING도 쓸 수 있다
-                        .requestMatchers(PENDING_PATH).hasRole(UserRoles.PENDING)
-                        .anyRequest().hasRole(UserRoles.USER))
+                        .requestMatchers(PENDING_PATH)
+                        .hasRole(UserRoles.PENDING)
+                        .anyRequest()
+                        .hasRole(UserRoles.USER))
                 // 성공 처리(LoginSuccessHandler)가 ROLE_PENDING은 /pending, 비밀번호 변경 필요는 /me/password로 보낸다
                 .formLogin(form -> form.loginPage(LOGIN_PATH)
                         .loginProcessingUrl(LOGIN_PATH)

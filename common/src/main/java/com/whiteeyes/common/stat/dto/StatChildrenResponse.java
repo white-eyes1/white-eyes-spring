@@ -18,13 +18,11 @@ public record StatChildrenResponse(List<Series> series, int omitted) {
      * @param id 하위 지역 번호, 상위가 읍·면·동이면 구역 번호
      * @param points 조회 기간의 모든 구간(시각 순). 통계가 없는 구간은 value가 null
      */
-    public record Series(long id, String name, List<Point> points) {
-    }
+    public record Series(long id, String name, List<Point> points) {}
 
     /**
      * @param at 구간 시작 시각(+09:00)
      * @param value 고른 항목의 값. 유입·유출은 네 방향 합
      */
-    public record Point(OffsetDateTime at, BigDecimal value) {
-    }
+    public record Point(OffsetDateTime at, BigDecimal value) {}
 }

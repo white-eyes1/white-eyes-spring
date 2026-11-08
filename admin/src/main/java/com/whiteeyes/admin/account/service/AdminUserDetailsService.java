@@ -1,10 +1,7 @@
 package com.whiteeyes.admin.account.service;
 
-import com.whiteeyes.admin.account.entity.AdminAccount;
-import com.whiteeyes.admin.account.entity.AdminStatus;
-import com.whiteeyes.admin.account.repository.AdminAccountRepository;
-import com.whiteeyes.common.security.AccountPrincipal;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,6 +9,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.admin.account.entity.AdminAccount;
+import com.whiteeyes.admin.account.entity.AdminStatus;
+import com.whiteeyes.admin.account.repository.AdminAccountRepository;
+import com.whiteeyes.common.security.AccountPrincipal;
 
 /**
  * 관리자 앱 로그인 때 admin_account에서 계정을 찾는다(FNC-C-001 처리 순서 1·4).
@@ -41,6 +43,7 @@ public class AdminUserDetailsService implements UserDetailsService {
                 account.getPassword(),
                 account.getStatus() == AdminStatus.ACTIVE,
                 account.isMustChangePassword(),
-                List.of(new SimpleGrantedAuthority(ROLE_PREFIX + account.getRole().name())));
+                List.of(new SimpleGrantedAuthority(
+                        ROLE_PREFIX + account.getRole().name())));
     }
 }

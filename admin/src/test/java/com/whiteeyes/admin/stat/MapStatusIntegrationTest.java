@@ -109,7 +109,8 @@ class MapStatusIntegrationTest {
         // 캠이 끊겨 1분 전 통계만 있는 구역은 합산에서 빠진다(인원·면적 모두)
         insertStat(lagging, latestMinute.minusMinutes(1), "900.00", "0.9000");
 
-        String body = mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")))
+        String body = mockMvc.perform(
+                        get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unitType").value("SIGUNGU"))
                 .andExpect(jsonPath("$.items[0].name").value("종로구"))
@@ -125,7 +126,9 @@ class MapStatusIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         // 구역이 없는 중구는 목록에 남고 통계 값만 null('데이터 없음')
-        assertThat(body).contains("\"name\":\"중구\",\"countAvg\":null,\"currentCount\":null,\"density\":null,\"level\":null,\"statAt\":null");
+        assertThat(body)
+                .contains(
+                        "\"name\":\"중구\",\"countAvg\":null,\"currentCount\":null,\"density\":null,\"level\":null,\"statAt\":null");
     }
 
     @Test
@@ -146,7 +149,10 @@ class MapStatusIntegrationTest {
                 .andExpect(jsonPath("$.items[1].name").value("삼청동"))
                 .andExpect(jsonPath("$.items[1].level").isEmpty());
 
-        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+        mockMvc.perform(get(STATUS_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("regionId", regionId("11"))
+                        .param("unit", "ZONE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unitType").value("ZONE"))
                 .andExpect(jsonPath("$.items.length()").value(1))
@@ -161,7 +167,10 @@ class MapStatusIntegrationTest {
         insertStat(sajik, latestMinute, "50.00", "0.5000");
 
         // 시·도 아래 모든 구역: 구가 달라도 각자 자기 구·동. 통계가 없는 구역에도 있다
-        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+        mockMvc.perform(get(STATUS_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("regionId", regionId("11"))
+                        .param("unit", "ZONE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(sajik))
                 .andExpect(jsonPath("$.items[0].regionPath").value("종로구 · 사직동"))
@@ -182,7 +191,8 @@ class MapStatusIntegrationTest {
         long zone = insertZone("11110540", "삼청동 1구역", "100.00");
         insertStat(zone, latestMinute.minusMinutes(6), "90.00", "0.9000");
 
-        String body = mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11110540")))
+        String body = mockMvc.perform(
+                        get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11110540")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(zone))
                 .andExpect(jsonPath("$.items[0].centerLat").value(37.6))
@@ -190,7 +200,8 @@ class MapStatusIntegrationTest {
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
 
-        assertThat(body).contains("\"countAvg\":null,\"currentCount\":null,\"density\":null,\"level\":null,\"statAt\":null");
+        assertThat(body)
+                .contains("\"countAvg\":null,\"currentCount\":null,\"density\":null,\"level\":null,\"statAt\":null");
     }
 
     @Test
@@ -200,7 +211,10 @@ class MapStatusIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("지역을 찾을 수 없습니다."));
-        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "DONG"))
+        mockMvc.perform(get(STATUS_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("regionId", regionId("11"))
+                        .param("unit", "DONG"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
         mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()))
@@ -238,7 +252,10 @@ class MapStatusIntegrationTest {
                 .andExpect(jsonPath("$.items[1].name").value("삼청동"))
                 .andExpect(jsonPath("$.items[1].todayEventCount").value(2));
         // 구역 단위: 삭제된 구역은 목록에서 빠지고 구역마다 자기 것만 센다(통계가 없어도 센다)
-        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+        mockMvc.perform(get(STATUS_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("regionId", regionId("11"))
+                        .param("unit", "ZONE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].id").value(sajik))
@@ -273,16 +290,26 @@ class MapStatusIntegrationTest {
         jdbcTemplate.update("UPDATE event SET status = 'RESOLVED' WHERE zone_id = ?", surge);
 
         // 구역 단위: 열린 혼잡·급증은 true(통계가 없어도), 종료·캠 이상은 false. 삭제된 구역은 목록에 없다
-        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+        mockMvc.perform(get(STATUS_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("regionId", regionId("11"))
+                        .param("unit", "ZONE"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[?(@.id==" + open + ")].ongoingEvent").value(true))
-                .andExpect(jsonPath("$.items[?(@.id==" + surge + ")].ongoingEvent").value(true))
-                .andExpect(jsonPath("$.items[?(@.id==" + noStat + ")].ongoingEvent").value(true))
+                .andExpect(
+                        jsonPath("$.items[?(@.id==" + open + ")].ongoingEvent").value(true))
+                .andExpect(
+                        jsonPath("$.items[?(@.id==" + surge + ")].ongoingEvent").value(true))
+                .andExpect(jsonPath("$.items[?(@.id==" + noStat + ")].ongoingEvent")
+                        .value(true))
                 // 핀 배지 숫자는 같은 항목의 todayEventCount다
-                .andExpect(jsonPath("$.items[?(@.id==" + open + ")].todayEventCount").value(1))
-                .andExpect(jsonPath("$.items[?(@.id==" + surge + ")].todayEventCount").value(1))
-                .andExpect(jsonPath("$.items[?(@.id==" + closed + ")].ongoingEvent").value(false))
-                .andExpect(jsonPath("$.items[?(@.id==" + camFault + ")].ongoingEvent").value(false))
+                .andExpect(jsonPath("$.items[?(@.id==" + open + ")].todayEventCount")
+                        .value(1))
+                .andExpect(jsonPath("$.items[?(@.id==" + surge + ")].todayEventCount")
+                        .value(1))
+                .andExpect(jsonPath("$.items[?(@.id==" + closed + ")].ongoingEvent")
+                        .value(false))
+                .andExpect(jsonPath("$.items[?(@.id==" + camFault + ")].ongoingEvent")
+                        .value(false))
                 .andExpect(jsonPath("$.items[?(@.id==" + deleted + ")]").isEmpty());
         // 시·도: 종로구는 소속 구역에 열린 이벤트가 있어 true, 중구는 삭제된 구역의 열린 이벤트만 있어 false
         mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")))
@@ -308,10 +335,15 @@ class MapStatusIntegrationTest {
         insertEvent(zone, "CONGESTION", todayStart.minusHours(1));
 
         // 배지는 붙지만(true) 오늘 0시 이후 시작한 이벤트가 없어 숫자는 0이다. 화면은 0이면 숫자 없는 배지를 그린다
-        mockMvc.perform(get(STATUS_URL).with(AdminTestLogin.admin()).param("regionId", regionId("11")).param("unit", "ZONE"))
+        mockMvc.perform(get(STATUS_URL)
+                        .with(AdminTestLogin.admin())
+                        .param("regionId", regionId("11"))
+                        .param("unit", "ZONE"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[?(@.id==" + zone + ")].ongoingEvent").value(true))
-                .andExpect(jsonPath("$.items[?(@.id==" + zone + ")].todayEventCount").value(0));
+                .andExpect(
+                        jsonPath("$.items[?(@.id==" + zone + ")].ongoingEvent").value(true))
+                .andExpect(jsonPath("$.items[?(@.id==" + zone + ")].todayEventCount")
+                        .value(0));
     }
 
     private void insertEvent(long zoneId, String type, LocalDateTime startedAt) {
