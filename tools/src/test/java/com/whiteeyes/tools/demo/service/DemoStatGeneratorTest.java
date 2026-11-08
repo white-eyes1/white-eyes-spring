@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,11 +19,11 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.whiteeyes.admin.demo.repository.DemoHourlyStat;
-import com.whiteeyes.admin.demo.service.DemoGenerateConfig.Season;
-import com.whiteeyes.admin.demo.service.DemoGenerateConfig.SurgeDay;
 import com.whiteeyes.common.region.entity.ZoneDirection;
 import com.whiteeyes.common.stat.entity.StatValues;
+import com.whiteeyes.tools.demo.repository.DemoHourlyStat;
+import com.whiteeyes.tools.demo.service.DemoGenerateConfig.Season;
+import com.whiteeyes.tools.demo.service.DemoGenerateConfig.SurgeDay;
 
 /** 시연용 통계 생성(FNC-A-051)의 규칙 계산 */
 class DemoStatGeneratorTest {

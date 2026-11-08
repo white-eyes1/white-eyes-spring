@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 import java.nio.file.Path;
 import java.time.DayOfWeek;
@@ -12,9 +12,9 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.whiteeyes.admin.demo.service.DemoGenerateConfig.Season;
-import com.whiteeyes.admin.demo.service.DemoGenerateConfig.SurgeDay;
-import com.whiteeyes.admin.demo.service.DemoGenerateConfig.ZoneSetting;
+import com.whiteeyes.tools.demo.service.DemoGenerateConfig.Season;
+import com.whiteeyes.tools.demo.service.DemoGenerateConfig.SurgeDay;
+import com.whiteeyes.tools.demo.service.DemoGenerateConfig.ZoneSetting;
 
 /**
  * 시연용 통계 생성 설정을 만든다(FNC-A-051 입력 항목 --config). 설정 파일은 선택이다.

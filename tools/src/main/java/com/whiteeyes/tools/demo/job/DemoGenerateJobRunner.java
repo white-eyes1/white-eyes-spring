@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.job;
+package com.whiteeyes.tools.demo.job;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -8,33 +8,31 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import com.whiteeyes.admin.demo.service.DemoGenerateResult;
-import com.whiteeyes.admin.demo.service.DemoGenerateService;
+import com.whiteeyes.tools.ToolsApplication;
+import com.whiteeyes.tools.demo.service.DemoGenerateResult;
+import com.whiteeyes.tools.demo.service.DemoGenerateService;
 
 /**
- * 실행 옵션 --job=generate-demo로 시연용 통계를 만들고 앱을 끝낸다(FNC-A-051).
+ * 명령 generate-demo로 시연용 통계를 만든다(FNC-A-051).
  * 선택 옵션: --config={설정 파일}(없으면 기본 설정), --zone={구역 번호,…}(없으면 모든 구역).
  * 시연용 데이터는 local·dev에만 넣으므로(decisions/0004) 이 작업도 local·dev 프로필에서만 등록한다(package-structure.md demo/).
  */
 @Slf4j
 @Component
 @Profile({"local", "dev"})
-@ConditionalOnProperty(name = "job", havingValue = DemoGenerateJobRunner.JOB_NAME)
+@ConditionalOnProperty(name = ToolsApplication.COMMAND_PROPERTY, havingValue = DemoGenerateJobRunner.COMMAND)
 @RequiredArgsConstructor
 public class DemoGenerateJobRunner implements ApplicationRunner {
 
-    static final String JOB_NAME = "generate-demo";
+    static final String COMMAND = "generate-demo";
     private static final String CONFIG_OPTION = "config";
     private static final String ZONE_OPTION = "zone";
 
     private final DemoGenerateService demoGenerateService;
-    private final ConfigurableApplicationContext context;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -45,9 +43,6 @@ public class DemoGenerateJobRunner implements ApplicationRunner {
                 result.hourly(),
                 result.daily(),
                 result.deleted().total());
-
-        // 1회 실행 작업이므로 웹 서버를 계속 띄워 두지 않는다. 실패하면 예외로 시작이 중단되어 종료 코드가 0이 아니다.
-        System.exit(SpringApplication.exit(context));
     }
 
     // 없으면 null(기본 설정). 두 번 주면 어느 쪽인지 알 수 없어 멈춘다

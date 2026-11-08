@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.repository;
+package com.whiteeyes.tools.demo.repository;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;

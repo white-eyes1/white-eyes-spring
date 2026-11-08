@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -14,11 +14,11 @@ import java.util.Set;
 import java.util.SplittableRandom;
 import java.util.stream.Collectors;
 
-import com.whiteeyes.admin.demo.repository.DemoHourlyStat;
-import com.whiteeyes.admin.demo.service.DemoGenerateConfig.Season;
-import com.whiteeyes.admin.demo.service.DemoGenerateConfig.SurgeDay;
 import com.whiteeyes.common.region.entity.ZoneDirection;
 import com.whiteeyes.common.stat.entity.StatValues;
+import com.whiteeyes.tools.demo.repository.DemoHourlyStat;
+import com.whiteeyes.tools.demo.service.DemoGenerateConfig.Season;
+import com.whiteeyes.tools.demo.service.DemoGenerateConfig.SurgeDay;
 
 /**
  * 규칙으로 시연용 시간별 통계를 만든다(FNC-A-051 처리 순서 2~4). DB를 보지 않는 계산만 한다.

@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -8,12 +8,15 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -22,19 +25,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.whiteeyes.admin.camera.service.CameraQueryService;
-import com.whiteeyes.admin.demo.repository.DemoDailyStat;
-import com.whiteeyes.admin.demo.repository.DemoHourlyStat;
-import com.whiteeyes.admin.demo.repository.DemoStatRepository;
-import com.whiteeyes.admin.demo.service.DemoGenerateConfig.ZoneSetting;
-import com.whiteeyes.admin.region.dto.ZoneSummary;
-import com.whiteeyes.admin.region.service.ZoneNeighborService;
-import com.whiteeyes.admin.region.service.ZoneService;
-import com.whiteeyes.admin.stat.service.DailyStatService;
+import com.whiteeyes.common.camera.entity.Camera;
+import com.whiteeyes.common.camera.repository.CameraRepository;
+import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.entity.ZoneDirection;
+import com.whiteeyes.common.region.entity.ZoneNeighbor;
+import com.whiteeyes.common.region.repository.ZoneNeighborRepository;
+import com.whiteeyes.common.region.repository.ZoneRepository;
 import com.whiteeyes.common.stat.entity.StatValues;
+import com.whiteeyes.common.stat.entity.ZoneStatDaily;
+import com.whiteeyes.common.stat.entity.ZoneStatHourly;
+import com.whiteeyes.common.stat.repository.ZoneStatDailyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 import com.whiteeyes.common.stat.service.StatRollupCalculator;
+import com.whiteeyes.tools.demo.repository.DemoDailyStat;
+import com.whiteeyes.tools.demo.repository.DemoHourlyStat;
+import com.whiteeyes.tools.demo.repository.DemoStatRepository;
+import com.whiteeyes.tools.demo.service.DemoGenerateConfig.ZoneSetting;
 
 /**
  * 시연용 통계 생성(FNC-A-051). 규칙으로 과거 시간별 통계를 만들고, 일별 통계는 그 시간별을 묶어 만든다.
@@ -51,11 +58,11 @@ public class DemoGenerateService {
     private final DemoConfigReader configReader;
     private final DemoDeleteService demoDeleteService;
     private final DemoStatRepository demoStatRepository;
-    private final ZoneService zoneService;
-    private final ZoneNeighborService zoneNeighborService;
-    private final CameraQueryService cameraQueryService;
+    private final ZoneRepository zoneRepository;
+    private final ZoneNeighborRepository zoneNeighborRepository;
+    private final CameraRepository cameraRepository;
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
-    private final DailyStatService dailyStatService;
+    private final ZoneStatDailyRepository zoneStatDailyRepository;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
@@ -118,28 +125,30 @@ public class DemoGenerateService {
 
     // 이웃 짝을 맞추려고 만들지 않는 구역까지 모두 읽는다
     private List<DemoZone> loadZones(DemoGenerateConfig config, LocalDateTime now) {
-        List<ZoneSummary> summaries = zoneService.findActiveSummaries();
-        Set<Long> zoneIds = summaries.stream().map(ZoneSummary::id).collect(Collectors.toSet());
+        List<Zone> summaries = zoneRepository.findByDeletedAtIsNullOrderById();
+        Set<Long> zoneIds = summaries.stream().map(Zone::getId).collect(Collectors.toSet());
         Map<Long, ZoneSetting> settings =
                 config.zones().stream().collect(Collectors.toMap(ZoneSetting::zoneId, Function.identity()));
         settings.keySet().stream()
                 .filter(zoneId -> !zoneIds.contains(zoneId))
                 .forEach(zoneId -> log.warn("설정의 구역이 없거나 삭제되어 건너뜀 zoneId={}", zoneId));
 
-        Map<Long, Map<ZoneDirection, Long>> neighbors = zoneNeighborService.findNeighborIds(zoneIds);
-        Map<Long, LocalDateTime> firstStartedAt = cameraQueryService.findFirstStartedAtByZone();
+        Map<Long, Map<ZoneDirection, Long>> neighbors = findNeighborIds(zoneIds);
+        Map<Long, LocalDateTime> firstStartedAt = cameraRepository.findByFirstStartedAtIsNotNull().stream()
+                .collect(Collectors.toMap(
+                        Camera::getZoneId, Camera::getFirstStartedAt, BinaryOperator.minBy(LocalDateTime::compareTo)));
 
         List<DemoZone> zones = new ArrayList<>();
-        for (ZoneSummary summary : summaries) {
-            ZoneSetting setting = settings.getOrDefault(summary.id(), config.defaultZone());
+        for (Zone summary : summaries) {
+            ZoneSetting setting = settings.getOrDefault(summary.getId(), config.defaultZone());
             zones.add(DemoZone.of(
-                    summary.id(),
-                    summary.areaM2(),
+                    summary.getId(),
+                    summary.getAreaM2(),
                     setting.baseCount(),
                     setting.avgDwellSec(),
-                    firstStartedAt.get(summary.id()),
+                    firstStartedAt.get(summary.getId()),
                     now,
-                    neighbors.getOrDefault(summary.id(), Map.of())));
+                    neighbors.getOrDefault(summary.getId(), Map.of())));
         }
         return zones;
     }
@@ -207,10 +216,26 @@ public class DemoGenerateService {
                             .filter(entry.getValue()::contains)
                             .toList();
             if (!missing.isEmpty()) {
-                dailyStatService.aggregateDay(date, missing);
+                Map<Long, List<ZoneStatHourly>> hoursByZone = zoneStatHourlyRepository
+                        .findByStatAtGreaterThanEqualAndStatAtLessThan(
+                                date.atStartOfDay(), date.plusDays(1).atStartOfDay())
+                        .stream()
+                        .filter(hour -> missing.contains(hour.getZoneId()))
+                        .collect(Collectors.groupingBy(ZoneStatHourly::getZoneId));
+                hoursByZone.forEach((zoneId, hours) ->
+                        ZoneStatDaily.rollUp(zoneId, date, hours).ifPresent(zoneStatDailyRepository::save));
                 filled += missing.size();
             }
         }
         return filled;
+    }
+
+    private Map<Long, Map<ZoneDirection, Long>> findNeighborIds(Set<Long> zoneIds) {
+        Map<Long, Map<ZoneDirection, Long>> result = new HashMap<>();
+        for (ZoneNeighbor neighbor : zoneNeighborRepository.findByZoneIdIn(zoneIds)) {
+            result.computeIfAbsent(neighbor.getZoneId(), zoneId -> new EnumMap<>(ZoneDirection.class))
+                    .put(neighbor.getDirection(), neighbor.getNeighborId());
+        }
+        return result;
     }
 }

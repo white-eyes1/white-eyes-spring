@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 /**
  * 시연용 데이터 삭제 결과(FNC-A-052 정상 결과 '삭제 건수').

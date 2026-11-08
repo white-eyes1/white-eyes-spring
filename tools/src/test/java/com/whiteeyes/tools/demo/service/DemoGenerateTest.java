@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,9 +32,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
-import com.whiteeyes.admin.demo.repository.DemoDailyStat;
-import com.whiteeyes.admin.demo.repository.DemoStatRepository;
 import com.whiteeyes.common.testing.TestRegionLoader;
+import com.whiteeyes.tools.demo.repository.DemoDailyStat;
+import com.whiteeyes.tools.demo.repository.DemoStatRepository;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구 사직동(11110530)
 /** 시연용 통계 생성(FNC-A-051) */

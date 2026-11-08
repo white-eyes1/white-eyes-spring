@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.function.IntUnaryOperator;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,8 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.whiteeyes.admin.demo.repository.DemoStatRepository;
 import com.whiteeyes.common.testing.TestRegionLoader;
+import com.whiteeyes.tools.demo.repository.DemoStatRepository;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구 사직동(11110530)
 /** 시연용 데이터 삭제(FNC-A-052) */
@@ -83,13 +84,31 @@ class DemoDeleteTest {
 
     @Test
     @DisplayName("FNC-A-052 정해진 건수씩 나눠 지우고, 마지막 묶음이 묶음 크기와 같아도 남김없이 지운다")
-    void deletesInBatches() {
-        // 묶음 크기 3: 시간별 7건 = 3 + 3 + 1, 일별 6건 = 3 + 3 + 0(한 번 더 확인하고 끝남)
+    void deleteInBatches_repeatsUntilShortBatch() {
+        // 묶음 크기 3: 7건 = 3 + 3 + 1, 6건 = 3 + 3 + 0(한 번 더 확인하고 끝남)
+        assertThat(DemoDeleteService.deleteInBatches(remaining(7), 3)).isEqualTo(7);
+        assertThat(DemoDeleteService.deleteInBatches(remaining(6), 3)).isEqualTo(6);
+        assertThat(DemoDeleteService.deleteInBatches(remaining(0), 3)).isZero();
+    }
+
+    // 남은 건수에서 한도만큼 지우는 가짜 삭제
+    private static IntUnaryOperator remaining(int rows) {
+        int[] left = {rows};
+        return limit -> {
+            int deleted = Math.min(limit, left[0]);
+            left[0] -= deleted;
+            return deleted;
+        };
+    }
+
+    @Test
+    @DisplayName("FNC-A-052 시연용 행을 모두 지우고 실제 데이터는 남긴다")
+    void deletesAllDemoRows() {
         insertHourly(0, 7, true);
         insertDaily(0, 6, true);
         insertHourly(7, 2, false);
 
-        DemoDeleteResult result = new DemoDeleteService(demoStatRepository, 3).deleteAll();
+        DemoDeleteResult result = new DemoDeleteService(demoStatRepository).deleteAll();
 
         assertThat(result.hourly()).isEqualTo(7);
         assertThat(result.daily()).isEqualTo(6);
@@ -99,7 +118,7 @@ class DemoDeleteTest {
     }
 
     @Test
-    @DisplayName("FNC-A-051 --zone으로 다시 만들 때는 그 구역의 시연용 행만 나눠 지우고 다른 구역과 실제 데이터는 남긴다")
+    @DisplayName("FNC-A-051 --zone으로 다시 만들 때는 그 구역의 시연용 행만 지우고 다른 구역과 실제 데이터는 남긴다")
     void deletesOnlyGivenZones() {
         insertHourly(0, 4, true);
         insertDaily(0, 1, true);
@@ -110,7 +129,7 @@ class DemoDeleteTest {
                 Timestamp.valueOf(FIRST_HOUR.plusHours(2)));
         insertHourly(4, 1, false);
 
-        DemoDeleteResult result = new DemoDeleteService(demoStatRepository, 1).deleteZones(List.of(zoneId));
+        DemoDeleteResult result = new DemoDeleteService(demoStatRepository).deleteZones(List.of(zoneId));
 
         // 시간별: 이 구역 시연용 2건(2·3시) 삭제, 다른 구역 2건과 실제 1건은 남음 / 일별: 이 구역 1건 삭제
         assertThat(result.hourly()).isEqualTo(2);

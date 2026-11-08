@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 /**
  * 시연용 통계 생성 결과(FNC-A-051 정상 결과).

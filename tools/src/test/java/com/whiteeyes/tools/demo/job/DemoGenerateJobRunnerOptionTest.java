@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.job;
+package com.whiteeyes.tools.demo.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -13,7 +13,8 @@ class DemoGenerateJobRunnerOptionTest {
     @Test
     @DisplayName("FNC-A-051 --zone은 쉼표로 잇거나 여러 번 줄 수 있고, 없으면 모든 구역(null)")
     void readsZoneOption() {
-        assertThat(DemoGenerateJobRunner.zoneIds(args("--job=generate-demo"))).isNull();
+        assertThat(DemoGenerateJobRunner.zoneIds(args("--spring.profiles.active=local")))
+                .isNull();
         assertThat(DemoGenerateJobRunner.zoneIds(args("--zone=1, 2"))).containsExactly(1L, 2L);
         assertThat(DemoGenerateJobRunner.zoneIds(args("--zone=3", "--zone=4"))).containsExactly(3L, 4L);
     }

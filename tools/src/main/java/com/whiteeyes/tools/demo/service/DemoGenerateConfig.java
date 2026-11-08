@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.demo.service;
+package com.whiteeyes.tools.demo.service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -32,7 +32,7 @@ public record DemoGenerateConfig(
 
     /**
      * 설정 파일이 없을 때 쓰는 값. 가중치는 출퇴근·점심·저녁과 주말·가을이 붐비는 모양이고, 특정일 급증은 없다.
-     * 설정 견본(admin/demo/generate-demo.example.json)도 같은 값을 적어 둔다.
+     * 설정 견본(tools/demo/generate-demo.example.json)도 같은 값을 적어 둔다.
      */
     static DemoGenerateConfig defaults() {
         return new DemoGenerateConfig(
