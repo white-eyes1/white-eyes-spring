@@ -16,8 +16,18 @@ spring:
       cleanup-cron: 0 */10 * * * *
   flyway:
     enabled: true
+    # 표를 만들고 사용자 앱 계정에 권한을 주는 계정(conventions.md 'DB 계정'). 관리자 앱 계정은 데이터 읽기·쓰기만 가진다.
+    # 따로 주지 않으면 관리자 앱 계정을 쓴다(시험 H2)
+    user: ${FLYWAY_DB_USERNAME:${spring.datasource.username}}
+    password: ${FLYWAY_DB_PASSWORD:${spring.datasource.password}}
     # db/migration: 스키마 / db/regions: 행정구역(FNC-A-012, tools의 region-sql로 만든 반복 마이그레이션)
-    locations: classpath:db/migration,classpath:db/regions
+    # db/mysql: 사용자 앱 계정 표 권한(afterMigrate, MySQL만)
+    locations: classpath:db/migration,classpath:db/regions,classpath:db/mysql
+    placeholders:
+      user_db_username: ${USER_DB_USERNAME:white_eyes_user}
+      user_db_host: ${USER_DB_HOST:%}
+    # 서버마다 VM이 달라 DB가 늦게 뜰 수 있다(overview.md '서버 환경'). 시작 때 접속을 다시 시도한다
+    connect-retries: 12
   task:
     scheduling:
       # 시간별·일별 집계와 빠진 집계 보충이 길어져도 1분 마감(1초마다)이 밀리지 않게 스레드를 나눈다(FNC-A-028~031)
