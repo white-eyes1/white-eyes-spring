@@ -26,8 +26,8 @@
 - 화면 JS 형식·검사: Node 22로 `npm ci` 한 번 뒤 `npm run format`(정리)·`npm run lint`(검사). CI가 `format:check`·`lint`를 돌린다
 - local DB: white-eyes-deploy 폴더에서 `docker compose up -d mysql` (MySQL 8.4, 앱별 계정. 그 README '개발할 때')
 - 환경변수: `cp .env.example .env` 후 값을 채우고 `set -a; source .env; set +a`
-- 관리자 앱(먼저, Flyway): `DB_USERNAME=white_eyes_admin DB_PASSWORD=$ADMIN_DB_PASSWORD ./gradlew :admin:bootRun --args='--spring.profiles.active=local'`
-- 사용자 앱 계정 표 권한: 관리자 앱이 표를 만든 뒤 white-eyes-deploy에서 `docker compose run --rm --no-deps db-grants` (새 표가 생길 때마다)
+- 관리자 앱(먼저, Flyway): `DB_USERNAME=white_eyes_admin DB_PASSWORD=$ADMIN_DB_PASSWORD FLYWAY_DB_USERNAME=white_eyes_flyway FLYWAY_DB_PASSWORD=$FLYWAY_DB_PASSWORD ./gradlew :admin:bootRun --args='--spring.profiles.active=local'`
+  - 시작할 때 Flyway가 표를 만들고 사용자 앱 계정에 표 권한을 준다(`db/mysql/afterMigrate.sql`, 새 표도 자동). 관리자 앱 계정은 데이터 읽기·쓰기만 있어 Flyway 계정을 빼면 시작하지 못한다
 - 사용자 앱: `DB_USERNAME=white_eyes_user DB_PASSWORD=$USER_DB_PASSWORD ./gradlew :user:bootRun --args='--spring.profiles.active=local'`
 - 전체를 컨테이너로 띄우기(화면 연동 시험·시연): white-eyes-deploy `docker compose up -d --build`
 

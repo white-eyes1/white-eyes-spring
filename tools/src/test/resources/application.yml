@@ -3,7 +3,7 @@ spring:
     url: jdbc:h2:mem:admin;MODE=MySQL;DB_CLOSE_DELAY=-1
     username: sa
     password:
-  # 시험(H2)은 스키마만 적용한다. 행정구역은 시험마다 TestRegionLoader로 넣는다
+  # 시험(H2)은 스키마만 적용한다. 행정구역은 시험마다 TestRegionLoader로 넣고, 권한 부여(db/mysql)는 MySQL에만
   flyway:
     locations: classpath:db/migration
 
