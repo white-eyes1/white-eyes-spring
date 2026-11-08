@@ -10,8 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -33,12 +31,12 @@ import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.admin.support.ThreadStatementCounter;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /** 이벤트 목록(FNC-A-036) GET /api/v1/events. 이벤트 행은 처리 상태·종류가 다양해야 해서 SQL로 직접 넣는다. */
 @Import(AdminTestUserConfig.class)
@@ -49,7 +47,6 @@ import com.whiteeyes.common.camera.entity.CameraSourceType;
 @AutoConfigureMockMvc
 class EventListTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String EVENTS_URL = "/api/v1/events";
     private static final String LIVE_URI = "rtsp://192.168.0.10:554/stream1";
 
@@ -64,7 +61,7 @@ class EventListTest {
     private static final LocalDateTime T0 = LocalDateTime.of(2026, 10, 12, 9, 0);
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneRegisterService zoneRegisterService;
@@ -91,7 +88,7 @@ class EventListTest {
     void prepare() {
         AdminTestLogin.loginForDirectCalls();
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         samcheongZoneId = createZone("삼청동 1구역", SAMCHEONG_SQUARE);
         sogongZoneId = createZone("소공동 1구역", SOGONG_SQUARE);
         sajikZoneId = createZone("사직동 1구역", SAJIK_SQUARE);

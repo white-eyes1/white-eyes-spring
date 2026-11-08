@@ -8,8 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -31,11 +29,11 @@ import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /** 이벤트 상세(FNC-A-037) GET /api/v1/events/{id}. 이벤트·작업 기록 행은 SQL로 직접 넣는다. */
 @Import(AdminTestUserConfig.class)
@@ -43,7 +41,6 @@ import com.whiteeyes.common.camera.entity.CameraSourceType;
 @AutoConfigureMockMvc
 class EventDetailTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String LIVE_URI = "rtsp://192.168.0.10:554/stream1";
     private static final String SAMCHEONG_SQUARE =
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
@@ -52,7 +49,7 @@ class EventDetailTest {
     private static final String CONGESTION_SNAPSHOT = "{\"warnDensity\":0.7,\"dangerDensity\":1.5}";
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneRegisterService zoneRegisterService;
@@ -77,7 +74,7 @@ class EventDetailTest {
     void prepare() {
         AdminTestLogin.loginForDirectCalls();
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         zoneId = zoneRegisterService
                 .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))
                 .id();

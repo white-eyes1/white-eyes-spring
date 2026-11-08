@@ -11,8 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +27,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
@@ -37,6 +34,7 @@ import com.whiteeyes.common.camera.entity.CameraSourceType;
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
 import com.whiteeyes.common.region.repository.RegionRepository;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /** 지역·구역 목록(FNC-C-008). common 컨트롤러를 관리자 앱 컨텍스트에서 DB(H2+Flyway)와 함께 확인한다. */
 @Import(AdminTestUserConfig.class)
@@ -44,7 +42,6 @@ import com.whiteeyes.common.region.repository.RegionRepository;
 @AutoConfigureMockMvc
 class RegionListTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String REGIONS_URL = "/api/v1/regions";
     private static final String ZONES_URL = "/api/v1/zones";
     private static final String LIVE_URI = "rtsp://192.168.0.10:554/stream1";
@@ -58,7 +55,7 @@ class RegionListTest {
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.06,37.56],[127.062,37.56],[127.062,37.562],[127.06,37.562],[127.06,37.56]]]}";
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneRegisterService zoneRegisterService;
@@ -85,7 +82,7 @@ class RegionListTest {
     void prepare() {
         AdminTestLogin.loginForDirectCalls();
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         samcheongZoneA = createZone("삼청동 1구역", SAMCHEONG_SQUARE_A);
         samcheongZoneB = createZone("삼청동 2구역", SAMCHEONG_SQUARE_B);
         sogongZone = createZone("소공동 1구역", SOGONG_SQUARE);

@@ -9,8 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,12 +31,12 @@ import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.notification.service.NotificationBroadcaster;
 import com.whiteeyes.admin.notification.service.NotificationPublisher;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.event.entity.EventType;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /**
  * 관리자 알림 스트림(FNC-A-048). 검수 기준: 새 이벤트가 생기면 열려 있는 모든 관리자 화면에 알림이 간다.
@@ -51,7 +49,6 @@ import com.whiteeyes.common.event.entity.EventType;
 class NotificationStreamTest {
 
     private static final String STREAM_URL = "/api/v1/notifications/stream";
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String SAMCHEONG_SQUARE =
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],"
                     + "[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
@@ -71,7 +68,7 @@ class NotificationStreamTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneRegisterService zoneRegisterService;
@@ -85,7 +82,7 @@ class NotificationStreamTest {
         broadcaster.stop();
         AdminTestLogin.loginForDirectCalls();
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         zoneId = zoneRegisterService
                 .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))
                 .id();

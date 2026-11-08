@@ -7,8 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -31,9 +29,9 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /** 캠 등록·가동·정지의 작업 기록 연결(FNC-A-018·020·021, FNC-C-026). 분석 서버는 가짜 HTTP 서버로 대신한다. */
 // 운영 설정(open-in-view: false)과 같게 맞춘다. 가동·정지는 단계별로 따로 커밋해 요청 하나가 영속성 컨텍스트를 공유하면 검증이 틀어진다
@@ -41,7 +39,6 @@ import com.whiteeyes.admin.support.AdminTestLogin;
 @AutoConfigureMockMvc
 class CameraWorkHistoryTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String SAMCHEONG_SQUARE =
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
     private static final String DUMMY_URI = "dummy/videos/a.mp4";
@@ -60,7 +57,7 @@ class CameraWorkHistoryTest {
     }
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneRegisterService zoneRegisterService;
@@ -79,7 +76,7 @@ class CameraWorkHistoryTest {
     void prepareZone() {
         ANALYZER.reset();
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         AdminTestLogin.loginForDirectCalls();
         zoneId = zoneRegisterService
                 .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))

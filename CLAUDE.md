@@ -20,6 +20,9 @@
 
 ## 명령
 - 빌드·테스트: `./gradlew build` (Java 형식 검사 포함. 형식 정리는 `./gradlew spotlessApply`)
+- 행정구역(FNC-A-012): `admin/src/main/resources/db/regions/R__region_seed.sql`은 손으로 고치지 않는다. 관리자 앱이 시작할 때 Flyway가 적용한다. 지역을 바꿀 때만 다시 만든다(넣는 지역은 white-eyes-docs decisions/0020, 원본은 처음 한 번 받아 `tools/build/region-source`에 둔다)
+  - `cd tools && ../gradlew bootRun --args='region-sql --codes=25,29010,33041,33042,33520,33530,34020,34060,34070,34510 --out=../admin/src/main/resources/db/regions/R__region_seed.sql'`
+  - 시험용(`common/src/testFixtures/resources/region/test-regions.sql`): `--codes=11 --h2 --file=../admin/src/test/resources/region/regions.geojson --out=../common/src/testFixtures/resources/region/test-regions.sql`
 - 화면 JS 형식·검사: Node 22로 `npm ci` 한 번 뒤 `npm run format`(정리)·`npm run lint`(검사). CI가 `format:check`·`lint`를 돌린다
 - local DB: white-eyes-deploy 폴더에서 `docker compose up -d mysql` (MySQL 8.4, 앱별 계정. 그 README '개발할 때')
 - 환경변수: `cp .env.example .env` 후 값을 채우고 `set -a; source .env; set +a`

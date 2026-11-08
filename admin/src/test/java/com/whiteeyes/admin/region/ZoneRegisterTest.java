@@ -6,8 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
@@ -23,16 +21,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 @Import(AdminTestUserConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 class ZoneRegisterTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String ZONES_URL = "/api/v1/manage/zones";
 
     // 삼청동(경도 127.00~127.05, 위도 37.55~37.65) 안의 0.002° × 0.002° 사각형, 약 39,190㎡
@@ -48,7 +45,7 @@ class ZoneRegisterTest {
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.603],[127.003,37.601],[127.001,37.603],[127.001,37.601]]]}";
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -61,7 +58,7 @@ class ZoneRegisterTest {
         jdbcTemplate.update("DELETE FROM zone");
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
     }
 
     // zone이 region을 가리키는 외래키라, 남겨 두면 뒤에 도는 지역 테스트가 region을 지우다 실패한다

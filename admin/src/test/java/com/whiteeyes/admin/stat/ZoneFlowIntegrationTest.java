@@ -5,8 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -24,12 +22,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.stat.dto.ZoneFlowItem;
 import com.whiteeyes.common.stat.dto.ZoneFlowRequest;
 import com.whiteeyes.common.stat.service.ZoneFlowService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 // 사직 1구역의 동쪽 이웃 = 삼청 1구역(삼청의 서쪽 = 사직). 그 밖의 방향은 이웃 없음(관측 범위 밖)
@@ -39,12 +37,11 @@ import com.whiteeyes.common.stat.service.ZoneFlowService;
 @AutoConfigureMockMvc
 class ZoneFlowIntegrationTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String URL = "/api/v1/map/flows";
     private static final LocalDate DAY1 = LocalDate.of(2099, 1, 1);
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneFlowService zoneFlowService;
@@ -63,7 +60,7 @@ class ZoneFlowIntegrationTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         sajik = insertZone("11110530", "사직동 1구역");
         samcheong = insertZone("11110540", "삼청동 1구역");
         insertNeighbor(sajik, "E", samcheong);

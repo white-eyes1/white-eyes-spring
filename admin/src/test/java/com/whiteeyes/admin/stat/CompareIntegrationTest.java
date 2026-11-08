@@ -8,8 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
@@ -24,7 +22,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.region.exception.ZoneNotFoundException;
@@ -33,6 +30,7 @@ import com.whiteeyes.common.stat.dto.CompareRequest;
 import com.whiteeyes.common.stat.dto.CompareResponse;
 import com.whiteeyes.common.stat.dto.DashboardTargetType;
 import com.whiteeyes.common.stat.service.CompareService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 // 대상 기간 2099-01-05(월) ~ 2099-01-11(일), 지난달 프리셋 기준 기간 2098-12-08(월) ~ 2098-12-14(일)
@@ -42,13 +40,12 @@ import com.whiteeyes.common.stat.service.CompareService;
 @AutoConfigureMockMvc
 class CompareIntegrationTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String COMPARE_URL = "/api/v1/compare";
     private static final LocalDateTime TARGET_MON = LocalDateTime.of(2099, 1, 5, 0, 0);
     private static final LocalDateTime BASE_MON = LocalDateTime.of(2098, 12, 8, 0, 0);
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private CompareService compareService;
@@ -67,7 +64,7 @@ class CompareIntegrationTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
 
         sajik = insertZone("11110530", "사직동 1구역");
         long samcheong = insertZone("11110540", "삼청동 1구역");

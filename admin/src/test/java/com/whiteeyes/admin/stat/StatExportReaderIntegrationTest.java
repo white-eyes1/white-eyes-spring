@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,7 +21,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.validation.BindException;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.common.region.exception.RegionNotFoundException;
 import com.whiteeyes.common.region.exception.ZoneNotFoundException;
 import com.whiteeyes.common.stat.dto.StatExportPlan;
@@ -37,17 +34,17 @@ import com.whiteeyes.common.stat.dto.StatTargetType;
 import com.whiteeyes.common.stat.exception.TooManyRowsException;
 import com.whiteeyes.common.stat.service.StatExportReader;
 import com.whiteeyes.common.stat.service.StatSeriesService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /** 통계 엑셀 다운로드(FNC-C-023) 값 읽기: 대상 줄·이름·삭제 구역·행 수 제한·값 */
 @SpringBootTest
 class StatExportReaderIntegrationTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final LocalDateTime H0 = LocalDateTime.of(2099, 1, 1, 10, 0);
     private static final int[] NONE = new int[4];
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private StatExportReader statExportReader;
@@ -69,7 +66,7 @@ class StatExportReaderIntegrationTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
 
         // 종로구: 사직동(11110530) 1개, 삼청동(11110540) 2개 + 삭제된 구역 1개. 중구 소공동(11140520) 1개
         samcheong1 = insertZone("11110540", "삼청동 1구역", "300.00");

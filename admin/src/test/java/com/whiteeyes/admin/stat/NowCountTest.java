@@ -20,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.stat.service.DirectionCounts;
 import com.whiteeyes.admin.stat.service.MemoryNowCountSource;
 import com.whiteeyes.admin.stat.service.MinuteAccumulatorStore;
@@ -34,6 +33,7 @@ import com.whiteeyes.common.stat.service.MapStatusService;
 import com.whiteeyes.common.stat.service.NowCountSource;
 import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 /**
@@ -43,12 +43,11 @@ import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
 @SpringBootTest
 class NowCountTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     // 앱이 도는 예약 작업(실제 시각 기준)이 마감하지 않도록 먼 미래의 한 분을 쓴다. 시각은 모두 직접 넘기므로 시계와 무관하다
     private static final LocalDateTime NOW = LocalDateTime.of(2099, 1, 1, 12, 0, 10);
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private MinuteAccumulatorStore sharedStore;
@@ -79,7 +78,7 @@ class NowCountTest {
         store = new MinuteAccumulatorStore();
         source = new MemoryNowCountSource(store, 15);
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         samcheongZone = insertZone("11110540", "삼청동 1구역");
         sajikZone = insertZone("11110530", "사직동 1구역");
     }

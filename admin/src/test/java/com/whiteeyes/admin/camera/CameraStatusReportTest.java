@@ -12,8 +12,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
@@ -36,11 +34,11 @@ import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.event.service.CamFaultEventService;
 import com.whiteeyes.admin.notification.service.NotificationPublisher;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraStatus;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /**
  * FNC-A-025 캠 상태 보고 수신. 내부 포트(8082)와 X-Internal-Token으로 들어오는 요청을 MockMvc로 흉내 내고,
@@ -51,7 +49,6 @@ import com.whiteeyes.common.camera.entity.CameraStatus;
 @AutoConfigureMockMvc
 class CameraStatusReportTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String SAMCHEONG_SQUARE =
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
     private static final String CONTEXT_PATH = "/admin";
@@ -71,7 +68,7 @@ class CameraStatusReportTest {
     }
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneRegisterService zoneRegisterService;
@@ -98,7 +95,7 @@ class CameraStatusReportTest {
         AdminTestLogin.loginForDirectCalls();
         ANALYZER.reset();
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         zoneId = zoneRegisterService
                 .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))
                 .id();
