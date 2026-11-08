@@ -6,8 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -28,7 +26,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.stat.service.DailyStatService;
 import com.whiteeyes.admin.support.AdminTestLogin;
@@ -40,6 +37,7 @@ import com.whiteeyes.common.stat.entity.ZoneStatDaily;
 import com.whiteeyes.common.stat.entity.ZoneStatDailyId;
 import com.whiteeyes.common.stat.repository.ZoneStatDailyRepository;
 import com.whiteeyes.common.stat.service.StatSeriesService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540)
 // 앱의 스케줄러는 실제 현재 시각으로 돌기 때문에, 테스트 날짜는 스케줄러가 건드리지 않을 먼 미래(2099년)로 둔다
@@ -49,7 +47,6 @@ import com.whiteeyes.common.stat.service.StatSeriesService;
 @AutoConfigureMockMvc
 class StatSeriesDailyIntegrationTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final LocalDate D0 = LocalDate.of(2099, 1, 1);
     private static final LocalDate D1 = D0.plusDays(1);
     private static final LocalDate D2 = D0.plusDays(2);
@@ -57,7 +54,7 @@ class StatSeriesDailyIntegrationTest {
     private static final int[] NONE = new int[4];
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private StatSeriesService statSeriesService;
@@ -83,7 +80,7 @@ class StatSeriesDailyIntegrationTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
 
         sajik = insertZone("11110530", "사직동 1구역", "100.00");
         samcheong = insertZone("11110540", "삼청동 1구역", "300.00");

@@ -3,8 +3,6 @@ package com.whiteeyes.admin.demo.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -20,18 +18,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.whiteeyes.admin.demo.repository.DemoStatRepository;
-import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구 사직동(11110530)
 /** 시연용 데이터 삭제(FNC-A-052) */
 @SpringBootTest
 class DemoDeleteTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final LocalDateTime FIRST_HOUR = LocalDateTime.of(2099, 1, 1, 0, 0);
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private DemoDeleteService demoDeleteService;
@@ -49,7 +46,7 @@ class DemoDeleteTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         long dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '11110530'", Long.class);
         jdbcTemplate.update(
                 "INSERT INTO zone (dong_id, name, area_m2, boundary, center_lat, center_lng)"

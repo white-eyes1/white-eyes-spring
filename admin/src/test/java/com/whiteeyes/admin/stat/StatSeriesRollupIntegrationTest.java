@@ -6,8 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Date;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -30,7 +28,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.stat.dto.StatInterval;
@@ -38,6 +35,7 @@ import com.whiteeyes.common.stat.dto.StatSeriesPoint;
 import com.whiteeyes.common.stat.dto.StatSeriesRequest;
 import com.whiteeyes.common.stat.dto.StatTargetType;
 import com.whiteeyes.common.stat.service.StatSeriesService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540)
 // 날짜: 2099-01-05는 월요일, 2096년은 윤년. 스케줄러가 건드리지 않을 먼 미래로 둔다
@@ -47,12 +45,11 @@ import com.whiteeyes.common.stat.service.StatSeriesService;
 @AutoConfigureMockMvc
 class StatSeriesRollupIntegrationTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final int FULL_DAY = 86400;
     private static final int[] NONE = new int[4];
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private StatSeriesService statSeriesService;
@@ -72,7 +69,7 @@ class StatSeriesRollupIntegrationTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
 
         sajik = insertZone("11110530", "사직동 1구역", "100.00");
         samcheong = insertZone("11110540", "삼청동 1구역", "300.00");

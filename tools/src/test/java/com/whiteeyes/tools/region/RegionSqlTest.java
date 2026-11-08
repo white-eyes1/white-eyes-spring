@@ -1,11 +1,14 @@
-package com.whiteeyes.admin.region;
+package com.whiteeyes.tools.region;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import javax.sql.DataSource;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,22 +16,26 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.whiteeyes.admin.region.exception.RegionFileFormatException;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
 import com.whiteeyes.common.region.repository.RegionRepository;
 
 @SpringBootTest
-class RegionLoadServiceTest {
+/**
+ * 행정구역 적재(FNC-A-012): region-sql이 만든 SQL을 적용한 결과를 확인한다.
+ * 운영에서는 관리자 앱 시작 때 Flyway가 같은 SQL을 적용한다.
+ */
+class RegionSqlTest {
 
     private static final Path VALID_FILE = Paths.get("src/test/resources/region/regions.geojson");
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private DataSource dataSource;
 
     @Autowired
     private RegionRepository regionRepository;
@@ -40,21 +47,21 @@ class RegionLoadServiceTest {
     private TransactionTemplate transactionTemplate;
 
     @BeforeEach
-    void clearRegions() {
+    void clearRegions() throws Exception {
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
     }
 
     @Test
     @DisplayName("FNC-A-012 다시 실행해도 중복이 없다")
-    void loadTwice_noDuplicates() {
-        regionLoadService.load(VALID_FILE);
+    void loadTwice_noDuplicates() throws Exception {
+        load(VALID_FILE);
         long idOfFirstLoad = regionRepository
                 .findByCodeIn(java.util.List.of("11110530"))
                 .get(0)
                 .getId();
 
-        regionLoadService.load(VALID_FILE);
+        load(VALID_FILE);
 
         assertThat(regionRepository.count()).isEqualTo(6);
         assertThat(regionRepository
@@ -66,8 +73,8 @@ class RegionLoadServiceTest {
 
     @Test
     @DisplayName("FNC-A-012 시·구·동의 상위 연결이 원본 코드와 맞다")
-    void load_linksParentByCode() {
-        regionLoadService.load(VALID_FILE);
+    void load_linksParentByCode() throws Exception {
+        load(VALID_FILE);
 
         transactionTemplate.executeWithoutResult(status -> {
             Region sido = find("11");
@@ -86,8 +93,8 @@ class RegionLoadServiceTest {
 
     @Test
     @DisplayName("FNC-A-012 중심점은 경계 안의 점이고 구멍 안에 들어가지 않는다")
-    void load_centerIsInsideBoundary() {
-        regionLoadService.load(VALID_FILE);
+    void load_centerIsInsideBoundary() throws Exception {
+        load(VALID_FILE);
 
         Region emd = find("11110540");
         double lat = emd.getCenterLat().doubleValue();
@@ -103,12 +110,12 @@ class RegionLoadServiceTest {
     @Test
     @DisplayName("FNC-A-012 다시 적재하면 같은 code의 값을 덮어쓴다")
     void load_overwritesSameCode(@TempDir Path tempDir) throws Exception {
-        regionLoadService.load(VALID_FILE);
+        load(VALID_FILE);
         String renamed = Files.readString(VALID_FILE).replace("삼청동", "새삼청동");
         Path renamedFile = tempDir.resolve("renamed.geojson");
         Files.writeString(renamedFile, renamed);
 
-        regionLoadService.load(renamedFile);
+        load(renamedFile);
 
         assertThat(regionRepository.count()).isEqualTo(6);
         assertThat(find("11110540").getName()).isEqualTo("새삼청동");
@@ -122,7 +129,7 @@ class RegionLoadServiceTest {
         Path brokenFile = tempDir.resolve("broken.geojson");
         Files.writeString(brokenFile, broken);
 
-        assertThatThrownBy(() -> regionLoadService.load(brokenFile)).isInstanceOf(RegionFileFormatException.class);
+        assertThatThrownBy(() -> load(brokenFile)).isInstanceOf(RegionFileFormatException.class);
 
         assertThat(regionRepository.count()).isZero();
     }
@@ -133,15 +140,15 @@ class RegionLoadServiceTest {
         Path textFile = tempDir.resolve("not-json.geojson");
         Files.writeString(textFile, "이건 GeoJSON이 아님");
 
-        assertThatThrownBy(() -> regionLoadService.load(textFile)).isInstanceOf(RegionFileFormatException.class);
+        assertThatThrownBy(() -> load(textFile)).isInstanceOf(RegionFileFormatException.class);
 
         assertThat(regionRepository.count()).isZero();
     }
 
     @Test
     @DisplayName("FNC-A-012 시·도와 시·군·구의 경계는 소속 읍·면·동을 합친 것이다")
-    void load_mergesBoundaryOfChildren() {
-        regionLoadService.load(VALID_FILE);
+    void load_mergesBoundaryOfChildren() throws Exception {
+        load(VALID_FILE);
 
         Region sido = find("11");
         Region jongno = find("11110");
@@ -164,8 +171,7 @@ class RegionLoadServiceTest {
     void load_codeNotEightDigits_fails(@TempDir Path tempDir) throws Exception {
         String sevenDigits = Files.readString(VALID_FILE).replace("\"11110530\"", "\"1111053\"");
 
-        assertThatThrownBy(() -> regionLoadService.load(writeTemp(tempDir, sevenDigits)))
-                .isInstanceOf(RegionFileFormatException.class);
+        assertThatThrownBy(() -> load(writeTemp(tempDir, sevenDigits))).isInstanceOf(RegionFileFormatException.class);
 
         assertThat(regionRepository.count()).isZero();
     }
@@ -176,7 +182,7 @@ class RegionLoadServiceTest {
         // 좌표계가 다른 파일처럼 경도 값을 180보다 크게 바꾼다
         String projected = Files.readString(VALID_FILE).replace("127.1,", "955156.5,");
 
-        assertThatThrownBy(() -> regionLoadService.load(writeTemp(tempDir, projected)))
+        assertThatThrownBy(() -> load(writeTemp(tempDir, projected)))
                 .isInstanceOf(RegionFileFormatException.class)
                 .hasMessageContaining("범위를 벗어난");
 
@@ -192,8 +198,7 @@ class RegionLoadServiceTest {
                         "삼청동\", \"sidonm\": \"서울특별시\", \"sggnm\": \"종로구\"",
                         "삼청동\", \"sidonm\": \"서울특별시\", \"sggnm\": \"다른구\"");
 
-        assertThatThrownBy(() -> regionLoadService.load(writeTemp(tempDir, conflict)))
-                .isInstanceOf(RegionFileFormatException.class);
+        assertThatThrownBy(() -> load(writeTemp(tempDir, conflict))).isInstanceOf(RegionFileFormatException.class);
 
         assertThat(regionRepository.count()).isZero();
     }
@@ -206,5 +211,15 @@ class RegionLoadServiceTest {
 
     private Region find(String code) {
         return regionRepository.findByCodeIn(java.util.List.of(code)).get(0);
+    }
+
+    // region-sql과 같은 변환(파싱 → SQL)을 거쳐 시험 DB에 적용한다
+    private void load(Path file) throws java.io.IOException {
+        List<RegionSource> sources = new RegionGeoJsonParser().parse(Files.readString(file, StandardCharsets.UTF_8));
+        String sql = RegionSqlWriter.write(List.of("시험"), sources, true);
+        ResourceDatabasePopulator populator =
+                new ResourceDatabasePopulator(new ByteArrayResource(sql.getBytes(StandardCharsets.UTF_8)));
+        populator.setSqlScriptEncoding("UTF-8");
+        populator.execute(dataSource);
     }
 }

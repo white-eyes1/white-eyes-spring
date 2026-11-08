@@ -11,8 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -34,20 +32,19 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /** 통계 엑셀 다운로드(FNC-C-023) API: 파일 응답, 시연용 열 없음, 100만 행 제한, 작업 기록 저장 */
 @SpringBootTest
 @AutoConfigureMockMvc
 class StatExportApiTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String EXPORT_URL = "/api/v1/stats/export";
     private static final LocalDateTime H0 = LocalDateTime.of(2099, 1, 1, 10, 0);
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -64,7 +61,7 @@ class StatExportApiTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         sajik = insertZone("11110530", "사직동 1구역");
     }
 

@@ -14,8 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -40,9 +38,9 @@ import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.notification.service.NotificationPublisher;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /**
  * 처리 상태 변경(FNC-A-038) PATCH /api/v1/events/{id}/status.
@@ -52,7 +50,6 @@ import com.whiteeyes.admin.support.AdminTestLogin;
 @AutoConfigureMockMvc
 class EventStatusChangeTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String SAMCHEONG_SQUARE =
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],"
                     + "[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
@@ -60,7 +57,7 @@ class EventStatusChangeTest {
     private static final String CONGESTION_SNAPSHOT = "{\"warnDensity\":0.7,\"dangerDensity\":1.5}";
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneRegisterService zoneRegisterService;
@@ -83,7 +80,7 @@ class EventStatusChangeTest {
     void prepare() {
         AdminTestLogin.loginForDirectCalls();
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         zoneId = zoneRegisterService
                 .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))
                 .id();

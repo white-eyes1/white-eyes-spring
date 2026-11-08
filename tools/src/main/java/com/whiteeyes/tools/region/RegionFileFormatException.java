@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.region.exception;
+package com.whiteeyes.tools.region;
 
 public class RegionFileFormatException extends RuntimeException {
 

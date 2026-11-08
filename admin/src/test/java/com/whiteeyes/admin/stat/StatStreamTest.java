@@ -11,8 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -44,7 +42,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.stat.service.DirectionCounts;
 import com.whiteeyes.admin.stat.service.MinuteAccumulatorStore;
@@ -54,6 +51,7 @@ import com.whiteeyes.common.region.service.RegionQueryService;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
 import com.whiteeyes.common.stat.service.NowCountSource;
 import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 /**
@@ -67,7 +65,6 @@ import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
 @AutoConfigureMockMvc
 class StatStreamTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String STREAM_URL = "/api/v1/stats/stream";
     // 컨텍스트와 방송 객체가 테스트들 사이에 공유되므로 분이 항상 앞선 시각으로 늘려 간다
     private static final AtomicLong MINUTES = new AtomicLong(0);
@@ -76,7 +73,7 @@ class StatStreamTest {
     private static final LocalDateTime NOW_BASE = LocalDateTime.of(2098, 1, 1, 12, 0, 0);
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private StatStreamBroadcaster broadcaster;
@@ -115,7 +112,7 @@ class StatStreamTest {
     @BeforeEach
     void setUp() {
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         samcheongZone = insertZone("11110540", "삼청동 1구역");
         sajikZone = insertZone("11110530", "사직동 1구역");
         sogongZone = insertZone("11140520", "소공동 1구역");

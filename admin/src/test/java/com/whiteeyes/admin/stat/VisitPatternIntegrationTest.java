@@ -6,8 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,7 +22,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.stat.dto.ComparePeriod;
@@ -32,6 +29,7 @@ import com.whiteeyes.common.stat.dto.DashboardTargetType;
 import com.whiteeyes.common.stat.dto.VisitPatternRequest;
 import com.whiteeyes.common.stat.dto.VisitPatternResponse;
 import com.whiteeyes.common.stat.service.VisitPatternService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 // 기간 2099-01-05(월) ~ 01-18(일) 2주. 기대값은 아래 시간별 통계로 손으로 계산했다
@@ -41,13 +39,12 @@ import com.whiteeyes.common.stat.service.VisitPatternService;
 @AutoConfigureMockMvc
 class VisitPatternIntegrationTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String URL = "/api/v1/dashboard/visit-pattern";
     private static final LocalDate MONDAY = LocalDate.of(2099, 1, 5);
     private static final ComparePeriod TWO_WEEKS = new ComparePeriod(MONDAY, MONDAY.plusDays(13));
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private VisitPatternService visitPatternService;
@@ -66,7 +63,7 @@ class VisitPatternIntegrationTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         sajik = insertZone("11110530", "사직동 1구역");
         samcheong = insertZone("11110540", "삼청동 1구역");
 

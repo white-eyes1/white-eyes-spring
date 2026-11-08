@@ -7,8 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -27,9 +25,9 @@ import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /**
  * 구역 이웃 조회·저장(FNC-A-016). 검수 기준: 반대쪽 자동 반영·기존 짝 해제 확인.
@@ -39,10 +37,8 @@ import com.whiteeyes.admin.support.AdminTestLogin;
 @AutoConfigureMockMvc
 class ZoneNeighborTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
-
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -60,7 +56,7 @@ class ZoneNeighborTest {
     @BeforeEach
     void prepare() {
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         long dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE name = '삼청동'", Long.class);
         a = insertZone(dongId, "A구역");
         b = insertZone(dongId, "B구역");

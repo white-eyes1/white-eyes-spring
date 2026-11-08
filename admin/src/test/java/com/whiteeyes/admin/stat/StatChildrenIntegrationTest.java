@@ -6,8 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -27,7 +25,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.stat.dto.StatChildrenRequest;
@@ -35,6 +32,7 @@ import com.whiteeyes.common.stat.dto.StatChildrenResponse;
 import com.whiteeyes.common.stat.dto.StatExportItem;
 import com.whiteeyes.common.stat.dto.StatInterval;
 import com.whiteeyes.common.stat.service.StatChildrenService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 // 기대값은 아래 시간별 통계로 손으로 계산한 값이다. 값은 서비스로, HTTP 형식·오류는 MockMvc로 확인한다
@@ -44,7 +42,6 @@ import com.whiteeyes.common.stat.service.StatChildrenService;
 @AutoConfigureMockMvc
 class StatChildrenIntegrationTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String CHILDREN_URL = "/api/v1/stats/children";
     private static final LocalDateTime H0 = LocalDateTime.of(2099, 1, 1, 10, 0);
     private static final LocalDateTime H1 = H0.plusHours(1);
@@ -52,7 +49,7 @@ class StatChildrenIntegrationTest {
     private static final int[] NONE = new int[4];
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private StatChildrenService statChildrenService;
@@ -68,7 +65,7 @@ class StatChildrenIntegrationTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
     }
 
     // 같은 H2를 쓰는 다른 테스트가 zone·region을 지울 수 있게 넣은 통계·이웃·구역을 지우고 끝낸다(FK)

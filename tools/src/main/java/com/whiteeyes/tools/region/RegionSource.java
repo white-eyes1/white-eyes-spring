@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.region.dto;
+package com.whiteeyes.tools.region;
 
 import java.math.BigDecimal;
 

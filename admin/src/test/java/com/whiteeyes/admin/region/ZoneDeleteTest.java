@@ -8,8 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -28,9 +26,9 @@ import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /** 구역 삭제(FNC-A-017). 검수 기준: 이력 있음/없음 두 경우 확인. */
 @Import(AdminTestUserConfig.class)
@@ -38,13 +36,12 @@ import com.whiteeyes.admin.support.AdminTestLogin;
 @AutoConfigureMockMvc
 class ZoneDeleteTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String ZONES_URL = "/api/v1/manage/zones/";
     private static final String SQUARE =
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -62,7 +59,7 @@ class ZoneDeleteTest {
     @BeforeEach
     void prepare() {
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE name = '삼청동'", Long.class);
         zoneId = insertZone("삼청동 1구역");
         otherZoneId = insertZone("삼청동 2구역");

@@ -7,8 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -30,15 +28,14 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /** 구역 등록의 작업 기록 연결(FNC-A-014 처리 순서 5, FNC-C-026). */
 @SpringBootTest(properties = "spring.session.jdbc.table-name=SPRING_SESSION_ADMIN")
 @AutoConfigureMockMvc
 class ZoneWorkHistoryTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String ZONES_URL = "/api/v1/manage/zones";
     private static final String SAMCHEONG_SQUARE =
             "{\"type\":\"Polygon\",\"coordinates\":[[[127.001,37.601],[127.003,37.601],[127.003,37.603],[127.001,37.603],[127.001,37.601]]]}";
@@ -46,7 +43,7 @@ class ZoneWorkHistoryTest {
     private static final String LOGIN_ID = "history-admin";
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -62,7 +59,7 @@ class ZoneWorkHistoryTest {
     @BeforeEach
     void prepare() {
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
     }
 
     // zone·work_history·세션을 남기면 뒤에 도는 다른 테스트가 region을 지우다 실패하거나 기록 수가 어긋난다

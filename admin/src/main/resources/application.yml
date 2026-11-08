@@ -16,6 +16,8 @@ spring:
       cleanup-cron: 0 */10 * * * *
   flyway:
     enabled: true
+    # db/migration: 스키마 / db/regions: 행정구역(FNC-A-012, tools의 region-sql로 만든 반복 마이그레이션)
+    locations: classpath:db/migration,classpath:db/regions
   task:
     scheduling:
       # 시간별·일별 집계와 빠진 집계 보충이 길어져도 1분 마감(1초마다)이 밀리지 않게 스레드를 나눈다(FNC-A-028~031)

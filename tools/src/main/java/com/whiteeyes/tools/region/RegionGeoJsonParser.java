@@ -1,4 +1,4 @@
-package com.whiteeyes.admin.region.service;
+package com.whiteeyes.tools.region;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,13 +18,10 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.TopologyException;
 import org.locationtech.jts.operation.union.UnaryUnionOp;
-import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.whiteeyes.admin.region.dto.RegionSource;
-import com.whiteeyes.admin.region.exception.RegionFileFormatException;
 import com.whiteeyes.common.region.entity.RegionLevel;
 
 /**
@@ -34,7 +31,6 @@ import com.whiteeyes.common.region.entity.RegionLevel;
  * 시·군·구다. 읍·면·동 이름은 adm_nm의 마지막 단어이고, 시·도·시·군·구 이름은 sidonm·sggnm이다.
  * 시·도와 시·군·구 행은 코드 앞자리로 만들고 경계는 소속 읍·면·동을 합쳐서(JTS union) 만든다.
  */
-@Component
 public class RegionGeoJsonParser {
 
     private static final String CODE_PROPERTY = "adm_cd";
@@ -77,15 +73,6 @@ public class RegionGeoJsonParser {
             throw new RegionFileFormatException("행정구역이 하나도 없습니다");
         }
         return toSources(emds);
-    }
-
-    /** 저장된 region.boundary(Polygon/MultiPolygon GeoJSON 문자열)를 도형으로 읽는다. 구역 미리보기(FNC-A-013)가 쓴다. */
-    public Geometry readGeometry(String geometryJson, String code) {
-        try {
-            return toGeometry(jsonMapper.readTree(geometryJson), code);
-        } catch (JacksonException e) {
-            throw new RegionFileFormatException("경계를 읽을 수 없습니다: " + code, e);
-        }
     }
 
     private Emd toEmd(JsonNode feature) {

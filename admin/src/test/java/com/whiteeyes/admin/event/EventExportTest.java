@@ -9,8 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,10 +38,10 @@ import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
 import com.whiteeyes.admin.support.AdminTestLogin;
 import com.whiteeyes.common.camera.entity.CameraSourceType;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 /**
  * 이벤트 엑셀 다운로드(FNC-A-039) GET /api/v1/events/export. 이벤트 행은 SQL로 직접 넣는다.
@@ -53,7 +51,6 @@ import com.whiteeyes.common.camera.entity.CameraSourceType;
 @AutoConfigureMockMvc
 class EventExportTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String EXPORT_URL = "/api/v1/events/export";
     private static final String XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     private static final String LIVE_URI = "rtsp://192.168.0.10:554/stream1";
@@ -70,7 +67,7 @@ class EventExportTest {
     private static final LocalDateTime T0 = LocalDateTime.of(2026, 10, 12, 9, 0);
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private ZoneRegisterService zoneRegisterService;
@@ -97,7 +94,7 @@ class EventExportTest {
     void prepare() {
         AdminTestLogin.loginForDirectCalls();
         clearAll();
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         samcheongZoneId = createZone("삼청동 1구역", SAMCHEONG_SQUARE);
         sogongZoneId = createZone("소공동 1구역", SOGONG_SQUARE);
         sajikZoneId = createZone("사직동 1구역", SAJIK_SQUARE);

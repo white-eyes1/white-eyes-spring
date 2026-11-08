@@ -7,9 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,16 +23,15 @@ import tools.jackson.databind.json.JsonMapper;
 import com.whiteeyes.admin.region.dto.ZonePreviewResponse;
 import com.whiteeyes.admin.region.exception.InvalidPolygonException;
 import com.whiteeyes.admin.region.exception.OutOfServiceAreaException;
-import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZonePreviewService;
 import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 @Import(AdminTestUserConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 class ZonePreviewTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final String PREVIEW_URL = "/api/v1/manage/zones/preview";
 
     // 삼청동(경도 127.00~127.05, 위도 37.60~37.65) 안의 0.002° × 0.002° 사각형.
@@ -48,7 +44,7 @@ class ZonePreviewTest {
     private ZonePreviewService zonePreviewService;
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -62,7 +58,7 @@ class ZonePreviewTest {
     void loadRegions() {
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
     }
 
     @Test

@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -35,14 +34,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import com.whiteeyes.admin.demo.repository.DemoDailyStat;
 import com.whiteeyes.admin.demo.repository.DemoStatRepository;
-import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.common.testing.TestRegionLoader;
 
 // 테스트 행정구역 파일: 서울(11) → 종로구 사직동(11110530)
 /** 시연용 통계 생성(FNC-A-051) */
 @SpringBootTest
 class DemoGenerateTest {
 
-    private static final Path REGION_FILE = Paths.get("src/test/resources/region/regions.geojson");
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     // 실행 시각 2026-10-21 14:20 → 캠이 없는 구역의 끝 시각은 14시(13시까지 만든다)
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 21, 14, 20);
@@ -70,7 +68,7 @@ class DemoGenerateTest {
     }
 
     @Autowired
-    private RegionLoadService regionLoadService;
+    private TestRegionLoader regionLoader;
 
     @Autowired
     private DemoGenerateService demoGenerateService;
@@ -94,7 +92,7 @@ class DemoGenerateTest {
         deleteRows();
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
-        regionLoadService.load(REGION_FILE);
+        regionLoader.load();
         long dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '11110530'", Long.class);
         cameraZoneId = insertZone(dongId, "사직동 1구역", null);
         noCameraZoneId = insertZone(dongId, "사직동 2구역", null);
