@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+/** 캠 영상 주소 검증(FNC-A-018 캠 등록, FNC-A-019 캠 정보 수정) */
 class CameraSourceUriValidatorTest {
 
     private final CameraSourceUriValidator validator = new CameraSourceUriValidator();
