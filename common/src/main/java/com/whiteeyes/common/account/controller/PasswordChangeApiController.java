@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -22,7 +21,6 @@ import com.whiteeyes.common.account.service.PasswordChangeService;
  * must_change_password=1인 계정도 부를 수 있다(PasswordChangeRequiredFilter가 이 경로를 막지 않음).
  */
 @RestController
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class PasswordChangeApiController {
 

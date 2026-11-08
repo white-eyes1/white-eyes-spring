@@ -10,7 +10,6 @@ import java.util.concurrent.RejectedExecutionException;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -38,8 +37,7 @@ public class NotificationPublisher {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    // 웹 서버 없이 띄우는 실행(--job=…)에는 브로드캐스터가 없어 알림을 건너뛴다
-    private final ObjectProvider<NotificationBroadcaster> broadcasterProvider;
+    private final NotificationBroadcaster broadcaster;
     private final ZoneService zoneService;
     private final UncheckedEventCountService uncheckedEventCountService;
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
@@ -67,23 +65,19 @@ public class NotificationPublisher {
                     zoneNameOf(zoneId),
                     level,
                     startedAt.atZone(KST).toOffsetDateTime());
-            broadcaster().broadcast("event-created", message);
+            broadcaster.broadcast("event-created", message);
         });
     }
 
     /** 미확인 수가 바뀌었음을 알린다(unchecked-count). 보내는 시점의 미확인 수를 읽어 보낸다. */
     public void uncheckedCountChanged() {
-        afterCommit(() -> broadcaster().broadcast("unchecked-count", uncheckedEventCountService.count()));
+        afterCommit(() -> broadcaster.broadcast("unchecked-count", uncheckedEventCountService.count()));
     }
 
     /** 캠 상태·진행률·오류 내용이 바뀌었음을 알린다(camera-status). */
     public void cameraStatusChanged(long cameraId, CameraStatus status, Integer progress, String errorMessage) {
-        afterCommit(() -> broadcaster()
-                .broadcast("camera-status", new CameraStatusMessage(cameraId, status, progress, errorMessage)));
-    }
-
-    private NotificationBroadcaster broadcaster() {
-        return broadcasterProvider.getObject();
+        afterCommit(() -> broadcaster.broadcast(
+                "camera-status", new CameraStatusMessage(cameraId, status, progress, errorMessage)));
     }
 
     // 지워진 구역이어도 이름은 남아 있다. 구역 행이 없으면 번호로 대신한다
@@ -93,9 +87,6 @@ public class NotificationPublisher {
     }
 
     private void afterCommit(Runnable job) {
-        if (broadcasterProvider.getIfAvailable() == null) {
-            return;
-        }
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override

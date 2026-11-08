@@ -10,12 +10,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import com.whiteeyes.common.stat.entity.StatValues;
 import com.whiteeyes.common.stat.entity.ZoneStatDaily;
 import com.whiteeyes.common.stat.entity.ZoneStatHourly;
 import com.whiteeyes.common.stat.repository.ZoneStatDailyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
-import com.whiteeyes.common.stat.service.StatRollupCalculator;
 
 /** 일별 통계 저장(FNC-A-030) */
 @Slf4j
@@ -60,13 +58,9 @@ public class DailyStatService {
     }
 
     private void save(Long zoneId, LocalDate date, List<ZoneStatHourly> zoneHours) {
-        List<StatValues> rows = zoneHours.stream().map(ZoneStatHourly::values).toList();
-        StatValues rolledUp = StatRollupCalculator.rollUp(rows).orElse(null);
-        if (rolledUp == null) {
-            log.warn("일별 통계 건너뜀: 받은 초가 있는 시간별 통계 없음 zoneId={} statDate={}", zoneId, date);
-            return;
-        }
-        boolean demo = zoneHours.stream().anyMatch(ZoneStatHourly::isDemo);
-        zoneStatDailyRepository.save(new ZoneStatDaily(zoneId, date, rolledUp, demo));
+        ZoneStatDaily.rollUp(zoneId, date, zoneHours)
+                .ifPresentOrElse(
+                        zoneStatDailyRepository::save,
+                        () -> log.warn("일별 통계 건너뜀: 받은 초가 있는 시간별 통계 없음 zoneId={} statDate={}", zoneId, date));
     }
 }

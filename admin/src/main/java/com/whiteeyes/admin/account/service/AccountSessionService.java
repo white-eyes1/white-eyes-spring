@@ -1,7 +1,6 @@
 package com.whiteeyes.admin.account.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
@@ -14,11 +13,8 @@ import com.whiteeyes.admin.account.repository.UserSessionStore;
  * 사용자와 관리자는 같은 아이디를 가질 수 있지만 표가 달라 섞이지 않는다(결정 0005).
  * 트랜잭션: 사용자 세션 삭제는 부르는 쪽 트랜잭션에 합쳐져 함께 취소된다. 관리자 세션 삭제는 Spring Session의 기본 설정대로
  * 자기 트랜잭션으로 바로 확정되어 되돌릴 수 없으므로(테스트로 확인), 부르는 쪽은 되돌려야 할 일을 먼저 하고 이 삭제를 맨 뒤에 한다.
- *
- * <p>세션 저장소는 웹 앱에만 있으므로 웹 서버 없이 띄우는 1회 작업(--job=…)에서는 등록하지 않는다.
  */
 @Service
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class AccountSessionService {
 

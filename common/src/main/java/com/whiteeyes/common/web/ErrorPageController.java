@@ -6,7 +6,6 @@ import java.util.Map;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.webmvc.autoconfigure.error.AbstractErrorController;
 import org.springframework.boot.webmvc.autoconfigure.error.ErrorViewResolver;
@@ -24,10 +23,8 @@ import com.whiteeyes.common.security.ApiRequests;
  * 서버 오류 처리(/error)를 Accept 헤더가 아니라 원래 요청 경로로 화면·API를 갈라 답한다(FNC-C-003, conventions.md '인증 오류').
  * 기본 오류 처리(BasicErrorController)는 Accept에 text/html이 없으면 화면 경로에도 JSON을 보내서 이것으로 바꾼다.
  * 화면은 공통 오류 화면(문구는 ErrorPageViewResolver), API는 기본 오류 처리와 같은 JSON이다.
- * 웹 없이 띄우면(web-application-type=none) 오류 처리 빈이 없어 웹 앱일 때만 등록한다(LoginPageController와 같음).
  */
 @Controller
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequestMapping("${server.error.path:${error.path:/error}}")
 public class ErrorPageController extends AbstractErrorController {
 

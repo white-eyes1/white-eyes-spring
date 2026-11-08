@@ -34,7 +34,8 @@
 ## 규칙
 - 키·비밀번호는 환경변수로만. 새 변수는 .env.example에 이름만 추가한다.
 - 더미 영상·시연 데이터·가중치 파일은 커밋하지 않는다.
-- 시연용 데이터는 Flyway가 아니라 --job=generate-demo로만 넣는다. prod 프로필에서는 시연용 작업이 실행되지 않게 막는다.
+- 시연용 데이터는 Flyway가 아니라 tools의 `generate-demo` 명령으로만 넣는다(`tools/demo/README.md`). tools는 운영 이미지에 넣지 않고, prod 프로필에서는 시연용 명령이 실행되지 않게 막는다.
+- 관리자 앱에 1회 실행 작업(`--job`)을 다시 만들지 않는다. 운영 밖의 일회성 작업은 tools 명령으로 둔다(white-eyes-docs decisions/0020).
 - 설정은 프로필(local·dev·prod)과 환경변수로 나눈다.
 - 로깅은 Log4j2다. Logback(spring-boot-starter-logging)을 다시 들이지 않는다.
 - 테이블·칼럼은 tables.md와 같아야 한다. 다르면 tables.md PR을 먼저 올린다.

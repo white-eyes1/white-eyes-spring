@@ -23,7 +23,8 @@ class SuperAdminRestartTest {
     private ConfigurableApplicationContext startAdminApp(String dbName, String loginId, String initialPassword) {
         return new SpringApplicationBuilder(AdminApplication.class)
                 .run(
-                        "--spring.main.web-application-type=none",
+                        "--server.port=0",
+                        "--internal-api.port=0",
                         "--spring.datasource.url=jdbc:h2:mem:" + dbName + ";MODE=MySQL;DB_CLOSE_DELAY=-1",
                         "--super-admin.login-id=" + loginId,
                         "--super-admin.initial-password=" + initialPassword);

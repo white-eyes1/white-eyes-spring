@@ -1,7 +1,6 @@
 package com.whiteeyes.admin.account.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,11 +12,9 @@ import com.whiteeyes.admin.account.service.UserUnapproveService;
 
 /**
  * 사용자 승인 취소 API: POST /api/v1/users/{id}/unapprove(FNC-A-007).
- * 세션 저장소가 웹 앱에만 있어 웹 서버 없이 띄우는 1회 작업(--job=…)에서는 등록하지 않는다.
  */
 @RestController
 @RequestMapping("/api/v1/users")
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class UserUnapproveApiController {
 

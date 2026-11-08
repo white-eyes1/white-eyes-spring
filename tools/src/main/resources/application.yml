@@ -7,6 +7,10 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      data-source-properties:
+        # batchUpdate를 여러 행 INSERT 한 문장으로 보낸다(시연용 통계 1년 치, FNC-A-051)
+        rewriteBatchedStatements: true
   jpa:
     open-in-view: false
     hibernate:

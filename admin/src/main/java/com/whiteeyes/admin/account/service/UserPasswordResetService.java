@@ -4,7 +4,6 @@ import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +22,9 @@ import com.whiteeyes.common.security.LoginAccount;
 /**
  * 사용자에게 임시 비밀번호를 발급한다(FNC-A-005). 관리자 이상이 부를 수 있다(권한은 AdminSecurityConfig 권한 표).
  * 저장·세션 삭제·작업 기록은 한 트랜잭션이라 하나라도 실패하면 모두 취소된다.
- *
- * <p>세션 저장소는 웹 앱에만 있으므로 웹 서버 없이 띄우는 1회 작업(--job=…)에서는 등록하지 않는다.
  */
 @Slf4j
 @Service
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RequiredArgsConstructor
 public class UserPasswordResetService {
 

@@ -25,7 +25,6 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.json.JsonMapper;
@@ -55,8 +54,6 @@ import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
  */
 @Slf4j
 @Service
-// 웹 서버 없이 띄우는 실행(--job=… 같은 1회 작업)에는 SSE도 5초 확인도 필요 없다
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class StatStreamBroadcaster {
 
     static final int POLL_SECONDS = 5;

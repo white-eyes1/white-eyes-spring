@@ -1,6 +1,5 @@
 package com.whiteeyes.common.web;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
  * 사용자 메뉴에 로그인 아이디를 보이고, 관리자 관리·작업 기록 메뉴는 최고 관리자에게만 보인다.
  */
 @ControllerAdvice(annotations = Controller.class)
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class LayoutModelAdvice {
 
     private static final String ROLE_SUPER_ADMIN = "ROLE_SUPER_ADMIN";
