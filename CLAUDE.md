@@ -19,7 +19,8 @@
 - admin: 관리자 앱(웹 8081, 내부 8082). 예약 작업·Flyway는 admin에만
 
 ## 명령
-- 빌드·테스트: `./gradlew build`
+- 빌드·테스트: `./gradlew build` (Java 형식 검사 포함. 형식 정리는 `./gradlew spotlessApply`)
+- 화면 JS 형식·검사: Node 22로 `npm ci` 한 번 뒤 `npm run format`(정리)·`npm run lint`(검사). CI가 `format:check`·`lint`를 돌린다
 - local DB: white-eyes-deploy 폴더에서 `docker compose up -d mysql` (MySQL 8.4, 앱별 계정. 그 README '개발할 때')
 - 환경변수: `cp .env.example .env` 후 값을 채우고 `set -a; source .env; set +a`
 - 관리자 앱(먼저, Flyway): `DB_USERNAME=white_eyes_admin DB_PASSWORD=$ADMIN_DB_PASSWORD ./gradlew :admin:bootRun --args='--spring.profiles.active=local'`

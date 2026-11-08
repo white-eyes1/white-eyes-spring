@@ -16,4 +16,13 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v6
+      # Java 형식 검사(spotlessCheck)는 build가 함께 돌린다(code-conventions.md 3-1)
       - run: ./gradlew build
+      # 화면 JS 형식·검사(code-conventions.md 5-1). 도구 버전은 package-lock.json에 고정
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
