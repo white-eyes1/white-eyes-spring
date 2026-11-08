@@ -1,6 +1,8 @@
 plugins {
     id 'org.springframework.boot' version '4.1.1' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
+    // 형식 검사(code-conventions.md 3-1). ./gradlew spotlessApply로 정리, build가 spotlessCheck를 함께 돌린다
+    id 'com.diffplug.spotless' version '7.0.2' apply false
 }
 
 subprojects {
@@ -8,6 +10,7 @@ subprojects {
     version = '0.0.1-SNAPSHOT'
 
     apply plugin: 'java'
+    apply plugin: 'com.diffplug.spotless'
     apply plugin: 'io.spring.dependency-management'
 
     java {
@@ -23,6 +26,17 @@ subprojects {
     dependencyManagement {
         imports {
             mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
+
+    spotless {
+        java {
+            target 'src/*/java/**/*.java'
+            // 4칸 들여쓰기, 줄 길이 120(code-conventions.md 3-1)
+            palantirJavaFormat('2.50.0')
+            // import는 표준 → 외부 → 프로젝트 순으로 묶는다(2-3). static import는 맨 위
+            importOrder('\\#', 'java|javax', '', 'com.whiteeyes')
+            removeUnusedImports()
         }
     }
 

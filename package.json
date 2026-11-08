@@ -1,0 +1,17 @@
+{
+  "name": "white-eyes-spring-js",
+  "private": true,
+  "description": "화면 정적 JS 형식·검사 도구(code-conventions.md 5-1). 빌드에는 쓰지 않는다",
+  "type": "module",
+  "scripts": {
+    "format": "prettier --write \"**/src/main/resources/static/**/*.js\"",
+    "format:check": "prettier --check \"**/src/main/resources/static/**/*.js\"",
+    "lint": "eslint \"**/src/main/resources/static/**/*.js\""
+  },
+  "devDependencies": {
+    "@eslint/js": "9.15.0",
+    "eslint": "9.15.0",
+    "globals": "15.12.0",
+    "prettier": "3.3.3"
+  }
+}
