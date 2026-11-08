@@ -96,11 +96,12 @@ class StatSeriesRollupIntegrationTest {
         insertWeekRows();
 
         // 목요일 from은 그 주 월요일(12/29)부터, to 1/20(화)은 1/19 주까지
-        List<StatSeriesPoint> items = series(
-                StatTargetType.ZONE, sajik, StatInterval.WEEK, day(2099, 1, 1), day(2099, 1, 20));
+        List<StatSeriesPoint> items =
+                series(StatTargetType.ZONE, sajik, StatInterval.WEEK, day(2099, 1, 1), day(2099, 1, 20));
 
-        assertThat(items).extracting(StatSeriesPoint::at).containsExactly(
-                kst(2098, 12, 29), kst(2099, 1, 5), kst(2099, 1, 12), kst(2099, 1, 19));
+        assertThat(items)
+                .extracting(StatSeriesPoint::at)
+                .containsExactly(kst(2098, 12, 29), kst(2099, 1, 5), kst(2099, 1, 12), kst(2099, 1, 19));
 
         // 12/29 주: 일요일(1/4) 하루 10명. 다음 날 월요일(1/5)은 다른 주
         assertThat(items.get(0).countAvg()).isEqualByComparingTo("10.00");
@@ -113,10 +114,10 @@ class StatSeriesRollupIntegrationTest {
         assertThat(week.density()).isEqualByComparingTo("0.3000");
         assertThat(week.countMax()).isEqualTo(80);
         assertThat(week.countMin()).isEqualTo(4);
-        assertThat(week.inflow()).containsExactly(
-                Map.entry("N", 3), Map.entry("E", 3), Map.entry("S", 0), Map.entry("W", 0));
-        assertThat(week.outflow()).containsExactly(
-                Map.entry("N", 0), Map.entry("E", 7), Map.entry("S", 1), Map.entry("W", 0));
+        assertThat(week.inflow())
+                .containsExactly(Map.entry("N", 3), Map.entry("E", 3), Map.entry("S", 0), Map.entry("W", 0));
+        assertThat(week.outflow())
+                .containsExactly(Map.entry("N", 0), Map.entry("E", 7), Map.entry("S", 1), Map.entry("W", 0));
         assertThat(week.dwellAvgSec()).isEqualByComparingTo("100.0");
         assertThat(week.sampleSec()).isEqualTo(129600);
         assertThat(week.isDemo()).isTrue();
@@ -132,7 +133,8 @@ class StatSeriesRollupIntegrationTest {
         insertWeekRows();
 
         StatSeriesPoint week = series(
-                StatTargetType.REGION, regionId("11110"), StatInterval.WEEK, day(2099, 1, 5), day(2099, 1, 12)).get(0);
+                        StatTargetType.REGION, regionId("11110"), StatInterval.WEEK, day(2099, 1, 5), day(2099, 1, 12))
+                .get(0);
 
         // 구역별 주 평균: 사직 30, 삼청 (60+30) ÷ 2 = 45, 삭제된 구역 10 → 합 85, 면적 100+300+100
         assertThat(week.countAvg()).isEqualByComparingTo("85.00");
@@ -141,10 +143,10 @@ class StatSeriesRollupIntegrationTest {
         assertThat(week.countMax()).isEqualTo(182);
         assertThat(week.countMin()).isEqualTo(32);
         // 유입: 사직 N3·E3(동쪽 이웃 삼청이 지역 안이라 뺌), 삼청 S5 / 유출: 사직 E7(뺌)·S1, 삼청 N2·W4(뺌)
-        assertThat(week.inflow()).containsExactly(
-                Map.entry("N", 3), Map.entry("E", 0), Map.entry("S", 5), Map.entry("W", 0));
-        assertThat(week.outflow()).containsExactly(
-                Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 1), Map.entry("W", 0));
+        assertThat(week.inflow())
+                .containsExactly(Map.entry("N", 3), Map.entry("E", 0), Map.entry("S", 5), Map.entry("W", 0));
+        assertThat(week.outflow())
+                .containsExactly(Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 1), Map.entry("W", 0));
         // 합산한 구역 중 가장 큰 받은 초(삼청 이틀)
         assertThat(week.sampleSec()).isEqualTo(2 * FULL_DAY);
         assertThat(week.isDemo()).isTrue();
@@ -157,8 +159,8 @@ class StatSeriesRollupIntegrationTest {
         insertDaily(sajik, LocalDate.of(2099, 2, 1), "70.00", "0.7000", 90, 60, NONE, NONE, FULL_DAY, false);
         insertDaily(sajik, LocalDate.of(2099, 2, 28), "10.00", "0.1000", 20, 5, NONE, NONE, FULL_DAY / 2, false);
 
-        List<StatSeriesPoint> items = series(
-                StatTargetType.ZONE, sajik, StatInterval.MONTH, day(2099, 1, 15), day(2099, 2, 2));
+        List<StatSeriesPoint> items =
+                series(StatTargetType.ZONE, sajik, StatInterval.MONTH, day(2099, 1, 15), day(2099, 2, 2));
 
         assertThat(items).extracting(StatSeriesPoint::at).containsExactly(kst(2099, 1, 1), kst(2099, 2, 1));
         assertThat(items.get(0).countAvg()).isEqualByComparingTo("40.00");
@@ -178,15 +180,15 @@ class StatSeriesRollupIntegrationTest {
         insertDaily(sajik, LocalDate.of(2099, 12, 31), "30.00", "0.3000", 30, 30, NONE, NONE, FULL_DAY, true);
         insertDaily(sajik, LocalDate.of(2100, 1, 1), "999.00", "9.9900", 999, 999, NONE, NONE, FULL_DAY, false);
 
-        List<StatSeriesPoint> february = series(
-                StatTargetType.ZONE, sajik, StatInterval.MONTH, day(2096, 2, 1), day(2096, 3, 1));
+        List<StatSeriesPoint> february =
+                series(StatTargetType.ZONE, sajik, StatInterval.MONTH, day(2096, 2, 1), day(2096, 3, 1));
         assertThat(february).hasSize(1);
         assertThat(february.get(0).countAvg()).isEqualByComparingTo("20.00");
         assertThat(february.get(0).sampleSec()).isEqualTo(2 * FULL_DAY);
 
         // from이 연 중간이면 그해 1/1부터
-        List<StatSeriesPoint> year = series(
-                StatTargetType.ZONE, sajik, StatInterval.YEAR, day(2099, 6, 15), day(2100, 1, 1));
+        List<StatSeriesPoint> year =
+                series(StatTargetType.ZONE, sajik, StatInterval.YEAR, day(2099, 6, 15), day(2100, 1, 1));
         assertThat(year).extracting(StatSeriesPoint::at).containsExactly(kst(2099, 1, 1));
         assertThat(year.get(0).countAvg()).isEqualByComparingTo("20.00");
         assertThat(year.get(0).countMax()).isEqualTo(30);
@@ -200,14 +202,14 @@ class StatSeriesRollupIntegrationTest {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalDate tomorrow = today.plusDays(1);
         LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        record Case(String interval, LocalDate from, int points) {
-        }
+        record Case(String interval, LocalDate from, int points) {}
         List<Case> cases = List.of(
                 new Case("1w", monday.minusWeeks(11), 12),
                 new Case("1M", today.withDayOfMonth(1).minusMonths(11), 12),
                 new Case("1y", LocalDate.of(today.getYear() - 4, 1, 1), 5));
         for (Case c : cases) {
-            mockMvc.perform(get("/api/v1/stats/series").with(AdminTestLogin.admin())
+            mockMvc.perform(get("/api/v1/stats/series")
+                            .with(AdminTestLogin.admin())
                             .param("targetType", "REGION")
                             .param("targetId", String.valueOf(regionId("11110")))
                             .param("interval", c.interval())
@@ -218,7 +220,8 @@ class StatSeriesRollupIntegrationTest {
                     .andExpect(jsonPath("$.items[0].at").value(c.from() + "T00:00:00+09:00"));
         }
 
-        mockMvc.perform(get("/api/v1/stats/series").with(AdminTestLogin.admin())
+        mockMvc.perform(get("/api/v1/stats/series")
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "ZONE")
                         .param("targetId", String.valueOf(sajik))
                         .param("interval", "1w")
@@ -233,21 +236,54 @@ class StatSeriesRollupIntegrationTest {
     // 삼청: 1/5(월) 60명 / 1/8(목) 30명, 삭제된 구역: 1/9(금) 10명
     private void insertWeekRows() {
         insertDaily(sajik, LocalDate.of(2099, 1, 4), "10.00", "0.1000", 15, 5, NONE, NONE, FULL_DAY, false);
-        insertDailyWithDwell(sajik, LocalDate.of(2099, 1, 5), "20.00", "0.2000", 30, 10,
-                new int[] {2, 1, 0, 0}, new int[] {0, 3, 0, 0}, 1000, 10, FULL_DAY, false);
-        insertDailyWithDwell(sajik, LocalDate.of(2099, 1, 6), "50.00", "0.5000", 80, 4,
-                new int[] {1, 2, 0, 0}, new int[] {0, 4, 1, 0}, 500, 5, FULL_DAY / 2, true);
+        insertDailyWithDwell(
+                sajik,
+                LocalDate.of(2099, 1, 5),
+                "20.00",
+                "0.2000",
+                30,
+                10,
+                new int[] {2, 1, 0, 0},
+                new int[] {0, 3, 0, 0},
+                1000,
+                10,
+                FULL_DAY,
+                false);
+        insertDailyWithDwell(
+                sajik,
+                LocalDate.of(2099, 1, 6),
+                "50.00",
+                "0.5000",
+                80,
+                4,
+                new int[] {1, 2, 0, 0},
+                new int[] {0, 4, 1, 0},
+                500,
+                5,
+                FULL_DAY / 2,
+                true);
         insertDaily(sajik, LocalDate.of(2099, 1, 7), "0.00", "0.0000", 0, 0, NONE, NONE, 0, false);
         insertDaily(sajik, LocalDate.of(2099, 1, 19), "0.00", "0.0000", 0, 0, NONE, NONE, 0, false);
-        insertDaily(samcheong, LocalDate.of(2099, 1, 5), "60.00", "0.2000", 90, 30,
-                new int[] {0, 0, 5, 0}, new int[] {2, 0, 0, 4}, FULL_DAY, false);
+        insertDaily(
+                samcheong,
+                LocalDate.of(2099, 1, 5),
+                "60.00",
+                "0.2000",
+                90,
+                30,
+                new int[] {0, 0, 5, 0},
+                new int[] {2, 0, 0, 4},
+                FULL_DAY,
+                false);
         insertDaily(samcheong, LocalDate.of(2099, 1, 8), "30.00", "0.1000", 40, 20, NONE, NONE, FULL_DAY, false);
         insertDaily(deletedZone, LocalDate.of(2099, 1, 9), "10.00", "0.1000", 12, 8, NONE, NONE, FULL_DAY, false);
     }
 
     private List<StatSeriesPoint> series(
             StatTargetType targetType, long targetId, StatInterval interval, LocalDateTime from, LocalDateTime to) {
-        return statSeriesService.findSeries(new StatSeriesRequest(targetType, targetId, interval, from, to)).items();
+        return statSeriesService
+                .findSeries(new StatSeriesRequest(targetType, targetId, interval, from, to))
+                .items();
     }
 
     private static LocalDateTime day(int year, int month, int dayOfMonth) {
@@ -290,22 +326,55 @@ class StatSeriesRollupIntegrationTest {
 
     // 체류는 0
     private void insertDaily(
-            long zoneId, LocalDate statDate, String countAvg, String density, int countMax, int countMin,
-            int[] in, int[] out, int sampleSec, boolean demo) {
+            long zoneId,
+            LocalDate statDate,
+            String countAvg,
+            String density,
+            int countMax,
+            int countMin,
+            int[] in,
+            int[] out,
+            int sampleSec,
+            boolean demo) {
         insertDailyWithDwell(zoneId, statDate, countAvg, density, countMax, countMin, in, out, 0, 0, sampleSec, demo);
     }
 
     // in·out은 N·E·S·W 순서
     private void insertDailyWithDwell(
-            long zoneId, LocalDate statDate, String countAvg, String density, int countMax, int countMin,
-            int[] in, int[] out, int dwellSumSec, int dwellCount, int sampleSec, boolean demo) {
+            long zoneId,
+            LocalDate statDate,
+            String countAvg,
+            String density,
+            int countMax,
+            int countMin,
+            int[] in,
+            int[] out,
+            int dwellSumSec,
+            int dwellCount,
+            int sampleSec,
+            boolean demo) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_daily (zone_id, stat_date, count_avg, count_max, count_min, density,"
                         + " in_n, in_e, in_s, in_w, out_n, out_e, out_s, out_w,"
                         + " dwell_sum_sec, dwell_count, sample_sec, is_demo)"
                         + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                zoneId, Date.valueOf(statDate), new BigDecimal(countAvg), countMax, countMin,
-                new BigDecimal(density), in[0], in[1], in[2], in[3], out[0], out[1], out[2], out[3],
-                dwellSumSec, dwellCount, sampleSec, demo);
+                zoneId,
+                Date.valueOf(statDate),
+                new BigDecimal(countAvg),
+                countMax,
+                countMin,
+                new BigDecimal(density),
+                in[0],
+                in[1],
+                in[2],
+                in[3],
+                out[0],
+                out[1],
+                out[2],
+                out[3],
+                dwellSumSec,
+                dwellCount,
+                sampleSec,
+                demo);
     }
 }

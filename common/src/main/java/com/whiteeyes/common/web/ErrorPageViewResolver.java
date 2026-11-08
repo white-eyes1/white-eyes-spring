@@ -1,14 +1,16 @@
 package com.whiteeyes.common.web;
 
-import com.whiteeyes.common.exception.ErrorCode;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
+
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.webmvc.autoconfigure.error.ErrorViewResolver;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.ModelAndView;
+
+import com.whiteeyes.common.exception.ErrorCode;
 
 /**
  * 컨트롤러 앞(보안 필터 등)에서 난 화면 오류도 공통 오류 화면(templates/error.html)으로 보여 준다(FNC-C-003, FNC-C-027).

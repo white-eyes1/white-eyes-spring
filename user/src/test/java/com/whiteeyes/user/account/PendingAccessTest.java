@@ -50,18 +50,14 @@ class PendingAccessTest {
     @WithMockUser(roles = "PENDING")
     @DisplayName("FNC-U-003 PENDING 계정이 다른 화면으로 가면 승인 대기 화면으로 보낸다")
     void pending_otherPage_redirectsToPending() throws Exception {
-        mockMvc.perform(get("/stats"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/pending"));
+        mockMvc.perform(get("/stats")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/pending"));
     }
 
     @Test
     @WithMockUser(roles = "PENDING")
     @DisplayName("SCR-U-003 PENDING 계정이 /signup으로 가면 승인 대기 화면으로 보낸다")
     void pending_signupPage_redirectsToPending() throws Exception {
-        mockMvc.perform(get("/signup"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/pending"));
+        mockMvc.perform(get("/signup")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/pending"));
     }
 
     @Test

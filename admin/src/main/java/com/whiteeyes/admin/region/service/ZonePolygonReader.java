@@ -1,12 +1,13 @@
 package com.whiteeyes.admin.region.service;
 
-import com.whiteeyes.admin.region.exception.InvalidPolygonException;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
+
+import com.whiteeyes.admin.region.exception.InvalidPolygonException;
 
 /** 요청의 GeoJSON Polygon을 JTS 다각형으로 바꾸고 유효한지 확인한다(FNC-A-013 처리 순서 1). */
 @Component
@@ -53,7 +54,8 @@ public class ZonePolygonReader {
                 throw new InvalidPolygonException("좌표 형식이 올바르지 않습니다.");
             }
             // GeoJSON 순서는 [경도, 위도]
-            coordinates[i] = new Coordinate(position.get(0).asDouble(), position.get(1).asDouble());
+            coordinates[i] =
+                    new Coordinate(position.get(0).asDouble(), position.get(1).asDouble());
         }
         return geometryFactory.createLinearRing(coordinates);
     }

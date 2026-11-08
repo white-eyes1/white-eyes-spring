@@ -9,11 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.user.support.UserTestAccounts;
-import jakarta.servlet.http.Cookie;
 import java.time.LocalDateTime;
 import java.util.Map;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +25,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.user.support.UserTestAccounts;
 
 /**
  * 회원 탈퇴(FNC-U-004): 비밀번호 확인, WITHDRAWN·withdrawn_at, 세션 삭제, 검수 기준(탈퇴 후 로그인 거부, 재가입 시 아이디 중복).
@@ -72,14 +74,16 @@ class UserWithdrawTest {
 
         Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM user_account WHERE login_id = 'bye01'");
         assertThat(row.get("STATUS")).isEqualTo("WITHDRAWN");
-        assertThat(((java.sql.Timestamp) row.get("WITHDRAWN_AT")).toLocalDateTime()).isAfter(before);
+        assertThat(((java.sql.Timestamp) row.get("WITHDRAWN_AT")).toLocalDateTime())
+                .isAfter(before);
     }
 
     @Test
     @DisplayName("FNC-U-004 이 계정의 모든 세션을 지운다. 탈퇴한 브라우저의 다음 요청은 로그인 화면으로, 다른 계정 세션은 그대로다")
     void withdraw_deletesAllSessions() throws Exception {
         Cookie session = accounts.loginAs("bye01", "ACTIVE", false);
-        Cookie otherBrowser = accounts.login("bye01", UserTestAccounts.PASSWORD).getResponse().getCookie("SESSION");
+        Cookie otherBrowser =
+                accounts.login("bye01", UserTestAccounts.PASSWORD).getResponse().getCookie("SESSION");
         Cookie someoneElse = accounts.loginAs("stay02", "ACTIVE", false);
         assertThat(sessionsOf("bye01")).isEqualTo(2);
 
@@ -114,7 +118,8 @@ class UserWithdrawTest {
                 .andExpect(jsonPath("$.available").value(false));
         mockMvc.perform(post("/api/v1/signup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+                        .content(
+                                """
                                 {"loginId":"bye01","password":"abcd1234","passwordConfirm":"abcd1234","name":"다시"}""")
                         .with(csrf()))
                 .andExpect(status().isConflict())

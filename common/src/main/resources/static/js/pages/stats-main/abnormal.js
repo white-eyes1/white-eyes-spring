@@ -92,7 +92,9 @@ export function createAbnormalPanel() {
         }
         const abnormal = data.cells.filter((cell) => cell.abnormal);
         count.textContent =
-            abnormal.length > 0 ? `비정상 칸 ${formatNumber(abnormal.length)}개` : '비정상 변동 없음';
+            abnormal.length > 0
+                ? `비정상 칸 ${formatNumber(abnormal.length)}개`
+                : '비정상 변동 없음';
         const top = [...abnormal]
             .sort((a, b) => Math.abs(Number(b.rate)) - Math.abs(Number(a.rate)))
             .slice(0, TOP_CELLS);

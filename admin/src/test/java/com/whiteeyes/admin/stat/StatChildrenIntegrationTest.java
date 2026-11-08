@@ -98,7 +98,8 @@ class StatChildrenIntegrationTest {
         assertThat(response.series()).hasSize(10);
         assertThat(response.omitted()).isEqualTo(1);
         // 목록 순서(구역 번호 순)는 그대로 두고 첫 구역만 빠진다
-        assertThat(response.series()).extracting(StatChildrenResponse.Series::id)
+        assertThat(response.series())
+                .extracting(StatChildrenResponse.Series::id)
                 .containsExactlyElementsOf(zoneIds.subList(1, 11));
         StatChildrenResponse.Series second = response.series().get(0);
         assertThat(second.name()).isEqualTo("사직동 2구역");
@@ -118,8 +119,11 @@ class StatChildrenIntegrationTest {
         StatChildrenResponse response = children(regionId("11110530"), StatExportItem.COUNT);
 
         assertThat(response.omitted()).isZero();
-        assertThat(response.series()).extracting(StatChildrenResponse.Series::id).containsExactly(first, second);
-        assertThat(response.series().get(1).points()).extracting(StatChildrenResponse.Point::value)
+        assertThat(response.series())
+                .extracting(StatChildrenResponse.Series::id)
+                .containsExactly(first, second);
+        assertThat(response.series().get(1).points())
+                .extracting(StatChildrenResponse.Point::value)
                 .containsOnlyNulls();
     }
 
@@ -141,7 +145,8 @@ class StatChildrenIntegrationTest {
         StatChildrenResponse inflow = children(regionId("11110"), StatExportItem.INFLOW);
 
         assertThat(count.series()).extracting(StatChildrenResponse.Series::name).containsExactly("사직동", "삼청동");
-        assertThat(count.series()).extracting(StatChildrenResponse.Series::id)
+        assertThat(count.series())
+                .extracting(StatChildrenResponse.Series::id)
                 .containsExactly(regionId("11110530"), regionId("11110540"));
         assertThat(count.series().get(0).points().get(0).value()).isEqualByComparingTo("80");
         assertThat(count.series().get(1).points().get(0).value()).isEqualByComparingTo("40");
@@ -255,8 +260,14 @@ class StatChildrenIntegrationTest {
                 count,
                 count.intValue(),
                 count.intValue(),
-                in[0], in[1], in[2], in[3],
-                out[0], out[1], out[2], out[3],
+                in[0],
+                in[1],
+                in[2],
+                in[3],
+                out[0],
+                out[1],
+                out[2],
+                out[3],
                 sampleSec);
     }
 }

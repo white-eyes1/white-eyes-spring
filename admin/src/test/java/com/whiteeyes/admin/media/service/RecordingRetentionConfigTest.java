@@ -9,20 +9,22 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.whiteeyes.admin.cleanup.config.RetentionProperties;
-import com.whiteeyes.admin.media.entity.Recording;
-import com.whiteeyes.admin.media.exception.RecordingExpiredException;
-import com.whiteeyes.admin.media.repository.RecordingRepository;
-import com.whiteeyes.common.camera.service.ZoneCameraService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Limit;
+
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
+import com.whiteeyes.admin.media.entity.Recording;
+import com.whiteeyes.admin.media.exception.RecordingExpiredException;
+import com.whiteeyes.admin.media.repository.RecordingRepository;
+import com.whiteeyes.common.camera.service.ZoneCameraService;
 
 /** FNC-A-043·044 녹화 보관 기간 설정(RECORDING_RETENTION_DAYS)을 바꾸면 다시보기·파일 전송의 만료 경계가 같이 바뀐다(#182). */
 @ExtendWith(MockitoExtension.class)
@@ -50,7 +52,8 @@ class RecordingRetentionConfigTest {
                 .willReturn(List.of(recording(NOW.minusDays(40))));
 
         for (int retention : new int[] {7, 30}) {
-            PlaybackFindService service = new PlaybackFindService(zoneCameraService, recordingRepository, days(retention));
+            PlaybackFindService service =
+                    new PlaybackFindService(zoneCameraService, recordingRepository, days(retention));
             LocalDateTime edge = NOW.minusDays(retention);
 
             assertThatCode(() -> service.findAt(ZONE_ID, edge, NOW, "")).doesNotThrowAnyException();
@@ -100,7 +103,8 @@ class RecordingRetentionConfigTest {
         given(recordingRepository.findOverlapping(eq(CAMERA_IDS), any(), any())).willReturn(List.of());
 
         for (int retention : new int[] {7, 30}) {
-            PlaybackRangesService service = new PlaybackRangesService(zoneCameraService, recordingRepository, days(retention));
+            PlaybackRangesService service =
+                    new PlaybackRangesService(zoneCameraService, recordingRepository, days(retention));
             LocalDateTime edge = NOW.minusDays(retention);
 
             // 경계를 걸친 범위: 시작이 경계로 잘린다
@@ -111,12 +115,15 @@ class RecordingRetentionConfigTest {
         // 7일 설정에서 8일 전 범위는 전부 보관 기간 밖이라 DB를 보지 않는다
         PlaybackRangesService sevenDays = new PlaybackRangesService(zoneCameraService, recordingRepository, days(7));
         org.mockito.Mockito.clearInvocations(recordingRepository);
-        assertThat(sevenDays.findRanges(ZONE_ID, NOW.minusDays(8), NOW.minusDays(8).plusHours(1), NOW).ranges())
+        assertThat(sevenDays
+                        .findRanges(ZONE_ID, NOW.minusDays(8), NOW.minusDays(8).plusHours(1), NOW)
+                        .ranges())
                 .isEmpty();
         verifyNoInteractions(recordingRepository);
     }
 
     private static Recording recording(LocalDateTime startedAt) {
-        return Recording.register(10L, startedAt, startedAt.plusMinutes(1), "dummy/videos/a.mp4", "dummy/boxes/a.json.gz");
+        return Recording.register(
+                10L, startedAt, startedAt.plusMinutes(1), "dummy/videos/a.mp4", "dummy/boxes/a.json.gz");
     }
 }

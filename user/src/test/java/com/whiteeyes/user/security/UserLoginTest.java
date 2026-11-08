@@ -12,11 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.user.support.UserTestAccounts;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +27,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.user.support.UserTestAccounts;
 
 /**
  * 사용자 앱 로그인(FNC-C-001). 검수 기준: 사용자 앱에서 각 상태·역할 조합별 허용/거부(PENDING은 /pending으로만, FNC-U-003).
@@ -86,7 +88,10 @@ class UserLoginTest {
     void login_active_redirectsToStats() throws Exception {
         accounts.insert("user01", "ACTIVE", false);
 
-        mockMvc.perform(post("/login").param("username", "user01").param("password", PASSWORD).with(csrf()))
+        mockMvc.perform(post("/login")
+                        .param("username", "user01")
+                        .param("password", PASSWORD)
+                        .with(csrf()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/stats"))
                 .andExpect(cookie().exists(UserTestAccounts.SESSION_COOKIE));
@@ -142,7 +147,8 @@ class UserLoginTest {
         mockMvc.perform(post("/logout").cookie(session).with(csrf()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION", Long.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION", Long.class))
+                .isZero();
     }
 
     @Test
@@ -187,7 +193,8 @@ class UserLoginTest {
     void login_mustChangePassword_redirectsToPasswordChange() throws Exception {
         accounts.insert("temp01", "ACTIVE", true);
 
-        assertThat(accounts.login("temp01", PASSWORD).getResponse().getRedirectedUrl()).isEqualTo("/me/password");
+        assertThat(accounts.login("temp01", PASSWORD).getResponse().getRedirectedUrl())
+                .isEqualTo("/me/password");
     }
 
     @Test
@@ -325,8 +332,7 @@ class UserLoginTest {
     @Test
     @DisplayName("SCR-U-001 그냥 연 로그인 화면이나 다른 값(?signup=x)에는 가입 완료 안내가 없다")
     void loginPage_withoutSignupDone_hidesDoneNotice() throws Exception {
-        mockMvc.perform(get("/login"))
-                .andExpect(content().string(not(containsString("가입 신청이 완료되었습니다"))));
+        mockMvc.perform(get("/login")).andExpect(content().string(not(containsString("가입 신청이 완료되었습니다"))));
         mockMvc.perform(get("/login").param("signup", "x"))
                 .andExpect(content().string(not(containsString("가입 신청이 완료되었습니다"))));
     }

@@ -1,8 +1,7 @@
 package com.whiteeyes.admin.event.repository;
 
-import com.whiteeyes.common.event.entity.Event;
-import com.whiteeyes.common.event.entity.EventStatus;
-import com.whiteeyes.common.event.entity.EventType;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -11,10 +10,13 @@ import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
+
+import com.whiteeyes.common.event.entity.Event;
+import com.whiteeyes.common.event.entity.EventStatus;
+import com.whiteeyes.common.event.entity.EventType;
 
 /**
  * 이벤트 요약(FNC-A-036, FNC-C-030)의 건수를 처리 상태·종류로 묶어 쿼리 한 번에 센다.

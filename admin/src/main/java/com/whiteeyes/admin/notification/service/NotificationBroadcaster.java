@@ -1,8 +1,5 @@
 package com.whiteeyes.admin.notification.service;
 
-import com.whiteeyes.common.event.service.UncheckedEventCountService;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.List;
@@ -16,12 +13,17 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.event.service.UncheckedEventCountService;
 
 /**
  * 관리자 알림 스트림(FNC-A-048). 연결된 관리자 화면의 목록을 메모리에 들고(관리자 앱 인스턴스 1개 기준)
@@ -88,7 +90,9 @@ public class NotificationBroadcaster {
         emitter.onTimeout(emitter::complete);
         emitter.onError(error -> subscribers.remove(subscriber));
         // 연결이 끊기면 브라우저가 5초 뒤 다시 연결한다(retry 5000)
-        enqueue(subscriber, () -> SseEmitter.event().reconnectTime(RECONNECT_MILLIS).comment("connected"));
+        enqueue(
+                subscriber,
+                () -> SseEmitter.event().reconnectTime(RECONNECT_MILLIS).comment("connected"));
         // 연결 직후 현재 미확인 수를 한 번 보낸다(업무 규칙)
         enqueue(subscriber, eventOf("unchecked-count", uncheckedEventCountService.count()));
         return emitter;

@@ -11,16 +11,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.account.entity.UserAccount;
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.common.history.dto.WorkHistoryCommand;
-import com.whiteeyes.common.history.service.WorkHistoryService;
-import com.whiteeyes.common.security.AccountPrincipal;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,6 +38,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.account.entity.UserAccount;
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.common.history.dto.WorkHistoryCommand;
+import com.whiteeyes.common.history.service.WorkHistoryService;
+import com.whiteeyes.common.security.AccountPrincipal;
 
 /**
  * 사용자 앱 내 정보 조회·수정(FNC-C-006). 세션을 저장소에 직접 만들어 요청한다(UserPasswordChangeTest와 같은 방식).
@@ -107,7 +109,8 @@ class UserMyInfoTest {
         session.setAttribute(SECURITY_CONTEXT, new SecurityContextImpl(authentication));
         ((SessionRepository<Session>) (SessionRepository<?>) sessionRepository).save(session);
         return new Cookie(
-                SESSION_COOKIE, Base64.getEncoder().encodeToString(session.getId().getBytes(StandardCharsets.UTF_8)));
+                SESSION_COOKIE,
+                Base64.getEncoder().encodeToString(session.getId().getBytes(StandardCharsets.UTF_8)));
     }
 
     private ResultActions getMe(Cookie session) throws Exception {
@@ -186,7 +189,9 @@ class UserMyInfoTest {
     @Test
     @DisplayName("FNC-C-006 사용자 앱: 검증에 실패하면 400 fieldErrors이고 저장하지 않는다")
     void patch_invalid_returnsFieldErrors() throws Exception {
-        patchMe(sessionCookie("ROLE_USER", false), """
+        patchMe(
+                        sessionCookie("ROLE_USER", false),
+                        """
                 {"name":"","email":"not-an-email","phone":"abc"}""")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
@@ -199,7 +204,9 @@ class UserMyInfoTest {
     @Test
     @DisplayName("FNC-C-006 사용자 앱: 아이디·상태·비밀번호 변경 강제 값을 보내도 바뀌지 않는다")
     void patch_cannotChangeLoginIdOrStatus() throws Exception {
-        patchMe(sessionCookie("ROLE_USER", false), """
+        patchMe(
+                        sessionCookie("ROLE_USER", false),
+                        """
                 {"name":"홍길동2","loginId":"hacker","status":"WITHDRAWN","role":"SUPER_ADMIN","mustChangePassword":true}""")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loginId").value(LOGIN_ID))
@@ -213,7 +220,9 @@ class UserMyInfoTest {
     @Test
     @DisplayName("FNC-C-006 사용자 앱: 다른 계정의 정보는 바뀌지 않는다")
     void patch_doesNotTouchOtherAccounts() throws Exception {
-        patchMe(sessionCookie("ROLE_USER", false), """
+        patchMe(
+                        sessionCookie("ROLE_USER", false),
+                        """
                 {"name":"김철수","email":"kim@example.com","phone":"010-1"}""")
                 .andExpect(status().isOk());
 
@@ -228,7 +237,9 @@ class UserMyInfoTest {
     @Test
     @DisplayName("FNC-C-006·026 사용자 앱: 수정하면 ACCOUNT_CHANGE 1행(행동·대상 모두 본인 사용자, 이름은 아이디, 바뀐 필드 이전·이후)이 남는다")
     void patch_recordsAccountChange() throws Exception {
-        patchMe(sessionCookie("ROLE_USER", false), """
+        patchMe(
+                        sessionCookie("ROLE_USER", false),
+                        """
                 {"name":"김철수","email":"hong@example.com","phone":""}""")
                 .andExpect(status().isOk());
 
@@ -244,14 +255,18 @@ class UserMyInfoTest {
         assertThat(detail.get("before").get("name").asString()).isEqualTo("홍길동");
         assertThat(detail.get("after").get("name").asString()).isEqualTo("김철수");
         assertThat(detail.get("before").get("phone").asString()).isEqualTo("010-1234-5678");
-        assertThat(detail.get("after").get("phone").isNull()).as("비운 값은 null로 남는다").isTrue();
+        assertThat(detail.get("after").get("phone").isNull())
+                .as("비운 값은 null로 남는다")
+                .isTrue();
         assertThat(detail.get("before").has("email")).as("바뀌지 않은 메일은 기록하지 않는다").isFalse();
     }
 
     @Test
     @DisplayName("FNC-C-006·026 사용자 앱: 바뀐 값이 없으면 기록하지 않는다")
     void patch_unchanged_doesNotRecord() throws Exception {
-        patchMe(sessionCookie("ROLE_USER", false), """
+        patchMe(
+                        sessionCookie("ROLE_USER", false),
+                        """
                 {"name":"홍길동","email":"hong@example.com","phone":"010-1234-5678"}""")
                 .andExpect(status().isOk());
 
@@ -268,8 +283,7 @@ class UserMyInfoTest {
                 .record(any(WorkHistoryCommand.class));
 
         patchMe(session, """
-                {"name":"김철수"}""")
-                .andExpect(status().isInternalServerError());
+                {"name":"김철수"}""").andExpect(status().isInternalServerError());
 
         assertThat(column(accountId, "name")).isEqualTo("홍길동");
         assertThat(historyCount()).isZero();

@@ -3,7 +3,6 @@ package com.whiteeyes.admin.camera.controller;
 import java.util.List;
 
 import jakarta.validation.Valid;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

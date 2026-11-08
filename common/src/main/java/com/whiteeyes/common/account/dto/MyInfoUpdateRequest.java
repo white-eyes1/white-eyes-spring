@@ -1,9 +1,10 @@
 package com.whiteeyes.common.account.dto;
 
-import com.whiteeyes.common.constant.InputRules;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
+import com.whiteeyes.common.constant.InputRules;
 
 /**
  * 내 정보 수정 요청(PATCH /api/v1/me, FNC-C-006). 보낸 필드만 고치므로 모든 칸이 선택이고, 보냈을 때만 규칙을 검사한다.

@@ -1,8 +1,5 @@
 package com.whiteeyes.admin.region.service;
 
-import com.whiteeyes.admin.region.dto.RegionSource;
-import com.whiteeyes.admin.region.exception.RegionFileFormatException;
-import com.whiteeyes.common.region.entity.RegionLevel;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -11,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -24,6 +22,10 @@ import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.dto.RegionSource;
+import com.whiteeyes.admin.region.exception.RegionFileFormatException;
+import com.whiteeyes.common.region.entity.RegionLevel;
 
 /**
  * 행정구역 경계 GeoJSON(FeatureCollection)을 읽는다(FNC-A-012).
@@ -97,8 +99,10 @@ public class RegionGeoJsonParser {
             throw new RegionFileFormatException(NAME_PROPERTY + " 값이 없습니다: " + code);
         }
         String name = checkedName(fullName.substring(fullName.lastIndexOf(' ') + 1), code);
-        String sidoName = checkedName(properties.path(SIDO_NAME_PROPERTY).asString("").trim(), code);
-        String sigunguName = checkedName(properties.path(SIGUNGU_NAME_PROPERTY).asString("").trim(), code);
+        String sidoName =
+                checkedName(properties.path(SIDO_NAME_PROPERTY).asString("").trim(), code);
+        String sigunguName =
+                checkedName(properties.path(SIGUNGU_NAME_PROPERTY).asString("").trim(), code);
 
         JsonNode geometryNode = feature.path("geometry");
         return new Emd(code, name, sidoName, sigunguName, geometryNode.toString(), toGeometry(geometryNode, code));
@@ -145,8 +149,7 @@ public class RegionGeoJsonParser {
     private Group group(Map<String, Group> groups, String code, String name) {
         Group group = groups.computeIfAbsent(code, key -> new Group(name));
         if (!group.name.equals(name)) {
-            throw new RegionFileFormatException(
-                    "같은 코드(" + code + ")에 이름이 둘 이상입니다: " + group.name + ", " + name);
+            throw new RegionFileFormatException("같은 코드(" + code + ")에 이름이 둘 이상입니다: " + group.name + ", " + name);
         }
         return group;
     }
@@ -170,7 +173,8 @@ public class RegionGeoJsonParser {
         } catch (TopologyException e) {
             // 경계선이 꼬인 원본 도형이 섞여 있으면 buffer(0)으로 바로잡아 다시 합친다
             try {
-                return UnaryUnionOp.union(geometries.stream().map(g -> g.buffer(0)).toList());
+                return UnaryUnionOp.union(
+                        geometries.stream().map(g -> g.buffer(0)).toList());
             } catch (TopologyException retry) {
                 throw new RegionFileFormatException("경계를 합칠 수 없습니다: " + code, retry);
             }
@@ -214,7 +218,11 @@ public class RegionGeoJsonParser {
             if (i > 0) {
                 json.append(',');
             }
-            json.append('[').append(coordinates[i].x).append(',').append(coordinates[i].y).append(']');
+            json.append('[')
+                    .append(coordinates[i].x)
+                    .append(',')
+                    .append(coordinates[i].y)
+                    .append(']');
         }
         json.append(']');
     }
@@ -274,8 +282,8 @@ public class RegionGeoJsonParser {
             double latitude = position.get(1).asDouble();
             // 좌표계가 다른 파일이면 DB 저장 때 원인을 알기 어려우므로 여기서 먼저 알린다
             if (Math.abs(longitude) > MAX_LONGITUDE || Math.abs(latitude) > MAX_LATITUDE) {
-                throw new RegionFileFormatException("위도·경도 범위를 벗어난 좌표입니다(WGS84 경도 ±180, 위도 ±90): "
-                        + code + " [" + longitude + ", " + latitude + "]");
+                throw new RegionFileFormatException("위도·경도 범위를 벗어난 좌표입니다(WGS84 경도 ±180, 위도 ±90): " + code + " ["
+                        + longitude + ", " + latitude + "]");
             }
             coordinates[i] = new Coordinate(longitude, latitude);
         }

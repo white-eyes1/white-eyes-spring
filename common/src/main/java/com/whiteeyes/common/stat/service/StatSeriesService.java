@@ -80,9 +80,10 @@ public class StatSeriesService {
         List<StatSeriesPoint> items = new ArrayList<>();
         for (LocalDateTime at : buckets) {
             List<ZoneRow> rows = rowsByAt.get(at);
-            items.add(rows == null
-                    ? StatSeriesPoint.empty(at.atOffset(KST_OFFSET))
-                    : toPoint(target, at, rows, neighborsByZone));
+            items.add(
+                    rows == null
+                            ? StatSeriesPoint.empty(at.atOffset(KST_OFFSET))
+                            : toPoint(target, at, rows, neighborsByZone));
         }
         return new StatSeriesResponse(items);
     }
@@ -102,8 +103,7 @@ public class StatSeriesService {
                 ? Map.of()
                 : findRows(zoneIds, interval, buckets.get(0), end).stream()
                         .filter(row -> row.values().sampleSec() > 0)
-                        .collect(Collectors.groupingBy(
-                                ZoneRow::zoneId, Collectors.toMap(ZoneRow::at, row -> row)));
+                        .collect(Collectors.groupingBy(ZoneRow::zoneId, Collectors.toMap(ZoneRow::at, row -> row)));
         Map<Long, List<StatSeriesPoint>> result = new LinkedHashMap<>();
         for (Long zoneId : zoneIds) {
             // 구역 대상은 저장된 밀집도를 그대로 쓰므로 면적은 쓰지 않는다
@@ -112,9 +112,10 @@ public class StatSeriesService {
             List<StatSeriesPoint> points = new ArrayList<>(buckets.size());
             for (LocalDateTime at : buckets) {
                 ZoneRow row = rows.get(at);
-                points.add(row == null
-                        ? StatSeriesPoint.empty(at.atOffset(KST_OFFSET))
-                        : toPoint(target, at, List.of(row), Map.of()));
+                points.add(
+                        row == null
+                                ? StatSeriesPoint.empty(at.atOffset(KST_OFFSET))
+                                : toPoint(target, at, List.of(row), Map.of()));
             }
             result.put(zoneId, points);
         }
@@ -138,10 +139,10 @@ public class StatSeriesService {
         if (target.areaByZone().isEmpty()) {
             return StatSeriesPoint.empty(from.atOffset(KST_OFFSET));
         }
-        Map<Long, List<StatValues>> minutesByZone = findRows(target.areaByZone().keySet(), StatInterval.MINUTE, from, to)
-                .stream()
-                .collect(Collectors.groupingBy(
-                        ZoneRow::zoneId, Collectors.mapping(ZoneRow::values, Collectors.toList())));
+        Map<Long, List<StatValues>> minutesByZone =
+                findRows(target.areaByZone().keySet(), StatInterval.MINUTE, from, to).stream()
+                        .collect(Collectors.groupingBy(
+                                ZoneRow::zoneId, Collectors.mapping(ZoneRow::values, Collectors.toList())));
         List<ZoneRow> rolledUp = new ArrayList<>();
         // 1분 통계에는 시연용 데이터가 없다(tables.md zone_stat_minute)
         minutesByZone.forEach((zoneId, minutes) -> StatRollupCalculator.rollUp(minutes)
@@ -171,7 +172,9 @@ public class StatSeriesService {
     // 지난 통계를 보므로 삭제된 구역도 넣는다(FNC-C-012 처리 순서 4). 기간에 통계가 없는 구역은 결과에 영향이 없다
     private Target regionTarget(long regionId) {
         Region region = regionQueryService.getRegion(regionId);
-        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream().map(Region::getId).toList();
+        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream()
+                .map(Region::getId)
+                .toList();
         Map<Long, BigDecimal> areaByZone = dongIds.isEmpty()
                 ? Map.of()
                 : regionQueryService.findAllZonesInDongs(dongIds).stream()
@@ -194,20 +197,22 @@ public class StatSeriesService {
             Collection<Long> zoneIds, StatInterval interval, LocalDateTime from, LocalDateTime to) {
         return switch (interval) {
             case MINUTE -> zoneStatMinuteRepository
-                    .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to).stream()
+                    .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to)
+                    .stream()
                     // 1분 통계에는 시연용 데이터가 없다(tables.md zone_stat_minute)
                     .map(row -> new ZoneRow(row.getZoneId(), row.getStatAt(), StatRollupCalculator.of(row), false))
                     .toList();
             case HOUR -> zoneStatHourlyRepository
-                    .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to).stream()
+                    .findByZoneIdInAndStatAtGreaterThanEqualAndStatAtLessThan(zoneIds, from, to)
+                    .stream()
                     .map(row -> new ZoneRow(row.getZoneId(), row.getStatAt(), row.values(), row.isDemo()))
                     .toList();
             case DAY -> zoneStatDailyRepository
                     .findByZoneIdInAndStatDateGreaterThanEqualAndStatDateLessThan(
                             zoneIds, from.toLocalDate(), to.toLocalDate())
                     .stream()
-                    .map(row -> new ZoneRow(
-                            row.getZoneId(), row.getStatDate().atStartOfDay(), row.values(), row.isDemo()))
+                    .map(row ->
+                            new ZoneRow(row.getZoneId(), row.getStatDate().atStartOfDay(), row.values(), row.isDemo()))
                     .toList();
             case WEEK, MONTH, YEAR -> rollUpDaily(zoneIds, interval, from, to);
         };
@@ -223,7 +228,8 @@ public class StatSeriesService {
                 .stream()
                 .collect(Collectors.groupingBy(
                         ZoneStatDaily::getZoneId,
-                        Collectors.groupingBy(row -> interval.floor(row.getStatDate().atStartOfDay()))));
+                        Collectors.groupingBy(
+                                row -> interval.floor(row.getStatDate().atStartOfDay()))));
         List<ZoneRow> result = new ArrayList<>();
         daysByZoneAndBucket.forEach((zoneId, daysByBucket) -> daysByBucket.forEach((bucket, days) -> {
             List<StatValues> values = days.stream().map(ZoneStatDaily::values).toList();
@@ -264,9 +270,7 @@ public class StatSeriesService {
     }
 
     private BigDecimal sumArea(Target target, List<ZoneRow> rows) {
-        return rows.stream()
-                .map(row -> target.areaByZone().get(row.zoneId()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return rows.stream().map(row -> target.areaByZone().get(row.zoneId())).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // 방향 d의 이웃이 지역 안 구역이면 그 방향의 유입·유출은 지역 안 이동이라 세지 않는다(FNC-C-012 업무 규칙)
@@ -312,7 +316,8 @@ public class StatSeriesService {
             return Map.of();
         }
         Map<Long, Map<ZoneDirection, Long>> result = new HashMap<>();
-        for (ZoneNeighbor row : zoneNeighborRepository.findByZoneIdIn(target.areaByZone().keySet())) {
+        for (ZoneNeighbor row :
+                zoneNeighborRepository.findByZoneIdIn(target.areaByZone().keySet())) {
             result.computeIfAbsent(row.getZoneId(), zoneId -> new HashMap<>())
                     .put(row.getDirection(), row.getNeighborId());
         }
@@ -322,10 +327,8 @@ public class StatSeriesService {
     /**
      * @param areaByZone 합산 대상 구역 번호 → 현재 면적(㎡). 구역 대상이면 그 구역 하나
      */
-    private record Target(LevelTarget levelTarget, Map<Long, BigDecimal> areaByZone, boolean isZone) {
-    }
+    private record Target(LevelTarget levelTarget, Map<Long, BigDecimal> areaByZone, boolean isZone) {}
 
     /** 원본 표와 관계없이 계산에 쓰는 한 구역·한 구간의 통계. */
-    private record ZoneRow(Long zoneId, LocalDateTime at, StatValues values, boolean demo) {
-    }
+    private record ZoneRow(Long zoneId, LocalDateTime at, StatValues values, boolean demo) {}
 }

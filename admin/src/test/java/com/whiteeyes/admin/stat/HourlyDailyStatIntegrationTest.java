@@ -69,7 +69,9 @@ class HourlyDailyStatIntegrationTest {
         hourlyStatService.aggregateHour(HOUR);
 
         assertThat(zoneStatHourlyRepository.count()).isEqualTo(1);
-        ZoneStatHourly hourly = zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, HOUR)).orElseThrow();
+        ZoneStatHourly hourly = zoneStatHourlyRepository
+                .findById(new ZoneStatHourlyId(zoneId, HOUR))
+                .orElseThrow();
         // (10×60 + 40×30) ÷ 90
         assertThat(hourly.getCountAvg()).isEqualByComparingTo("20.00");
         assertThat(hourly.getCountMax()).isEqualTo(50);
@@ -84,17 +86,41 @@ class HourlyDailyStatIntegrationTest {
     void hourlySumsDirectionsAndDwell() {
         Long zoneId = saveZone("99999991");
         zoneStatMinuteRepository.upsert(ZoneStatMinute.builder()
-                .zoneId(zoneId).statAt(HOUR).countAvg(new BigDecimal("10.00")).countMax(12).countMin(8)
-                .density(new BigDecimal("0.1000")).inE(1).inW(2).outN(3).outS(4)
-                .dwellSumSec(100).dwellCount(2).sampleSec((short) 60).build());
+                .zoneId(zoneId)
+                .statAt(HOUR)
+                .countAvg(new BigDecimal("10.00"))
+                .countMax(12)
+                .countMin(8)
+                .density(new BigDecimal("0.1000"))
+                .inE(1)
+                .inW(2)
+                .outN(3)
+                .outS(4)
+                .dwellSumSec(100)
+                .dwellCount(2)
+                .sampleSec((short) 60)
+                .build());
         zoneStatMinuteRepository.upsert(ZoneStatMinute.builder()
-                .zoneId(zoneId).statAt(HOUR.plusMinutes(1)).countAvg(new BigDecimal("40.00")).countMax(50)
-                .countMin(30).density(new BigDecimal("0.4000")).inE(10).inW(20).outN(30).outS(40)
-                .dwellSumSec(50).dwellCount(1).sampleSec((short) 30).build());
+                .zoneId(zoneId)
+                .statAt(HOUR.plusMinutes(1))
+                .countAvg(new BigDecimal("40.00"))
+                .countMax(50)
+                .countMin(30)
+                .density(new BigDecimal("0.4000"))
+                .inE(10)
+                .inW(20)
+                .outN(30)
+                .outS(40)
+                .dwellSumSec(50)
+                .dwellCount(1)
+                .sampleSec((short) 30)
+                .build());
 
         hourlyStatService.aggregateHour(HOUR);
 
-        ZoneStatHourly hourly = zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, HOUR)).orElseThrow();
+        ZoneStatHourly hourly = zoneStatHourlyRepository
+                .findById(new ZoneStatHourlyId(zoneId, HOUR))
+                .orElseThrow();
         // (0.1×60 + 0.4×30) ÷ 90
         assertThat(hourly.getDensity()).isEqualByComparingTo("0.2000");
         assertThat(hourly.getInE()).isEqualTo(11);
@@ -137,19 +163,21 @@ class HourlyDailyStatIntegrationTest {
     @DisplayName("FNC-A-030 그날 시간별 통계를 묶어 저장하고, 다시 실행해도 결과 동일")
     void dailyIsIdempotent() {
         Long zoneId = saveZone("99999991");
-        zoneStatHourlyRepository.save(new ZoneStatHourly(zoneId, DAY.atTime(9, 0),
-                hourValues("10.00", 20, 5, 3600, 10), false));
-        zoneStatHourlyRepository.save(new ZoneStatHourly(zoneId, DAY.atTime(10, 0),
-                hourValues("30.00", 60, 2, 1800, 20), false));
+        zoneStatHourlyRepository.save(
+                new ZoneStatHourly(zoneId, DAY.atTime(9, 0), hourValues("10.00", 20, 5, 3600, 10), false));
+        zoneStatHourlyRepository.save(
+                new ZoneStatHourly(zoneId, DAY.atTime(10, 0), hourValues("30.00", 60, 2, 1800, 20), false));
         // 다른 날짜의 시간별은 섞이지 않는다
-        zoneStatHourlyRepository.save(new ZoneStatHourly(zoneId, DAY.plusDays(1).atStartOfDay(),
-                hourValues("99.00", 99, 99, 3600, 99), false));
+        zoneStatHourlyRepository.save(new ZoneStatHourly(
+                zoneId, DAY.plusDays(1).atStartOfDay(), hourValues("99.00", 99, 99, 3600, 99), false));
 
         dailyStatService.aggregateDay(DAY);
         dailyStatService.aggregateDay(DAY);
 
         assertThat(zoneStatDailyRepository.count()).isEqualTo(1);
-        ZoneStatDaily daily = zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, DAY)).orElseThrow();
+        ZoneStatDaily daily = zoneStatDailyRepository
+                .findById(new ZoneStatDailyId(zoneId, DAY))
+                .orElseThrow();
         // (10×3600 + 30×1800) ÷ 5400
         assertThat(daily.getCountAvg()).isEqualByComparingTo("16.67");
         assertThat(daily.getCountMax()).isEqualTo(60);
@@ -163,14 +191,17 @@ class HourlyDailyStatIntegrationTest {
     @DisplayName("FNC-A-030 그날 시간별 행 중 하나라도 시연용이면 일별 행도 시연용")
     void dailyIsDemoIfAnyHourIsDemo() {
         Long zoneId = saveZone("99999991");
-        zoneStatHourlyRepository.save(new ZoneStatHourly(zoneId, DAY.atTime(9, 0),
-                hourValues("10.00", 20, 5, 3600, 10), false));
-        zoneStatHourlyRepository.save(new ZoneStatHourly(zoneId, DAY.atTime(10, 0),
-                hourValues("10.00", 20, 5, 3600, 10), true));
+        zoneStatHourlyRepository.save(
+                new ZoneStatHourly(zoneId, DAY.atTime(9, 0), hourValues("10.00", 20, 5, 3600, 10), false));
+        zoneStatHourlyRepository.save(
+                new ZoneStatHourly(zoneId, DAY.atTime(10, 0), hourValues("10.00", 20, 5, 3600, 10), true));
 
         dailyStatService.aggregateDay(DAY);
 
-        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, DAY)).orElseThrow().isDemo())
+        assertThat(zoneStatDailyRepository
+                        .findById(new ZoneStatDailyId(zoneId, DAY))
+                        .orElseThrow()
+                        .isDemo())
                 .isTrue();
     }
 
@@ -189,19 +220,23 @@ class HourlyDailyStatIntegrationTest {
     }
 
     private StatValues hourValues(String avg, int max, int min, int sampleSec, int inN) {
-        return new StatValues(new BigDecimal(avg), max, min, new BigDecimal("0.1000"),
-                inN, 0, 0, 0, 0, 0, 0, 0, 0, 0, sampleSec);
+        return new StatValues(
+                new BigDecimal(avg), max, min, new BigDecimal("0.1000"), inN, 0, 0, 0, 0, 0, 0, 0, 0, 0, sampleSec);
     }
-
 
     // zone → region 외래키가 있어 테스트용 동을 먼저 넣는다. 테스트가 끝나면 롤백된다
     private Long saveZone(String regionCode) {
         jdbcTemplate.update("INSERT INTO region (level, code, name, boundary, center_lat, center_lng)"
                 + " VALUES ('EMD', '" + regionCode + "', '통계 테스트동', '{}', 37.600000, 127.002000)");
-        Long dongId = jdbcTemplate.queryForObject(
-                "SELECT id FROM region WHERE code = '" + regionCode + "'", Long.class);
-        Zone zone = new Zone(dongId, "통계 구역 " + regionCode, new BigDecimal("100.00"), "{}",
-                new BigDecimal("37.600000"), new BigDecimal("127.002000"));
+        Long dongId =
+                jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '" + regionCode + "'", Long.class);
+        Zone zone = new Zone(
+                dongId,
+                "통계 구역 " + regionCode,
+                new BigDecimal("100.00"),
+                "{}",
+                new BigDecimal("37.600000"),
+                new BigDecimal("127.002000"));
         return zoneRepository.save(zone).getId();
     }
 }

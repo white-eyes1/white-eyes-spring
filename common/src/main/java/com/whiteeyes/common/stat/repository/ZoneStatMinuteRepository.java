@@ -39,7 +39,8 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
      * from(정시) 한 시간에 받은 초가 있는 1분 행(sample_sec>0)은 있는데 시간별 행이 없는 구역 번호(FNC-A-031).
      * 받은 초가 없는 시간은 시간별 행을 만들 수 없어 대상에서 뺀다. 안 그러면 매번 다시 집계하려다 건너뛰게 된다.
      */
-    @Query("""
+    @Query(
+            """
             select distinct m.zoneId from ZoneStatMinute m
             where m.statAt >= :from and m.statAt < :to and m.sampleSec > 0
               and not exists (select 1 from ZoneStatHourly h where h.zoneId = m.zoneId and h.statAt = :from)
@@ -47,7 +48,8 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
     List<Long> findZoneIdsMissingHourly(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     /** 구역들의 from 이후 1분 통계를 같은 시각끼리 더한 count_max 합들. 오늘 최대 인원(FNC-C-016)에 쓴다. */
-    @Query("select sum(s.countMax) from ZoneStatMinute s where s.zoneId in :zoneIds and s.statAt >= :from group by s.statAt")
+    @Query(
+            "select sum(s.countMax) from ZoneStatMinute s where s.zoneId in :zoneIds and s.statAt >= :from group by s.statAt")
     List<Long> sumCountMaxByStatAt(@Param("zoneIds") Collection<Long> zoneIds, @Param("from") LocalDateTime from);
 
     /**
@@ -68,7 +70,8 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query(
-            value = """
+            value =
+                    """
                     INSERT INTO zone_stat_minute (
                         zone_id, stat_at, count_avg, count_max, count_min, density,
                         in_n, in_e, in_s, in_w, out_n, out_e, out_s, out_w,

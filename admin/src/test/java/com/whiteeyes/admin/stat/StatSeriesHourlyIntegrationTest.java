@@ -124,7 +124,9 @@ class StatSeriesHourlyIntegrationTest {
         assertThat(point.isDemo()).isFalse();
 
         // #146이 저장한 시간별 행과도 같다
-        ZoneStatHourly hourly = zoneStatHourlyRepository.findById(new ZoneStatHourlyId(sajik, H0)).orElseThrow();
+        ZoneStatHourly hourly = zoneStatHourlyRepository
+                .findById(new ZoneStatHourlyId(sajik, H0))
+                .orElseThrow();
         assertThat(point.countAvg()).isEqualByComparingTo(hourly.getCountAvg());
         assertThat(point.density()).isEqualByComparingTo(hourly.getDensity());
         assertThat(point.countMax()).isEqualTo(hourly.getCountMax());
@@ -150,10 +152,10 @@ class StatSeriesHourlyIntegrationTest {
         assertThat(h0.density()).isEqualByComparingTo("0.4000");
         assertThat(h0.level()).isEqualTo(1);
         // 유입: 사직 N2·E6(뺌), 삼청 S5 / 유출: 사직 E7(뺌)·S1, 삼청 N2·W4(뺌)
-        assertThat(h0.inflow()).containsExactly(
-                Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 5), Map.entry("W", 0));
-        assertThat(h0.outflow()).containsExactly(
-                Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 1), Map.entry("W", 0));
+        assertThat(h0.inflow())
+                .containsExactly(Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 5), Map.entry("W", 0));
+        assertThat(h0.outflow())
+                .containsExactly(Map.entry("N", 2), Map.entry("E", 0), Map.entry("S", 1), Map.entry("W", 0));
         // (3000 + 1000) ÷ (10 + 5) = 266.66…
         assertThat(h0.dwellAvgSec()).isEqualByComparingTo("266.7");
         assertThat(h0.sampleSec()).isEqualTo(3600);
@@ -194,7 +196,8 @@ class StatSeriesHourlyIntegrationTest {
     void api_hour() throws Exception {
         insertHourlyRows();
 
-        mockMvc.perform(get("/api/v1/stats/series").with(AdminTestLogin.admin())
+        mockMvc.perform(get("/api/v1/stats/series")
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "REGION")
                         .param("targetId", String.valueOf(regionId("11110")))
                         .param("interval", "1h")
@@ -206,7 +209,8 @@ class StatSeriesHourlyIntegrationTest {
                 .andExpect(jsonPath("$.items[0].isDemo").value(true))
                 .andExpect(jsonPath("$.items[1].at").value("2099-01-01T11:00:00+09:00"));
 
-        mockMvc.perform(get("/api/v1/stats/series").with(AdminTestLogin.admin())
+        mockMvc.perform(get("/api/v1/stats/series")
+                        .with(AdminTestLogin.admin())
                         .param("targetType", "ZONE")
                         .param("targetId", String.valueOf(sajik))
                         .param("interval", "1h")
@@ -220,10 +224,32 @@ class StatSeriesHourlyIntegrationTest {
     // 시간별 행을 직접 넣는다(시연용 행은 생성 스크립트가 시간별 표에 넣으므로 1분 통계로는 만들 수 없다)
     private void insertHourlyRows() {
         // 10시: 사직 100명(밀집 1.0, 유입 N2·E6, 유출 E7·S1, 체류 3000초/10명), 삼청 60명(유입 S5, 유출 N2·W4, 체류 1000초/5명, 시연용)
-        insertHourly(sajik, H0, "100.00", "1.0000", 150, 50,
-                new int[] {2, 6, 0, 0}, new int[] {0, 7, 1, 0}, 3000, 10, 3600, false);
-        insertHourly(samcheong, H0, "60.00", "0.2000", 90, 30,
-                new int[] {0, 0, 5, 0}, new int[] {2, 0, 0, 4}, 1000, 5, 1800, true);
+        insertHourly(
+                sajik,
+                H0,
+                "100.00",
+                "1.0000",
+                150,
+                50,
+                new int[] {2, 6, 0, 0},
+                new int[] {0, 7, 1, 0},
+                3000,
+                10,
+                3600,
+                false);
+        insertHourly(
+                samcheong,
+                H0,
+                "60.00",
+                "0.2000",
+                90,
+                30,
+                new int[] {0, 0, 5, 0},
+                new int[] {2, 0, 0, 4},
+                1000,
+                5,
+                1800,
+                true);
         // 11시: 사직 받은 초 0, 삭제된 구역 30명
         insertHourly(sajik, H1, "0.00", "0.0000", 0, 0, NONE, NONE, 0, 0, 0, false);
         insertHourly(deletedZone, H1, "30.00", "0.3000", 40, 20, NONE, NONE, 0, 0, 3600, false);
@@ -278,27 +304,71 @@ class StatSeriesHourlyIntegrationTest {
 
     // in은 N·E·S·W 순서. 유출은 0
     private void insertMinute(
-            long zoneId, LocalDateTime statAt, String countAvg, String density, int countMax, int countMin,
-            int[] in, int dwellSumSec, int dwellCount, int sampleSec) {
+            long zoneId,
+            LocalDateTime statAt,
+            String countAvg,
+            String density,
+            int countMax,
+            int countMin,
+            int[] in,
+            int dwellSumSec,
+            int dwellCount,
+            int sampleSec) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_minute (zone_id, stat_at, count_avg, count_max, count_min, density,"
                         + " in_n, in_e, in_s, in_w, dwell_sum_sec, dwell_count, sample_sec)"
                         + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                zoneId, Timestamp.valueOf(statAt), new BigDecimal(countAvg), countMax, countMin,
-                new BigDecimal(density), in[0], in[1], in[2], in[3], dwellSumSec, dwellCount, sampleSec);
+                zoneId,
+                Timestamp.valueOf(statAt),
+                new BigDecimal(countAvg),
+                countMax,
+                countMin,
+                new BigDecimal(density),
+                in[0],
+                in[1],
+                in[2],
+                in[3],
+                dwellSumSec,
+                dwellCount,
+                sampleSec);
     }
 
     // in·out은 N·E·S·W 순서
     private void insertHourly(
-            long zoneId, LocalDateTime statAt, String countAvg, String density, int countMax, int countMin,
-            int[] in, int[] out, int dwellSumSec, int dwellCount, int sampleSec, boolean demo) {
+            long zoneId,
+            LocalDateTime statAt,
+            String countAvg,
+            String density,
+            int countMax,
+            int countMin,
+            int[] in,
+            int[] out,
+            int dwellSumSec,
+            int dwellCount,
+            int sampleSec,
+            boolean demo) {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_hourly (zone_id, stat_at, count_avg, count_max, count_min, density,"
                         + " in_n, in_e, in_s, in_w, out_n, out_e, out_s, out_w,"
                         + " dwell_sum_sec, dwell_count, sample_sec, is_demo)"
                         + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                zoneId, Timestamp.valueOf(statAt), new BigDecimal(countAvg), countMax, countMin,
-                new BigDecimal(density), in[0], in[1], in[2], in[3], out[0], out[1], out[2], out[3],
-                dwellSumSec, dwellCount, sampleSec, demo);
+                zoneId,
+                Timestamp.valueOf(statAt),
+                new BigDecimal(countAvg),
+                countMax,
+                countMin,
+                new BigDecimal(density),
+                in[0],
+                in[1],
+                in[2],
+                in[3],
+                out[0],
+                out[1],
+                out[2],
+                out[3],
+                dwellSumSec,
+                dwellCount,
+                sampleSec,
+                demo);
     }
 }

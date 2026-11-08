@@ -6,14 +6,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +26,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /**
  * 구역 이웃 조회·저장(FNC-A-016). 검수 기준: 반대쪽 자동 반영·기존 짝 해제 확인.
@@ -112,7 +114,8 @@ class ZoneNeighborTest {
     @DisplayName("FNC-A-016 4방향을 한 번에 저장하면 4쌍이 모두 맞춰진다")
     void save_allFourDirections() throws Exception {
         long e = insertZone(dongOf(a), "E구역");
-        save(a, "{\"N\":" + b + ",\"E\":" + c + ",\"S\":" + d + ",\"W\":" + e + "}").andExpect(status().isOk());
+        save(a, "{\"N\":" + b + ",\"E\":" + c + ",\"S\":" + d + ",\"W\":" + e + "}")
+                .andExpect(status().isOk());
 
         assertThat(neighbor(b, "S")).isEqualTo(a);
         assertThat(neighbor(c, "W")).isEqualTo(a);

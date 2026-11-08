@@ -1,11 +1,12 @@
 package com.whiteeyes.admin.account.service;
 
-import com.whiteeyes.admin.account.repository.UserSessionStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
+
+import com.whiteeyes.admin.account.repository.UserSessionStore;
 
 /**
  * 계정의 세션을 모두 지운다(FNC-A-008 처리 순서 2, FNC-A-011 처리 순서 1).

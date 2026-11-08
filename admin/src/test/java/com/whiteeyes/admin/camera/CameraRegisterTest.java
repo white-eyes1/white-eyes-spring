@@ -5,13 +5,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,12 +16,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 @Import(AdminTestUserConfig.class)
 @SpringBootTest
@@ -247,9 +249,11 @@ class CameraRegisterTest {
     @Test
     @DisplayName("FNC-A-018 sourceType이 없거나 LIVE/DUMMY가 아니면 400 INVALID_INPUT")
     void register_invalidSourceType_badRequest() throws Exception {
-        mockMvc.perform(post(CAMERAS_URL).with(AdminTestLogin.admin())
+        mockMvc.perform(post(CAMERAS_URL)
+                        .with(AdminTestLogin.admin())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"zoneId\":" + samcheongZoneId + ",\"name\":\"캠\",\"sourceUri\":\"" + LIVE_URI + "\"}"))
+                        .content("{\"zoneId\":" + samcheongZoneId + ",\"name\":\"캠\",\"sourceUri\":\"" + LIVE_URI
+                                + "\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("sourceType"));
@@ -263,7 +267,8 @@ class CameraRegisterTest {
     @Test
     @DisplayName("FNC-A-018 zoneId가 없으면 400 INVALID_INPUT")
     void register_missingZoneId_badRequest() throws Exception {
-        mockMvc.perform(post(CAMERAS_URL).with(AdminTestLogin.admin())
+        mockMvc.perform(post(CAMERAS_URL)
+                        .with(AdminTestLogin.admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"캠\",\"sourceType\":\"LIVE\",\"sourceUri\":\"" + LIVE_URI + "\"}"))
                 .andExpect(status().isBadRequest())
@@ -282,7 +287,10 @@ class CameraRegisterTest {
     private ResultActions register(long zoneId, String name, String sourceType, String sourceUri) throws Exception {
         String body = "{\"zoneId\":" + zoneId + ",\"name\":\"" + name + "\",\"sourceType\":\"" + sourceType
                 + "\",\"sourceUri\":\"" + sourceUri + "\"}";
-        return mockMvc.perform(post(CAMERAS_URL).with(AdminTestLogin.admin()).contentType(MediaType.APPLICATION_JSON).content(body));
+        return mockMvc.perform(post(CAMERAS_URL)
+                .with(AdminTestLogin.admin())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
     }
 
     private long cameraCount() {

@@ -89,13 +89,15 @@ class PeakHourIntegrationTest {
     @Test
     @DisplayName("FNC-C-029 WEEK: 시별 평균 인원 내림차순 상위 3개, 같으면 이른 시각 먼저")
     void week_topThreeWithTieBreak() {
-        List<PeakHourItem> items = peakHourService.findPeakHours(DashboardTargetType.ZONE, sajik, PeakPeriod.WEEK, TODAY);
+        List<PeakHourItem> items =
+                peakHourService.findPeakHours(DashboardTargetType.ZONE, sajik, PeakPeriod.WEEK, TODAY);
 
         // 9시 110 = 18시 (100 + 120) ÷ 2 = 110 → 이른 9시가 1위
-        assertThat(items).containsExactly(
-                new PeakHourItem(1, 9, new BigDecimal("110.0")),
-                new PeakHourItem(2, 18, new BigDecimal("110.0")),
-                new PeakHourItem(3, 12, new BigDecimal("50.0")));
+        assertThat(items)
+                .containsExactly(
+                        new PeakHourItem(1, 9, new BigDecimal("110.0")),
+                        new PeakHourItem(2, 18, new BigDecimal("110.0")),
+                        new PeakHourItem(3, 12, new BigDecimal("50.0")));
     }
 
     @Test
@@ -115,10 +117,10 @@ class PeakHourIntegrationTest {
     void region_sumsZones_andEmptyWithoutData() {
         insertHourly(samcheong, YESTERDAY.atTime(12, 0), "100", 3600);
 
-        List<PeakHourItem> region = peakHourService.findPeakHours(
-                DashboardTargetType.REGION, regionId("11110"), PeakPeriod.DAY, TODAY);
-        List<PeakHourItem> empty = peakHourService.findPeakHours(
-                DashboardTargetType.REGION, regionId("11140"), PeakPeriod.WEEK, TODAY);
+        List<PeakHourItem> region =
+                peakHourService.findPeakHours(DashboardTargetType.REGION, regionId("11110"), PeakPeriod.DAY, TODAY);
+        List<PeakHourItem> empty =
+                peakHourService.findPeakHours(DashboardTargetType.REGION, regionId("11140"), PeakPeriod.WEEK, TODAY);
 
         // 12시: 50 + 100 = 150 → 1위
         assertThat(region.get(0)).isEqualTo(new PeakHourItem(1, 12, new BigDecimal("150.0")));
@@ -145,7 +147,9 @@ class PeakHourIntegrationTest {
                         .param("period", "QUARTER"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        mockMvc.perform(get(URL).with(AdminTestLogin.admin()).param("targetType", "ZONE").param("targetId", "999999"))
+        mockMvc.perform(get(URL).with(AdminTestLogin.admin())
+                        .param("targetType", "ZONE")
+                        .param("targetId", "999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
     }

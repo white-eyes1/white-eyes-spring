@@ -110,7 +110,10 @@ function actionsCell(admin) {
             wrap.append(self);
         }
     } else {
-        wrap.append(detailButton(admin, '수정', false), detailButton(admin, '비밀번호 재설정', true));
+        wrap.append(
+            detailButton(admin, '수정', false),
+            detailButton(admin, '비밀번호 재설정', true),
+        );
         wrap.append(statusButton(admin));
         // 활동 중일 때만 보인다(screens.md SCR-A-003)
         if (admin.active) {
@@ -198,8 +201,14 @@ function statusButton(admin) {
             okLabel: disabling ? '비활성화' : '활성화',
             danger: disabling,
             run: async () => {
-                await post(`${ADMINS_API}/${admin.id}/${disabling ? 'disable' : 'enable'}`, undefined, { toast: false });
-                return disabling ? `'${admin.loginId}' 관리자를 비활성화했습니다` : `'${admin.loginId}' 관리자를 활성화했습니다`;
+                await post(
+                    `${ADMINS_API}/${admin.id}/${disabling ? 'disable' : 'enable'}`,
+                    undefined,
+                    { toast: false },
+                );
+                return disabling
+                    ? `'${admin.loginId}' 관리자를 비활성화했습니다`
+                    : `'${admin.loginId}' 관리자를 활성화했습니다`;
             },
         }),
     );
@@ -217,7 +226,9 @@ function forceLogoutButton(admin) {
             message: `'${admin.loginId}' 관리자를 로그아웃시킬까요? 열려 있는 모든 세션이 종료됩니다.`,
             okLabel: '로그아웃',
             run: async () => {
-                const result = await post(`${ADMINS_API}/${admin.id}/logout`, undefined, { toast: false });
+                const result = await post(`${ADMINS_API}/${admin.id}/logout`, undefined, {
+                    toast: false,
+                });
                 return `${result.deletedSessions}개 세션을 종료했습니다`;
             },
         }),
@@ -225,7 +236,9 @@ function forceLogoutButton(admin) {
     return button;
 }
 
-confirmModal.querySelectorAll('[data-confirm-close]').forEach((button) => button.addEventListener('click', closeConfirm));
+confirmModal
+    .querySelectorAll('[data-confirm-close]')
+    .forEach((button) => button.addEventListener('click', closeConfirm));
 confirmModal.addEventListener('mousedown', (event) => {
     if (event.target === confirmModal) {
         closeConfirm();
@@ -274,7 +287,10 @@ function renderSortState() {
         const label = button.dataset.label ?? button.textContent;
         button.dataset.label = label;
         if (field === state.sortField) {
-            header.setAttribute('aria-sort', state.sortDirection === 'asc' ? 'ascending' : 'descending');
+            header.setAttribute(
+                'aria-sort',
+                state.sortDirection === 'asc' ? 'ascending' : 'descending',
+            );
             button.textContent = `${label} ${SORT_MARKS[state.sortDirection]}`;
         } else {
             header.setAttribute('aria-sort', 'none');
@@ -334,7 +350,9 @@ const form = document.getElementById('admin-form');
 const formError = document.getElementById('admin-form-error');
 const saveButton = document.getElementById('admin-save');
 const formParts = ['admin-form-fields', 'admin-form-foot'].map((id) => document.getElementById(id));
-const createdParts = ['admin-created', 'admin-created-foot'].map((id) => document.getElementById(id));
+const createdParts = ['admin-created', 'admin-created-foot'].map((id) =>
+    document.getElementById(id),
+);
 const tempPassword = document.getElementById('admin-temp-password');
 const copyButton = document.getElementById('admin-temp-copy');
 // 409 아이디 중복은 아이디 칸 아래에 보인다
@@ -437,7 +455,9 @@ async function copyTempPassword() {
 }
 
 document.getElementById('admin-add').addEventListener('click', openModal);
-modal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeModal));
+modal
+    .querySelectorAll('[data-close]')
+    .forEach((button) => button.addEventListener('click', closeModal));
 modal.addEventListener('mousedown', (event) => {
     // 임시 비밀번호를 보여 주는 중에는 바깥을 눌러 실수로 닫히지 않게 한다
     if (event.target === modal && !created) {

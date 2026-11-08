@@ -7,5 +7,4 @@ import java.math.BigDecimal;
  *
  * @param minDensity 이 단계가 시작되는 밀집도(명/㎡). 정상은 0
  */
-public record LevelResponse(int level, String name, String color, BigDecimal minDensity) {
-}
+public record LevelResponse(int level, String name, String color, BigDecimal minDensity) {}

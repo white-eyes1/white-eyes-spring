@@ -112,8 +112,10 @@ async function loadZoneInfo() {
         // 삭제된 구역도 이름을 받아 '(삭제됨)'을 붙인다(FNC-A-017 업무 규칙, #183). 없는 구역이면 404
         const zone = await get(`/api/v1/zones/${zoneId}`, undefined, { toast: false });
         zoneArea = Number(zone.areaM2);
-        document.getElementById('pb-title').textContent = `다시보기 · ${zone.name}${zone.deleted ? ' (삭제됨)' : ''}`;
-        document.getElementById('pb-subtitle').textContent = `${formatNumber(Math.round(zone.areaM2))}㎡`;
+        document.getElementById('pb-title').textContent =
+            `다시보기 · ${zone.name}${zone.deleted ? ' (삭제됨)' : ''}`;
+        document.getElementById('pb-subtitle').textContent =
+            `${formatNumber(Math.round(zone.areaM2))}㎡`;
     } catch {
         document.getElementById('pb-title').textContent = `다시보기 · 구역 ${zoneId}`;
         document.getElementById('pb-subtitle').textContent = '찾을 수 없는 구역';
@@ -124,7 +126,9 @@ async function loadZoneInfo() {
 async function loadLevelStarts() {
     try {
         const levels = await get('/api/v1/meta/levels', undefined, { toast: false });
-        levelStarts = Object.fromEntries(levels.map((level) => [level.level, Number(level.minDensity)]));
+        levelStarts = Object.fromEntries(
+            levels.map((level) => [level.level, Number(level.minDensity)]),
+        );
         if (timeWindow) {
             renderTimeline();
         }
@@ -180,7 +184,11 @@ async function loadRecording({ at, latest }) {
         video.pause();
         video.hidden = true;
         toggleButton.disabled = true;
-        showNotice(error instanceof ApiError && NOTICE_MESSAGES[error.code] ? NOTICE_MESSAGES[error.code] : '영상을 불러올 수 없습니다.');
+        showNotice(
+            error instanceof ApiError && NOTICE_MESSAGES[error.code]
+                ? NOTICE_MESSAGES[error.code]
+                : '영상을 불러올 수 없습니다.',
+        );
         updatePlayhead();
         return false;
     }
@@ -259,7 +267,9 @@ async function loadBoxes(target) {
     boxesFor = target.id;
     try {
         // boxesUrl은 서버가 컨텍스트 경로(/admin)까지 붙여 준 주소다. 영상 주소처럼 absolute로 그대로 쓴다
-        const frames = parseFrames(await get(target.boxesUrl, undefined, { absolute: true, toast: false }));
+        const frames = parseFrames(
+            await get(target.boxesUrl, undefined, { absolute: true, toast: false }),
+        );
         if (boxesFor !== target.id) {
             return; // 그 사이 다른 녹화로 바뀌었다
         }
@@ -293,7 +303,10 @@ function drawBoxes() {
     const ratio = window.devicePixelRatio || 1;
     const width = boxCanvas.clientWidth;
     const height = boxCanvas.clientHeight;
-    if (boxCanvas.width !== Math.round(width * ratio) || boxCanvas.height !== Math.round(height * ratio)) {
+    if (
+        boxCanvas.width !== Math.round(width * ratio) ||
+        boxCanvas.height !== Math.round(height * ratio)
+    ) {
         boxCanvas.width = Math.round(width * ratio);
         boxCanvas.height = Math.round(height * ratio);
     }
@@ -346,7 +359,9 @@ boxSwitch.addEventListener('click', () => {
     armBoxLoop();
 });
 // 일시 정지·구간 이동·창 크기 변경에도 위치가 맞도록 다시 그린다
-['seeked', 'loadedmetadata', 'pause', 'play'].forEach((name) => video.addEventListener(name, drawBoxes));
+['seeked', 'loadedmetadata', 'pause', 'play'].forEach((name) =>
+    video.addEventListener(name, drawBoxes),
+);
 new ResizeObserver(drawBoxes).observe(document.getElementById('pb-feed'));
 
 // ---- 이어 재생(FNC-A-045) ----
@@ -359,7 +374,10 @@ function prefetchNext() {
     if (!(video.duration - video.currentTime <= PREFETCH_BEFORE_END_SEC)) {
         return;
     }
-    upcoming = { recordingId: recording.id, promise: get(`/api/v1/recordings/${recording.id}/next`, undefined, { toast: false }) };
+    upcoming = {
+        recordingId: recording.id,
+        promise: get(`/api/v1/recordings/${recording.id}/next`, undefined, { toast: false }),
+    };
     // 실패는 영상이 끝났을 때 처리한다(여기서는 미처리 거부로 남지 않게만 한다)
     upcoming.promise.catch(() => {});
 }
@@ -371,9 +389,10 @@ async function continuePlayback() {
     }
     const finished = recording;
     const request = ++recordingRequest;
-    const pending = upcoming?.recordingId === finished.id
-        ? upcoming.promise
-        : get(`/api/v1/recordings/${finished.id}/next`, undefined, { toast: false });
+    const pending =
+        upcoming?.recordingId === finished.id
+            ? upcoming.promise
+            : get(`/api/v1/recordings/${finished.id}/next`, undefined, { toast: false });
     try {
         const found = await pending;
         if (request !== recordingRequest) {
@@ -395,7 +414,11 @@ async function continuePlayback() {
             return;
         }
         upcoming = null;
-        showNotice(error instanceof ApiError && error.status === 404 ? '이후 영상 없음' : '다음 영상을 불러올 수 없습니다.');
+        showNotice(
+            error instanceof ApiError && error.status === 404
+                ? '이후 영상 없음'
+                : '다음 영상을 불러올 수 없습니다.',
+        );
     }
 }
 
@@ -417,7 +440,13 @@ function updatePlayhead() {
 
 // 재생이 시간축 창 밖으로 나가면(창 끝·자정을 넘겨 이어 재생할 때) 재생 위치를 가운데로 해서 통계 시간축·1분 통계를 다시 읽는다
 function recenterIfLeftWindow(ms) {
-    if (!recording || !timeWindow || recentering || dragging || (ms >= timeWindow.from && ms <= timeWindow.to)) {
+    if (
+        !recording ||
+        !timeWindow ||
+        recentering ||
+        dragging ||
+        (ms >= timeWindow.from && ms <= timeWindow.to)
+    ) {
         return;
     }
     recentering = true;
@@ -462,9 +491,15 @@ function renderStat(ms) {
     const item = findMinute(series, ms);
     document.getElementById('pb-stat-minute').textContent = formatHm(key);
     document.getElementById('pb-stat-empty').hidden = item !== null;
-    document.getElementById('pb-stat-count').textContent = item ? `${formatNumber(Math.round(item.countAvg))}명` : '-';
-    document.getElementById('pb-stat-density').textContent = item ? formatDecimal(item.density, 2) : '-';
-    document.getElementById('pb-stat-range').textContent = item ? `${formatNumber(Math.round(item.countMax))} · ${formatNumber(Math.round(item.countMin))}` : '-';
+    document.getElementById('pb-stat-count').textContent = item
+        ? `${formatNumber(Math.round(item.countAvg))}명`
+        : '-';
+    document.getElementById('pb-stat-density').textContent = item
+        ? formatDecimal(item.density, 2)
+        : '-';
+    document.getElementById('pb-stat-range').textContent = item
+        ? `${formatNumber(Math.round(item.countMax))} · ${formatNumber(Math.round(item.countMin))}`
+        : '-';
     const levelCell = document.getElementById('pb-stat-level');
     levelCell.replaceChildren();
     if (item && LEVEL_LABELS[item.level]) {
@@ -475,14 +510,20 @@ function renderStat(ms) {
     } else {
         levelCell.textContent = '-';
     }
-    document.getElementById('pb-stat-in').textContent = item ? `+${formatNumber(item.inflow)}` : '-';
-    document.getElementById('pb-stat-out').textContent = item ? `−${formatNumber(item.outflow)}` : '-';
+    document.getElementById('pb-stat-in').textContent = item
+        ? `+${formatNumber(item.inflow)}`
+        : '-';
+    document.getElementById('pb-stat-out').textContent = item
+        ? `−${formatNumber(item.outflow)}`
+        : '-';
 
     const box = document.getElementById('pb-event-box');
     box.hidden = event === null;
     if (event) {
-        document.getElementById('pb-event-chip').textContent = EVENT_TYPE_LABELS[event.type] ?? '혼잡';
-        document.getElementById('pb-event-text').textContent = `${formatHm(event.startedAt)} ~ ${event.endedAt ? formatHm(event.endedAt) : '진행 중'} 이벤트 안`;
+        document.getElementById('pb-event-chip').textContent =
+            EVENT_TYPE_LABELS[event.type] ?? '혼잡';
+        document.getElementById('pb-event-text').textContent =
+            `${formatHm(event.startedAt)} ~ ${event.endedAt ? formatHm(event.endedAt) : '진행 중'} 이벤트 안`;
         // 이벤트 상세 창(SCR-A-011)은 이벤트 로그 화면 안에 있어, ?eventId= 로 그 이벤트의 상세 창을 바로 연다
         document.getElementById('pb-event-link').href = url(`/events?eventId=${event.id}`);
     }
@@ -519,7 +560,14 @@ async function loadAllEvents(query, request) {
         try {
             response = await get(
                 '/api/v1/events',
-                { zoneId, ...query, types: PLAYBACK_EVENT_TYPES, overlap: true, page, size: EVENT_PAGE_SIZE },
+                {
+                    zoneId,
+                    ...query,
+                    types: PLAYBACK_EVENT_TYPES,
+                    overlap: true,
+                    page,
+                    size: EVENT_PAGE_SIZE,
+                },
                 { toast: false },
             );
         } catch {
@@ -541,21 +589,30 @@ async function loadTimeline(center) {
     timeWindow = windowFor(range, center);
     const query = { from: toKstIso(timeWindow.from), to: toKstIso(timeWindow.to) };
     const [seriesResult, eventsResult, rangesResult] = await Promise.allSettled([
-        get('/api/v1/stats/series', { targetType: 'ZONE', targetId: zoneId, interval: '1m', ...query }, { toast: false }),
+        get(
+            '/api/v1/stats/series',
+            { targetType: 'ZONE', targetId: zoneId, interval: '1m', ...query },
+            { toast: false },
+        ),
         loadAllEvents(query, request),
         get('/api/v1/playback/ranges', { zoneId, ...query }, { toast: false }),
     ]);
     if (request !== timelineRequest) {
         return;
     }
-    series = seriesResult.status === 'fulfilled' ? normalizeSeries(seriesResult.value?.items ?? []) : [];
+    series =
+        seriesResult.status === 'fulfilled' ? normalizeSeries(seriesResult.value?.items ?? []) : [];
     // 이벤트는 받은 만큼 그린다. 일부(또는 전부)를 못 받았으면 안내한다(그냥 '이벤트 없음'처럼 보이지 않게)
-    const loaded = eventsResult.status === 'fulfilled' ? eventsResult.value : { items: [], failed: true };
+    const loaded =
+        eventsResult.status === 'fulfilled' ? eventsResult.value : { items: [], failed: true };
     events = normalizeEvents(loaded.items);
     if (loaded.failed) {
         showToast('일부 이벤트를 불러오지 못했습니다.');
     }
-    recordingRanges = rangesResult.status === 'fulfilled' ? normalizeRanges(rangesResult.value?.ranges ?? []) : null;
+    recordingRanges =
+        rangesResult.status === 'fulfilled'
+            ? normalizeRanges(rangesResult.value?.ranges ?? [])
+            : null;
     shownMinute = null;
     renderTimeline();
     updatePlayhead();
@@ -564,7 +621,9 @@ async function loadTimeline(center) {
 function renderTimeline() {
     const { from, to } = timeWindow;
     const shape = buildChart(series, metric, from, to, CHART_WIDTH, CHART_HEIGHT, thresholds());
-    document.getElementById('pb-band').setAttribute('d', shape.band ? `${toPath(shape.band)} Z` : '');
+    document
+        .getElementById('pb-band')
+        .setAttribute('d', shape.band ? `${toPath(shape.band)} Z` : '');
     const linesGroup = document.getElementById('pb-lines');
     linesGroup.replaceChildren();
     shape.lines.forEach((line, index) => {
@@ -735,7 +794,9 @@ function currentRate() {
 
 document.querySelectorAll('#pb-speed button').forEach((button) => {
     button.addEventListener('click', () => {
-        document.querySelectorAll('#pb-speed button').forEach((other) => other.classList.toggle('on', other === button));
+        document
+            .querySelectorAll('#pb-speed button')
+            .forEach((other) => other.classList.toggle('on', other === button));
         video.playbackRate = Number(button.dataset.rate);
     });
 });
@@ -755,14 +816,18 @@ nextEventButton.addEventListener('click', () => {
 
 document.querySelectorAll('#pb-range button').forEach((button) => {
     button.addEventListener('click', () => {
-        document.querySelectorAll('#pb-range button').forEach((other) => other.classList.toggle('on', other === button));
+        document
+            .querySelectorAll('#pb-range button')
+            .forEach((other) => other.classList.toggle('on', other === button));
         range = button.dataset.range;
         loadTimeline(playheadMs() ?? Date.now());
     });
 });
 document.querySelectorAll('#pb-metric button').forEach((button) => {
     button.addEventListener('click', () => {
-        document.querySelectorAll('#pb-metric button').forEach((other) => other.classList.toggle('on', other === button));
+        document
+            .querySelectorAll('#pb-metric button')
+            .forEach((other) => other.classList.toggle('on', other === button));
         metric = button.dataset.metric;
         if (timeWindow) {
             renderTimeline();

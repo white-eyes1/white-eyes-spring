@@ -1,5 +1,13 @@
 package com.whiteeyes.admin.account.service;
 
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.account.exception.InvalidUserStatusException;
 import com.whiteeyes.admin.account.exception.UserNotFoundException;
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
@@ -9,12 +17,6 @@ import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 사용자 승인을 취소해 미승인으로 되돌리고 바로 차단한다(FNC-A-007). 관리자 이상이 부를 수 있다(권한은 AdminSecurityConfig 권한 표).
@@ -45,9 +47,8 @@ public class UserUnapproveService {
     public void unapprove(Long userId) {
         // 로그인하지 않은 요청은 상태를 바꾸기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
-        UserAccount user = userAccountRepository
-                .findByIdForUpdate(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+        UserAccount user =
+                userAccountRepository.findByIdForUpdate(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
         // 처리 순서 1: 대상 status=ACTIVE 확인
         if (user.getStatus() != UserAccountStatus.ACTIVE) {
@@ -59,7 +60,12 @@ public class UserUnapproveService {
         int deletedSessions = accountSessionService.endUserSessions(user.getLoginId());
         // 처리 순서 4: 작업 기록. 계정의 대상 이름은 아이디다(tables.md work_history.target_name)
         workRecorder.record(
-                actor, WorkAction.ACCOUNT_CHANGE, WorkTargetType.USER_ACCOUNT, userId, user.getLoginId(), UNAPPROVE_DETAIL);
+                actor,
+                WorkAction.ACCOUNT_CHANGE,
+                WorkTargetType.USER_ACCOUNT,
+                userId,
+                user.getLoginId(),
+                UNAPPROVE_DETAIL);
         log.info("사용자 승인 취소 userId={} 삭제한 세션={}", userId, deletedSessions);
     }
 }

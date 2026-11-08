@@ -72,7 +72,8 @@ class MissingStatFillIntegrationTest {
         assertThat(hourly(zoneId, hour(9)).getCountAvg()).isEqualByComparingTo("77.00");
         assertThat(hourly(zoneId, hour(9)).isDemo()).isTrue();
         // 진행 중인 12시는 제외한다
-        assertThat(zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, hour(12)))).isEmpty();
+        assertThat(zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, hour(12))))
+                .isEmpty();
     }
 
     @Test
@@ -86,8 +87,10 @@ class MissingStatFillIntegrationTest {
 
         missingStatFillService.fillMissing(NOW);
 
-        assertThat(zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, within))).isPresent();
-        assertThat(zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, outside))).isEmpty();
+        assertThat(zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, within)))
+                .isPresent();
+        assertThat(zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, outside)))
+                .isEmpty();
     }
 
     @Test
@@ -112,7 +115,9 @@ class MissingStatFillIntegrationTest {
 
         assertThat(zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, YESTERDAY.atTime(23, 0))))
                 .isPresent();
-        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, YESTERDAY)).orElseThrow()
+        assertThat(zoneStatDailyRepository
+                        .findById(new ZoneStatDailyId(zoneId, YESTERDAY))
+                        .orElseThrow()
                         .getSampleSec())
                 .isEqualTo(60);
     }
@@ -132,10 +137,14 @@ class MissingStatFillIntegrationTest {
 
         missingStatFillService.fillMissing(NOW);
 
-        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, sevenDaysAgo))).isPresent();
-        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, eightDaysAgo))).isEmpty();
-        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, today))).isEmpty();
-        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, emptyDay))).isEmpty();
+        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, sevenDaysAgo)))
+                .isPresent();
+        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, eightDaysAgo)))
+                .isEmpty();
+        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, today)))
+                .isEmpty();
+        assertThat(zoneStatDailyRepository.findById(new ZoneStatDailyId(zoneId, emptyDay)))
+                .isEmpty();
     }
 
     @Test
@@ -160,12 +169,14 @@ class MissingStatFillIntegrationTest {
     }
 
     private ZoneStatHourly hourly(Long zoneId, LocalDateTime statAt) {
-        return zoneStatHourlyRepository.findById(new ZoneStatHourlyId(zoneId, statAt)).orElseThrow();
+        return zoneStatHourlyRepository
+                .findById(new ZoneStatHourlyId(zoneId, statAt))
+                .orElseThrow();
     }
 
     private StatValues values(String avg, int sampleSec) {
-        return new StatValues(new BigDecimal(avg), 1, 0, new BigDecimal("0.1000"),
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sampleSec);
+        return new StatValues(
+                new BigDecimal(avg), 1, 0, new BigDecimal("0.1000"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sampleSec);
     }
 
     // 한 시간에 1분 행 하나만 넣는다(sample_sec가 그 시간의 받은 초)
@@ -185,10 +196,15 @@ class MissingStatFillIntegrationTest {
     private Long saveZone(String regionCode) {
         jdbcTemplate.update("INSERT INTO region (level, code, name, boundary, center_lat, center_lng)"
                 + " VALUES ('EMD', '" + regionCode + "', '보충 테스트동', '{}', 37.600000, 127.002000)");
-        Long dongId = jdbcTemplate.queryForObject(
-                "SELECT id FROM region WHERE code = '" + regionCode + "'", Long.class);
-        Zone zone = new Zone(dongId, "보충 구역 " + regionCode, new BigDecimal("100.00"), "{}",
-                new BigDecimal("37.600000"), new BigDecimal("127.002000"));
+        Long dongId =
+                jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = '" + regionCode + "'", Long.class);
+        Zone zone = new Zone(
+                dongId,
+                "보충 구역 " + regionCode,
+                new BigDecimal("100.00"),
+                "{}",
+                new BigDecimal("37.600000"),
+                new BigDecimal("127.002000"));
         return zoneRepository.save(zone).getId();
     }
 }

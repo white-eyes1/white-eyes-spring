@@ -64,12 +64,10 @@ class CompareCalculatorTest {
     @Test
     @DisplayName("FNC-C-020 기준 평균이 0이거나 어느 한쪽이 없는 칸은 비교 불가(rate null, 정상)")
     void notComparableCells() {
-        Map<LocalDateTime, BigDecimal> target = Map.of(
-                MON_09, new BigDecimal("50"),
-                MON_09.plusHours(1), new BigDecimal("50"));
-        Map<LocalDateTime, BigDecimal> base = Map.of(
-                BASE_MON_09, BigDecimal.ZERO,
-                BASE_MON_09.plusHours(2), new BigDecimal("80"));
+        Map<LocalDateTime, BigDecimal> target =
+                Map.of(MON_09, new BigDecimal("50"), MON_09.plusHours(1), new BigDecimal("50"));
+        Map<LocalDateTime, BigDecimal> base =
+                Map.of(BASE_MON_09, BigDecimal.ZERO, BASE_MON_09.plusHours(2), new BigDecimal("80"));
 
         CompareResponse response = CompareCalculator.compare(target, base, THRESHOLD);
 
@@ -93,14 +91,20 @@ class CompareCalculatorTest {
     @DisplayName("FNC-C-020 전체 증감률은 비교 가능한 칸의 대상 평균들의 평균과 기준 평균들의 평균으로 계산한다")
     void totalRate() {
         Map<LocalDateTime, BigDecimal> target = Map.of(
-                MON_09, new BigDecimal("150"),
-                MON_09.plusHours(1), new BigDecimal("60"),
+                MON_09,
+                new BigDecimal("150"),
+                MON_09.plusHours(1),
+                new BigDecimal("60"),
                 // 기준이 0인 칸은 전체에서 빠진다
-                MON_09.plusHours(2), new BigDecimal("1000"));
+                MON_09.plusHours(2),
+                new BigDecimal("1000"));
         Map<LocalDateTime, BigDecimal> base = Map.of(
-                BASE_MON_09, new BigDecimal("100"),
-                BASE_MON_09.plusHours(1), new BigDecimal("50"),
-                BASE_MON_09.plusHours(2), BigDecimal.ZERO);
+                BASE_MON_09,
+                new BigDecimal("100"),
+                BASE_MON_09.plusHours(1),
+                new BigDecimal("50"),
+                BASE_MON_09.plusHours(2),
+                BigDecimal.ZERO);
 
         CompareResponse response = CompareCalculator.compare(target, base, THRESHOLD);
 
@@ -114,8 +118,12 @@ class CompareCalculatorTest {
         CompareResponse response = CompareCalculator.compare(Map.of(), Map.of(), THRESHOLD);
 
         assertThat(response.cells()).hasSize(168);
-        assertThat(response.cells().get(0)).extracting(CompareCell::weekday, CompareCell::hour).containsExactly(1, 0);
-        assertThat(response.cells().get(167)).extracting(CompareCell::weekday, CompareCell::hour).containsExactly(7, 23);
+        assertThat(response.cells().get(0))
+                .extracting(CompareCell::weekday, CompareCell::hour)
+                .containsExactly(1, 0);
+        assertThat(response.cells().get(167))
+                .extracting(CompareCell::weekday, CompareCell::hour)
+                .containsExactly(7, 23);
         assertThat(response.cells()).allSatisfy(cell -> {
             assertThat(cell.targetAvg()).isNull();
             assertThat(cell.rate()).isNull();

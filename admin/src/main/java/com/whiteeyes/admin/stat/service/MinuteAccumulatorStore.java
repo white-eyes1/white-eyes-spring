@@ -81,10 +81,12 @@ public class MinuteAccumulatorStore {
     public synchronized Map<Long, LatestSecond> findLatestSecondByZone() {
         Map<Long, LatestSecond> latestByZone = new HashMap<>();
         for (MinuteAccumulator accumulator : accumulators.values()) {
-            accumulator.latestSecond().ifPresent(entry -> latestByZone.merge(
-                    accumulator.getZoneId(),
-                    new LatestSecond(entry.getKey(), entry.getValue().personCount()),
-                    (left, right) -> left.second().isAfter(right.second()) ? left : right));
+            accumulator
+                    .latestSecond()
+                    .ifPresent(entry -> latestByZone.merge(
+                            accumulator.getZoneId(),
+                            new LatestSecond(entry.getKey(), entry.getValue().personCount()),
+                            (left, right) -> left.second().isAfter(right.second()) ? left : right));
         }
         return latestByZone;
     }

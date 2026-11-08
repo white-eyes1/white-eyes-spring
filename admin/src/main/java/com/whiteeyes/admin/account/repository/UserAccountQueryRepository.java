@@ -1,9 +1,8 @@
 package com.whiteeyes.admin.account.repository;
 
-import com.whiteeyes.admin.account.dto.UserSearchRequest;
-import com.whiteeyes.admin.account.dto.AccountSortField;
-import com.whiteeyes.common.account.entity.UserAccount;
-import com.whiteeyes.common.account.entity.UserAccountStatus;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -12,10 +11,13 @@ import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+
+import com.whiteeyes.admin.account.dto.AccountSortField;
+import com.whiteeyes.admin.account.dto.UserSearchRequest;
+import com.whiteeyes.common.account.entity.UserAccount;
+import com.whiteeyes.common.account.entity.UserAccountStatus;
 
 /**
  * 사용자 목록 조회(FNC-A-002 처리 순서 1). 검색어·상태·가입일 조건을 골라 붙여야 해서 Criteria로 만든다.
@@ -112,11 +114,12 @@ public class UserAccountQueryRepository {
 
     // 같은 값이면 번호로 한 번 더 정렬해 페이지를 넘겨도 순서가 흔들리지 않게 한다(UserListAssembler와 같은 규칙)
     private static List<SortKey> sortOrder(AccountSortField field, boolean ascending) {
-        String attribute = switch (field) {
-            case CREATED_AT -> "createdAt";
-            case LOGIN_ID -> "loginId";
-            case LAST_ACTIVE_AT -> throw new IllegalArgumentException("최근 활동은 DB 칼럼이 아니다");
-        };
+        String attribute =
+                switch (field) {
+                    case CREATED_AT -> "createdAt";
+                    case LOGIN_ID -> "loginId";
+                    case LAST_ACTIVE_AT -> throw new IllegalArgumentException("최근 활동은 DB 칼럼이 아니다");
+                };
         return List.of(new SortKey(attribute, ascending), new SortKey("id", ascending));
     }
 

@@ -1,11 +1,12 @@
 package com.whiteeyes.common.event.service;
 
-import com.whiteeyes.common.event.dto.UncheckedCountResponse;
-import com.whiteeyes.common.event.entity.EventStatus;
-import com.whiteeyes.common.event.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.common.event.dto.UncheckedCountResponse;
+import com.whiteeyes.common.event.entity.EventStatus;
+import com.whiteeyes.common.event.repository.EventRepository;
 
 /**
  * 미확인 이벤트 수(FNC-A-048). 기간·구역과 관계없이 처리 상태가 미확인인 이벤트 전체를 센다(헤더 배지 숫자).

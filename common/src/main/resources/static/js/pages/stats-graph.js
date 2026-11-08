@@ -17,7 +17,13 @@ import { crumbLabel, drillDown } from './stats-graph/drill.js';
 const SERIES_API = '/api/v1/stats/series';
 const CHILDREN_API = '/api/v1/stats/children';
 // 하위 비교 항목 코드(conventions.md '통계 항목') → 그래프 항목 키(SERIES_ITEMS)
-const COMPARE_ITEM_KEYS = { COUNT: 'count', DENSITY: 'density', INFLOW: 'inflow', OUTFLOW: 'outflow', DWELL: 'dwellAvgSec' };
+const COMPARE_ITEM_KEYS = {
+    COUNT: 'count',
+    DENSITY: 'density',
+    INFLOW: 'inflow',
+    OUTFLOW: 'outflow',
+    DWELL: 'dwellAvgSec',
+};
 const LEVEL_LABELS = ['시·도', '시·군·구', '읍·면·동'];
 const DEFAULT_INTERVAL = '1h';
 const MINUTE_MS = 60_000;
@@ -128,7 +134,10 @@ async function start() {
 async function children(parentId) {
     const key = parentId ?? 'root';
     if (!childrenCache.has(key)) {
-        childrenCache.set(key, await get('/api/v1/regions', parentId === null ? undefined : { parentId }));
+        childrenCache.set(
+            key,
+            await get('/api/v1/regions', parentId === null ? undefined : { parentId }),
+        );
     }
     return childrenCache.get(key);
 }
@@ -190,8 +199,15 @@ async function selectTarget(targetType, targetId) {
 async function renderTargetSelects() {
     for (let depth = 0; depth < regionSelects.length; depth++) {
         const select = regionSelects[depth];
-        const options = depth === 0 ? await children(null) : path[depth - 1] ? await children(path[depth - 1].id) : [];
-        select.replaceChildren(...optionList(options, depth > 0 ? `${LEVEL_LABELS[depth]} 전체` : null));
+        const options =
+            depth === 0
+                ? await children(null)
+                : path[depth - 1]
+                  ? await children(path[depth - 1].id)
+                  : [];
+        select.replaceChildren(
+            ...optionList(options, depth > 0 ? `${LEVEL_LABELS[depth]} 전체` : null),
+        );
         select.value = path[depth] ? String(path[depth].id) : '';
         select.disabled = options.length === 0 || (depth > 0 && !path[depth - 1]);
         select.onchange = () => onRegionChange(depth, select.value);
@@ -443,7 +459,12 @@ async function onPointClick(index, position) {
         if (available) {
             drillInto(at);
         } else {
-            showPointMenu(index, position, [], available === null ? LOAD_FAILED_MESSAGE : NO_MINUTE_MESSAGE);
+            showPointMenu(
+                index,
+                position,
+                [],
+                available === null ? LOAD_FAILED_MESSAGE : NO_MINUTE_MESSAGE,
+            );
         }
         return;
     }
@@ -451,7 +472,12 @@ async function onPointClick(index, position) {
     const minuteButton = menuButton('1분 단위로 보기', () => drillInto(at));
     minuteButton.setAttribute('aria-disabled', 'true');
     const playbackLink = menuLink('다시보기', zone ? playbackUrl(atText) : null);
-    showPointMenu(index, position, [minuteButton, playbackLink], zone ? null : PLAYBACK_ZONE_ONLY_MESSAGE);
+    showPointMenu(
+        index,
+        position,
+        [minuteButton, playbackLink],
+        zone ? null : PLAYBACK_ZONE_ONLY_MESSAGE,
+    );
     const available = await hasMinuteData(at);
     if (requestId !== latestMenuRequestId || pointMenu.hidden) {
         return;
@@ -470,10 +496,20 @@ function drillInto(at) {
         return;
     }
     if (trail.length === 0) {
-        trail.push({ interval, from, to, label: `${INTERVALS[interval].label} 단위`, clickedInterval: null });
+        trail.push({
+            interval,
+            from,
+            to,
+            label: `${INTERVALS[interval].label} 단위`,
+            clickedInterval: null,
+        });
     }
     const parent = trail[trail.length - 1];
-    trail.push({ ...next, label: crumbLabel(interval, at, parent.clickedInterval), clickedInterval: interval });
+    trail.push({
+        ...next,
+        label: crumbLabel(interval, at, parent.clickedInterval),
+        clickedInterval: interval,
+    });
     showView(next);
 }
 
@@ -532,7 +568,12 @@ async function hasMinuteData(at) {
     try {
         const response = await get(
             SERIES_API,
-            { ...currentTarget(), interval: '1m', from: toInputValue(hour.from), to: toInputValue(hour.to) },
+            {
+                ...currentTarget(),
+                interval: '1m',
+                from: toInputValue(hour.from),
+                to: toInputValue(hour.to),
+            },
             { toast: false },
         );
         return response.items.some((point) => point.sampleSec > 0);
@@ -600,7 +641,10 @@ function showPointMenu(index, position, actions, notice) {
     const x = canvas.offsetLeft + position.x;
     const y = canvas.offsetTop + position.y;
     const gap = 12;
-    const left = x + gap + pointMenu.offsetWidth > box.clientWidth ? x - gap - pointMenu.offsetWidth : x + gap;
+    const left =
+        x + gap + pointMenu.offsetWidth > box.clientWidth
+            ? x - gap - pointMenu.offsetWidth
+            : x + gap;
     pointMenu.style.left = `${Math.max(left, 0)}px`;
     pointMenu.style.top = `${Math.max(Math.min(y - pointMenu.offsetHeight / 2, box.clientHeight - pointMenu.offsetHeight), 0)}px`;
 }
@@ -695,7 +739,9 @@ function render() {
     // '최대·최소 띠'는 통합 그래프의 인원 선에만 붙으므로 인원을 끄거나 하위 비교 중이면 쓸 수 없다
     const bandUsable = !comparing && selectedItems().includes('count');
     bandToggle.disabled = !bandUsable;
-    bandToggle.closest('label').title = bandUsable ? '' : '인원 항목을 켜고 하위 비교를 끈 상태에서만 쓸 수 있습니다';
+    bandToggle.closest('label').title = bandUsable
+        ? ''
+        : '인원 항목을 켜고 하위 비교를 끈 상태에서만 쓸 수 있습니다';
     if (comparing) {
         renderCompare();
         return;
@@ -706,13 +752,18 @@ function render() {
     const seriesByItem = {};
     keys.forEach((key) => {
         // 인원은 평균 선, '최대·최소 띠'를 켜면 최대~최소 띠도
-        seriesByItem[key] = key === 'count' && bandToggle.checked
-            ? {
-                values: items.map((point) => valueOf(point, 'countAvg')),
-                high: items.map((point) => valueOf(point, 'countMax')),
-                low: items.map((point) => valueOf(point, 'countMin')),
-            }
-            : { values: items.map((point) => valueOf(point, key === 'count' ? 'countAvg' : key)) };
+        seriesByItem[key] =
+            key === 'count' && bandToggle.checked
+                ? {
+                      values: items.map((point) => valueOf(point, 'countAvg')),
+                      high: items.map((point) => valueOf(point, 'countMax')),
+                      low: items.map((point) => valueOf(point, 'countMin')),
+                  }
+                : {
+                      values: items.map((point) =>
+                          valueOf(point, key === 'count' ? 'countAvg' : key),
+                      ),
+                  };
     });
     pointTimes = items.map((point) => point.at);
     // 시연용 점(FNC-C-024)은 옅은 배경, 하나라도 있으면 '시연용 데이터 포함' 배지
@@ -741,7 +792,9 @@ function renderCompare() {
         COMPARE_ITEM_KEYS[compareItemSelect.value],
         series.map((child) => ({
             name: child.name,
-            values: child.points.map((point) => (point.value === null ? null : Number(point.value))),
+            values: child.points.map((point) =>
+                point.value === null ? null : Number(point.value),
+            ),
         })),
     );
     // 10개를 넘으면 인원 평균 상위 10개만 온다(FNC-C-014 업무 규칙)
@@ -766,7 +819,9 @@ function axisLabel(at) {
     switch (interval) {
         case '1m':
         case '1h':
-            return to.getTime() - from.getTime() > 24 * 60 * MINUTE_MS ? text.slice(5) : text.slice(11);
+            return to.getTime() - from.getTime() > 24 * 60 * MINUTE_MS
+                ? text.slice(5)
+                : text.slice(11);
         case '1d':
         case '1w':
             return text.slice(5, 10);
@@ -804,7 +859,8 @@ function errorText(error) {
     }
     if (error.fieldErrors.length > 0) {
         const details = error.fieldErrors.map(
-            (fieldError) => `${FIELD_LABELS[fieldError.field] ?? fieldError.field}: ${fieldError.message}`,
+            (fieldError) =>
+                `${FIELD_LABELS[fieldError.field] ?? fieldError.field}: ${fieldError.message}`,
         );
         return `${error.message} (${details.join(' / ')})`;
     }
@@ -856,5 +912,12 @@ function parseLocal(text) {
         return null;
     }
     const [, year, month, day, hour = '0', minute = '0', second = '0'] = match;
-    return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+    return new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second),
+    );
 }

@@ -5,16 +5,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +24,11 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** FNC-A-020 캠 가동. 분석 서버는 같은 JVM에 띄운 가짜 HTTP 서버로 대신한다. */
 // 운영 설정(open-in-view: false)과 같게 맞춘다. 켜 두면 요청 하나가 영속성 컨텍스트를 공유해 단계별 커밋을 검증할 수 없다
@@ -102,7 +101,9 @@ class CameraStartTest {
         long cameraId = insertCamera("STOPPED", 0, null, false, null);
         ANALYZER.replyWith(200, "{\"cameraId\":" + cameraId + ",\"status\":\"PREPARING\"}");
 
-        start(cameraId).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PREPARING"));
+        start(cameraId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PREPARING"));
 
         Map<String, Object> row = camera(cameraId);
         assertThat(row.get("STATUS")).isEqualTo("PREPARING");
@@ -135,7 +136,9 @@ class CameraStartTest {
         long cameraId = insertCamera("STOPPED", 0, null, false, null);
         ANALYZER.replyWith(200, "{\"cameraId\":" + cameraId + ",\"status\":\"RUNNING\"}");
 
-        start(cameraId).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RUNNING"));
+        start(cameraId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RUNNING"));
 
         assertThat(camera(cameraId).get("STATUS")).isEqualTo("RUNNING");
     }
@@ -173,18 +176,23 @@ class CameraStartTest {
             long cameraId = insertCamera(state, 10, null, true, null);
             jdbcTemplate.update("UPDATE camera SET run_requested = 0 WHERE id = ?", cameraId);
 
-            start(cameraId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_STATUS"));
+            start(cameraId)
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("INVALID_STATUS"));
 
             assertThat(ANALYZER.callCount).as(state).isZero();
             assertThat(camera(cameraId).get("STATUS")).isEqualTo(state);
-            assertThat(isRunRequested(camera(cameraId))).as(state + " run_requested 유지").isFalse();
+            assertThat(isRunRequested(camera(cameraId)))
+                    .as(state + " run_requested 유지")
+                    .isFalse();
             jdbcTemplate.update("DELETE FROM event");
             jdbcTemplate.update("DELETE FROM camera");
         }
     }
 
     @Test
-    @DisplayName("분석 서버 연결이 끊기면 502 ANALYZER_UNAVAILABLE, status=ERROR·'분석 서버 연결 실패', run_requested=1 유지, first_started_at 비어 있음")
+    @DisplayName(
+            "분석 서버 연결이 끊기면 502 ANALYZER_UNAVAILABLE, status=ERROR·'분석 서버 연결 실패', run_requested=1 유지, first_started_at 비어 있음")
     void start_analyzerConnectionFails_badGatewayAndError() throws Exception {
         long cameraId = insertCamera("STOPPED", 0, null, false, null);
         ANALYZER.dropConnection();
@@ -207,7 +215,9 @@ class CameraStartTest {
         ANALYZER.replyWithDelay(200, "{\"cameraId\":" + cameraId + ",\"status\":\"PREPARING\"}", 7_000);
 
         long begin = System.currentTimeMillis();
-        start(cameraId).andExpect(status().isBadGateway()).andExpect(jsonPath("$.code").value("ANALYZER_UNAVAILABLE"));
+        start(cameraId)
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value("ANALYZER_UNAVAILABLE"));
         long elapsed = System.currentTimeMillis() - begin;
 
         assertThat(elapsed).isBetween(4_500L, 6_800L);
@@ -216,7 +226,8 @@ class CameraStartTest {
     }
 
     @Test
-    @DisplayName("분석 서버 응답을 기다리는 동안 정지가 끝나면(STOPPED·run_requested=0) 응답이 와도 PREPARING으로 덮어쓰지 않고 first_started_at도 남기지 않는다")
+    @DisplayName(
+            "분석 서버 응답을 기다리는 동안 정지가 끝나면(STOPPED·run_requested=0) 응답이 와도 PREPARING으로 덮어쓰지 않고 first_started_at도 남기지 않는다")
     void start_stoppedWhileWaiting_doesNotOverwrite() throws Exception {
         long cameraId = insertCamera("STOPPED", 0, null, false, null);
         ANALYZER.replyWithDelay(200, "{\"cameraId\":" + cameraId + ",\"status\":\"PREPARING\"}", 1_000);
@@ -227,7 +238,8 @@ class CameraStartTest {
             while (ANALYZER.callCount == 0 && System.currentTimeMillis() < deadline) {
                 Thread.onSpinWait();
             }
-            jdbcTemplate.update("UPDATE camera SET status = 'STOPPED', run_requested = 0, progress = 0 WHERE id = ?", cameraId);
+            jdbcTemplate.update(
+                    "UPDATE camera SET status = 'STOPPED', run_requested = 0, progress = 0 WHERE id = ?", cameraId);
         });
         stopper.start();
         start(cameraId).andExpect(status().isOk());
@@ -244,16 +256,20 @@ class CameraStartTest {
         long cameraId = insertCamera("STOPPED", 0, null, false, null);
         ANALYZER.replyWith(200, "{\"cameraId\":" + cameraId + ",\"status\":\"PREPARING\"}");
 
-        java.time.LocalDateTime before = java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).minusSeconds(5);
+        java.time.LocalDateTime before =
+                java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).minusSeconds(5);
         start(cameraId).andExpect(status().isOk());
-        java.time.LocalDateTime after = java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).plusSeconds(5);
+        java.time.LocalDateTime after =
+                java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).plusSeconds(5);
 
-        java.time.LocalDateTime saved = ((java.sql.Timestamp) camera(cameraId).get("FIRST_STARTED_AT")).toLocalDateTime();
+        java.time.LocalDateTime saved =
+                ((java.sql.Timestamp) camera(cameraId).get("FIRST_STARTED_AT")).toLocalDateTime();
         assertThat(saved).isBetween(before, after);
     }
 
     @Test
-    @DisplayName("분석 서버가 400 SOURCE_NOT_FOUND로 답하면 422 SOURCE_NOT_FOUND, status=ERROR·'영상 파일·스트림 없음', run_requested=1 유지")
+    @DisplayName(
+            "분석 서버가 400 SOURCE_NOT_FOUND로 답하면 422 SOURCE_NOT_FOUND, status=ERROR·'영상 파일·스트림 없음', run_requested=1 유지")
     void start_sourceNotFound_unprocessableAndError() throws Exception {
         long cameraId = insertCamera("STOPPED", 0, null, false, null);
         ANALYZER.replyWith(400, "{\"code\":\"SOURCE_NOT_FOUND\",\"message\":\"영상 파일이 없습니다.\"}");
@@ -270,7 +286,8 @@ class CameraStartTest {
     }
 
     @Test
-    @DisplayName("FNC-A-020 분석 서버가 409 CAMERA_STOPPING으로 답하면 409 CAMERA_STOPPING이고 캠은 요청 전 그대로(STOPPED·run_requested=0), 첫 가동·작업 기록도 없다")
+    @DisplayName(
+            "FNC-A-020 분석 서버가 409 CAMERA_STOPPING으로 답하면 409 CAMERA_STOPPING이고 캠은 요청 전 그대로(STOPPED·run_requested=0), 첫 가동·작업 기록도 없다")
     void start_cameraStopping_revertsToBefore() throws Exception {
         long cameraId = insertCamera("STOPPED", 0, null, false, null);
         ANALYZER.replyWith(409, "{\"code\":\"CAMERA_STOPPING\",\"message\":\"정지 중\"}");
@@ -298,7 +315,9 @@ class CameraStartTest {
         long cameraId = insertCamera("ERROR", 0, "분석 서버 연결 실패", true, null);
         ANALYZER.replyWith(409, "{\"code\":\"CAMERA_STOPPING\"}");
 
-        start(cameraId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CAMERA_STOPPING"));
+        start(cameraId)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CAMERA_STOPPING"));
 
         Map<String, Object> row = camera(cameraId);
         assertThat(row.get("STATUS")).isEqualTo("ERROR");
@@ -314,7 +333,9 @@ class CameraStartTest {
         start(cameraId).andExpect(status().isConflict());
 
         ANALYZER.replyWith(200, "{\"status\":\"PREPARING\"}");
-        start(cameraId).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PREPARING"));
+        start(cameraId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PREPARING"));
 
         Map<String, Object> row = camera(cameraId);
         assertThat(row.get("STATUS")).isEqualTo("PREPARING");
@@ -376,11 +397,13 @@ class CameraStartTest {
     }
 
     private ResultActions start(long cameraId) throws Exception {
-        return mockMvc.perform(post("/api/v1/manage/cameras/{id}/start", cameraId).with(AdminTestLogin.admin()));
+        return mockMvc.perform(
+                post("/api/v1/manage/cameras/{id}/start", cameraId).with(AdminTestLogin.admin()));
     }
 
     // 구역당 캠 1대 규칙 때문에 한 번에 한 대만 만든다(테스트 안에서 반복할 때는 먼저 지운다)
-    private long insertCamera(String status, int progress, String errorMessage, boolean runRequested, String firstStartedAt) {
+    private long insertCamera(
+            String status, int progress, String errorMessage, boolean runRequested, String firstStartedAt) {
         jdbcTemplate.update(
                 "INSERT INTO camera (zone_id, name, source_type, source_uri, run_requested, status, progress, error_message, first_started_at) "
                         + "VALUES (?, ?, 'DUMMY', ?, ?, ?, ?, ?, ?)",

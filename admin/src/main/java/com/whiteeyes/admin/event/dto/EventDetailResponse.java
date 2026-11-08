@@ -1,11 +1,13 @@
 package com.whiteeyes.admin.event.dto;
 
-import com.whiteeyes.common.event.entity.EventStatus;
-import com.whiteeyes.common.event.entity.EventType;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+
 import tools.jackson.databind.JsonNode;
+
+import com.whiteeyes.common.event.entity.EventStatus;
+import com.whiteeyes.common.event.entity.EventType;
 
 /**
  * 이벤트 상세(api/public.md GET /api/v1/events/{id}, FNC-A-037). 목록 행({@link EventListItem})의 필드에

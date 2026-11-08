@@ -46,14 +46,18 @@ public enum StatInterval {
 
     /** 요청 값(1m 등)으로 찾는다. 없는 값이면 빈 값. */
     public static Optional<StatInterval> fromCode(String code) {
-        return Arrays.stream(values()).filter(interval -> interval.code.equals(code)).findFirst();
+        return Arrays.stream(values())
+                .filter(interval -> interval.code.equals(code))
+                .findFirst();
     }
 
     /** 시각이 속한 구간의 시작 시각. 주·월·연은 truncatedTo로 내릴 수 없어 날짜로 맞춘다. */
     public LocalDateTime floor(LocalDateTime time) {
         return switch (this) {
             case MINUTE, HOUR, DAY -> time.truncatedTo(unit);
-            case WEEK -> time.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay();
+            case WEEK -> time.toLocalDate()
+                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .atStartOfDay();
             case MONTH -> time.toLocalDate().withDayOfMonth(1).atStartOfDay();
             case YEAR -> time.toLocalDate().withDayOfYear(1).atStartOfDay();
         };

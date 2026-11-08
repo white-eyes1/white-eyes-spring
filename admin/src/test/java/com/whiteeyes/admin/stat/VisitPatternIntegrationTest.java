@@ -170,7 +170,9 @@ class VisitPatternIntegrationTest {
         mockMvc.perform(request(zone, "2099/01/01", "2099-01-02"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("from"));
-        mockMvc.perform(get(URL).with(AdminTestLogin.admin()).param("targetType", "REGION").param("targetId", "999999"))
+        mockMvc.perform(get(URL).with(AdminTestLogin.admin())
+                        .param("targetType", "REGION")
+                        .param("targetId", "999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"));
     }
@@ -183,8 +185,7 @@ class VisitPatternIntegrationTest {
         return pattern.cells().get((weekday - 1) * 24 + hour).avgCount();
     }
 
-    private MockHttpServletRequestBuilder request(
-            String zoneId, String from, String to) {
+    private MockHttpServletRequestBuilder request(String zoneId, String from, String to) {
         return get(URL).with(AdminTestLogin.admin())
                 .param("targetType", "ZONE")
                 .param("targetId", zoneId)

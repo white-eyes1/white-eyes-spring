@@ -1,5 +1,13 @@
 package com.whiteeyes.admin.account.service;
 
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.account.dto.ForceLogoutResponse;
 import com.whiteeyes.admin.account.entity.AdminAccount;
 import com.whiteeyes.admin.account.exception.AdminNotFoundException;
@@ -12,12 +20,6 @@ import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 접속 중인 사용자 또는 관리자를 강제로 로그아웃시킨다(FNC-A-008). 사용자는 관리자 이상, 관리자는 최고 관리자만 부를 수 있다

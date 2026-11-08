@@ -9,25 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.stat.service.DirectionCounts;
-import com.whiteeyes.admin.stat.service.MinuteAccumulatorStore;
-import com.whiteeyes.admin.stat.service.SecondResult;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.common.level.service.LevelService;
-import com.whiteeyes.common.region.service.RegionQueryService;
-import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
-import com.whiteeyes.common.stat.service.NowCountSource;
-import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
-import jakarta.persistence.EntityManagerFactory;
-import java.math.BigDecimal;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -35,6 +24,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
@@ -53,6 +44,17 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.json.JsonMapper;
 
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.stat.service.DirectionCounts;
+import com.whiteeyes.admin.stat.service.MinuteAccumulatorStore;
+import com.whiteeyes.admin.stat.service.SecondResult;
+import com.whiteeyes.common.level.service.LevelService;
+import com.whiteeyes.common.region.service.RegionQueryService;
+import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
+import com.whiteeyes.common.stat.service.NowCountSource;
+import com.whiteeyes.common.stat.service.StatStreamBroadcaster;
+
 // 테스트 행정구역 파일: 서울(11) → 종로구(11110: 사직동 11110530, 삼청동 11110540), 중구(11140: 소공동 11140520)
 /**
  * 실시간 통계 갱신(FNC-C-022). 검수 기준: 두 브라우저에서 같은 분 통계가 동시에 반영, DB 조회 횟수가 접속자 수와 무관.
@@ -61,10 +63,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Import(AdminTestUserConfig.class)
 // 테스트용 application.yml이 운영 설정을 가려 open-in-view가 켜지면 끝나지 않는 SSE 요청이 DB 연결을 붙들어 연결 풀이 바닥난다
 @SpringBootTest(
-        properties = {
-            "spring.jpa.properties.hibernate.generate_statistics=true",
-            "spring.jpa.open-in-view=false"
-        })
+        properties = {"spring.jpa.properties.hibernate.generate_statistics=true", "spring.jpa.open-in-view=false"})
 @AutoConfigureMockMvc
 class StatStreamTest {
 
@@ -247,9 +246,8 @@ class StatStreamTest {
     void startup_existingMinute_notSent() {
         LocalDateTime existing = nextMinute();
         insertStat(samcheongZone, existing, "10.00", "0.1000");
-        StatStreamBroadcaster fresh =
-                new StatStreamBroadcaster(
-                        zoneStatMinuteRepository, regionQueryService, levelService, nowCountSource, jsonMapper, false);
+        StatStreamBroadcaster fresh = new StatStreamBroadcaster(
+                zoneStatMinuteRepository, regionQueryService, levelService, nowCountSource, jsonMapper, false);
 
         assertThat(fresh.pollOnce()).isNull();
 
@@ -297,7 +295,8 @@ class StatStreamTest {
         broadcaster.sendHeartbeatNow();
 
         await().atMost(Duration.ofSeconds(3))
-                .untilAsserted(() -> assertThat(stream.getResponse().getContentAsString()).contains(":keepalive"));
+                .untilAsserted(() ->
+                        assertThat(stream.getResponse().getContentAsString()).contains(":keepalive"));
     }
 
     @Test
@@ -313,8 +312,10 @@ class StatStreamTest {
         long begin = System.nanoTime();
         broadcaster.pollOnce();
         assertThat(Duration.ofNanos(System.nanoTime() - begin)).isLessThan(Duration.ofSeconds(1));
-        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(dataLines(healthy)).hasSize(1));
-        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(blocked.started.get()).isEqualTo(1));
+        await().atMost(Duration.ofSeconds(1))
+                .untilAsserted(() -> assertThat(dataLines(healthy)).hasSize(1));
+        await().atMost(Duration.ofSeconds(1))
+                .untilAsserted(() -> assertThat(blocked.started.get()).isEqualTo(1));
 
         // 막힌 동안 하트비트와 이어지는 두 분이 와도 다른 구독자는 늦지 않는다
         broadcaster.sendHeartbeatNow();
@@ -322,14 +323,16 @@ class StatStreamTest {
         broadcaster.pollOnce();
         insertStat(samcheongZone, nextMinute(), "30.00", "0.3000");
         broadcaster.pollOnce();
-        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(dataLines(healthy)).hasSize(3));
+        await().atMost(Duration.ofSeconds(1))
+                .untilAsserted(() -> assertThat(dataLines(healthy)).hasSize(3));
         assertThat(healthy.getResponse().getContentAsString()).contains(":keepalive");
         // 막힌 구독자에게는 더 시작된 전송이 없다(스레드 하나만 붙들려 있다)
         assertThat(blocked.started.get()).isEqualTo(1);
 
         // 풀리면 쌓아 둔 것 중 가장 최근 분(셋째)만 이어 받는다. 둘째 분은 셋째가 대신했다
         blocked.release();
-        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(blocked.sent).hasSize(2));
+        await().atMost(Duration.ofSeconds(2))
+                .untilAsserted(() -> assertThat(blocked.sent).hasSize(2));
         assertThat(blocked.sent.get(1)).contains("30.00");
         assertThat(blocked.sent.stream().filter(sent -> sent.contains("20.00"))).isEmpty();
     }
@@ -357,7 +360,8 @@ class StatStreamTest {
         insertStat(samcheongZone, nextMinute(), "10.00", "0.1000");
         broadcaster.pollOnce();
         awaitDataLines(healthy, 1);
-        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(broadcaster.subscriberCount()).isEqualTo(1));
+        await().atMost(Duration.ofSeconds(1))
+                .untilAsserted(() -> assertThat(broadcaster.subscriberCount()).isEqualTo(1));
 
         insertStat(samcheongZone, nextMinute(), "20.00", "0.2000");
         broadcaster.pollOnce();
@@ -469,7 +473,8 @@ class StatStreamTest {
 
         insertStat(samcheongZone, nextMinute(), "10.00", "0.1000");
         broadcaster.pollOnce();
-        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(blocked.started.get()).isEqualTo(1));
+        await().atMost(Duration.ofSeconds(1))
+                .untilAsserted(() -> assertThat(blocked.started.get()).isEqualTo(1));
 
         insertStat(samcheongZone, nextMinute(), "20.00", "0.2000");
         broadcaster.pollOnce();
@@ -477,7 +482,8 @@ class StatStreamTest {
         broadcaster.pollNowOnce(NOW_BASE);
 
         blocked.release();
-        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(blocked.sent).hasSize(3));
+        await().atMost(Duration.ofSeconds(2))
+                .untilAsserted(() -> assertThat(blocked.sent).hasSize(3));
         assertThat(blocked.sent.get(0)).contains("10.00");
         assertThat(blocked.sent.get(1)).contains("20.00");
         assertThat(blocked.sent.get(2)).contains("\"currentCount\":33");
@@ -519,13 +525,16 @@ class StatStreamTest {
     }
 
     private List<String> awaitDataLines(MvcResult stream, int count) throws Exception {
-        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(dataLines(stream)).hasSize(count));
+        await().atMost(Duration.ofSeconds(3))
+                .untilAsserted(() -> assertThat(dataLines(stream)).hasSize(count));
         return dataLines(stream);
     }
 
     // 응답 본문에서 event: stat 의 data 줄만 순서대로
     private List<String> dataLines(MvcResult stream) throws Exception {
-        return stream.getResponse().getContentAsString().lines()
+        return stream.getResponse()
+                .getContentAsString()
+                .lines()
                 .filter(line -> line.startsWith("data:"))
                 .map(line -> line.substring("data:".length()))
                 .toList();
@@ -601,7 +610,8 @@ class StatStreamTest {
         // 공유 누적기에 넣은 현재 인원 결과를 비운다(사라진 구역이 다음 시험의 event: now 에 섞이지 않게)
         for (long zoneId : List.of(samcheongZone, sajikZone, sogongZone)) {
             accumulatorStore.closeMinute(zoneId, NOW_BASE.truncatedTo(java.time.temporal.ChronoUnit.MINUTES));
-            accumulatorStore.closeMinute(zoneId, NOW_BASE.minusMinutes(1).truncatedTo(java.time.temporal.ChronoUnit.MINUTES));
+            accumulatorStore.closeMinute(
+                    zoneId, NOW_BASE.minusMinutes(1).truncatedTo(java.time.temporal.ChronoUnit.MINUTES));
         }
         jdbcTemplate.update("DELETE FROM zone_stat_minute");
         jdbcTemplate.update("DELETE FROM zone");

@@ -13,5 +13,4 @@ import java.math.BigDecimal;
  * @param abnormal |rate| ≥ 기준 %면 true. 비교 불가 칸은 false
  */
 public record CompareCell(
-        int weekday, int hour, BigDecimal targetAvg, BigDecimal baseAvg, BigDecimal rate, boolean abnormal) {
-}
+        int weekday, int hour, BigDecimal targetAvg, BigDecimal baseAvg, BigDecimal rate, boolean abnormal) {}

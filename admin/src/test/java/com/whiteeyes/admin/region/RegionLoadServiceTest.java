@@ -3,14 +3,10 @@ package com.whiteeyes.admin.region;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.whiteeyes.admin.region.exception.RegionFileFormatException;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.common.region.entity.Region;
-import com.whiteeyes.common.region.entity.RegionLevel;
-import com.whiteeyes.common.region.repository.RegionRepository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.whiteeyes.admin.region.exception.RegionFileFormatException;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.common.region.entity.Region;
+import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.repository.RegionRepository;
 
 @SpringBootTest
 class RegionLoadServiceTest {
@@ -47,12 +49,18 @@ class RegionLoadServiceTest {
     @DisplayName("FNC-A-012 다시 실행해도 중복이 없다")
     void loadTwice_noDuplicates() {
         regionLoadService.load(VALID_FILE);
-        long idOfFirstLoad = regionRepository.findByCodeIn(java.util.List.of("11110530")).get(0).getId();
+        long idOfFirstLoad = regionRepository
+                .findByCodeIn(java.util.List.of("11110530"))
+                .get(0)
+                .getId();
 
         regionLoadService.load(VALID_FILE);
 
         assertThat(regionRepository.count()).isEqualTo(6);
-        assertThat(regionRepository.findByCodeIn(java.util.List.of("11110530")).get(0).getId())
+        assertThat(regionRepository
+                        .findByCodeIn(java.util.List.of("11110530"))
+                        .get(0)
+                        .getId())
                 .isEqualTo(idOfFirstLoad);
     }
 
@@ -180,7 +188,9 @@ class RegionLoadServiceTest {
     void load_conflictingSigunguName_fails(@TempDir Path tempDir) throws Exception {
         // 삼청동만 시·군·구 이름을 바꿔 같은 코드(11110)에 이름이 둘이 되게 한다
         String conflict = Files.readString(VALID_FILE)
-                .replace("삼청동\", \"sidonm\": \"서울특별시\", \"sggnm\": \"종로구\"", "삼청동\", \"sidonm\": \"서울특별시\", \"sggnm\": \"다른구\"");
+                .replace(
+                        "삼청동\", \"sidonm\": \"서울특별시\", \"sggnm\": \"종로구\"",
+                        "삼청동\", \"sidonm\": \"서울특별시\", \"sggnm\": \"다른구\"");
 
         assertThatThrownBy(() -> regionLoadService.load(writeTemp(tempDir, conflict)))
                 .isInstanceOf(RegionFileFormatException.class);

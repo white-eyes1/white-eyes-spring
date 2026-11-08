@@ -21,5 +21,4 @@ public record StatValues(
         int outW,
         long dwellSumSec,
         int dwellCount,
-        int sampleSec) {
-}
+        int sampleSec) {}

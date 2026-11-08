@@ -104,7 +104,9 @@ export function createPreviewManager({ onOpen, intervalSec }) {
             el.append(img, placeholder, badge);
 
             const running = camera.status === 'RUNNING';
-            placeholder.textContent = running ? '미리보기를 불러오는 중' : (STATUS_TEXT[camera.status] ?? '');
+            placeholder.textContent = running
+                ? '미리보기를 불러오는 중'
+                : (STATUS_TEXT[camera.status] ?? '');
             const entry = { el, img, badge, placeholder, objectUrl: previous?.objectUrl ?? null };
             if (running && entry.objectUrl) {
                 img.src = entry.objectUrl;

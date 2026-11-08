@@ -1,13 +1,15 @@
 package com.whiteeyes.admin.media.controller;
 
-import com.whiteeyes.admin.media.service.RecordingFileService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.whiteeyes.admin.media.service.RecordingFileService;
 
 /**
  * 녹화 파일 전송(FNC-A-044). 본문 없이 X-Accel-Redirect 헤더만 돌려주고, 파일은 nginx가 Range 요청까지 처리해 보낸다.

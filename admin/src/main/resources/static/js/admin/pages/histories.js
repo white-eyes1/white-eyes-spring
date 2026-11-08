@@ -110,7 +110,8 @@ function clearResult() {
 
 function showError(error) {
     if (error instanceof ApiError) {
-        errorEl.textContent = error.fieldErrors.length > 0 ? error.fieldErrors[0].message : error.message;
+        errorEl.textContent =
+            error.fieldErrors.length > 0 ? error.fieldErrors[0].message : error.message;
     } else {
         console.error(error);
         errorEl.textContent = DEFAULT_ERROR_MESSAGE;
@@ -145,7 +146,12 @@ function buildRow(history) {
     toggle.setAttribute('aria-label', '상세 펼치기');
     row.append(
         cell(document.createTextNode(formatDateTime(history.at))),
-        cell(textWithSmall(history.loginId, ACTOR_TYPE_LABEL[history.actorType] ?? history.actorType)),
+        cell(
+            textWithSmall(
+                history.loginId,
+                ACTOR_TYPE_LABEL[history.actorType] ?? history.actorType,
+            ),
+        ),
         cell(document.createTextNode(history.action)),
         cell(document.createTextNode(targetText(history))),
         cell(toggle),
@@ -172,12 +178,16 @@ function buildRow(history) {
 
 // '캠 · 은행선화1-캠'처럼 대상 종류 이름 · 대상 이름. 이름이 없으면 종류만, 종류도 없으면 '-'
 function targetText(history) {
-    const type = history.targetType ? (TARGET_TYPE_LABEL[history.targetType] ?? history.targetType) : null;
+    const type = history.targetType
+        ? (TARGET_TYPE_LABEL[history.targetType] ?? history.targetType)
+        : null;
     return [type, history.targetName].filter(Boolean).join(' · ') || EMPTY_VALUE;
 }
 
 function detailText(detail) {
-    return detail === null || detail === undefined ? NO_DETAIL_TEXT : JSON.stringify(detail, null, 2);
+    return detail === null || detail === undefined
+        ? NO_DETAIL_TEXT
+        : JSON.stringify(detail, null, 2);
 }
 
 // ---- 페이지 ----

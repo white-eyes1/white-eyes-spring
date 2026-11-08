@@ -1,13 +1,9 @@
 package com.whiteeyes.admin.camera.client;
 
-import com.whiteeyes.admin.camera.exception.AnalyzerUnavailableException;
-import com.whiteeyes.admin.camera.exception.CameraStoppingException;
-import com.whiteeyes.admin.camera.exception.SourceNotFoundException;
-import com.whiteeyes.common.camera.entity.CameraSourceType;
-import com.whiteeyes.common.camera.entity.CameraStatus;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -18,6 +14,12 @@ import org.springframework.web.client.RestClientException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.camera.exception.AnalyzerUnavailableException;
+import com.whiteeyes.admin.camera.exception.CameraStoppingException;
+import com.whiteeyes.admin.camera.exception.SourceNotFoundException;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
+import com.whiteeyes.common.camera.entity.CameraStatus;
 
 /**
  * 분석 서버(api/analyzer.md '분석 서버(5000)')를 부른다. 요청마다 X-Internal-Token을 붙인다.

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -16,8 +17,6 @@ import com.whiteeyes.common.stat.dto.StatExportRequest;
 import com.whiteeyes.common.stat.dto.StatExportScope;
 import com.whiteeyes.common.stat.service.StatExportService;
 import com.whiteeyes.common.stat.service.StatExportService.StatExportFile;
-
-import jakarta.servlet.http.HttpServletResponse;
 
 // 두 앱이 함께 등록한다. 관리자 앱에서는 컨텍스트 경로가 붙어 /admin/api/v1/stats/export
 /** 통계 엑셀 다운로드(FNC-C-023) */

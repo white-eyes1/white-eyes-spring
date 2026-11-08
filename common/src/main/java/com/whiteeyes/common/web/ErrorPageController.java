@@ -1,11 +1,11 @@
 package com.whiteeyes.common.web;
 
-import com.whiteeyes.common.security.ApiRequests;
+import java.util.List;
+import java.util.Map;
+
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.List;
-import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.webmvc.autoconfigure.error.AbstractErrorController;
@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.json.JacksonJsonView;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.security.ApiRequests;
 
 /**
  * 서버 오류 처리(/error)를 Accept 헤더가 아니라 원래 요청 경로로 화면·API를 갈라 답한다(FNC-C-003, conventions.md '인증 오류').

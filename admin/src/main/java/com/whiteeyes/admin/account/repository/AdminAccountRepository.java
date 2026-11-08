@@ -1,13 +1,15 @@
 package com.whiteeyes.admin.account.repository;
 
-import com.whiteeyes.admin.account.entity.AdminAccount;
-import com.whiteeyes.admin.account.entity.AdminRole;
-import jakarta.persistence.LockModeType;
 import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.whiteeyes.admin.account.entity.AdminAccount;
+import com.whiteeyes.admin.account.entity.AdminRole;
 
 public interface AdminAccountRepository extends JpaRepository<AdminAccount, Long> {
 

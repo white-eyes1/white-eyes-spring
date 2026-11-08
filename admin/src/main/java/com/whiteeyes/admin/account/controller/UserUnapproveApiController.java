@@ -1,6 +1,5 @@
 package com.whiteeyes.admin.account.controller;
 
-import com.whiteeyes.admin.account.service.UserUnapproveService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.HttpStatus;
@@ -9,6 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.whiteeyes.admin.account.service.UserUnapproveService;
 
 /**
  * 사용자 승인 취소 API: POST /api/v1/users/{id}/unapprove(FNC-A-007).

@@ -25,5 +25,4 @@ public record MapStatusItem(
         Integer level,
         OffsetDateTime statAt,
         int todayEventCount,
-        boolean ongoingEvent) {
-}
+        boolean ongoingEvent) {}

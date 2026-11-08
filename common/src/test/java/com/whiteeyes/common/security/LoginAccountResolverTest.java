@@ -3,9 +3,8 @@ package com.whiteeyes.common.security;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.whiteeyes.common.exception.BusinessException;
-import com.whiteeyes.common.exception.ErrorCode;
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +12,9 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.whiteeyes.common.exception.BusinessException;
+import com.whiteeyes.common.exception.ErrorCode;
 
 /** 작업 기록의 행동한 계정을 로그인 정보에서 꺼내는 규칙(FNC-C-026 처리 순서 2). */
 class LoginAccountResolverTest {
@@ -61,9 +63,8 @@ class LoginAccountResolverTest {
 
     private void assertUnauthorized() {
         assertThatThrownBy(resolver::require)
-                .isInstanceOfSatisfying(
-                        BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getErrorCode())
+                        .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 
     private AccountPrincipal principal(Long accountId) {

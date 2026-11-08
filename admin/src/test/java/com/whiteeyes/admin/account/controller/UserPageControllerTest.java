@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,6 +16,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /** 사용자 관리 화면 틀(SCR-A-001, FNC-A-002). */
 @SpringBootTest
@@ -129,14 +130,15 @@ class UserPageControllerTest {
 
     // users.js·users.css는 admin 모듈, 나머지는 common 모듈에 있어 모두 관리자 앱에서 내려가는지 본다
     @ParameterizedTest
-    @ValueSource(strings = {
-        "/js/admin/pages/users.js",
-        "/js/admin/user-detail.js",
-        "/js/common/api.js",
-        "/js/common/format.js",
-        "/js/common/toast.js",
-        "/css/admin/users.css"
-    })
+    @ValueSource(
+            strings = {
+                "/js/admin/pages/users.js",
+                "/js/admin/user-detail.js",
+                "/js/common/api.js",
+                "/js/common/format.js",
+                "/js/common/toast.js",
+                "/css/admin/users.css"
+            })
     @DisplayName("SCR-A-001 화면이 쓰는 JS·CSS 파일을 관리자 앱이 내려준다")
     void users_scriptsServed(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isOk());

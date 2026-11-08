@@ -11,13 +11,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.account.entity.UserAccount;
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.common.security.AccountPrincipal;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +35,10 @@ import org.springframework.session.SessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.whiteeyes.common.account.entity.UserAccount;
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.common.security.AccountPrincipal;
 
 /**
  * 사용자 앱 비밀번호 변경(FNC-C-007). 세션을 저장소에 직접 만들어 확인한다.
@@ -80,7 +82,8 @@ class UserPasswordChangeTest {
     @BeforeEach
     void insertAccount() {
         cleanUp();
-        UserAccount account = UserAccount.createPending(LOGIN_ID, passwordEncoder.encode(CURRENT), "테스트 사용자", null, null);
+        UserAccount account =
+                UserAccount.createPending(LOGIN_ID, passwordEncoder.encode(CURRENT), "테스트 사용자", null, null);
         accountId = userAccountRepository.save(account).getId();
         jdbcTemplate.update(
                 "UPDATE user_account SET status = 'ACTIVE', must_change_password = TRUE WHERE id = ?", accountId);
@@ -96,7 +99,8 @@ class UserPasswordChangeTest {
         session.setAttribute(SECURITY_CONTEXT, new SecurityContextImpl(authentication));
         ((SessionRepository<Session>) (SessionRepository<?>) sessionRepository).save(session);
         return new Cookie(
-                SESSION_COOKIE, Base64.getEncoder().encodeToString(session.getId().getBytes(StandardCharsets.UTF_8)));
+                SESSION_COOKIE,
+                Base64.getEncoder().encodeToString(session.getId().getBytes(StandardCharsets.UTF_8)));
     }
 
     private String sessionId(Cookie cookie) {
@@ -194,7 +198,8 @@ class UserPasswordChangeTest {
         Session otherSession = sessionRepository.createSession();
         otherSession.setAttribute(
                 SECURITY_CONTEXT,
-                new SecurityContextImpl(UsernamePasswordAuthenticationToken.authenticated(principal, null, authorities)));
+                new SecurityContextImpl(
+                        UsernamePasswordAuthenticationToken.authenticated(principal, null, authorities)));
         @SuppressWarnings("unchecked")
         SessionRepository<Session> repository = (SessionRepository<Session>) (SessionRepository<?>) sessionRepository;
         repository.save(otherSession);
@@ -223,9 +228,7 @@ class UserPasswordChangeTest {
     @Test
     @DisplayName("FNC-C-007 사용자 앱: 로그인하지 않은 변경 화면 요청은 로그인 화면으로 이동한다")
     void passwordPage_notLoggedIn_redirectsToLogin() throws Exception {
-        mockMvc.perform(get("/me/password"))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login"));
+        mockMvc.perform(get("/me/password")).andExpect(status().isFound()).andExpect(redirectedUrl("/login"));
     }
 
     @Test

@@ -1,7 +1,8 @@
 package com.whiteeyes.admin.event.dto;
 
-import com.whiteeyes.common.event.entity.EventStatus;
 import java.time.OffsetDateTime;
+
+import com.whiteeyes.common.event.entity.EventStatus;
 
 /**
  * 이벤트 처리 이력의 한 줄(api/public.md GET /api/v1/events/{id} histories, FNC-A-037).
@@ -13,9 +14,4 @@ import java.time.OffsetDateTime;
  * @param actionNote 조치 메모. 없으면 null
  */
 public record EventHistoryItem(
-        OffsetDateTime at,
-        String loginId,
-        EventStatus from,
-        EventStatus to,
-        String actionCode,
-        String actionNote) {}
+        OffsetDateTime at, String loginId, EventStatus from, EventStatus to, String actionCode, String actionNote) {}

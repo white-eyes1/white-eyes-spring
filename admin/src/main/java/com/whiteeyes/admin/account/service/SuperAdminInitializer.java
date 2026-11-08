@@ -1,9 +1,5 @@
 package com.whiteeyes.admin.account.service;
 
-import com.whiteeyes.admin.account.config.SuperAdminProperties;
-import com.whiteeyes.admin.account.entity.AdminAccount;
-import com.whiteeyes.admin.account.entity.AdminRole;
-import com.whiteeyes.admin.account.repository.AdminAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -11,6 +7,11 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import com.whiteeyes.admin.account.config.SuperAdminProperties;
+import com.whiteeyes.admin.account.entity.AdminAccount;
+import com.whiteeyes.admin.account.entity.AdminRole;
+import com.whiteeyes.admin.account.repository.AdminAccountRepository;
 
 /**
  * 관리자 앱이 켜질 때 최고 관리자가 없으면 환경변수 값으로 한 번 만든다(FNC-A-001).

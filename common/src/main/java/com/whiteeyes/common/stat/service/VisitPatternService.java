@@ -71,7 +71,9 @@ public class VisitPatternService {
             return List.of(regionQueryService.getActiveZone(targetId).getId());
         }
         Region region = regionQueryService.getRegion(targetId);
-        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream().map(Region::getId).toList();
+        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream()
+                .map(Region::getId)
+                .toList();
         return dongIds.isEmpty() ? List.of() : regionQueryService.findAllZoneIdsInDongs(dongIds);
     }
 

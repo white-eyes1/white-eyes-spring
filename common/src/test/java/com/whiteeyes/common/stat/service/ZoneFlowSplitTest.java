@@ -20,20 +20,22 @@ class ZoneFlowSplitTest {
     @Test
     @DisplayName("FNC-C-010 10:30 ~ 이틀 뒤 12:15 → 1분·시간별·일별·시간별·1분")
     void mixed() {
-        assertThat(ZoneFlowService.split(at(1, 10, 30), at(3, 12, 15))).containsExactly(
-                new Segment(Source.MINUTE, at(1, 10, 30), at(1, 11, 0)),
-                new Segment(Source.HOUR, at(1, 11, 0), at(2, 0, 0)),
-                new Segment(Source.DAY, at(2, 0, 0), at(3, 0, 0)),
-                new Segment(Source.HOUR, at(3, 0, 0), at(3, 12, 0)),
-                new Segment(Source.MINUTE, at(3, 12, 0), at(3, 12, 15)));
+        assertThat(ZoneFlowService.split(at(1, 10, 30), at(3, 12, 15)))
+                .containsExactly(
+                        new Segment(Source.MINUTE, at(1, 10, 30), at(1, 11, 0)),
+                        new Segment(Source.HOUR, at(1, 11, 0), at(2, 0, 0)),
+                        new Segment(Source.DAY, at(2, 0, 0), at(3, 0, 0)),
+                        new Segment(Source.HOUR, at(3, 0, 0), at(3, 12, 0)),
+                        new Segment(Source.MINUTE, at(3, 12, 0), at(3, 12, 15)));
     }
 
     @Test
     @DisplayName("FNC-C-010 하루가 통째로 들어가지 않으면 일별을 쓰지 않는다(22시 ~ 다음 날 3시)")
     void acrossMidnightWithoutWholeDay() {
-        assertThat(ZoneFlowService.split(at(1, 22, 0), at(2, 3, 0))).containsExactly(
-                new Segment(Source.HOUR, at(1, 22, 0), at(2, 0, 0)),
-                new Segment(Source.HOUR, at(2, 0, 0), at(2, 3, 0)));
+        assertThat(ZoneFlowService.split(at(1, 22, 0), at(2, 3, 0)))
+                .containsExactly(
+                        new Segment(Source.HOUR, at(1, 22, 0), at(2, 0, 0)),
+                        new Segment(Source.HOUR, at(2, 0, 0), at(2, 3, 0)));
     }
 
     @Test
@@ -46,8 +48,9 @@ class ZoneFlowSplitTest {
         assertThat(ZoneFlowService.split(at(1, 10, 30), at(1, 10, 40)))
                 .containsExactly(new Segment(Source.MINUTE, at(1, 10, 30), at(1, 10, 40)));
         // 기본 기간(최근 1시간)이 정시에 걸치면 1분 두 구간
-        assertThat(ZoneFlowService.split(at(1, 9, 20), at(1, 10, 20))).containsExactly(
-                new Segment(Source.MINUTE, at(1, 9, 20), at(1, 10, 0)),
-                new Segment(Source.MINUTE, at(1, 10, 0), at(1, 10, 20)));
+        assertThat(ZoneFlowService.split(at(1, 9, 20), at(1, 10, 20)))
+                .containsExactly(
+                        new Segment(Source.MINUTE, at(1, 9, 20), at(1, 10, 0)),
+                        new Segment(Source.MINUTE, at(1, 10, 0), at(1, 10, 20)));
     }
 }

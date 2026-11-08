@@ -55,8 +55,7 @@ public record HeatmapRequest(long regionId, LocalDateTime from, LocalDateTime to
      * @throws RangeTooLongException 기간이 1년을 넘으면(400 RANGE_TOO_LONG)
      */
     public static HeatmapRequest parse(
-            long regionId, String fromText, String toText, String itemText, String dayTypeText)
-            throws BindException {
+            long regionId, String fromText, String toText, String itemText, String dayTypeText) throws BindException {
         MapBindingResult errors = new MapBindingResult(new HashMap<>(), OBJECT_NAME);
         Optional<LocalDateTime> from = StatSeriesRequest.parseTime(fromText);
         if (from.isEmpty()) {
@@ -89,7 +88,9 @@ public record HeatmapRequest(long regionId, LocalDateTime from, LocalDateTime to
     }
 
     private static <E extends Enum<E>> Optional<E> parseEnum(Class<E> type, String text) {
-        return Arrays.stream(type.getEnumConstants()).filter(value -> value.name().equals(text)).findFirst();
+        return Arrays.stream(type.getEnumConstants())
+                .filter(value -> value.name().equals(text))
+                .findFirst();
     }
 
     private static void reject(MapBindingResult errors, String field, String message) {

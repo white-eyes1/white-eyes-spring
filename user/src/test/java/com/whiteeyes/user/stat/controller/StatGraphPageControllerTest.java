@@ -9,8 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.user.support.UserTestAccounts;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +22,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.user.support.UserTestAccounts;
 
 /**
  * 통계 그래프 화면 SCR-C-004(FNC-C-012)의 사용자 앱 렌더링.
@@ -61,7 +62,8 @@ class StatGraphPageControllerTest {
     @Test
     @DisplayName("SCR-C-005 기간 비교 화면은 없앴다(결정 0016): 사용자 앱 /stats/compare는 404")
     void comparePage_removed() throws Exception {
-        mockMvc.perform(get("/stats/compare").with(user("user01").roles("USER"))).andExpect(status().isNotFound());
+        mockMvc.perform(get("/stats/compare").with(user("user01").roles("USER")))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -78,7 +80,8 @@ class StatGraphPageControllerTest {
                 .andExpect(content().string(containsString("id=\"target-zone\"")))
                 .andExpect(content().string(containsString("data-interval=\"1m\"")))
                 .andExpect(content().string(containsString("id=\"series-chart\"")))
-                .andExpect(content().string(containsString("src=\"https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js\"")))
+                .andExpect(
+                        content().string(containsString("src=\"https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js\"")))
                 .andExpect(content().string(containsString("src=\"/js/pages/stats-graph.js\"")))
                 .andExpect(content().string(containsString("href=\"/css/stats-graph.css\"")));
     }
@@ -110,10 +113,11 @@ class StatGraphPageControllerTest {
 
     // stats-graph.js·series-chart.js·stats-graph.css는 common 모듈에 있어 사용자 앱에서도 내려가는지 본다
     @ParameterizedTest
-    @ValueSource(strings = {
-        "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js",
-        "/js/chart/chart-theme.js", "/js/chart/panel-charts.js", "/css/stats-graph.css"
-    })
+    @ValueSource(
+            strings = {
+                "/js/pages/stats-graph.js", "/js/pages/stats-graph/drill.js", "/js/chart/series-chart.js",
+                "/js/chart/chart-theme.js", "/js/chart/panel-charts.js", "/css/stats-graph.css"
+            })
     @DisplayName("SCR-C-004 화면이 쓰는 JS·CSS 파일을 사용자 앱이 내려준다")
     void graphPage_staticFilesServed(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isOk());

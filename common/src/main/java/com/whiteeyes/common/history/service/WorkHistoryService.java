@@ -1,15 +1,17 @@
 package com.whiteeyes.common.history.service;
 
+import java.util.List;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.common.history.dto.WorkHistoryCommand;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkHistory;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.history.repository.WorkHistoryRepository;
-import java.util.List;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 모든 작업 기록은 이 서비스 하나로 저장한다(FNC-C-026). */
 @Service

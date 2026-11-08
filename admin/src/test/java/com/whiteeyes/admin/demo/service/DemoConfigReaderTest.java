@@ -50,7 +50,8 @@ class DemoConfigReaderTest {
     @Test
     @DisplayName("FNC-A-051 설정 파일에 적은 항목만 기본값 위에 덮어쓴다")
     void overridesOnlyGivenItems() throws IOException {
-        Path file = write("""
+        Path file = write(
+                """
                 {"zones": [{"zoneId": 3, "baseCount": 80, "avgDwellSec": 900}],
                  "surgeDays": [{"date": "2026-05-05", "weight": 2.5}]}
                 """);
@@ -58,9 +59,10 @@ class DemoConfigReaderTest {
         DemoGenerateConfig config = reader.read(file);
         DemoGenerateConfig defaults = reader.defaults();
 
-        assertThat(config.zones()).singleElement().satisfies(zone -> assertThat(zone.baseCount()).isEqualTo(80.0));
-        assertThat(config.surgeDays()).singleElement()
-                .satisfies(day -> assertThat(day.date()).isEqualTo(LocalDate.of(2026, 5, 5)));
+        assertThat(config.zones()).singleElement().satisfies(zone -> assertThat(zone.baseCount())
+                .isEqualTo(80.0));
+        assertThat(config.surgeDays()).singleElement().satisfies(day -> assertThat(day.date())
+                .isEqualTo(LocalDate.of(2026, 5, 5)));
         assertThat(config.seed()).isEqualTo(defaults.seed());
         assertThat(config.defaultZone()).isEqualTo(defaults.defaultZone());
         assertThat(config.hourWeights()).isEqualTo(defaults.hourWeights());

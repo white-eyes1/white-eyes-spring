@@ -22,7 +22,8 @@ class StatRollupCalculatorTest {
         // 받은 초가 없는 행은 평균·최소에서 빠지고 합에는 0을 더한다
         StatValues gap = row("0.00", 0, 0, "0.0000", 0, 0, 0, 0);
 
-        StatValues result = StatRollupCalculator.rollUp(List.of(full, half, gap)).orElseThrow();
+        StatValues result =
+                StatRollupCalculator.rollUp(List.of(full, half, gap)).orElseThrow();
 
         assertThat(result.countAvg()).isEqualByComparingTo("20.00");
         assertThat(result.density()).isEqualByComparingTo("0.2000");
@@ -51,7 +52,8 @@ class StatRollupCalculatorTest {
     @Test
     @DisplayName("받은 초가 있는 행이 하나도 없으면 묶지 않음")
     void emptyWhenNoSample() {
-        assertThat(StatRollupCalculator.rollUp(List.of(row("0.00", 0, 0, "0.0000", 0, 0, 0, 0)))).isEmpty();
+        assertThat(StatRollupCalculator.rollUp(List.of(row("0.00", 0, 0, "0.0000", 0, 0, 0, 0))))
+                .isEmpty();
         assertThat(StatRollupCalculator.rollUp(List.of())).isEmpty();
     }
 
@@ -65,9 +67,23 @@ class StatRollupCalculatorTest {
         assertThat(result.dwellSumSec()).isEqualTo(2L * Integer.MAX_VALUE);
     }
 
-    private StatValues row(String avg, int max, int min, String density, int inOut, int sampleSec, long dwellSum,
-            int dwellCount) {
-        return new StatValues(new BigDecimal(avg), max, min, new BigDecimal(density),
-                inOut, inOut, inOut, inOut, inOut, inOut, inOut, inOut, dwellSum, dwellCount, sampleSec);
+    private StatValues row(
+            String avg, int max, int min, String density, int inOut, int sampleSec, long dwellSum, int dwellCount) {
+        return new StatValues(
+                new BigDecimal(avg),
+                max,
+                min,
+                new BigDecimal(density),
+                inOut,
+                inOut,
+                inOut,
+                inOut,
+                inOut,
+                inOut,
+                inOut,
+                inOut,
+                dwellSum,
+                dwellCount,
+                sampleSec);
     }
 }

@@ -34,10 +34,8 @@ import com.whiteeyes.common.stat.dto.StatSeriesPoint;
 class StatExcelWriterTest {
 
     private static final LocalDateTime T0 = LocalDateTime.of(2099, 1, 1, 10, 0);
-    private static final StatExportSeries SAJIK =
-            new StatExportSeries(1L, "서울특별시", "종로구", "사직동", "사직동 1구역");
-    private static final StatExportSeries JONGNO =
-            new StatExportSeries(null, "서울특별시", "종로구", "(지역 합산)", "(지역 합산)");
+    private static final StatExportSeries SAJIK = new StatExportSeries(1L, "서울특별시", "종로구", "사직동", "사직동 1구역");
+    private static final StatExportSeries JONGNO = new StatExportSeries(null, "서울특별시", "종로구", "(지역 합산)", "(지역 합산)");
 
     @Test
     @DisplayName("FNC-C-023 처리 순서 2·3: 시트 하나(통계), 열은 시각·시·구·동·구역·고른 항목(요청 순서와 상관없이 고정 순서)")
@@ -47,11 +45,23 @@ class StatExcelWriterTest {
         try (XSSFWorkbook workbook = write(plan, List.of())) {
             assertThat(sheetNames(workbook)).containsExactly("통계");
             // 요청은 DWELL부터지만 열은 인원 → 밀집도 → 유입 → 유출 → 평균 체류 순
-            assertThat(texts(workbook.getSheet("통계").getRow(0))).containsExactly(
-                    "시각", "시·도", "시·군·구", "읍·면·동", "구역", "평균 인원(명)", "최대 인원(명)", "최소 인원(명)",
-                    "밀집도(명/㎡)", "유입(명)", "유출(명)", "평균 체류(초)");
+            assertThat(texts(workbook.getSheet("통계").getRow(0)))
+                    .containsExactly(
+                            "시각",
+                            "시·도",
+                            "시·군·구",
+                            "읍·면·동",
+                            "구역",
+                            "평균 인원(명)",
+                            "최대 인원(명)",
+                            "최소 인원(명)",
+                            "밀집도(명/㎡)",
+                            "유입(명)",
+                            "유출(명)",
+                            "평균 체류(초)");
             // 머리글은 스크롤해도 보이게 고정
-            assertThat(workbook.getSheet("통계").getPaneInformation().getHorizontalSplitPosition()).isEqualTo((short) 1);
+            assertThat(workbook.getSheet("통계").getPaneInformation().getHorizontalSplitPosition())
+                    .isEqualTo((short) 1);
         }
     }
 
@@ -114,7 +124,8 @@ class StatExcelWriterTest {
                 }
             }
             // 머리글 행에는 칠하지 않는다
-            assertThat(sheet.getRow(0).getCell(0).getCellStyle().getFillPattern()).isEqualTo(FillPatternType.NO_FILL);
+            assertThat(sheet.getRow(0).getCell(0).getCellStyle().getFillPattern())
+                    .isEqualTo(FillPatternType.NO_FILL);
         }
     }
 
@@ -163,7 +174,11 @@ class StatExcelWriterTest {
             LocalDateTime at = LocalDateTime.of(2099, 1, 1, 0, 0);
             Line line = new Line(SAJIK, point(at, "1.00", 1, 1, "0.1000", Map.of(), null, false));
             try (XSSFWorkbook workbook = write(plan, List.of(line))) {
-                assertThat(workbook.getSheet("통계").getRow(1).getCell(0).getCellStyle().getDataFormatString())
+                assertThat(workbook.getSheet("통계")
+                                .getRow(1)
+                                .getCell(0)
+                                .getCellStyle()
+                                .getDataFormatString())
                         .isEqualTo(entry.getValue());
             }
         }
@@ -172,8 +187,7 @@ class StatExcelWriterTest {
     @Test
     @DisplayName("FNC-C-023 스트리밍으로 써도 행이 모두 남는다(한 시트 5,000행)")
     void manyRows() throws Exception {
-        StatExportPlan plan =
-                planOf("1m", "2099-01-01T00:00", "2099-01-04T11:20", List.of("COUNT", "DENSITY"));
+        StatExportPlan plan = planOf("1m", "2099-01-01T00:00", "2099-01-04T11:20", List.of("COUNT", "DENSITY"));
         List<Line> lines = new ArrayList<>();
         for (int i = 0; i < 5_000; i++) {
             StatSeriesPoint point = point(T0.plusMinutes(i), String.valueOf(i), i, i, "0.0001", Map.of(), null, false);
@@ -226,8 +240,14 @@ class StatExcelWriterTest {
     }
 
     private static StatSeriesPoint point(
-            LocalDateTime at, String countAvg, int countMax, int countMin, String density, Map<String, Integer> inflow,
-            String dwellAvgSec, boolean demo) {
+            LocalDateTime at,
+            String countAvg,
+            int countMax,
+            int countMin,
+            String density,
+            Map<String, Integer> inflow,
+            String dwellAvgSec,
+            boolean demo) {
         return new StatSeriesPoint(
                 at.atOffset(ZoneOffset.ofHours(9)),
                 new BigDecimal(countAvg),
@@ -252,9 +272,7 @@ class StatExcelWriterTest {
         List<String> texts = new ArrayList<>();
         for (int column = 0; column < row.getLastCellNum(); column++) {
             Cell cell = row.getCell(column);
-            texts.add(cell == null || cell.getCellType() != CellType.STRING
-                    ? null
-                    : cell.getStringCellValue());
+            texts.add(cell == null || cell.getCellType() != CellType.STRING ? null : cell.getStringCellValue());
         }
         return texts;
     }
@@ -264,7 +282,8 @@ class StatExcelWriterTest {
         XSSFCellStyle style = (XSSFCellStyle) cell.getCellStyle();
         assertThat(style.getFillPattern()).isEqualTo(FillPatternType.SOLID_FOREGROUND);
         // 배경색을 칠하면 엑셀 기본 눈금선이 가려지므로 칸마다 가는 테두리를 둔다
-        assertThat(List.of(style.getBorderTop(), style.getBorderBottom(), style.getBorderLeft(), style.getBorderRight()))
+        assertThat(List.of(
+                        style.getBorderTop(), style.getBorderBottom(), style.getBorderLeft(), style.getBorderRight()))
                 .containsOnly(BorderStyle.THIN);
         assertThat(style.getTopBorderXSSFColor().getARGBHex().substring(2)).isEqualTo("BFBFBF");
         return style.getFillForegroundXSSFColor().getARGBHex().substring(2);
@@ -278,7 +297,5 @@ class StatExcelWriterTest {
         return numbers;
     }
 
-    private record Line(StatExportSeries series, StatSeriesPoint point) {
-    }
-
+    private record Line(StatExportSeries series, StatSeriesPoint point) {}
 }

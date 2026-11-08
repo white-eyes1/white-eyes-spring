@@ -2,11 +2,12 @@ package com.whiteeyes.common.account.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -85,8 +86,10 @@ class MyInfoUpdateRequestTest {
     @DisplayName("FNC-C-006 연락처는 빈 값(지우기)과 숫자·-로 20자까지 통과한다")
     void phone_boundaryInside_passes() {
         assertThat(invalidFields(new MyInfoUpdateRequest(null, null, ""))).isEmpty();
-        assertThat(invalidFields(new MyInfoUpdateRequest(null, null, "010-1234-5678"))).isEmpty();
-        assertThat(invalidFields(new MyInfoUpdateRequest(null, null, "1".repeat(20)))).isEmpty();
+        assertThat(invalidFields(new MyInfoUpdateRequest(null, null, "010-1234-5678")))
+                .isEmpty();
+        assertThat(invalidFields(new MyInfoUpdateRequest(null, null, "1".repeat(20))))
+                .isEmpty();
     }
 
     @ParameterizedTest(name = "[{0}]")
@@ -99,6 +102,7 @@ class MyInfoUpdateRequestTest {
     @Test
     @DisplayName("FNC-C-006 여러 필드가 잘못되면 필드마다 오류가 난다")
     void multipleInvalid_reportsEach() {
-        assertThat(invalidFields(new MyInfoUpdateRequest("", "x", "abc"))).containsExactlyInAnyOrder("name", "email", "phone");
+        assertThat(invalidFields(new MyInfoUpdateRequest("", "x", "abc")))
+                .containsExactlyInAnyOrder("name", "email", "phone");
     }
 }

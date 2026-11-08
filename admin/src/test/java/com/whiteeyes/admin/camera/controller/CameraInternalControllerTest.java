@@ -50,8 +50,10 @@ class CameraInternalControllerTest {
     @BeforeEach
     void setUp() {
         // 실제 앱처럼 공통 오류 처리(FNC-C-027)를 붙여 상태 코드와 오류 응답 code를 함께 확인한다
-        mockMvc = MockMvcBuilders.standaloneSetup(new CameraInternalController(cameraStatusService, desiredCameraService))
-                .setControllerAdvice(new GlobalExceptionHandler(JsonMapper.builder().build()))
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                        new CameraInternalController(cameraStatusService, desiredCameraService))
+                .setControllerAdvice(
+                        new GlobalExceptionHandler(JsonMapper.builder().build()))
                 .build();
     }
 
@@ -71,15 +73,16 @@ class CameraInternalControllerTest {
     @Test
     @DisplayName("FNC-A-025 상태 보고를 받으면 204")
     void returnsNoContent() throws Exception {
-        mockMvc.perform(patch(STATUS_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+        mockMvc.perform(
+                        patch(STATUS_URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
                                 {"status": "PREPARING", "progress": 45, "errorMessage": null}
                                 """))
                 .andExpect(status().isNoContent());
 
-        verify(cameraStatusService)
-                .reportStatus(7L, new CameraStatusUpdateRequest(CameraStatus.PREPARING, 45, null));
+        verify(cameraStatusService).reportStatus(7L, new CameraStatusUpdateRequest(CameraStatus.PREPARING, 45, null));
     }
 
     @Test
@@ -89,7 +92,9 @@ class CameraInternalControllerTest {
                 .given(cameraStatusService)
                 .reportStatus(eq(7L), any(CameraStatusUpdateRequest.class));
 
-        mockMvc.perform(patch(STATUS_URL).contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(patch(STATUS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                         {"status": "RUNNING"}
                         """))
                 .andExpect(status().isNotFound())
@@ -99,7 +104,9 @@ class CameraInternalControllerTest {
     @Test
     @DisplayName("FNC-A-025 정의되지 않은 status면 400")
     void returnsBadRequestForUnknownStatus() throws Exception {
-        mockMvc.perform(patch(STATUS_URL).contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(patch(STATUS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                         {"status": "PAUSED"}
                         """))
                 .andExpect(status().isBadRequest())
@@ -111,7 +118,9 @@ class CameraInternalControllerTest {
     @Test
     @DisplayName("FNC-A-025 status가 없으면 400")
     void returnsBadRequestWhenStatusMissing() throws Exception {
-        mockMvc.perform(patch(STATUS_URL).contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(patch(STATUS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                         {"progress": 45}
                         """))
                 .andExpect(status().isBadRequest());
@@ -122,7 +131,11 @@ class CameraInternalControllerTest {
     @Test
     @DisplayName("FNC-A-025 progress가 0~100을 벗어나면 400")
     void returnsBadRequestForProgressOutOfRange() throws Exception {
-        mockMvc.perform(patch(STATUS_URL).contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(
+                        patch(STATUS_URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
                         {"status": "PREPARING", "progress": 101}
                         """))
                 .andExpect(status().isBadRequest());

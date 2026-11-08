@@ -1,5 +1,14 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.client.RestClientException;
+
 import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStatusUpdateRequest;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
@@ -8,13 +17,6 @@ import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.camera.repository.CameraRepository;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.client.RestClientException;
 
 /**
  * 분석 서버가 보낸 캠 상태 보고를 받는다(FNC-A-025).
@@ -54,7 +56,8 @@ public class CameraStatusService {
 
     /** 보고를 반영한다. */
     private AppliedReport apply(Long cameraId, CameraStatusUpdateRequest request) {
-        Camera camera = cameraRepository.findByIdAndDeletedAtIsNull(cameraId)
+        Camera camera = cameraRepository
+                .findByIdAndDeletedAtIsNull(cameraId)
                 .orElseThrow(() -> new CameraNotFoundException(cameraId));
         if (request.status() == CameraStatus.RUNNING && !camera.isRunRequested()) {
             return new AppliedReport(true, camera.getStatus());
@@ -79,7 +82,8 @@ public class CameraStatusService {
             if (reported == CameraStatus.ERROR) {
                 camFaultEventService.openOnError(cameraId, LocalDateTime.now(KST));
             } else if (reported == CameraStatus.RUNNING) {
-                camFaultEventService.closeOnRecovered(cameraId, LocalDateTime.now(KST), previous != CameraStatus.RUNNING);
+                camFaultEventService.closeOnRecovered(
+                        cameraId, LocalDateTime.now(KST), previous != CameraStatus.RUNNING);
             }
         } catch (RuntimeException e) {
             // 상태 보고는 성공으로 끝낸다. 이벤트는 10초마다 도는 캠 이상 검사가 다시 맞춘다

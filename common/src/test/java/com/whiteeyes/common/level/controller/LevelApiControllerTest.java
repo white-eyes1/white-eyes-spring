@@ -26,10 +26,13 @@ class LevelApiControllerTest {
     void getLevels_defaultThresholds_matchesApiSpec() throws Exception {
         mockMvc.perform(get("/api/v1/meta/levels"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("""
+                .andExpect(content()
+                        .json(
+                                """
                         [{"level": 1, "name": "정상", "color": "#3BC99B", "minDensity": 0},
                          {"level": 2, "name": "주의", "color": "#F59E0B", "minDensity": 0.7},
                          {"level": 3, "name": "위험", "color": "#EF4D55", "minDensity": 1.5}]
-                        """, JsonCompareMode.STRICT));
+                        """,
+                                JsonCompareMode.STRICT));
     }
 }

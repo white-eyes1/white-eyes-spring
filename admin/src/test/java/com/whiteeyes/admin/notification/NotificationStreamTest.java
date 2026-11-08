@@ -8,22 +8,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.notification.service.NotificationBroadcaster;
-import com.whiteeyes.admin.notification.service.NotificationPublisher;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
-import com.whiteeyes.common.camera.entity.CameraStatus;
-import com.whiteeyes.common.event.entity.EventType;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +30,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.notification.service.NotificationBroadcaster;
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.camera.entity.CameraStatus;
+import com.whiteeyes.common.event.entity.EventType;
 
 /**
  * 관리자 알림 스트림(FNC-A-048). 검수 기준: 새 이벤트가 생기면 열려 있는 모든 관리자 화면에 알림이 간다.
@@ -84,7 +86,9 @@ class NotificationStreamTest {
         AdminTestLogin.loginForDirectCalls();
         clearAll();
         regionLoadService.load(REGION_FILE);
-        zoneId = zoneRegisterService.register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE)).id();
+        zoneId = zoneRegisterService
+                .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))
+                .id();
     }
 
     @AfterEach
@@ -215,7 +219,8 @@ class NotificationStreamTest {
 
         broadcaster.sendHeartbeatNow();
 
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(emitter.text()).contains(":keepalive"));
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(emitter.text()).contains(":keepalive"));
     }
 
     @Test

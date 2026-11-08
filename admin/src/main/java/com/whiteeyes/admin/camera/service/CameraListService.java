@@ -1,8 +1,21 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.camera.dto.CameraListItem;
-import com.whiteeyes.admin.region.service.RegionLookupService;
 import com.whiteeyes.admin.region.dto.ZoneSummary;
+import com.whiteeyes.admin.region.service.RegionLookupService;
 import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.camera.entity.Camera;
 import com.whiteeyes.common.camera.entity.CameraStatus;
@@ -14,17 +27,6 @@ import com.whiteeyes.common.stat.dto.ZoneMinuteStat;
 import com.whiteeyes.common.stat.service.NowCountSource;
 import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 import com.whiteeyes.common.stat.service.ZoneStatQueryService;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 모든 캠의 상태·진행률과 구역 정보를 한 번에 모아 준다(FNC-A-022 캠 목록). */
 @Service
@@ -49,7 +51,8 @@ public class CameraListService {
      */
     @Transactional(readOnly = true)
     public List<CameraListItem> list(Long regionId) {
-        List<Camera> cameras = regionId == null ? cameraRepository.findByDeletedAtIsNullOrderByIdAsc() : findInRegion(regionId);
+        List<Camera> cameras =
+                regionId == null ? cameraRepository.findByDeletedAtIsNullOrderByIdAsc() : findInRegion(regionId);
         if (cameras.isEmpty()) {
             return List.of();
         }
@@ -60,7 +63,8 @@ public class CameraListService {
         Map<Long, String> regionPaths = regionLookupService.findPaths(dongIds);
         // 최근 10분의 1분 통계를 한 번에 가져와 stat(5분 안의 가장 최근 것)과 recent10m 둘 다에 쓴다
         LocalDateTime now = LocalDateTime.now(KST);
-        Map<Long, List<ZoneMinuteStat>> stats = zoneStatQueryService.findRecentByZone(zoneIds, now.minusMinutes(RECENT_MINUTES));
+        Map<Long, List<ZoneMinuteStat>> stats =
+                zoneStatQueryService.findRecentByZone(zoneIds, now.minusMinutes(RECENT_MINUTES));
         // 오늘 혼잡·급증 이벤트 수도 구역 전체를 한 번에 센다(FNC-C-017). 오늘은 KST 00:00부터
         Map<Long, Integer> eventCounts =
                 todayEventCountService.countByZone(zoneIds, LocalDate.now(KST).atStartOfDay());
@@ -118,8 +122,7 @@ public class CameraListService {
     }
 
     /** 5분 안에 1분 통계가 없으면 null. 있으면 가장 최근 것과 혼잡 단계(FNC-C-025). */
-    private CameraListItem.Stat toStat(
-            Long zoneId, List<ZoneMinuteStat> recent, NowCount nowCount, LocalDateTime now) {
+    private CameraListItem.Stat toStat(Long zoneId, List<ZoneMinuteStat> recent, NowCount nowCount, LocalDateTime now) {
         if (recent.isEmpty()) {
             return null;
         }
@@ -127,7 +130,9 @@ public class CameraListService {
         if (latest.statAt().isBefore(now.minusMinutes(STAT_FRESH_MINUTES))) {
             return null;
         }
-        int level = levelService.judgeLevel(LevelTarget.zone(zoneId), latest.density()).getLevel();
+        int level = levelService
+                .judgeLevel(LevelTarget.zone(zoneId), latest.density())
+                .getLevel();
         Integer currentCount = nowCount == null ? null : nowCount.personCount();
         return new CameraListItem.Stat(
                 toKstOffset(latest.statAt()),
@@ -146,14 +151,17 @@ public class CameraListService {
     // 분마다 stat과 같은 기준으로 단계를 판정한다(카드의 단계색 막대, 결정 0016).
     // 결과가 들어온 초(sample_sec)가 0인 분은 통계 그래프(FNC-C-012)에서 빈 점이므로 여기서도 뺀다
     private List<CameraListItem.RecentCount> toRecent10m(Long zoneId, List<ZoneMinuteStat> recent) {
-        List<ZoneMinuteStat> sampled = recent.stream().filter(stat -> stat.sampleSec() > 0).toList();
+        List<ZoneMinuteStat> sampled =
+                recent.stream().filter(stat -> stat.sampleSec() > 0).toList();
         return sampled.stream()
                 .skip(Math.max(0, sampled.size() - RECENT_MINUTES))
                 .map(stat -> new CameraListItem.RecentCount(
                         toKstOffset(stat.statAt()),
                         stat.countAvg().doubleValue(),
                         stat.density().doubleValue(),
-                        levelService.judgeLevel(LevelTarget.zone(zoneId), stat.density()).getLevel()))
+                        levelService
+                                .judgeLevel(LevelTarget.zone(zoneId), stat.density())
+                                .getLevel()))
                 .toList();
     }
 }

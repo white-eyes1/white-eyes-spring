@@ -1,13 +1,11 @@
 package com.whiteeyes.admin.event;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -15,11 +13,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.notification.service.NotificationPublisher;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,9 +34,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /**
  * 처리 상태 변경(FNC-A-038) PATCH /api/v1/events/{id}/status.
@@ -84,7 +84,9 @@ class EventStatusChangeTest {
         AdminTestLogin.loginForDirectCalls();
         clearAll();
         regionLoadService.load(REGION_FILE);
-        zoneId = zoneRegisterService.register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE)).id();
+        zoneId = zoneRegisterService
+                .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))
+                .id();
         jdbcTemplate.update(
                 "INSERT INTO admin_account (id, login_id, password, name, role, status, must_change_password)"
                         + " VALUES (?, ?, 'x', '테스트 관리자', 'ADMIN', 'ACTIVE', 0)",
@@ -202,7 +204,8 @@ class EventStatusChangeTest {
                     pool.submit(concurrentCall(eventId, "RESOLVED", ready, go)));
             ready.await();
             go.countDown();
-            List<Integer> statuses = List.of(results.get(0).get(), results.get(1).get());
+            List<Integer> statuses =
+                    List.of(results.get(0).get(), results.get(1).get());
 
             assertThat(statuses).containsExactlyInAnyOrder(200, 409);
         } finally {
@@ -327,10 +330,7 @@ class EventStatusChangeTest {
             go.await();
             String actionPart = "RESOLVED".equals(newStatus) ? ",\"actionCode\":\"STAFF\"" : "";
             String json = "{\"expectedStatus\":\"UNCHECKED\",\"status\":\"" + newStatus + "\"" + actionPart + "}";
-            return send(eventId, json)
-                    .andReturn()
-                    .getResponse()
-                    .getStatus();
+            return send(eventId, json).andReturn().getResponse().getStatus();
         };
     }
 

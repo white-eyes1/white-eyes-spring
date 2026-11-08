@@ -6,10 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +21,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /** 이어 재생(FNC-A-045, GET /api/v1/recordings/{id}/next). 검수 기준: 1분 경계에서 자연스럽게 넘어감. */
 @Import(AdminTestUserConfig.class)
@@ -88,7 +90,9 @@ class RecordingNextTest {
         long first = insertRecording(cameraId, base, base.plusMinutes(1));
         long early = insertRecording(cameraId, base.plusMinutes(1).minusSeconds(2), base.plusMinutes(2));
 
-        next(first).andExpect(status().isOk()).andExpect(jsonPath("$.recordingId").value(early));
+        next(first)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recordingId").value(early));
 
         jdbcTemplate.update("DELETE FROM recording WHERE id = ?", early);
         insertRecording(cameraId, base.plusMinutes(1).minusSeconds(3), base.plusMinutes(2));
@@ -101,7 +105,9 @@ class RecordingNextTest {
         long first = insertRecording(cameraId, base, base.plusMinutes(1));
         long tenSeconds = insertRecording(cameraId, base.plusMinutes(1).plusSeconds(10), base.plusMinutes(2));
 
-        next(first).andExpect(status().isOk()).andExpect(jsonPath("$.recordingId").value(tenSeconds));
+        next(first)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recordingId").value(tenSeconds));
 
         jdbcTemplate.update("DELETE FROM recording WHERE id = ?", tenSeconds);
         insertRecording(cameraId, base.plusMinutes(1).plusSeconds(11), base.plusMinutes(2));
@@ -118,7 +124,9 @@ class RecordingNextTest {
         insertRecording(cameraId, base.plusMinutes(1).plusSeconds(5), base.plusMinutes(3));
         long earliest = insertRecording(cameraId, base.plusMinutes(1), base.plusMinutes(2));
 
-        next(first).andExpect(status().isOk()).andExpect(jsonPath("$.recordingId").value(earliest));
+        next(first)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recordingId").value(earliest));
     }
 
     @Test
@@ -127,7 +135,9 @@ class RecordingNextTest {
         long first = insertRecording(cameraId, base, base.plusMinutes(1));
         insertRecording(otherCameraId, base.plusMinutes(1), base.plusMinutes(2));
 
-        next(first).andExpect(status().isNotFound()).andExpect(jsonPath("$.message").value("이후 영상 없음"));
+        next(first)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("이후 영상 없음"));
     }
 
     @Test
@@ -136,7 +146,9 @@ class RecordingNextTest {
         long open = insertRecording(cameraId, base, null);
         insertRecording(cameraId, base.plusMinutes(1), base.plusMinutes(2));
 
-        next(open).andExpect(status().isNotFound()).andExpect(jsonPath("$.message").value("이후 영상 없음"));
+        next(open)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("이후 영상 없음"));
     }
 
     @Test

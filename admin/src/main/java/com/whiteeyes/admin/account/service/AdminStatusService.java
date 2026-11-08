@@ -1,5 +1,13 @@
 package com.whiteeyes.admin.account.service;
 
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.account.entity.AdminAccount;
 import com.whiteeyes.admin.account.entity.AdminRole;
 import com.whiteeyes.admin.account.entity.AdminStatus;
@@ -11,12 +19,6 @@ import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 관리자 계정을 비활성화하거나 다시 활성화한다(FNC-A-011). 최고 관리자만 부를 수 있다
@@ -60,7 +62,12 @@ public class AdminStatusService {
         admin.disable();
         // 처리 순서 3: 작업 기록. 계정의 대상 이름은 아이디다(tables.md work_history.target_name)
         workRecorder.record(
-                actor, WorkAction.ACCOUNT_CHANGE, WorkTargetType.ADMIN_ACCOUNT, adminId, admin.getLoginId(), DISABLE_DETAIL);
+                actor,
+                WorkAction.ACCOUNT_CHANGE,
+                WorkTargetType.ADMIN_ACCOUNT,
+                adminId,
+                admin.getLoginId(),
+                DISABLE_DETAIL);
         // 관리자 앱의 세션 저장소는 자기 트랜잭션으로 바로 확정하므로(되돌릴 수 없음) 세션 삭제는 맨 뒤에 한다.
         // 기록이 실패하면 세션이 그대로 남고, 삭제가 실패하면 상태 변경과 기록이 취소된다
         int deleted = accountSessionService.endAdminSessions(admin.getLoginId());
@@ -81,7 +88,12 @@ public class AdminStatusService {
         // 처리 순서 2: DISABLED→ACTIVE
         admin.enable();
         workRecorder.record(
-                actor, WorkAction.ACCOUNT_CHANGE, WorkTargetType.ADMIN_ACCOUNT, adminId, admin.getLoginId(), ENABLE_DETAIL);
+                actor,
+                WorkAction.ACCOUNT_CHANGE,
+                WorkTargetType.ADMIN_ACCOUNT,
+                adminId,
+                admin.getLoginId(),
+                ENABLE_DETAIL);
         log.info("관리자 활성화 adminId={}", adminId);
     }
 }

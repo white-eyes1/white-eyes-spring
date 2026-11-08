@@ -3,11 +3,12 @@ package com.whiteeyes.admin.cleanup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.whiteeyes.admin.cleanup.config.RetentionProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
 
 /** 오래된 데이터 정리(FNC-A-032) 보관 일수 검증 */
 class RetentionPropertiesTest {

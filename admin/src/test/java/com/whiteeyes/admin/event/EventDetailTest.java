@@ -8,18 +8,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
-import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
-import com.whiteeyes.common.camera.entity.CameraSourceType;
-import jakarta.persistence.EntityManagerFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+
+import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
@@ -34,6 +28,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
+import com.whiteeyes.admin.camera.service.CameraRegisterService;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
 
 /** 이벤트 상세(FNC-A-037) GET /api/v1/events/{id}. 이벤트·작업 기록 행은 SQL로 직접 넣는다. */
 @Import(AdminTestUserConfig.class)
@@ -76,7 +78,9 @@ class EventDetailTest {
         AdminTestLogin.loginForDirectCalls();
         clearAll();
         regionLoadService.load(REGION_FILE);
-        zoneId = zoneRegisterService.register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE)).id();
+        zoneId = zoneRegisterService
+                .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))
+                .id();
     }
 
     // JSON 칼럼에 문자열 매개변수를 그대로 넣으면 H2가 JSON 문자열로 저장하므로 FORMAT JSON으로 넣는다
@@ -94,7 +98,8 @@ class EventDetailTest {
     @DisplayName("FNC-A-037 목록 필드에 더해 당시 기준값(JSON 객체)과 처리 정보가 담긴다")
     void detail_returnsListFieldsAndExtras() throws Exception {
         createCamera("삼청동 캠");
-        long eventId = insertEvent("CONGESTION", null, T0, T0.plusMinutes(18), 3, "1.6200", 486, CONGESTION_SNAPSHOT, "RESOLVED");
+        long eventId = insertEvent(
+                "CONGESTION", null, T0, T0.plusMinutes(18), 3, "1.6200", 486, CONGESTION_SNAPSHOT, "RESOLVED");
         long adminId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM admin_account", Long.class);
         jdbcTemplate.update(
                 "UPDATE event SET action_code = 'STAFF', action_note = '출입구 통제', handled_by = ?, handled_at = ? WHERE id = ?",
@@ -146,7 +151,11 @@ class EventDetailTest {
         long eventId = insertEvent("CONGESTION", null, T0, null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "RESOLVED");
         long otherEventId = insertEvent("CONGESTION", null, T0, null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "CHECKED");
         // 일부러 시각 순서를 섞어 넣는다
-        insertHistory(eventId, "admin02", T0.plusMinutes(28), "{\"from\":\"CHECKED\",\"to\":\"RESOLVED\",\"actionCode\":\"STAFF\",\"actionNote\":\"인력 배치\"}");
+        insertHistory(
+                eventId,
+                "admin02",
+                T0.plusMinutes(28),
+                "{\"from\":\"CHECKED\",\"to\":\"RESOLVED\",\"actionCode\":\"STAFF\",\"actionNote\":\"인력 배치\"}");
         insertHistory(eventId, "admin02", T0.plusMinutes(15), "{\"from\":\"UNCHECKED\",\"to\":\"CHECKED\"}");
         insertHistory(otherEventId, "admin03", T0.plusMinutes(20), "{\"from\":\"UNCHECKED\",\"to\":\"CHECKED\"}");
 
@@ -180,7 +189,16 @@ class EventDetailTest {
     @Test
     @DisplayName("FNC-A-037 진행 중인 이벤트는 ongoing=true, endedAt=null")
     void detail_ongoing() throws Exception {
-        long eventId = insertEvent("CONGESTION", null, LocalDateTime.now(KST).minusMinutes(5), null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "UNCHECKED");
+        long eventId = insertEvent(
+                "CONGESTION",
+                null,
+                LocalDateTime.now(KST).minusMinutes(5),
+                null,
+                2,
+                "0.8000",
+                10,
+                CONGESTION_SNAPSHOT,
+                "UNCHECKED");
 
         detail(eventId)
                 .andExpect(jsonPath("$.ongoing").value(true))
@@ -193,7 +211,8 @@ class EventDetailTest {
     @DisplayName("FNC-A-037 캠 이상은 cameraId와 캠 이름·timeoutSec 기준값을 담고 peak 값은 null")
     void detail_camFault() throws Exception {
         long cameraId = createCamera("삼청동 캠");
-        long eventId = insertEvent("CAM_FAULT", cameraId, T0, null, null, null, null, "{\"timeoutSec\":60}", "UNCHECKED");
+        long eventId =
+                insertEvent("CAM_FAULT", cameraId, T0, null, null, null, null, "{\"timeoutSec\":60}", "UNCHECKED");
 
         detail(eventId)
                 .andExpect(jsonPath("$.type").value("CAM_FAULT"))
@@ -219,10 +238,21 @@ class EventDetailTest {
     @DisplayName("FNC-A-037 playbackAvailable은 혼잡·급증이고 발생이 30일 이내일 때만 true")
     void detail_playbackAvailable() throws Exception {
         LocalDateTime now = LocalDateTime.now(KST);
-        long recentCongestion = insertEvent("CONGESTION", null, now.minusDays(29), null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "UNCHECKED");
+        long recentCongestion = insertEvent(
+                "CONGESTION", null, now.minusDays(29), null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "UNCHECKED");
         long recentSurge = insertEvent("SURGE", null, now.minusDays(1), null, null, "60.0000", 10, "{}", "UNCHECKED");
-        long oldCongestion = insertEvent("CONGESTION", null, now.minusDays(31), null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "UNCHECKED");
-        long camFault = insertEvent("CAM_FAULT", createCamera("삼청동 캠"), now.minusHours(1), null, null, null, null, "{\"timeoutSec\":60}", "UNCHECKED");
+        long oldCongestion = insertEvent(
+                "CONGESTION", null, now.minusDays(31), null, 2, "0.8000", 10, CONGESTION_SNAPSHOT, "UNCHECKED");
+        long camFault = insertEvent(
+                "CAM_FAULT",
+                createCamera("삼청동 캠"),
+                now.minusHours(1),
+                null,
+                null,
+                null,
+                null,
+                "{\"timeoutSec\":60}",
+                "UNCHECKED");
 
         detail(recentCongestion).andExpect(jsonPath("$.playbackAvailable").value(true));
         detail(recentSurge).andExpect(jsonPath("$.playbackAvailable").value(true));
@@ -233,7 +263,9 @@ class EventDetailTest {
     @Test
     @DisplayName("FNC-A-037 없는 이벤트는 404 NOT_FOUND")
     void detail_unknownEvent_404() throws Exception {
-        detail(999999999L).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        detail(999999999L)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     @Test
@@ -259,7 +291,8 @@ class EventDetailTest {
     }
 
     private long countStatementsOfDetail(long eventId) throws Exception {
-        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        Statistics statistics =
+                entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
         detail(eventId).andExpect(status().isOk());
         return statistics.getPrepareStatementCount();

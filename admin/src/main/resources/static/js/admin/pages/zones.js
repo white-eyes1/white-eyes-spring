@@ -6,11 +6,14 @@ import { showToast } from '../../common/toast.js';
 import { createZoneMap } from '../../map/zone-draw.js';
 
 const ERROR_MESSAGES = {
-    INVALID_POLYGON: '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
+    INVALID_POLYGON:
+        '다각형이 올바르지 않습니다. 선이 겹치지 않게 세 점 이상으로 다시 그려 주세요.',
     OUT_OF_SERVICE_AREA: '서비스 지역 밖입니다. 서비스 지역 안에서 다시 그려 주세요.',
     DUPLICATE_ZONE_NAME: '이미 사용 중인 구역 이름입니다.',
-    CAMERA_RUNNING: '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.',
-    DONG_CHANGE_NOT_ALLOWED: '다른 동으로 바뀌어 저장할 수 없습니다. 같은 동 안에서만 모양을 바꿀 수 있습니다.',
+    CAMERA_RUNNING:
+        '가동 중이거나 가동을 요청한 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요.',
+    DONG_CHANGE_NOT_ALLOWED:
+        '다른 동으로 바뀌어 저장할 수 없습니다. 같은 동 안에서만 모양을 바꿀 수 있습니다.',
 };
 
 const citySelect = document.getElementById('region-city');
@@ -49,7 +52,9 @@ const neighborModal = document.getElementById('neighbor-modal');
 const neighborForm = document.getElementById('neighbor-form');
 const neighborError = document.getElementById('neighbor-error');
 const neighborSave = document.getElementById('neighbor-save');
-const neighborSelects = Object.fromEntries(DIRECTIONS.map((direction) => [direction, document.getElementById(`neighbor-${direction}`)]));
+const neighborSelects = Object.fromEntries(
+    DIRECTIONS.map((direction) => [direction, document.getElementById(`neighbor-${direction}`)]),
+);
 // 이웃 설정 창이 열려 있는 구역
 let neighborZone = null;
 
@@ -68,7 +73,9 @@ const zoneMap = createZoneMap(document.getElementById('zone-map'), {
     onDrawn: previewDrawn,
 });
 
-citySelect.addEventListener('change', () => onRegionChange(citySelect, districtSelect, [dongSelect]));
+citySelect.addEventListener('change', () =>
+    onRegionChange(citySelect, districtSelect, [dongSelect]),
+);
 districtSelect.addEventListener('change', () => onRegionChange(districtSelect, dongSelect, []));
 dongSelect.addEventListener('change', onDongChange);
 drawButton.addEventListener('click', startDraw);
@@ -154,7 +161,9 @@ async function loadZones() {
 // ---- 구역 목록 ----
 
 function renderList() {
-    listTitle.textContent = selectedDong ? `${selectedDong.name} 구역 ${zones.length}개` : '동을 선택해 주세요';
+    listTitle.textContent = selectedDong
+        ? `${selectedDong.name} 구역 ${zones.length}개`
+        : '동을 선택해 주세요';
     if (zones.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'zone-empty';
@@ -182,11 +191,7 @@ function zoneRow(zone) {
 
     const actions = document.createElement('div');
     actions.className = 'row-actions';
-    actions.append(
-        neighborButton(zone),
-        editButton(zone),
-        deleteButton(zone),
-    );
+    actions.append(neighborButton(zone), editButton(zone), deleteButton(zone));
     row.append(info, actions);
     return row;
 }
@@ -288,10 +293,21 @@ async function register() {
     }
     draftSubmit.disabled = true;
     try {
-        const created = await post('/api/v1/manage/zones', { name, boundary: draft.boundary }, { toast: false });
+        const created = await post(
+            '/api/v1/manage/zones',
+            { name, boundary: draft.boundary },
+            { toast: false },
+        );
         await afterRegistered(created);
     } catch (error) {
-        showError(error, (message) => (error.code === 'DUPLICATE_ZONE_NAME' ? setNameError(message) : showDraftError(message)), setNameError);
+        showError(
+            error,
+            (message) =>
+                error.code === 'DUPLICATE_ZONE_NAME'
+                    ? setNameError(message)
+                    : showDraftError(message),
+            setNameError,
+        );
         updateSubmit();
     }
 }
@@ -418,7 +434,14 @@ async function saveEdit() {
         await loadZones();
         selectZone(updated.id);
     } catch (error) {
-        showError(error, (message) => (error.code === 'DUPLICATE_ZONE_NAME' ? setEditNameError(message) : showEditError(message)), setEditNameError);
+        showError(
+            error,
+            (message) =>
+                error.code === 'DUPLICATE_ZONE_NAME'
+                    ? setEditNameError(message)
+                    : showEditError(message),
+            setEditNameError,
+        );
         updateEditSubmit();
     }
 }
@@ -506,7 +529,9 @@ function showDeleteError(message) {
 }
 
 deleteForm.addEventListener('submit', confirmDelete);
-deleteModal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeDeleteModal));
+deleteModal
+    .querySelectorAll('[data-close]')
+    .forEach((button) => button.addEventListener('click', closeDeleteModal));
 deleteModal.addEventListener('mousedown', (event) => {
     if (event.target === deleteModal) {
         closeDeleteModal();
@@ -527,10 +552,15 @@ async function openNeighborModal(zone) {
     showNeighborError('');
     neighborModal.hidden = false;
     neighborSave.disabled = true;
-    DIRECTIONS.forEach((direction) => neighborSelects[direction].replaceChildren(new Option('불러오는 중…', '')));
+    DIRECTIONS.forEach((direction) =>
+        neighborSelects[direction].replaceChildren(new Option('불러오는 중…', '')),
+    );
     try {
         // 후보: 삭제되지 않은 모든 구역(다른 동 포함)을 이 구역 중심점에서 가까운 순으로
-        const [all, current] = await Promise.all([get('/api/v1/zones'), get(`/api/v1/manage/zones/${zone.id}/neighbors`)]);
+        const [all, current] = await Promise.all([
+            get('/api/v1/zones'),
+            get(`/api/v1/manage/zones/${zone.id}/neighbors`),
+        ]);
         const candidates = all
             .filter((other) => other.id !== zone.id)
             .map((other) => ({ ...other, distance: distanceMeters(zone, other) }))
@@ -539,14 +569,19 @@ async function openNeighborModal(zone) {
             const select = neighborSelects[direction];
             select.replaceChildren(
                 new Option('없음(관측 범위 밖)', ''),
-                ...candidates.map((other) => new Option(`${other.name} (${formatDistance(other.distance)})`, other.id)),
+                ...candidates.map(
+                    (other) =>
+                        new Option(`${other.name} (${formatDistance(other.distance)})`, other.id),
+                ),
             );
             select.value = current[direction] ? String(current[direction].id) : '';
         });
         neighborSave.disabled = false;
     } catch {
         // 조회 실패는 api.js가 토스트로 알렸다. 저장은 막아 두고 창은 닫을 수 있게 둔다
-        DIRECTIONS.forEach((direction) => neighborSelects[direction].replaceChildren(new Option('불러오지 못했습니다', '')));
+        DIRECTIONS.forEach((direction) =>
+            neighborSelects[direction].replaceChildren(new Option('불러오지 못했습니다', '')),
+        );
     }
 }
 
@@ -561,7 +596,12 @@ async function saveNeighbors(event) {
     if (!neighborZone) {
         return;
     }
-    const body = Object.fromEntries(DIRECTIONS.map((direction) => [direction, neighborSelects[direction].value ? Number(neighborSelects[direction].value) : null]));
+    const body = Object.fromEntries(
+        DIRECTIONS.map((direction) => [
+            direction,
+            neighborSelects[direction].value ? Number(neighborSelects[direction].value) : null,
+        ]),
+    );
     neighborSave.disabled = true;
     showNeighborError('');
     try {
@@ -570,7 +610,11 @@ async function saveNeighbors(event) {
         showToast('이웃을 저장했습니다. 상대 구역의 반대 방향도 함께 바뀌었습니다.');
     } catch (error) {
         if (error instanceof ApiError && error.status !== 401) {
-            showNeighborError(error.status === 404 ? '구역을 찾을 수 없습니다. 목록을 새로 불러온 뒤 다시 시도해 주세요.' : error.message);
+            showNeighborError(
+                error.status === 404
+                    ? '구역을 찾을 수 없습니다. 목록을 새로 불러온 뒤 다시 시도해 주세요.'
+                    : error.message,
+            );
         }
         neighborSave.disabled = false;
     }
@@ -585,7 +629,10 @@ function showNeighborError(message) {
 function distanceMeters(from, to) {
     const metersPerDegree = 111_320;
     const dy = (Number(to.centerLat) - Number(from.centerLat)) * metersPerDegree;
-    const dx = (Number(to.centerLng) - Number(from.centerLng)) * metersPerDegree * Math.cos((Number(from.centerLat) * Math.PI) / 180);
+    const dx =
+        (Number(to.centerLng) - Number(from.centerLng)) *
+        metersPerDegree *
+        Math.cos((Number(from.centerLat) * Math.PI) / 180);
     return Math.hypot(dx, dy);
 }
 
@@ -601,7 +648,9 @@ DIRECTIONS.forEach((direction) => {
     });
 });
 neighborForm.addEventListener('submit', saveNeighbors);
-neighborModal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeNeighborModal));
+neighborModal
+    .querySelectorAll('[data-close]')
+    .forEach((button) => button.addEventListener('click', closeNeighborModal));
 neighborModal.addEventListener('mousedown', (event) => {
     if (event.target === neighborModal) {
         closeNeighborModal();

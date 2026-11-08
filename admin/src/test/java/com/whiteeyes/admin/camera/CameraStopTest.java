@@ -7,16 +7,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +29,11 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** FNC-A-021 캠 정지. 분석 서버는 같은 JVM에 띄운 가짜 HTTP 서버로 대신한다. */
 @Import(AdminTestUserConfig.class)
@@ -101,7 +103,8 @@ class CameraStopTest {
     }
 
     @Test
-    @DisplayName("FNC-A-021 가동 중인 캠을 정지하면 200 {status: STOPPED, warning: null}이고 STOPPED·progress=0·run_requested=0이 된다")
+    @DisplayName(
+            "FNC-A-021 가동 중인 캠을 정지하면 200 {status: STOPPED, warning: null}이고 STOPPED·progress=0·run_requested=0이 된다")
     void stop_runningCamera_becomesStopped() throws Exception {
         long cameraId = insertCamera("RUNNING", 0, null, true);
 
@@ -133,7 +136,9 @@ class CameraStopTest {
                         "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NULL", Integer.class, cameraId))
                 .isZero();
         assertThat(jdbcTemplate.queryForObject(
-                        "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NOT NULL", Integer.class, cameraId))
+                        "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NOT NULL",
+                        Integer.class,
+                        cameraId))
                 .isEqualTo(1);
     }
 
@@ -224,14 +229,16 @@ class CameraStopTest {
             long cameraId = insertCamera("PREPARING", 30, null, true);
             ANALYZER.replyWith(http, "{\"code\":\"X\"}");
 
-            stop(cameraId).andExpect(status().isOk()).andExpect(jsonPath("$.warning").value(DELIVERY_FAILED));
+            stop(cameraId)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.warning").value(DELIVERY_FAILED));
 
             Map<String, Object> row = camera(cameraId);
             assertThat(row.get("STATUS")).as("http " + http).isEqualTo("STOPPED");
             assertThat(isRunRequested(row)).as("http " + http).isFalse();
             jdbcTemplate.update("DELETE FROM recording");
             jdbcTemplate.update("DELETE FROM event");
-        jdbcTemplate.update("DELETE FROM camera");
+            jdbcTemplate.update("DELETE FROM camera");
         }
     }
 
@@ -242,7 +249,9 @@ class CameraStopTest {
         ANALYZER.replyWithDelay(200, "", 17_000);
 
         long begin = System.currentTimeMillis();
-        stop(cameraId).andExpect(status().isOk()).andExpect(jsonPath("$.warning").value(DELIVERY_FAILED));
+        stop(cameraId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.warning").value(DELIVERY_FAILED));
         long elapsed = System.currentTimeMillis() - begin;
 
         assertThat(elapsed).isBetween(14_500L, 16_800L);
@@ -276,13 +285,16 @@ class CameraStopTest {
 
         assertThat(endedAt(openId)).isBetween(before, after);
         assertThat(jdbcTemplate.queryForObject(
-                        "SELECT COUNT(*) FROM recording WHERE camera_id = ? AND ended_at IS NULL", Long.class, cameraId))
+                        "SELECT COUNT(*) FROM recording WHERE camera_id = ? AND ended_at IS NULL",
+                        Long.class,
+                        cameraId))
                 .isZero();
-        assertThat(jdbcTemplate.queryForObject(
-                        "SELECT ended_at FROM recording WHERE camera_id = ? AND started_at = '2026-01-01 10:00:00'",
-                        java.sql.Timestamp.class,
-                        cameraId)
-                .toLocalDateTime())
+        assertThat(jdbcTemplate
+                        .queryForObject(
+                                "SELECT ended_at FROM recording WHERE camera_id = ? AND started_at = '2026-01-01 10:00:00'",
+                                java.sql.Timestamp.class,
+                                cameraId)
+                        .toLocalDateTime())
                 .isEqualTo(LocalDateTime.of(2026, 1, 1, 10, 1, 0));
     }
 
@@ -341,8 +353,8 @@ class CameraStopTest {
     }
 
     private LocalDateTime endedAt(long recordingId) {
-        java.sql.Timestamp value =
-                jdbcTemplate.queryForObject("SELECT ended_at FROM recording WHERE id = ?", java.sql.Timestamp.class, recordingId);
+        java.sql.Timestamp value = jdbcTemplate.queryForObject(
+                "SELECT ended_at FROM recording WHERE id = ?", java.sql.Timestamp.class, recordingId);
         return value == null ? null : value.toLocalDateTime();
     }
 
@@ -356,7 +368,8 @@ class CameraStopTest {
     }
 
     private ResultActions stop(long cameraId) throws Exception {
-        return mockMvc.perform(post("/api/v1/manage/cameras/{id}/stop", cameraId).with(AdminTestLogin.admin()));
+        return mockMvc.perform(
+                post("/api/v1/manage/cameras/{id}/stop", cameraId).with(AdminTestLogin.admin()));
     }
 
     // 구역당 캠 1대 규칙 때문에 한 번에 한 대만 만든다(테스트 안에서 반복할 때는 먼저 지운다)

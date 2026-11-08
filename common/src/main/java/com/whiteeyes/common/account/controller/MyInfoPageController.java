@@ -1,13 +1,14 @@
 package com.whiteeyes.common.account.controller;
 
-import com.whiteeyes.common.security.AccountPrincipal;
-import com.whiteeyes.common.security.LoginAccountResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+
+import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.common.security.LoginAccountResolver;
 
 /**
  * 내 정보 화면(SCR-C-002 내 정보 영역, FNC-C-006). 사용자 앱 /me, 관리자 앱 /admin/me.
@@ -29,7 +30,8 @@ public class MyInfoPageController {
         loginAccountResolver.require();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         model.addAttribute("admin", isAdmin(authentication));
-        model.addAttribute("forced", authentication.getPrincipal() instanceof AccountPrincipal p && p.isMustChangePassword());
+        model.addAttribute(
+                "forced", authentication.getPrincipal() instanceof AccountPrincipal p && p.isMustChangePassword());
         return "account/me";
     }
 

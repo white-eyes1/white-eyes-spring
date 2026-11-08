@@ -1,6 +1,5 @@
 package com.whiteeyes.admin.notification.controller;
 
-import com.whiteeyes.admin.notification.service.NotificationBroadcaster;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.CacheControl;
@@ -9,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.whiteeyes.admin.notification.service.NotificationBroadcaster;
 
 // 컨텍스트 경로가 붙어 /admin/api/v1/notifications/stream. 권한 '관리자 이상'은 접근 권한 검사(FNC-C-003)의 공통 규칙으로 붙는다
 /** 관리자 알림 스트림(FNC-A-048): 새 이벤트·미확인 수·캠 상태를 SSE로 받는다. */

@@ -8,14 +8,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +28,11 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** FNC-A-023 캠 삭제. 삭제는 분석 서버를 부르지 않으므로 가짜 분석 서버가 필요 없다. */
 @Import(AdminTestUserConfig.class)
@@ -242,7 +244,8 @@ class CameraDeleteTest {
         mockMvc.perform(get(CAMERAS_URL).with(AdminTestLogin.admin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
-        String body = "{\"zoneId\":" + zoneId + ",\"name\":\"새 캠\",\"sourceType\":\"DUMMY\",\"sourceUri\":\"" + DUMMY_URI + "\"}";
+        String body = "{\"zoneId\":" + zoneId + ",\"name\":\"새 캠\",\"sourceType\":\"DUMMY\",\"sourceUri\":\""
+                + DUMMY_URI + "\"}";
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(CAMERAS_URL)
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content(body)
@@ -252,7 +255,8 @@ class CameraDeleteTest {
     }
 
     private ResultActions callDelete(long cameraId, RequestPostProcessor login) throws Exception {
-        MockHttpServletRequestBuilder request = delete(CAMERAS_URL + "/{id}", cameraId).with(csrf());
+        MockHttpServletRequestBuilder request =
+                delete(CAMERAS_URL + "/{id}", cameraId).with(csrf());
         return mockMvc.perform(login == null ? request : request.with(login));
     }
 

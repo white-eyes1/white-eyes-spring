@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -14,6 +13,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /**
  * 다시보기 녹화 구간 조회(FNC-A-043 처리 순서 6~8, GET /api/v1/playback/ranges).
@@ -164,7 +166,11 @@ class PlaybackRangesTest {
 
         jdbcTemplate.update("DELETE FROM recording");
         insertRecording(cameraId, now.minusDays(31), now.minusDays(31).plusHours(1));
-        assertThat(ranges(zoneId, now.minusDays(31).minusMinutes(5), now.minusDays(31).plusHours(2))).isEmpty();
+        assertThat(ranges(
+                        zoneId,
+                        now.minusDays(31).minusMinutes(5),
+                        now.minusDays(31).plusHours(2)))
+                .isEmpty();
     }
 
     @Test
@@ -245,13 +251,21 @@ class PlaybackRangesTest {
 
     // 응답의 구간을 한국 시간 {from, to} 쌍으로
     private List<LocalDateTime[]> ranges(long zone, LocalDateTime from, LocalDateTime to) throws Exception {
-        String body = request(zone, from, to).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String body = request(zone, from, to)
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         JsonNode ranges = jsonMapper.readTree(body).get("ranges");
         List<LocalDateTime[]> result = new ArrayList<>();
         for (JsonNode item : ranges) {
             result.add(new LocalDateTime[] {
-                OffsetDateTime.parse(item.get("from").asString()).atZoneSameInstant(KST).toLocalDateTime(),
-                OffsetDateTime.parse(item.get("to").asString()).atZoneSameInstant(KST).toLocalDateTime()
+                OffsetDateTime.parse(item.get("from").asString())
+                        .atZoneSameInstant(KST)
+                        .toLocalDateTime(),
+                OffsetDateTime.parse(item.get("to").asString())
+                        .atZoneSameInstant(KST)
+                        .toLocalDateTime()
             });
         }
         return result;

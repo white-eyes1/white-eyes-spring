@@ -62,8 +62,8 @@ public class LevelService {
             throw new IllegalStateException("THRESHOLD_WARN_DENSITY(" + warnDensity + ")는 0보다 커야 합니다");
         }
         if (warnDensity.compareTo(dangerDensity) >= 0) {
-            throw new IllegalStateException("THRESHOLD_WARN_DENSITY(" + warnDensity
-                    + ")는 THRESHOLD_DANGER_DENSITY(" + dangerDensity + ")보다 작아야 합니다");
+            throw new IllegalStateException("THRESHOLD_WARN_DENSITY(" + warnDensity + ")는 THRESHOLD_DANGER_DENSITY("
+                    + dangerDensity + ")보다 작아야 합니다");
         }
     }
 }

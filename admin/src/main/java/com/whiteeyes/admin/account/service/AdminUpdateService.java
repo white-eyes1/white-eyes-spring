@@ -1,5 +1,15 @@
 package com.whiteeyes.admin.account.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.account.dto.AdminListItem;
 import com.whiteeyes.admin.account.dto.AdminUpdateRequest;
 import com.whiteeyes.admin.account.entity.AdminAccount;
@@ -13,14 +23,6 @@ import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 최고 관리자가 관리자(role=ADMIN)의 이름·메일·연락처를 고친다(FNC-A-010, 처리 순서는 FNC-A-004와 같음).
@@ -75,7 +77,12 @@ public class AdminUpdateService {
             detail.put("before", before);
             detail.put("after", after);
             workRecorder.record(
-                    actor, WorkAction.ACCOUNT_CHANGE, WorkTargetType.ADMIN_ACCOUNT, adminId, admin.getLoginId(), detail);
+                    actor,
+                    WorkAction.ACCOUNT_CHANGE,
+                    WorkTargetType.ADMIN_ACCOUNT,
+                    adminId,
+                    admin.getLoginId(),
+                    detail);
         }
         // 개인 정보(이름·메일·연락처)는 로그에 남기지 않는다(code-conventions 7-4)
         log.info("관리자 정보 수정 adminId={} 바뀐 필드={}", adminId, before.keySet());
@@ -93,7 +100,8 @@ public class AdminUpdateService {
                 admin.getStatus(),
                 admin.getCreatedAt(),
                 admin.getLastLoginAt());
-        AccountActivities activities = accountActivityService.loadActivities(SessionTable.ADMIN, List.of(row.loginId()));
+        AccountActivities activities =
+                accountActivityService.loadActivities(SessionTable.ADMIN, List.of(row.loginId()));
         return AdminListService.toItem(row, activities);
     }
 

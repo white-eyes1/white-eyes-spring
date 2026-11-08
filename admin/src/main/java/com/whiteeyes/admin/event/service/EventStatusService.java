@@ -1,5 +1,15 @@
 package com.whiteeyes.admin.event.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.event.dto.EventDetailResponse;
 import com.whiteeyes.admin.event.dto.EventStatusUpdateRequest;
 import com.whiteeyes.admin.event.exception.EventNotFoundException;
@@ -18,14 +28,6 @@ import com.whiteeyes.common.exception.ErrorCode;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 이벤트 처리 상태 변경(FNC-A-038): 미확인 → 확인 중 → 조치완료. 상태 저장과 작업 기록은 한 트랜잭션이다.

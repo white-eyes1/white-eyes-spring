@@ -1,27 +1,30 @@
 package com.whiteeyes.admin.event;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.assertj.core.api.Assertions.assertThat;
 
-import com.whiteeyes.admin.notification.service.NotificationPublisher;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.event.service.CongestionEventService;
 import com.whiteeyes.admin.event.service.SurgeEventService;
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.admin.stat.service.DirectionCounts;
 import com.whiteeyes.admin.stat.service.MinuteAccumulatorStore;
 import com.whiteeyes.admin.stat.service.MinuteStatService;
@@ -32,10 +35,6 @@ import com.whiteeyes.common.event.entity.EventType;
 import com.whiteeyes.common.event.repository.EventRepository;
 import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.repository.ZoneRepository;
-
-import jakarta.persistence.EntityManager;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 급증 이벤트 판정(FNC-A-034). 기준은 기본값(비교 10분, 증가율 50%, 최소 밀집도 0.2, 최소 30초, 종료 유지 5분)이다.
@@ -145,8 +144,10 @@ class SurgeEventServiceTest {
         Long below = saveZone("테스트 증가율 미만 구역", "10");
         Long equal = saveZone("테스트 증가율 경계 구역", "10");
 
-        surgeEventService.judge(below, T0, bd("149.99"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(equal, T0, bd("150.00"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                below, T0, bd("149.99"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                equal, T0, bd("150.00"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
 
         List<Event> events = eventRepository.findAll();
         assertThat(events).hasSize(1);
@@ -199,14 +200,15 @@ class SurgeEventServiceTest {
         Long over = saveZone("테스트 상한 초과 구역", "10");
 
         // 10분 전 1명: 10000.999999명이면 증가율 정확히 999999.9999, 10001명이면 1000000.0000
-        surgeEventService.judge(equal, T0, bd("10000.999999"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("1"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                equal, T0, bd("10000.999999"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("1"), FULL_SAMPLE_SEC);
         surgeEventService.judge(over, T0, bd("10001"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("1"), FULL_SAMPLE_SEC);
         entityManager.flush();
 
         List<Event> events = eventRepository.findAll();
         assertThat(events).hasSize(2);
-        assertThat(events).extracting(Event::getPeakValue)
-                .allSatisfy(value -> assertThat(value).isEqualByComparingTo("999999.9999"));
+        assertThat(events).extracting(Event::getPeakValue).allSatisfy(value -> assertThat(value)
+                .isEqualByComparingTo("999999.9999"));
     }
 
     @Test
@@ -216,12 +218,15 @@ class SurgeEventServiceTest {
 
         surgeEventService.judge(zoneId, T0, bd("160"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
         // 증가율 20%로 내려가 below_since가 기록된다
-        surgeEventService.judge(zoneId, T0.plusMinutes(1), bd("120"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(1), bd("120"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
         assertThat(eventRepository.findAll().get(0).getBelowSince()).isEqualTo(T0.plusMinutes(1));
         // 증가율 100%, 인원 200으로 더 오르면 최댓값을 갱신하고 below_since를 비운다
-        surgeEventService.judge(zoneId, T0.plusMinutes(2), bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(2), bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
         // 증가율 55%, 인원 155로 내려오면 최댓값은 유지한다
-        surgeEventService.judge(zoneId, T0.plusMinutes(3), bd("155"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(3), bd("155"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
 
         List<Event> events = eventRepository.findAll();
         assertThat(events).hasSize(1);
@@ -240,9 +245,11 @@ class SurgeEventServiceTest {
         // 10분 전 행 없음
         surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, null, null);
         // 10분 전 결과 초 수 29
-        surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), MIN_SAMPLE_SEC - 1);
+        surgeEventService.judge(
+                zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), MIN_SAMPLE_SEC - 1);
         // 10분 전 인원 0 (0으로 나눌 수 없다)
-        surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("0.00"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("0.00"), FULL_SAMPLE_SEC);
 
         assertThat(eventRepository.findAll()).isEmpty();
     }
@@ -255,19 +262,36 @@ class SurgeEventServiceTest {
         Event event = eventRepository.findAll().get(0);
 
         // 기준 미만이어도, 비교 행이 없어도 초 수가 29면 건너뛴다
-        surgeEventService.judge(zoneId, T0.plusMinutes(1), bd("110"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(2), bd("200"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, null, null);
+        surgeEventService.judge(
+                zoneId,
+                T0.plusMinutes(1),
+                bd("110"),
+                bd(ENOUGH_DENSITY),
+                MIN_SAMPLE_SEC - 1,
+                bd("100"),
+                FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(2), bd("200"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, null, null);
         assertThat(event.getBelowSince()).isNull();
 
         // 이미 below_since가 있으면 그 값도 그대로 두고 종료하지 않는다
-        surgeEventService.judge(zoneId, T0.plusMinutes(3), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(9), bd("110"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(3), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId,
+                T0.plusMinutes(9),
+                bd("110"),
+                bd(ENOUGH_DENSITY),
+                MIN_SAMPLE_SEC - 1,
+                bd("100"),
+                FULL_SAMPLE_SEC);
         assertThat(event.getBelowSince()).isEqualTo(T0.plusMinutes(3));
         assertThat(event.getEndedAt()).isNull();
 
         // 열린 이벤트가 없을 때도 새로 열지 않는다
         Long other = saveZone("테스트 현재 초 수 부족 다른 구역", "10");
-        surgeEventService.judge(other, T0, bd("200"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                other, T0, bd("200"), bd(ENOUGH_DENSITY), MIN_SAMPLE_SEC - 1, bd("100"), FULL_SAMPLE_SEC);
         assertThat(eventRepository.findAll()).hasSize(1);
     }
 
@@ -277,7 +301,8 @@ class SurgeEventServiceTest {
         Long zoneId = saveZone("테스트 증가율 상한 구역", "10");
 
         // 10분 전 0.0001명 → 100명: 증가율 약 100,000,000%로 상한을 넘는다
-        surgeEventService.judge(zoneId, T0, bd("100"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("0.0001"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0, bd("100"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("0.0001"), FULL_SAMPLE_SEC);
         entityManager.flush();
 
         Event event = eventRepository.findAll().get(0);
@@ -320,11 +345,14 @@ class SurgeEventServiceTest {
         surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
         Event event = eventRepository.findAll().get(0);
 
-        surgeEventService.judge(zoneId, T0.plusMinutes(1), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(5), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(1), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(5), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
         assertThat(event.getEndedAt()).isNull();
 
-        surgeEventService.judge(zoneId, T0.plusMinutes(6), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(6), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
 
         assertThat(event.getEndedAt()).isEqualTo(T0.plusMinutes(6));
     }
@@ -335,11 +363,16 @@ class SurgeEventServiceTest {
         Long zoneId = saveZone("테스트 복귀 구역", "10");
         surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
 
-        surgeEventService.judge(zoneId, T0.plusMinutes(1), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(5), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(6), bd("180"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(7), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(11), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(1), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(5), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(6), bd("180"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(7), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(11), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
 
         List<Event> events = eventRepository.findAll();
         assertThat(events).hasSize(1);
@@ -352,10 +385,13 @@ class SurgeEventServiceTest {
     void opensNewEventAfterPreviousOneEnded() {
         Long zoneId = saveZone("테스트 재급증 구역", "10");
         surgeEventService.judge(zoneId, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(1), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneId, T0.plusMinutes(6), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(1), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(6), bd("110"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
 
-        surgeEventService.judge(zoneId, T0.plusMinutes(7), bd("300"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(7), bd("300"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
 
         List<Event> events = eventRepository.findAll();
         assertThat(events).hasSize(2);
@@ -384,7 +420,8 @@ class SurgeEventServiceTest {
 
         surgeEventService.judge(zoneA, T0, bd("200"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
         surgeEventService.judge(zoneB, T0, bd("100"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
-        surgeEventService.judge(zoneB, T0.plusMinutes(6), bd("100"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneB, T0.plusMinutes(6), bd("100"), bd(ENOUGH_DENSITY), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
 
         List<Event> events = eventRepository.findAll();
         assertThat(events).hasSize(1);
@@ -402,16 +439,19 @@ class SurgeEventServiceTest {
         congestionEventService.judge(zoneId, T0, bd("200"), bd("2.0000"), FULL_SAMPLE_SEC);
         surgeEventService.judge(zoneId, T0, bd("200"), bd("2.0000"), FULL_SAMPLE_SEC, bd("100"), FULL_SAMPLE_SEC);
         // 증가율만 기준 아래로 내려간다(혼잡은 그대로 위험)
-        surgeEventService.judge(zoneId, T0.plusMinutes(1), bd("210"), bd("2.1000"), FULL_SAMPLE_SEC, bd("200"), FULL_SAMPLE_SEC);
+        surgeEventService.judge(
+                zoneId, T0.plusMinutes(1), bd("210"), bd("2.1000"), FULL_SAMPLE_SEC, bd("200"), FULL_SAMPLE_SEC);
         congestionEventService.judge(zoneId, T0.plusMinutes(1), bd("210"), bd("2.1000"), FULL_SAMPLE_SEC);
 
         List<Event> events = eventRepository.findAll();
         assertThat(events).hasSize(2);
         assertThat(events).extracting(Event::getType).containsExactlyInAnyOrder(EventType.CONGESTION, EventType.SURGE);
-        assertThat(events).filteredOn(event -> event.getType() == EventType.CONGESTION)
+        assertThat(events)
+                .filteredOn(event -> event.getType() == EventType.CONGESTION)
                 .singleElement()
                 .satisfies(congestion -> assertThat(congestion.getBelowSince()).isNull());
-        assertThat(events).filteredOn(event -> event.getType() == EventType.SURGE)
+        assertThat(events)
+                .filteredOn(event -> event.getType() == EventType.SURGE)
                 .singleElement()
                 .satisfies(surge -> assertThat(surge.getBelowSince()).isEqualTo(T0.plusMinutes(1)));
     }
@@ -431,8 +471,9 @@ class SurgeEventServiceTest {
 
         minuteStatService.closeEndedMinutes(T0.plusMinutes(1).plusSeconds(5));
 
-        List<Event> surges =
-                eventRepository.findAll().stream().filter(e -> e.getType() == EventType.SURGE).toList();
+        List<Event> surges = eventRepository.findAll().stream()
+                .filter(e -> e.getType() == EventType.SURGE)
+                .toList();
         assertThat(surges).hasSize(1);
         assertThat(surges.get(0).getZoneId()).isEqualTo(zoneId);
         assertThat(surges.get(0).getStartedAt()).isEqualTo(T0);
@@ -464,7 +505,13 @@ class SurgeEventServiceTest {
         jdbcTemplate.update(
                 "INSERT INTO zone_stat_minute (zone_id, stat_at, count_avg, count_max, count_min, density, sample_sec)"
                         + " VALUES (?, ?, ?, ?, ?, ?, ?)",
-                zoneId, statAt, count, count, count, density, FULL_SAMPLE_SEC);
+                zoneId,
+                statAt,
+                count,
+                count,
+                count,
+                density,
+                FULL_SAMPLE_SEC);
     }
 
     // zone → region 외래키가 있어 테스트용 동을 먼저 넣는다. 구역마다 다른 동 코드를 쓴다

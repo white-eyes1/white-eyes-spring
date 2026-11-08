@@ -1,11 +1,7 @@
 package com.whiteeyes.user.account.service;
 
-import com.whiteeyes.common.account.entity.UserAccount;
-import com.whiteeyes.common.account.entity.UserAccountStatus;
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.common.security.AccountPrincipal;
-import com.whiteeyes.user.config.UserRoles;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,6 +9,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.common.account.entity.UserAccount;
+import com.whiteeyes.common.account.entity.UserAccountStatus;
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.user.config.UserRoles;
 
 /**
  * 사용자 앱 로그인 때 user_account에서 계정을 찾는다(FNC-C-001 처리 순서 1·3·4).

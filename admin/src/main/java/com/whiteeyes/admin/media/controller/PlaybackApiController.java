@@ -1,21 +1,23 @@
 package com.whiteeyes.admin.media.controller;
 
-import com.whiteeyes.admin.media.dto.PlaybackResponse;
-import com.whiteeyes.admin.media.dto.PlaybackRangesResponse;
-import com.whiteeyes.admin.media.service.PlaybackFindService;
-import com.whiteeyes.admin.media.service.PlaybackRangesService;
-import com.whiteeyes.common.exception.BusinessException;
-import com.whiteeyes.common.exception.ErrorCode;
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
+
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.whiteeyes.admin.media.dto.PlaybackRangesResponse;
+import com.whiteeyes.admin.media.dto.PlaybackResponse;
+import com.whiteeyes.admin.media.service.PlaybackFindService;
+import com.whiteeyes.admin.media.service.PlaybackRangesService;
+import com.whiteeyes.common.exception.BusinessException;
+import com.whiteeyes.common.exception.ErrorCode;
 
 /**
  * 다시보기 녹화 찾기(FNC-A-043). 구역·시각(at) 또는 가장 최근 녹화(latest=true)로 녹화와 재생 시작 위치를 찾고,

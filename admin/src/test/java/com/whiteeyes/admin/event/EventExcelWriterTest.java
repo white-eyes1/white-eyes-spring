@@ -2,11 +2,6 @@ package com.whiteeyes.admin.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.whiteeyes.admin.event.dto.EventExportRow;
-import com.whiteeyes.admin.event.dto.EventListItem;
-import com.whiteeyes.admin.event.service.EventExcelWriter;
-import com.whiteeyes.common.event.entity.EventStatus;
-import com.whiteeyes.common.event.entity.EventType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -14,6 +9,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -21,6 +17,12 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.whiteeyes.admin.event.dto.EventExportRow;
+import com.whiteeyes.admin.event.dto.EventListItem;
+import com.whiteeyes.admin.event.service.EventExcelWriter;
+import com.whiteeyes.common.event.entity.EventStatus;
+import com.whiteeyes.common.event.entity.EventType;
 
 /** 이벤트 엑셀 작성(FNC-A-039 처리 순서 2): 열 순서와 종류별 값. */
 class EventExcelWriterTest {
@@ -127,7 +129,9 @@ class EventExcelWriterTest {
         EventListItem item = item(EventType.CONGESTION, ENDED, false, 600, 2, "0.8000", 10, EventStatus.RESOLVED);
         OffsetDateTime handledAt = OffsetDateTime.parse("2026-10-12T09:20:00+09:00");
 
-        Row row = write(List.of(new EventExportRow(item, "서울특별시", "종로구", "삼청동", "STAFF", "인력 2명 배치", "admin01", handledAt))).getRow(1);
+        Row row = write(List.of(
+                        new EventExportRow(item, "서울특별시", "종로구", "삼청동", "STAFF", "인력 2명 배치", "admin01", handledAt)))
+                .getRow(1);
 
         assertThat(text(row, 12)).isEqualTo("조치완료");
         assertThat(text(row, 13)).isEqualTo("인력 배치");
@@ -140,10 +144,24 @@ class EventExcelWriterTest {
     @DisplayName("FNC-A-039 삭제된 구역 이름의 '(삭제됨)'은 그대로 남고, 지역 경로가 없으면 지역 칸이 빈다")
     void deletedZoneAndMissingRegion() throws Exception {
         EventListItem item = new EventListItem(
-                1L, EventType.CONGESTION, 7L, "사직동 1구역 (삭제됨)", null, null, true, STARTED, ENDED, false, 600, 2,
-                new BigDecimal("0.8000"), 10, EventStatus.UNCHECKED);
+                1L,
+                EventType.CONGESTION,
+                7L,
+                "사직동 1구역 (삭제됨)",
+                null,
+                null,
+                true,
+                STARTED,
+                ENDED,
+                false,
+                600,
+                2,
+                new BigDecimal("0.8000"),
+                10,
+                EventStatus.UNCHECKED);
 
-        Row row = write(List.of(new EventExportRow(item, null, null, null, null, null, null, null))).getRow(1);
+        Row row = write(List.of(new EventExportRow(item, null, null, null, null, null, null, null)))
+                .getRow(1);
 
         assertThat(text(row, 7)).isEqualTo("사직동 1구역 (삭제됨)");
         assertThat(row.getCell(4)).isNull();
@@ -165,8 +183,21 @@ class EventExcelWriterTest {
             Integer peakCount,
             EventStatus status) {
         return new EventListItem(
-                1L, type, 7L, "삼청동 1구역", "종로구 · 삼청동", null, false, STARTED, endedAt, ongoing, durationSec,
-                peakLevel, peakValue == null ? null : new BigDecimal(peakValue), peakCount, status);
+                1L,
+                type,
+                7L,
+                "삼청동 1구역",
+                "종로구 · 삼청동",
+                null,
+                false,
+                STARTED,
+                endedAt,
+                ongoing,
+                durationSec,
+                peakLevel,
+                peakValue == null ? null : new BigDecimal(peakValue),
+                peakCount,
+                status);
     }
 
     private static Sheet write(List<EventExportRow> rows) throws Exception {

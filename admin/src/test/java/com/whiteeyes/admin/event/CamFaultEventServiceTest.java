@@ -1,26 +1,26 @@
 package com.whiteeyes.admin.event;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.assertj.core.api.Assertions.assertThat;
 
-import com.whiteeyes.admin.notification.service.NotificationPublisher;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.whiteeyes.admin.event.service.CamFaultEventService;
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
 import com.whiteeyes.admin.stat.service.LastResultTimeStore;
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventStatus;
@@ -28,8 +28,6 @@ import com.whiteeyes.common.event.entity.EventType;
 import com.whiteeyes.common.event.repository.EventRepository;
 import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.repository.ZoneRepository;
-
-import jakarta.persistence.EntityManager;
 
 /**
  * 캠 이상 감지(FNC-A-035). 기준은 기본값(결과 없음 허용 60초)이다.
@@ -313,7 +311,8 @@ class CamFaultEventServiceTest {
 
     private List<Event> allFaults(long cameraId) {
         return eventRepository.findAll().stream()
-                .filter(e -> e.getType() == EventType.CAM_FAULT && e.getCameraId() != null && e.getCameraId() == cameraId)
+                .filter(e ->
+                        e.getType() == EventType.CAM_FAULT && e.getCameraId() != null && e.getCameraId() == cameraId)
                 .toList();
     }
 

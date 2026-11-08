@@ -38,11 +38,12 @@ public class HourlyLevelService {
     @Transactional(readOnly = true)
     public List<HourlyLevelItem> findHourlyLevels(
             DashboardTargetType targetType, long targetId, LocalDate date, LocalDateTime now) {
-        StatTargetType seriesType = targetType == DashboardTargetType.ZONE ? StatTargetType.ZONE : StatTargetType.REGION;
+        StatTargetType seriesType =
+                targetType == DashboardTargetType.ZONE ? StatTargetType.ZONE : StatTargetType.REGION;
         LocalDateTime dayStart = date.atStartOfDay();
         List<StatSeriesPoint> hours = statSeriesService
-                .findSeries(new StatSeriesRequest(
-                        seriesType, targetId, StatInterval.HOUR, dayStart, dayStart.plusDays(1)))
+                .findSeries(
+                        new StatSeriesRequest(seriesType, targetId, StatInterval.HOUR, dayStart, dayStart.plusDays(1)))
                 .items();
 
         List<HourlyLevelItem> result = new ArrayList<>(HOURS_PER_DAY);

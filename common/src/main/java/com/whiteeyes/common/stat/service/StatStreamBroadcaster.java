@@ -1,17 +1,5 @@
 package com.whiteeyes.common.stat.service;
 
-import com.whiteeyes.common.level.service.LevelService;
-import com.whiteeyes.common.level.service.LevelTarget;
-import com.whiteeyes.common.region.entity.Region;
-import com.whiteeyes.common.region.entity.Zone;
-import com.whiteeyes.common.region.service.RegionQueryService;
-import com.whiteeyes.common.stat.dto.NowStreamEvent;
-import com.whiteeyes.common.stat.dto.StatStreamEvent;
-import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
-import com.whiteeyes.common.stat.entity.ZoneStatMinute;
-import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -31,13 +19,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.level.service.LevelService;
+import com.whiteeyes.common.level.service.LevelTarget;
+import com.whiteeyes.common.region.entity.Region;
+import com.whiteeyes.common.region.entity.Zone;
+import com.whiteeyes.common.region.service.RegionQueryService;
+import com.whiteeyes.common.stat.dto.NowStreamEvent;
+import com.whiteeyes.common.stat.dto.StatStreamEvent;
+import com.whiteeyes.common.stat.entity.ZoneStatMinute;
+import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
+import com.whiteeyes.common.stat.service.NowCountSource.NowCount;
 
 /**
  * 실시간 통계 갱신(FNC-C-022). 새 1분 통계가 저장되면 연결된 브라우저에 SSE(event: stat)로 보낸다.
@@ -266,11 +268,15 @@ public class StatStreamBroadcaster {
     private Set<Long> findZoneIds(Long regionId) {
         try {
             Region region = regionQueryService.getRegion(regionId);
-            List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream().map(Region::getId).toList();
+            List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream()
+                    .map(Region::getId)
+                    .toList();
             if (dongIds.isEmpty()) {
                 return Set.of();
             }
-            return regionQueryService.findZonesInDongs(dongIds).stream().map(Zone::getId).collect(Collectors.toSet());
+            return regionQueryService.findZonesInDongs(dongIds).stream()
+                    .map(Zone::getId)
+                    .collect(Collectors.toSet());
         } catch (RuntimeException e) {
             return Set.of();
         }

@@ -12,5 +12,4 @@ package com.whiteeyes.common.stat.dto;
  * @param emd 읍·면·동 이름. 시·군·구까지의 합산이면 '(지역 합산)'
  * @param zoneName 구역 이름. 지역 합산이면 '(지역 합산)'
  */
-public record StatExportSeries(Long zoneId, String sido, String sigungu, String emd, String zoneName) {
-}
+public record StatExportSeries(Long zoneId, String sido, String sigungu, String emd, String zoneName) {}

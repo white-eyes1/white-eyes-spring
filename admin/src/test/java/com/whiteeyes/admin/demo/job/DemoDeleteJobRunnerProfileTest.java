@@ -29,6 +29,7 @@ class DemoDeleteJobRunnerProfileTest {
     void registeredOnlyInLocalAndDev(String profile, String job, boolean expected) {
         contextRunner
                 .withPropertyValues("spring.profiles.active=" + profile, "job=" + job)
-                .run(context -> assertThat(context.getBeansOfType(DemoDeleteJobRunner.class)).hasSize(expected ? 1 : 0));
+                .run(context -> assertThat(context.getBeansOfType(DemoDeleteJobRunner.class))
+                        .hasSize(expected ? 1 : 0));
     }
 }

@@ -6,12 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,11 +17,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 @Import(AdminTestUserConfig.class)
 @SpringBootTest
@@ -105,9 +107,13 @@ class ZoneRegisterTest {
     void register_ignoresClientCalculatedValues() throws Exception {
         String body = "{\"name\":\"삼청동 1구역\",\"boundary\":" + SAMCHEONG_SQUARE + ",\"areaM2\":1,\"dongId\":999999}";
 
-        mockMvc.perform(post(ZONES_URL).with(AdminTestLogin.admin()).contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ZONES_URL)
+                        .with(AdminTestLogin.admin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.dongId").value(Long.valueOf(samcheongDongId()).intValue()));
+                .andExpect(jsonPath("$.dongId")
+                        .value(Long.valueOf(samcheongDongId()).intValue()));
 
         Number area = jdbcTemplate.queryForObject("SELECT area_m2 FROM zone", Number.class);
         assertThat(area.doubleValue()).isGreaterThan(30_000);
@@ -118,7 +124,8 @@ class ZoneRegisterTest {
     void register_trimsName() throws Exception {
         register("  삼청동 1구역  ", SAMCHEONG_SQUARE).andExpect(status().isCreated());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT name FROM zone", String.class)).isEqualTo("삼청동 1구역");
+        assertThat(jdbcTemplate.queryForObject("SELECT name FROM zone", String.class))
+                .isEqualTo("삼청동 1구역");
     }
 
     @Test
@@ -198,7 +205,10 @@ class ZoneRegisterTest {
     @Test
     @DisplayName("FNC-A-014 boundary가 없으면 400 INVALID_INPUT")
     void register_missingBoundary_badRequest() throws Exception {
-        mockMvc.perform(post(ZONES_URL).with(AdminTestLogin.admin()).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"삼청동 1구역\"}"))
+        mockMvc.perform(post(ZONES_URL)
+                        .with(AdminTestLogin.admin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"삼청동 1구역\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("boundary"));
@@ -208,7 +218,10 @@ class ZoneRegisterTest {
 
     private ResultActions register(String name, String boundary) throws Exception {
         String body = "{\"name\":\"" + name + "\",\"boundary\":" + boundary + "}";
-        return mockMvc.perform(post(ZONES_URL).with(AdminTestLogin.admin()).contentType(MediaType.APPLICATION_JSON).content(body));
+        return mockMvc.perform(post(ZONES_URL)
+                .with(AdminTestLogin.admin())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
     }
 
     private long samcheongDongId() {

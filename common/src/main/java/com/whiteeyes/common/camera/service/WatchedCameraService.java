@@ -1,13 +1,15 @@
 package com.whiteeyes.common.camera.service;
 
-import com.whiteeyes.common.camera.entity.Camera;
-import com.whiteeyes.common.camera.entity.CameraStatus;
-import com.whiteeyes.common.camera.repository.CameraRepository;
 import java.util.List;
 import java.util.Optional;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.common.camera.entity.Camera;
+import com.whiteeyes.common.camera.entity.CameraStatus;
+import com.whiteeyes.common.camera.repository.CameraRepository;
 
 /** 다른 도메인(캠 이상 감지, FNC-A-035)이 감시할 캠을 물을 때 부르는 camera 도메인의 공개 service. */
 @Service

@@ -27,8 +27,14 @@ export function clearLiveGraphs() {
     if (!document.getElementById('live-graphs')) {
         return;
     }
-    ['live-graph-10m', 'live-graph-60m', 'live-graph-count', 'live-graph-flow', 'live-compass', 'live-direction-bars']
-        .forEach((id) => byId(id).replaceChildren());
+    [
+        'live-graph-10m',
+        'live-graph-60m',
+        'live-graph-count',
+        'live-graph-flow',
+        'live-compass',
+        'live-direction-bars',
+    ].forEach((id) => byId(id).replaceChildren());
     byId('live-net').textContent = '-';
 }
 
@@ -49,7 +55,8 @@ export async function loadLiveGraphs(camera) {
         from: toInputValue(from),
         to: toInputValue(to),
     };
-    byId('live-stats-link').href = `${url('/stats/graph')}?${new URLSearchParams(query).toString()}`;
+    byId('live-stats-link').href =
+        `${url('/stats/graph')}?${new URLSearchParams(query).toString()}`;
     const requestId = ++latestRequestId;
     try {
         const response = await get(SERIES_API, query, { toast: false });
@@ -67,7 +74,8 @@ export async function loadLiveGraphs(camera) {
 
 function render(items, cameraName) {
     const points = items.map((point) => ({
-        value: point.countAvg === null || point.countAvg === undefined ? null : Number(point.countAvg),
+        value:
+            point.countAvg === null || point.countAvg === undefined ? null : Number(point.countAvg),
         level: point.level ?? null,
         inflow: sum(point.inflow),
         outflow: sum(point.outflow),
@@ -75,10 +83,18 @@ function render(items, cameraName) {
     // 위 줄 두 막대는 y축 범위를 같게(10분 막대와 1시간 막대 높이를 바로 비교)
     const max = niceMax(points.map((point) => point.value));
     const recent = points.slice(-RECENT_MINUTES);
-    byId('live-graph-10m').replaceChildren(levelBars(recent, { height: BAR_HEIGHT, max, label: '최근 10분 인원, 혼잡 단계 색' }));
-    byId('live-graph-60m').replaceChildren(levelBars(points, { height: BAR_HEIGHT, max, label: '최근 1시간 인원, 혼잡 단계 색' }));
-    byId('live-graph-count').replaceChildren(countLine(points, { height: COUNT_HEIGHT, max, label: '최근 1시간 인원' }));
-    byId('live-graph-flow').replaceChildren(flowBars(points, { height: FLOW_HEIGHT, label: '최근 1시간 유입·유출' }));
+    byId('live-graph-10m').replaceChildren(
+        levelBars(recent, { height: BAR_HEIGHT, max, label: '최근 10분 인원, 혼잡 단계 색' }),
+    );
+    byId('live-graph-60m').replaceChildren(
+        levelBars(points, { height: BAR_HEIGHT, max, label: '최근 1시간 인원, 혼잡 단계 색' }),
+    );
+    byId('live-graph-count').replaceChildren(
+        countLine(points, { height: COUNT_HEIGHT, max, label: '최근 1시간 인원' }),
+    );
+    byId('live-graph-flow').replaceChildren(
+        flowBars(points, { height: FLOW_HEIGHT, label: '최근 1시간 유입·유출' }),
+    );
 
     const totals = DIRECTIONS.map(([key, name]) => ({
         name,
@@ -89,8 +105,13 @@ function render(items, cameraName) {
     renderDirectionBars(totals);
 
     const hasFlow = points.some((point) => point.inflow !== null || point.outflow !== null);
-    const net = totals.reduce((total, direction) => total + direction.inflow - direction.outflow, 0);
-    byId('live-net').textContent = hasFlow ? `${net > 0 ? '+' : net < 0 ? '−' : ''}${formatNumber(Math.abs(net))}명` : '-';
+    const net = totals.reduce(
+        (total, direction) => total + direction.inflow - direction.outflow,
+        0,
+    );
+    byId('live-net').textContent = hasFlow
+        ? `${net > 0 ? '+' : net < 0 ? '−' : ''}${formatNumber(Math.abs(net))}명`
+        : '-';
 }
 
 // 가운데 구역, 둘레에 방향별 유입(↓·←·↑·→ 안쪽)·유출 숫자
@@ -105,9 +126,15 @@ function renderCompass(totals, cameraName, points) {
     count.textContent = latest ? `${formatNumber(Math.round(latest.value))}명` : '-';
     center.append(name, count);
     byId('live-compass').replaceChildren(
-        document.createElement('span'), direction(north, '↓', '↑'), document.createElement('span'),
-        direction(west, '→', '←'), center, direction(east, '←', '→'),
-        document.createElement('span'), direction(south, '↑', '↓'), document.createElement('span'),
+        document.createElement('span'),
+        direction(north, '↓', '↑'),
+        document.createElement('span'),
+        direction(west, '→', '←'),
+        center,
+        direction(east, '←', '→'),
+        document.createElement('span'),
+        direction(south, '↑', '↓'),
+        document.createElement('span'),
     );
 }
 
@@ -128,16 +155,21 @@ function direction(total, inArrow, outArrow) {
 
 function renderDirectionBars(totals) {
     const max = Math.max(1, ...totals.flatMap((total) => [total.inflow, total.outflow]));
-    byId('live-direction-bars').replaceChildren(...totals.map((total) => {
-        const row = cell('row');
-        const name = document.createElement('span');
-        name.className = 'muted';
-        name.textContent = total.name;
-        const bars = cell('bars');
-        bars.append(bar('in', total.inflow, max, `유입 ${formatNumber(total.inflow)}명`), bar('out', total.outflow, max, `유출 ${formatNumber(total.outflow)}명`));
-        row.append(name, bars);
-        return row;
-    }));
+    byId('live-direction-bars').replaceChildren(
+        ...totals.map((total) => {
+            const row = cell('row');
+            const name = document.createElement('span');
+            name.className = 'muted';
+            name.textContent = total.name;
+            const bars = cell('bars');
+            bars.append(
+                bar('in', total.inflow, max, `유입 ${formatNumber(total.inflow)}명`),
+                bar('out', total.outflow, max, `유출 ${formatNumber(total.outflow)}명`),
+            );
+            row.append(name, bars);
+            return row;
+        }),
+    );
 }
 
 function bar(kind, value, max, title) {

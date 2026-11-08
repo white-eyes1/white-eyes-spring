@@ -51,12 +51,11 @@ class StatSeriesRequestTest {
     @Test
     @DisplayName("FNC-C-012 1시간 단위는 31일까지 되고, 31일을 넘으면 RANGE_TOO_LONG")
     void parse_hourMaxRange() throws BindException {
-        StatSeriesRequest request =
-                StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1h", "2099-01-01", "2099-02-01");
+        StatSeriesRequest request = StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1h", "2099-01-01", "2099-02-01");
         assertThat(request.interval()).isEqualTo(StatInterval.HOUR);
 
-        assertThatThrownBy(() -> StatSeriesRequest.parse(
-                        StatTargetType.ZONE, 1L, "1h", "2099-01-01T00:00", "2099-02-01T01:00"))
+        assertThatThrownBy(() ->
+                        StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1h", "2099-01-01T00:00", "2099-02-01T01:00"))
                 .isInstanceOf(RangeTooLongException.class)
                 .hasMessage("1시간 단위는 최대 31일까지 조회할 수 있습니다.");
     }
@@ -65,8 +64,7 @@ class StatSeriesRequestTest {
     @DisplayName("FNC-C-012 1일 단위는 달력 1년(윤년 366일 포함)까지 되고, 하루라도 넘으면 RANGE_TOO_LONG")
     void parse_dayMaxRange() throws BindException {
         // 2096년은 윤년이라 366일
-        StatSeriesRequest leapYear =
-                StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1d", "2096-01-01", "2097-01-01");
+        StatSeriesRequest leapYear = StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1d", "2096-01-01", "2097-01-01");
         assertThat(leapYear.interval()).isEqualTo(StatInterval.DAY);
 
         assertThatThrownBy(() -> StatSeriesRequest.parse(StatTargetType.ZONE, 1L, "1d", "2099-01-01", "2100-01-02"))
@@ -83,7 +81,9 @@ class StatSeriesRequestTest {
     @DisplayName("FNC-C-012 1주는 3년, 1월은 5년, 1년은 10년까지 되고, 넘으면 RANGE_TOO_LONG")
     void parse_rollupMaxRange(String interval, String from, String maxTo, String overTo, String message)
             throws BindException {
-        assertThat(StatSeriesRequest.parse(StatTargetType.ZONE, 1L, interval, from, maxTo).interval().getCode())
+        assertThat(StatSeriesRequest.parse(StatTargetType.ZONE, 1L, interval, from, maxTo)
+                        .interval()
+                        .getCode())
                 .isEqualTo(interval);
 
         assertThatThrownBy(() -> StatSeriesRequest.parse(StatTargetType.ZONE, 1L, interval, from, overTo))

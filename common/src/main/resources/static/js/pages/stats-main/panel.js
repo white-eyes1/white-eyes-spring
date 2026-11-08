@@ -20,7 +20,10 @@ function timeOf(statAt) {
 export function renderGraphLink(regionId) {
     const link = byId('graph-link');
     const url = new URL(link.href);
-    url.search = new URLSearchParams({ targetType: 'REGION', targetId: String(regionId) }).toString();
+    url.search = new URLSearchParams({
+        targetType: 'REGION',
+        targetId: String(regionId),
+    }).toString();
     link.href = url.toString();
 }
 
@@ -37,19 +40,27 @@ export function renderTarget(name, cameraCount) {
 export function renderZonePanel(items, tab, levels) {
     const entries = zoneEntries(items, tab, levels);
     const total = entries.reduce((sum, entry) => sum + entry.value, 0);
-    const latest = items.map((item) => item.statAt).filter(Boolean).sort().pop();
+    const latest = items
+        .map((item) => item.statAt)
+        .filter(Boolean)
+        .sort()
+        .pop();
     byId('zone-time').textContent = latest ? `${timeOf(latest)} 기준` : '';
 
     const donut = byId('zone-donut');
     const list = byId('zone-list');
-    if (items.length === 0 || (tab !== 'level' && total === 0 && !items.some((item) => item.level))) {
+    if (
+        items.length === 0 ||
+        (tab !== 'level' && total === 0 && !items.some((item) => item.level))
+    ) {
         donut.style.background = '';
         byId('zone-total').textContent = '-';
         list.replaceChildren(emptyText());
         return;
     }
     donut.style.background = conic(entries, total);
-    byId('zone-total').textContent = formatNumber(total) + (tab === 'count' ? '명' : tab === 'event' ? '건' : '곳');
+    byId('zone-total').textContent =
+        formatNumber(total) + (tab === 'count' ? '명' : tab === 'event' ? '건' : '곳');
     const max = Math.max(...entries.map((entry) => entry.value), 1);
     list.replaceChildren(...entries.map((entry) => listRow(entry, max)));
 }
@@ -61,11 +72,19 @@ function zoneEntries(items, tab, levels) {
             value: items.filter((item) => item.level === level).length,
             color: levelColor(level),
         }));
-        rows.push({ label: NO_DATA, value: items.filter((item) => !item.level).length, color: OTHER_COLOR });
+        rows.push({
+            label: NO_DATA,
+            value: items.filter((item) => !item.level).length,
+            color: OTHER_COLOR,
+        });
         return rows.filter((row) => row.value > 0);
     }
     const valueOf = (item) =>
-        tab === 'event' ? item.todayEventCount : item.countAvg === null ? 0 : Math.round(Number(item.countAvg));
+        tab === 'event'
+            ? item.todayEventCount
+            : item.countAvg === null
+              ? 0
+              : Math.round(Number(item.countAvg));
     const sorted = items
         .map((item) => ({ label: item.name, value: valueOf(item), color: levelColor(item.level) }))
         .sort((a, b) => b.value - a.value);
@@ -141,8 +160,11 @@ export function renderSummaryCount(summary, liveTotal) {
     const count =
         liveTotal ??
         summary?.currentCount ??
-        (summary?.countAvg === null || summary?.countAvg === undefined ? null : Math.round(Number(summary.countAvg)));
-    byId('sum-count').textContent = count === null || count === undefined ? '-' : `${formatNumber(count)}명`;
+        (summary?.countAvg === null || summary?.countAvg === undefined
+            ? null
+            : Math.round(Number(summary.countAvg)));
+    byId('sum-count').textContent =
+        count === null || count === undefined ? '-' : `${formatNumber(count)}명`;
 }
 
 /** 요약 6칸과 유입·유출. summary는 GET /dashboard/summary 응답 */
@@ -157,7 +179,10 @@ export function renderSummary(summary, levels) {
     byId('sum-level').replaceChildren(hasStat ? levelChip(summary.level, levels) : NO_DATA);
     fill('sum-cameras', `${summary.runningCameraCount} / ${summary.cameraCount}대`);
     fill('sum-events', `${formatNumber(summary.todayEventCount)}건`);
-    fill('sum-max', summary.todayMaxCount === null ? '-' : `${formatNumber(summary.todayMaxCount)}명`);
+    fill(
+        'sum-max',
+        summary.todayMaxCount === null ? '-' : `${formatNumber(summary.todayMaxCount)}명`,
+    );
 
     fill('flow-in', hasStat ? `+${formatNumber(summary.inflow)}` : '-');
     fill('flow-out', hasStat ? `−${formatNumber(summary.outflow)}` : '-');
@@ -166,7 +191,9 @@ export function renderSummary(summary, levels) {
 
 /** 혼잡 기준: 단계 이름·색·경계 밀도를 읽기 전용으로 */
 export function renderLevelRules(levels) {
-    const thresholds = levels.filter((level) => Number(level.minDensity) > 0).map((level) => level.minDensity);
+    const thresholds = levels
+        .filter((level) => Number(level.minDensity) > 0)
+        .map((level) => level.minDensity);
     byId('level-rule').textContent = thresholds.length > 0 ? `${thresholds.join(' / ')} 명/㎡` : '';
     byId('level-rules').replaceChildren(
         ...levels.map(({ name, color, minDensity }, index) => {
@@ -196,5 +223,8 @@ export function renderMapLegend(levels) {
         item.append(dot, name);
         return item;
     };
-    legend.replaceChildren(...levels.map(({ name, color }) => make(name, color)), make('통계 없음', OTHER_COLOR));
+    legend.replaceChildren(
+        ...levels.map(({ name, color }) => make(name, color)),
+        make('통계 없음', OTHER_COLOR),
+    );
 }

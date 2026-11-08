@@ -4,7 +4,16 @@
 // 캠 이상 이벤트와 보관 기간(RECORDING_RETENTION_DAYS)을 지난 이벤트는 영상 영역이 없다. 서버 값은 textContent로만 넣는다.
 
 import { ApiError, get, url } from '../common/api.js';
-import { buildChart, formatClock, formatHm, fraction, normalizeSeries, toKstIso, toPath, windowFor } from './playback/model.js';
+import {
+    buildChart,
+    formatClock,
+    formatHm,
+    fraction,
+    normalizeSeries,
+    toKstIso,
+    toPath,
+    windowFor,
+} from './playback/model.js';
 import { containRect, findFrame, parseFrames, toPixels } from './playback/boxes.js';
 
 const NOTICE_MESSAGES = {
@@ -90,7 +99,11 @@ function showNotice(message) {
 
 async function loadVideo(zoneId, startedAt, seq) {
     try {
-        const found = await get('/api/v1/playback', { zoneId, at: toKstIso(startedAt) }, { toast: false });
+        const found = await get(
+            '/api/v1/playback',
+            { zoneId, at: toKstIso(startedAt) },
+            { toast: false },
+        );
         if (seq !== openSeq) {
             return;
         }
@@ -113,7 +126,9 @@ async function loadVideo(zoneId, startedAt, seq) {
     } catch (error) {
         if (seq === openSeq) {
             showNotice(
-                error instanceof ApiError && NOTICE_MESSAGES[error.code] ? NOTICE_MESSAGES[error.code] : NOTICE_FAILED,
+                error instanceof ApiError && NOTICE_MESSAGES[error.code]
+                    ? NOTICE_MESSAGES[error.code]
+                    : NOTICE_FAILED,
             );
         }
     }
@@ -143,7 +158,10 @@ function drawBoxes() {
     const ratio = window.devicePixelRatio || 1;
     const width = boxCanvas.clientWidth;
     const height = boxCanvas.clientHeight;
-    if (boxCanvas.width !== Math.round(width * ratio) || boxCanvas.height !== Math.round(height * ratio)) {
+    if (
+        boxCanvas.width !== Math.round(width * ratio) ||
+        boxCanvas.height !== Math.round(height * ratio)
+    ) {
         boxCanvas.width = Math.round(width * ratio);
         boxCanvas.height = Math.round(height * ratio);
     }
@@ -182,7 +200,9 @@ function armBoxLoop() {
 }
 
 // 일시 정지·구간 이동·창 크기 변경에도 위치가 맞도록 다시 그린다
-['seeked', 'loadedmetadata', 'pause', 'play'].forEach((name) => video.addEventListener(name, drawBoxes));
+['seeked', 'loadedmetadata', 'pause', 'play'].forEach((name) =>
+    video.addEventListener(name, drawBoxes),
+);
 new ResizeObserver(drawBoxes).observe(document.getElementById('detail-video-feed'));
 video.addEventListener('error', () => {
     // 창을 닫으며 src를 비울 때도 오류 이벤트가 오므로 열려 있는 영상일 때만 안내한다
@@ -196,13 +216,23 @@ video.addEventListener('error', () => {
 
 async function loadChart(detail, startedAt, seq) {
     const { from, to } = windowFor(CHART_RANGE, startedAt);
-    axis.replaceChildren(axisLabel(formatHm(from)), axisLabel(`발생 ${formatHm(startedAt)}`), axisLabel(formatHm(to)));
+    axis.replaceChildren(
+        axisLabel(formatHm(from)),
+        axisLabel(`발생 ${formatHm(startedAt)}`),
+        axisLabel(formatHm(to)),
+    );
     placeEvent(detail, startedAt, from, to);
     let items = [];
     try {
         const result = await get(
             '/api/v1/stats/series',
-            { targetType: 'ZONE', targetId: detail.zoneId, interval: '1m', from: toKstIso(from), to: toKstIso(to) },
+            {
+                targetType: 'ZONE',
+                targetId: detail.zoneId,
+                interval: '1m',
+                from: toKstIso(from),
+                to: toKstIso(to),
+            },
             { toast: false },
         );
         items = normalizeSeries(result?.items ?? []);

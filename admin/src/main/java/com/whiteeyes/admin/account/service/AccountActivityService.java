@@ -1,14 +1,16 @@
 package com.whiteeyes.admin.account.service;
 
-import com.whiteeyes.admin.account.config.ActiveWindowProperties;
-import com.whiteeyes.admin.account.repository.SessionActivityRepository;
-import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collection;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
+
+import com.whiteeyes.admin.account.config.ActiveWindowProperties;
+import com.whiteeyes.admin.account.repository.SessionActivityRepository;
+import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
 
 /** 사용자·관리자 계정의 최근 활동 시각과 활동 중 여부를 계산한다(FNC-A-002·003 처리 순서 2). */
 @Service

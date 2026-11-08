@@ -1,9 +1,10 @@
 package com.whiteeyes.admin.camera.dto;
 
-import com.whiteeyes.common.camera.entity.CameraSourceType;
-import com.whiteeyes.common.camera.entity.CameraStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
+
+import com.whiteeyes.common.camera.entity.CameraSourceType;
+import com.whiteeyes.common.camera.entity.CameraStatus;
 
 /**
  * 캠 목록 한 줄(GET /api/v1/manage/cameras, FNC-A-022). progress는 준비 중일 때만 값이 있다.

@@ -29,7 +29,8 @@ public interface NowCountSource {
         if (found.isEmpty()) {
             return OptionalInt.empty();
         }
-        return OptionalInt.of(found.values().stream().mapToInt(NowCount::personCount).sum());
+        return OptionalInt.of(
+                found.values().stream().mapToInt(NowCount::personCount).sum());
     }
 
     /**

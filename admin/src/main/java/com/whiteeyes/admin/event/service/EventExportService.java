@@ -1,5 +1,28 @@
 package com.whiteeyes.admin.event.service;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
+import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.account.service.AdminAccountLookupService;
 import com.whiteeyes.admin.event.dto.EventExportRequest;
 import com.whiteeyes.admin.event.dto.EventExportRow;
@@ -18,27 +41,6 @@ import com.whiteeyes.common.exception.ErrorCode;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
-import java.text.NumberFormat;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 이벤트 엑셀 다운로드(FNC-A-039): 이벤트 목록(FNC-A-036)과 같은 조건으로 이벤트를 모아 엑셀로 만들고 작업 기록을 남긴다.
@@ -106,8 +108,7 @@ public class EventExportService {
         if (total > MAX_ROWS) {
             throw new BusinessException(
                     ErrorCode.TOO_MANY_ROWS,
-                    "한 번에 최대 " + format(MAX_ROWS) + "건까지 내려받을 수 있습니다(해당 " + format(total)
-                            + "건). 기간이나 조건을 좁혀 주세요.");
+                    "한 번에 최대 " + format(MAX_ROWS) + "건까지 내려받을 수 있습니다(해당 " + format(total) + "건). 기간이나 조건을 좁혀 주세요.");
         }
         return eventRepository.findAll(condition, EventListService.LATEST_FIRST);
     }
@@ -117,8 +118,10 @@ public class EventExportService {
             return List.of();
         }
         List<EventListItem> items = eventListService.toItems(events);
-        Set<Long> handlerIds =
-                events.stream().map(Event::getHandledBy).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> handlerIds = events.stream()
+                .map(Event::getHandledBy)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         Map<Long, String> loginIds = adminAccountLookupService.findLoginIds(handlerIds);
         Map<Long, ZoneSummary> zones =
                 zoneService.findSummaries(events.stream().map(Event::getZoneId).collect(Collectors.toSet()));
@@ -147,7 +150,8 @@ public class EventExportService {
     private String targetNameOf(EventExportRequest request) {
         String name = null;
         if (request.zoneId() != null) {
-            ZoneSummary zone = zoneService.findSummaries(Set.of(request.zoneId())).get(request.zoneId());
+            ZoneSummary zone =
+                    zoneService.findSummaries(Set.of(request.zoneId())).get(request.zoneId());
             name = zone == null ? null : zone.name();
         } else if (request.regionId() != null) {
             name = regionLookupService.findName(request.regionId());

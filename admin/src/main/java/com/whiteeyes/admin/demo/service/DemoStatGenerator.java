@@ -63,7 +63,8 @@ final class DemoStatGenerator {
      */
     DemoStatGenerator(DemoGenerateConfig config, List<DemoZone> zones, Set<Long> targetIds) {
         this.config = config;
-        this.zones = zones.stream().sorted(Comparator.comparingLong(DemoZone::id)).toList();
+        this.zones =
+                zones.stream().sorted(Comparator.comparingLong(DemoZone::id)).toList();
         this.targetIds = Set.copyOf(targetIds);
         this.surgeWeights = config.surgeDays() == null
                 ? Map.of()
@@ -166,8 +167,12 @@ final class DemoStatGenerator {
         // count_max = avg×1.3, count_min = avg×0.7, density = avg÷면적, sample_sec = 3600(FNC-A-051 처리 순서 4)
         return new StatValues(
                 countAvg,
-                countAvg.multiply(COUNT_MAX_RATIO).setScale(0, RoundingMode.HALF_UP).intValueExact(),
-                countAvg.multiply(COUNT_MIN_RATIO).setScale(0, RoundingMode.HALF_UP).intValueExact(),
+                countAvg.multiply(COUNT_MAX_RATIO)
+                        .setScale(0, RoundingMode.HALF_UP)
+                        .intValueExact(),
+                countAvg.multiply(COUNT_MIN_RATIO)
+                        .setScale(0, RoundingMode.HALF_UP)
+                        .intValueExact(),
                 countAvg.divide(zone.areaM2(), 4, RoundingMode.HALF_UP),
                 inflows[ZoneDirection.N.ordinal()],
                 inflows[ZoneDirection.E.ordinal()],
@@ -195,6 +200,5 @@ final class DemoStatGenerator {
     }
 
     /** 한 구역·한 시각에 꺼낸 무작위 값으로 정한 인원·유출·바깥 유입·체류 배율. */
-    private record DrawnHour(BigDecimal countAvg, int[] outflows, int[] outsideInflows, double dwellFactor) {
-    }
+    private record DrawnHour(BigDecimal countAvg, int[] outflows, int[] outsideInflows, double dwellFactor) {}
 }

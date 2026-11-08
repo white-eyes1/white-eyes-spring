@@ -1,8 +1,9 @@
 package com.whiteeyes.admin.account.repository;
 
+import java.time.LocalDateTime;
+
 import com.whiteeyes.admin.account.entity.AdminRole;
 import com.whiteeyes.admin.account.entity.AdminStatus;
-import java.time.LocalDateTime;
 
 /**
  * 관리자 목록 한 줄에 필요한 admin_account 칼럼(tables.md 'admin_account'). 비밀번호는 담지 않는다.

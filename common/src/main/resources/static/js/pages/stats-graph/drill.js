@@ -18,12 +18,24 @@ export function drillDown(interval, at) {
         case '1y':
             return { interval: '1M', from: new Date(year, 0, 1), to: new Date(year + 1, 0, 1) };
         case '1M':
-            return { interval: '1d', from: new Date(year, month, 1), to: new Date(year, month + 1, 1) };
+            return {
+                interval: '1d',
+                from: new Date(year, month, 1),
+                to: new Date(year, month + 1, 1),
+            };
         case '1w':
             // 1w 점은 월요일 시작(conventions.md '통계 단위')이라 그 날부터 7일
-            return { interval: '1d', from: new Date(year, month, day), to: new Date(year, month, day + 7) };
+            return {
+                interval: '1d',
+                from: new Date(year, month, day),
+                to: new Date(year, month, day + 7),
+            };
         case '1d':
-            return { interval: '1h', from: new Date(year, month, day), to: new Date(year, month, day + 1) };
+            return {
+                interval: '1h',
+                from: new Date(year, month, day),
+                to: new Date(year, month, day + 1),
+            };
         case '1h': {
             const from = new Date(year, month, day, at.getHours());
             return { interval: '1m', from, to: new Date(from.getTime() + HOUR_MS) };
@@ -51,7 +63,11 @@ export function crumbLabel(interval, at, parentInterval) {
         case '1w':
             return `${year}년 ${month}월 ${day}일 주`;
         case '1d':
-            return parentInterval === '1M' ? `${day}일` : parentInterval === '1w' ? `${month}월 ${day}일` : `${year}년 ${month}월 ${day}일`;
+            return parentInterval === '1M'
+                ? `${day}일`
+                : parentInterval === '1w'
+                  ? `${month}월 ${day}일`
+                  : `${year}년 ${month}월 ${day}일`;
         case '1h':
             return `${at.getHours()}시`;
         default:

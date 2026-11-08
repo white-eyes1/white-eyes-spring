@@ -4,7 +4,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +15,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /**
  * FNC-A-027 가동 대상 캠 목록 제공. 내부 포트(8082)와 X-Internal-Token으로 들어오는 요청을 MockMvc로 흉내 낸다.
@@ -43,19 +44,24 @@ class DesiredCameraTest {
     @BeforeEach
     void prepare() {
         cleanUp();
-        jdbcTemplate.update("INSERT INTO region (level, code, name, boundary, center_lat, center_lng)"
-                + " VALUES ('EMD', ?, '가동 목록 테스트동', '{}', 37.600000, 127.002000)", REGION_CODE);
+        jdbcTemplate.update(
+                "INSERT INTO region (level, code, name, boundary, center_lat, center_lng)"
+                        + " VALUES ('EMD', ?, '가동 목록 테스트동', '{}', 37.600000, 127.002000)",
+                REGION_CODE);
         dongId = jdbcTemplate.queryForObject("SELECT id FROM region WHERE code = ?", Long.class, REGION_CODE);
     }
 
     @AfterEach
     void cleanUp() {
-        jdbcTemplate.update("DELETE FROM event WHERE zone_id IN"
-                + " (SELECT id FROM zone WHERE dong_id IN (SELECT id FROM region WHERE code = ?))", REGION_CODE);
-        jdbcTemplate.update("DELETE FROM camera WHERE zone_id IN"
-                + " (SELECT id FROM zone WHERE dong_id IN (SELECT id FROM region WHERE code = ?))", REGION_CODE);
         jdbcTemplate.update(
-                "DELETE FROM zone WHERE dong_id IN (SELECT id FROM region WHERE code = ?)", REGION_CODE);
+                "DELETE FROM event WHERE zone_id IN"
+                        + " (SELECT id FROM zone WHERE dong_id IN (SELECT id FROM region WHERE code = ?))",
+                REGION_CODE);
+        jdbcTemplate.update(
+                "DELETE FROM camera WHERE zone_id IN"
+                        + " (SELECT id FROM zone WHERE dong_id IN (SELECT id FROM region WHERE code = ?))",
+                REGION_CODE);
+        jdbcTemplate.update("DELETE FROM zone WHERE dong_id IN (SELECT id FROM region WHERE code = ?)", REGION_CODE);
         jdbcTemplate.update("DELETE FROM region WHERE code = ?", REGION_CODE);
     }
 
@@ -82,7 +88,9 @@ class DesiredCameraTest {
     void desired_excludesDeletedCamera() throws Exception {
         insertCamera("구역1", "DUMMY", "dummy/videos/a.mp4", true, "RUNNING", true);
 
-        request(TOKEN).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        request(TOKEN)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -118,16 +126,28 @@ class DesiredCameraTest {
 
     // 구역당 캠 1대 규칙이 있어 캠마다 구역을 따로 만든다
     private long insertCamera(
-            String zoneName, String sourceType, String sourceUri, boolean runRequested, String status,
+            String zoneName,
+            String sourceType,
+            String sourceUri,
+            boolean runRequested,
+            String status,
             boolean deleted) {
-        jdbcTemplate.update("INSERT INTO zone (dong_id, name, area_m2, boundary, center_lat, center_lng)"
-                + " VALUES (?, ?, 100.00, '{}', 37.600000, 127.002000)", dongId, zoneName);
+        jdbcTemplate.update(
+                "INSERT INTO zone (dong_id, name, area_m2, boundary, center_lat, center_lng)"
+                        + " VALUES (?, ?, 100.00, '{}', 37.600000, 127.002000)",
+                dongId,
+                zoneName);
         long zoneId = jdbcTemplate.queryForObject(
                 "SELECT id FROM zone WHERE dong_id = ? AND name = ?", Long.class, dongId, zoneName);
         jdbcTemplate.update(
                 "INSERT INTO camera (zone_id, name, source_type, source_uri, run_requested, status, progress, deleted_at) "
                         + "VALUES (?, ?, ?, ?, ?, ?, 0, " + (deleted ? "CURRENT_TIMESTAMP" : "NULL") + ")",
-                zoneId, zoneName + " 캠", sourceType, sourceUri, runRequested, status);
+                zoneId,
+                zoneName + " 캠",
+                sourceType,
+                sourceUri,
+                runRequested,
+                status);
         return jdbcTemplate.queryForObject("SELECT MAX(id) FROM camera", Long.class);
     }
 }

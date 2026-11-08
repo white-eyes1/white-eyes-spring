@@ -1,28 +1,21 @@
 package com.whiteeyes.admin.camera;
 
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.notification.service.NotificationPublisher;
-import com.whiteeyes.common.camera.entity.CameraStatus;
-import com.whiteeyes.admin.event.service.CamFaultEventService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,12 +27,20 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.event.service.CamFaultEventService;
+import com.whiteeyes.admin.notification.service.NotificationPublisher;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.camera.entity.CameraStatus;
 
 /**
  * FNC-A-025 캠 상태 보고 수신. 내부 포트(8082)와 X-Internal-Token으로 들어오는 요청을 MockMvc로 흉내 내고,
@@ -170,9 +171,7 @@ class CameraStatusReportTest {
     @Test
     @DisplayName("FNC-A-025 ERROR 보고의 오류 문구(명세·분석 서버가 보내는 4종)가 error_message에 그대로 저장된다")
     void report_error_savesMessageAsIs() throws Exception {
-        String[] messages = {
-            "영상 파일을 읽을 수 없음", "분석 모델을 불러올 수 없음", "분석 중 오류가 발생함", "캐시 파일을 읽을 수 없음"
-        };
+        String[] messages = {"영상 파일을 읽을 수 없음", "분석 모델을 불러올 수 없음", "분석 중 오류가 발생함", "캐시 파일을 읽을 수 없음"};
         for (String message : messages) {
             long cameraId = insertCamera("PREPARING", 30, null, true);
 
@@ -271,7 +270,9 @@ class CameraStatusReportTest {
                         "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NULL", Integer.class, cameraId))
                 .isZero();
         assertThat(jdbcTemplate.queryForObject(
-                        "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NOT NULL", Integer.class, cameraId))
+                        "SELECT COUNT(*) FROM event WHERE camera_id = ? AND ended_at IS NOT NULL",
+                        Integer.class,
+                        cameraId))
                 .isEqualTo(1);
     }
 

@@ -52,11 +52,16 @@ public class ZoneFlowService {
     @Transactional(readOnly = true)
     public List<ZoneFlowItem> findFlows(ZoneFlowRequest request) {
         Region region = regionQueryService.getRegion(request.regionId());
-        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream().map(Region::getId).toList();
+        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream()
+                .map(Region::getId)
+                .toList();
         // 지도에 그리는 구역(삭제되지 않은 구역)만 화살표의 출발점이 된다
         List<Long> zoneIds = dongIds.isEmpty()
                 ? List.of()
-                : regionQueryService.findZonesInDongs(dongIds).stream().map(Zone::getId).sorted().toList();
+                : regionQueryService.findZonesInDongs(dongIds).stream()
+                        .map(Zone::getId)
+                        .sorted()
+                        .toList();
         if (zoneIds.isEmpty()) {
             return List.of();
         }
@@ -186,10 +191,8 @@ public class ZoneFlowService {
     }
 
     /** 한 원본에서 읽는 구간(from 이상 to 미만). */
-    record Segment(Source source, LocalDateTime from, LocalDateTime to) {
-    }
+    record Segment(Source source, LocalDateTime from, LocalDateTime to) {}
 
     /** 원본과 관계없이 계산에 쓰는 한 구역의 한 행. */
-    private record ZoneValues(Long zoneId, StatValues values) {
-    }
+    private record ZoneValues(Long zoneId, StatValues values) {}
 }

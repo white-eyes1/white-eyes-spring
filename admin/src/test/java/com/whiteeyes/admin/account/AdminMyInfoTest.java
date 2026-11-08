@@ -13,11 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.history.dto.WorkHistoryCommand;
-import com.whiteeyes.common.history.service.WorkHistoryService;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +32,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.history.dto.WorkHistoryCommand;
+import com.whiteeyes.common.history.service.WorkHistoryService;
 
 /**
  * 관리자 앱 내 정보 조회·수정(FNC-C-006). 실제 로그인으로 만든 세션 쿠키로 요청한다(AdminPasswordChangeTest와 같은 방식).
@@ -137,7 +139,9 @@ class AdminMyInfoTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("ADMIN"));
 
-        getMe(session).andExpect(jsonPath("$.name").value("새 이름")).andExpect(jsonPath("$.email").value("new@example.com"));
+        getMe(session)
+                .andExpect(jsonPath("$.name").value("새 이름"))
+                .andExpect(jsonPath("$.email").value("new@example.com"));
         assertThat(column("admin02", "name")).isEqualTo("다른 관리자");
         assertThat(column("admin02", "email")).isEqualTo("admin@example.com");
     }
@@ -146,8 +150,7 @@ class AdminMyInfoTest {
     @DisplayName("FNC-C-006 관리자 앱: 보낸 필드만 고치고 빈 문자열은 비운다")
     void patch_partialAndClear() throws Exception {
         patchMe(login(), """
-                {"name":"이름만","phone":""}""")
-                .andExpect(status().isOk());
+                {"name":"이름만","phone":""}""").andExpect(status().isOk());
 
         assertThat(column(LOGIN_ID, "name")).isEqualTo("이름만");
         assertThat(column(LOGIN_ID, "email")).isEqualTo("admin@example.com");
@@ -164,7 +167,9 @@ class AdminMyInfoTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("name"));
 
-        patchMe(session, """
+        patchMe(
+                        session,
+                        """
                 {"name":"정상","loginId":"hacker","role":"SUPER_ADMIN","status":"DISABLED"}""")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loginId").value(LOGIN_ID))
@@ -185,8 +190,8 @@ class AdminMyInfoTest {
                 .andExpect(status().isOk());
 
         Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM work_history");
-        Long adminId = jdbcTemplate.queryForObject(
-                "SELECT id FROM admin_account WHERE login_id = ?", Long.class, LOGIN_ID);
+        Long adminId =
+                jdbcTemplate.queryForObject("SELECT id FROM admin_account WHERE login_id = ?", Long.class, LOGIN_ID);
         assertThat(row.get("ACTOR_TYPE")).isEqualTo("ADMIN");
         assertThat(((Number) row.get("ACTOR_ID")).longValue()).isEqualTo(adminId);
         assertThat(row.get("ACTOR_LOGIN_ID")).isEqualTo(LOGIN_ID);
@@ -222,8 +227,7 @@ class AdminMyInfoTest {
                 .record(any(WorkHistoryCommand.class));
 
         patchMe(session, """
-                {"name":"새 이름"}""")
-                .andExpect(status().isInternalServerError());
+                {"name":"새 이름"}""").andExpect(status().isInternalServerError());
 
         assertThat(column(LOGIN_ID, "name")).isEqualTo("관리자 본인");
         assertThat(historyCount()).isZero();

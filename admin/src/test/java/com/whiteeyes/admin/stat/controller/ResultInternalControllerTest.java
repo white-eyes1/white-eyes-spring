@@ -31,7 +31,8 @@ import com.whiteeyes.admin.stat.service.ResultReceiveService;
 class ResultInternalControllerTest {
 
     private static final String RESULTS_URL = "/internal/v1/results";
-    private static final String VALID_ITEM = """
+    private static final String VALID_ITEM =
+            """
             {"cameraId": 7, "at": "2026-10-12T14:03:05+09:00", "personCount": 42,
              "in": {"N": 1, "E": 0, "S": 0, "W": 2}, "out": {"N": 0, "E": 3, "S": 0, "W": 0},
              "dwellSec": [305.2, 41.0]}
@@ -54,7 +55,9 @@ class ResultInternalControllerTest {
     @Test
     @DisplayName("FNC-A-024 결과 묶음을 받으면 204")
     void returnsNoContent() throws Exception {
-        mockMvc.perform(post(RESULTS_URL).contentType(MediaType.APPLICATION_JSON).content("[" + VALID_ITEM + "]"))
+        mockMvc.perform(post(RESULTS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[" + VALID_ITEM + "]"))
                 .andExpect(status().isNoContent());
 
         verify(resultReceiveService).receiveResults(resultsCaptor.capture());
@@ -71,12 +74,15 @@ class ResultInternalControllerTest {
     @Test
     @DisplayName("FNC-A-024 필수 항목이 없으면 400")
     void returnsBadRequestWhenRequiredFieldMissing() throws Exception {
-        String withoutPersonCount = """
+        String withoutPersonCount =
+                """
                 [{"cameraId": 7, "at": "2026-10-12T14:03:05+09:00",
                   "in": {"N": 0, "E": 0, "S": 0, "W": 0}, "out": {"N": 0, "E": 0, "S": 0, "W": 0}, "dwellSec": []}]
                 """;
 
-        mockMvc.perform(post(RESULTS_URL).contentType(MediaType.APPLICATION_JSON).content(withoutPersonCount))
+        mockMvc.perform(post(RESULTS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(withoutPersonCount))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(resultReceiveService);
@@ -87,7 +93,9 @@ class ResultInternalControllerTest {
     void returnsBadRequestForNegativeCount() throws Exception {
         String negativeIn = VALID_ITEM.replace("\"N\": 1", "\"N\": -1");
 
-        mockMvc.perform(post(RESULTS_URL).contentType(MediaType.APPLICATION_JSON).content("[" + negativeIn + "]"))
+        mockMvc.perform(post(RESULTS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[" + negativeIn + "]"))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(resultReceiveService);
@@ -98,7 +106,9 @@ class ResultInternalControllerTest {
     void returnsBadRequestWhenOverMaxResults() throws Exception {
         String overMax = "[" + String.join(",", Collections.nCopies(2001, VALID_ITEM)) + "]";
 
-        mockMvc.perform(post(RESULTS_URL).contentType(MediaType.APPLICATION_JSON).content(overMax))
+        mockMvc.perform(post(RESULTS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(overMax))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(resultReceiveService);
@@ -109,7 +119,9 @@ class ResultInternalControllerTest {
     void acceptsMaxResults() throws Exception {
         String max = "[" + String.join(",", Collections.nCopies(2000, VALID_ITEM)) + "]";
 
-        mockMvc.perform(post(RESULTS_URL).contentType(MediaType.APPLICATION_JSON).content(max))
+        mockMvc.perform(post(RESULTS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(max))
                 .andExpect(status().isNoContent());
     }
 }

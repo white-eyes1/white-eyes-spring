@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -27,12 +28,14 @@ public class SessionActivityRepository {
 
         // 만료됐지만 정리 작업이 아직 지우지 않은 세션도 마지막 접근 시각에 넣는다(#32에서 정함). 그래서 EXPIRY_TIME 조건이 없다
         SessionTable(String tableName) {
-            this.lastAccessSql = """
+            this.lastAccessSql =
+                    """
                     SELECT PRINCIPAL_NAME, MAX(LAST_ACCESS_TIME) AS LAST_ACCESS_TIME
                     FROM %s
                     WHERE PRINCIPAL_NAME IN (:loginIds)
                     GROUP BY PRINCIPAL_NAME
-                    """.formatted(tableName);
+                    """
+                            .formatted(tableName);
         }
     }
 

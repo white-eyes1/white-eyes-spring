@@ -5,13 +5,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.support.AdminTestLogin;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +20,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** 이벤트 요약(FNC-A-036 처리 순서 3) GET /api/v1/events/summary. 목록과 같은 조건에서 처리 상태 조건만 뺀다. */
 @Import(AdminTestUserConfig.class)
@@ -65,9 +67,13 @@ class EventSummaryTest {
         jdbcTemplate.update("UPDATE region SET parent_id = NULL");
         jdbcTemplate.update("DELETE FROM region");
         regionLoadService.load(REGION_FILE);
-        samcheongZoneId = zoneRegisterService.register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE)).id();
+        samcheongZoneId = zoneRegisterService
+                .register("삼청동 1구역", jsonMapper.readTree(SAMCHEONG_SQUARE))
+                .id();
         AdminTestLogin.loginForDirectCalls();
-        sogongZoneId = zoneRegisterService.register("소공동 1구역", jsonMapper.readTree(SOGONG_SQUARE)).id();
+        sogongZoneId = zoneRegisterService
+                .register("소공동 1구역", jsonMapper.readTree(SOGONG_SQUARE))
+                .id();
     }
 
     @AfterEach
@@ -182,8 +188,10 @@ class EventSummaryTest {
                         .param("to", "2026-10-13T00:00:00+09:00")
                         .param("zoneId", String.valueOf(samcheongZoneId)))
                 .andExpect(jsonPath("$.total").value(2));
-        mockMvc.perform(get(SUMMARY_URL).param("types", "SURGE")).andExpect(jsonPath("$.total").value(1));
-        mockMvc.perform(get(SUMMARY_URL).param("keyword", "소공동")).andExpect(jsonPath("$.total").value(1));
+        mockMvc.perform(get(SUMMARY_URL).param("types", "SURGE"))
+                .andExpect(jsonPath("$.total").value(1));
+        mockMvc.perform(get(SUMMARY_URL).param("keyword", "소공동"))
+                .andExpect(jsonPath("$.total").value(1));
     }
 
     @Test
@@ -192,7 +200,8 @@ class EventSummaryTest {
         insertEvent("CONGESTION", samcheongZoneId, 0, "UNCHECKED");
         insertEvent("SURGE", sogongZoneId, 1, "RESOLVED");
 
-        mockMvc.perform(get(SUMMARY_URL).param("types", "SURGE")).andExpect(jsonPath("$.total").value(1));
+        mockMvc.perform(get(SUMMARY_URL).param("types", "SURGE"))
+                .andExpect(jsonPath("$.total").value(1));
         mockMvc.perform(get("/api/v1/events").param("types", "SURGE"))
                 .andExpect(jsonPath("$.totalElements").value(1));
     }

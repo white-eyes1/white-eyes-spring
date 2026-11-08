@@ -16,8 +16,7 @@ import com.whiteeyes.common.stat.entity.ZoneStatMinute;
  */
 public final class MinuteStatCalculator {
 
-    private MinuteStatCalculator() {
-    }
+    private MinuteStatCalculator() {}
 
     /**
      * @param accumulator 결과가 하나 이상 있는 누적기(결과가 없는 분은 누적기가 생기지 않음)

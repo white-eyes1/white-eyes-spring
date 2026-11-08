@@ -9,5 +9,4 @@ import java.math.BigDecimal;
  * @param level 혼잡 단계. 데이터 없는 시간은 null
  * @param density 평균 밀집도(명/㎡). 데이터 없는 시간은 null
  */
-public record HourlyLevelItem(int hour, Integer level, BigDecimal density) {
-}
+public record HourlyLevelItem(int hour, Integer level, BigDecimal density) {}

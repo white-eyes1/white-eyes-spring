@@ -1,16 +1,5 @@
 package com.whiteeyes.admin.config;
 
-import com.whiteeyes.admin.account.service.AdminLoginRecordService;
-import com.whiteeyes.admin.account.service.AdminUserDetailsService;
-import com.whiteeyes.admin.media.controller.LiveAuthFilter;
-import com.whiteeyes.admin.media.service.LiveAuthService;
-import com.whiteeyes.common.security.ForbiddenHandler;
-import com.whiteeyes.common.security.InternalTokenFilter;
-import com.whiteeyes.common.security.LoginFailureHandler;
-import com.whiteeyes.common.security.LoginRequiredEntryPoint;
-import com.whiteeyes.common.security.LoginSuccessHandler;
-import com.whiteeyes.common.security.LogoutSupport;
-import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +17,18 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import tools.jackson.databind.json.JsonMapper;
 
+import com.whiteeyes.admin.account.service.AdminLoginRecordService;
+import com.whiteeyes.admin.account.service.AdminUserDetailsService;
+import com.whiteeyes.admin.media.controller.LiveAuthFilter;
+import com.whiteeyes.admin.media.service.LiveAuthService;
+import com.whiteeyes.common.security.ForbiddenHandler;
+import com.whiteeyes.common.security.InternalTokenFilter;
+import com.whiteeyes.common.security.LoginFailureHandler;
+import com.whiteeyes.common.security.LoginRequiredEntryPoint;
+import com.whiteeyes.common.security.LoginSuccessHandler;
+import com.whiteeyes.common.security.LogoutSupport;
+import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
+
 /**
  * 관리자 앱 로그인(FNC-C-001), 로그아웃(FNC-C-002), 접근 권한 검사(FNC-C-003).
  * 필터 체인은 둘이다. /internal/** 은 세션 없이 내부 토큰으로만, 나머지는 로그인한 관리자의 역할로 권한 표를 검사한다.
@@ -44,7 +45,9 @@ public class AdminSecurityConfig {
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
     // 권한 표(관리자 앱): 공개 경로와 정적 파일, 오류 화면
-    private static final String[] PUBLIC_PATHS = {LOGIN_PATH, "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error"};
+    private static final String[] PUBLIC_PATHS = {
+        LOGIN_PATH, "/css/**", "/js/**", "/images/**", "/favicon.ico", "/error"
+    };
     // 권한 표(관리자 앱): SUPER_ADMIN만
     private static final String[] SUPER_ADMIN_PATHS = {
         "/admins/**", "/api/v1/admins/**", "/histories/**", "/api/v1/histories/**"

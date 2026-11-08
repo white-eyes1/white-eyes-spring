@@ -5,16 +5,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.common.security.AccountPrincipal;
-import com.whiteeyes.user.support.UserTestAccounts;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +33,10 @@ import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.user.support.UserTestAccounts;
 
 /**
  * 사용자 앱 세션 만료·정리(FNC-C-004). 검수 기준: 30분 무동작 후 요청 시 로그인 화면으로 이동, 만료 세션 행이 정리됨.

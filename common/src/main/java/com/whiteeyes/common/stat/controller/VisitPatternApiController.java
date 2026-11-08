@@ -33,8 +33,7 @@ public class VisitPatternApiController {
             @RequestParam(name = "from", required = false) String from,
             @RequestParam(name = "to", required = false) String to)
             throws BindException {
-        VisitPatternRequest request =
-                VisitPatternRequest.parse(targetType, targetId, from, to, LocalDate.now(KST));
+        VisitPatternRequest request = VisitPatternRequest.parse(targetType, targetId, from, to, LocalDate.now(KST));
         return visitPatternService.findPattern(request);
     }
 }

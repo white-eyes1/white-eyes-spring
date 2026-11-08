@@ -99,8 +99,7 @@ class TrendIntegrationTest {
         insertHourly(sajik, TARGET_HOUR.minusDays(364), "50");
         insertHourly(samcheong, TARGET_HOUR.minusDays(364), "30");
 
-        TrendResponse trend = trendService.findTrend(
-                DashboardTargetType.REGION, regionId("11110"), TODAY);
+        TrendResponse trend = trendService.findTrend(DashboardTargetType.REGION, regionId("11110"), TODAY);
 
         // (60 + 40) ÷ (50 + 30) = 1.25 → +25.0%
         assertThat(trend.yearRate()).isEqualByComparingTo("25.0");
@@ -119,10 +118,14 @@ class TrendIntegrationTest {
                 .andExpect(jsonPath("$.weekRate").isEmpty())
                 .andExpect(jsonPath("$.monthRate").isEmpty())
                 .andExpect(jsonPath("$.yearRate").isEmpty());
-        mockMvc.perform(get(URL).with(AdminTestLogin.admin()).param("targetType", "REGION").param("targetId", "999999"))
+        mockMvc.perform(get(URL).with(AdminTestLogin.admin())
+                        .param("targetType", "REGION")
+                        .param("targetId", "999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"));
-        mockMvc.perform(get(URL).with(AdminTestLogin.admin()).param("targetType", "DONG").param("targetId", "1"))
+        mockMvc.perform(get(URL).with(AdminTestLogin.admin())
+                        .param("targetType", "DONG")
+                        .param("targetId", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
     }

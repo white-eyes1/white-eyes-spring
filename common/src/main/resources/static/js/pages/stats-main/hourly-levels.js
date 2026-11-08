@@ -71,7 +71,9 @@ export function createHourlyLevelsPanel() {
     }
 
     function render(items) {
-        const densities = items.filter((item) => item.density !== null).map((item) => Number(item.density));
+        const densities = items
+            .filter((item) => item.density !== null)
+            .map((item) => Number(item.density));
         const max = densities.length > 0 ? Math.max(...densities) : 0;
         bars.replaceChildren(...items.map((item) => bar(item, max)));
         message.textContent = NO_DATA;

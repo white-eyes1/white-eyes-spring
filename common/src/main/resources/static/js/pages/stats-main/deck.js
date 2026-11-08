@@ -49,7 +49,9 @@ export function createDeck({ levels, onReload, onResize, onOpenLive }) {
     });
 
     sortSelect.addEventListener('change', render);
-    byId('deck-toggle').addEventListener('click', () => setExpanded(!dash.classList.contains('expanded')));
+    byId('deck-toggle').addEventListener('click', () =>
+        setExpanded(!dash.classList.contains('expanded')),
+    );
     initGrip();
 
     function render() {
@@ -168,7 +170,11 @@ function card(camera, levels, onReload) {
     const people = labeled('인원', camera.stat ? formatNumber(currentOf(camera.stat)) : '-');
     // 현재 인원은 5초마다(통계 SSE event: now) 카드를 다시 그리지 않고 숫자만 바꾼다. 1분 통계가 아직 없는 캠도 받는다(FNC-A-054)
     bindNowCount(people.querySelector('b'), camera.zoneId, people.querySelector('b').textContent);
-    meta.append(statusPart(camera), people, labeled('이벤트', formatNumber(camera.todayEventCount)));
+    meta.append(
+        statusPart(camera),
+        people,
+        labeled('이벤트', formatNumber(camera.todayEventCount)),
+    );
 
     article.append(head, snapshot, recentBlock(camera, levels), meta);
     if (camera.status === 'ERROR' && camera.errorMessage) {
@@ -192,7 +198,9 @@ function statusPart(camera) {
     const info = STATUS_CHIPS[camera.status] ?? STATUS_CHIPS.STOPPED;
     chip.className = 'chip ' + info.css;
     chip.textContent =
-        camera.status === 'PREPARING' && camera.progress !== null ? `${info.text} ${camera.progress}%` : info.text;
+        camera.status === 'PREPARING' && camera.progress !== null
+            ? `${info.text} ${camera.progress}%`
+            : info.text;
     wrap.append('상태 ', chip);
     return wrap;
 }
@@ -225,7 +233,8 @@ function recentBlock(camera, levels) {
             const change = latest - Math.round(recent[0].countAvg);
             const delta = document.createElement('span');
             delta.className = 'recent-delta';
-            delta.textContent = change === 0 ? ' 0' : ` ${change > 0 ? '▲' : '▼'}${formatNumber(Math.abs(change))}`;
+            delta.textContent =
+                change === 0 ? ' 0' : ` ${change > 0 ? '▲' : '▼'}${formatNumber(Math.abs(change))}`;
             now.append(delta);
         }
     }
@@ -236,14 +245,20 @@ function recentBlock(camera, levels) {
     const warn = warnDensity ? Number(warnDensity) * camera.areaM2 : null;
     const bars = levelBars(
         recent.map((point) => ({ value: point.countAvg, level: point.level })),
-        { height: RECENT_BAR_HEIGHT, max: niceMax(values), warn, label: '최근 10분 인원, 혼잡 단계 색' },
+        {
+            height: RECENT_BAR_HEIGHT,
+            max: niceMax(values),
+            warn,
+            label: '최근 10분 인원, 혼잡 단계 색',
+        },
     );
 
     const foot = document.createElement('div');
     foot.className = 'recent-foot muted';
-    const range = recent.length > 0
-        ? `최대 ${formatNumber(Math.round(Math.max(...values)))} · 최소 ${formatNumber(Math.round(Math.min(...values)))}`
-        : '데이터 없음';
+    const range =
+        recent.length > 0
+            ? `최대 ${formatNumber(Math.round(Math.max(...values)))} · 최소 ${formatNumber(Math.round(Math.min(...values)))}`
+            : '데이터 없음';
     foot.append(span('-10분'), span(range), span('지금'));
     box.append(head, bars, foot);
     return box;
@@ -261,7 +276,14 @@ function actions(camera, onReload) {
     const canStart = camera.status === 'STOPPED' || camera.status === 'ERROR';
     const canStop = camera.status !== 'STOPPED';
     if (canStart) {
-        footer.append(actionButton(camera.status === 'ERROR' ? '다시 시작' : '가동', camera.id, 'start', onReload));
+        footer.append(
+            actionButton(
+                camera.status === 'ERROR' ? '다시 시작' : '가동',
+                camera.id,
+                'start',
+                onReload,
+            ),
+        );
     }
     if (canStop) {
         footer.append(actionButton('정지', camera.id, 'stop', onReload));

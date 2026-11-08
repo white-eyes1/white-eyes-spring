@@ -9,22 +9,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
-import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
-import com.whiteeyes.common.camera.entity.CameraSourceType;
-import jakarta.persistence.EntityManagerFactory;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.nio.file.Paths;
+
+import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
@@ -40,6 +34,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
+import com.whiteeyes.admin.camera.service.CameraRegisterService;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
 
 @Import(AdminTestUserConfig.class)
 @SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
@@ -159,9 +161,8 @@ class CameraListTest {
         long third = createCamera(sajikZoneId, "셋째 캠");
         jdbcTemplate.update("UPDATE camera SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", deleted);
 
-        list(null)
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[*].id", contains((int) first, (int) third)));
+        list(null).andExpect(jsonPath("$", hasSize(2))).andExpect(jsonPath("$[*].id", contains((int) first, (int)
+                third)));
     }
 
     @Test
@@ -185,7 +186,8 @@ class CameraListTest {
         insertStat(samcheongZoneId, thisMinute.minusMinutes(1), 120.4, 1.6);
 
         list(null)
-                .andExpect(jsonPath("$[0].stat.statAt").value(thisMinute.minusMinutes(1).atZone(KST).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))
+                .andExpect(jsonPath("$[0].stat.statAt")
+                        .value(thisMinute.minusMinutes(1).atZone(KST).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))
                 .andExpect(jsonPath("$[0].stat.countAvg").value(120.4))
                 .andExpect(jsonPath("$[0].stat.density").value(1.6))
                 .andExpect(jsonPath("$[0].stat.level").value(3));
@@ -213,7 +215,9 @@ class CameraListTest {
                         .param("from", thisMinute.minusMinutes(3).format(minute))
                         .param("to", thisMinute.format(minute)))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         JsonNode items = jsonMapper.readTree(body).get("items");
         assertThat(items.size()).isEqualTo(3);
         for (int index = 0; index < 3; index++) {
@@ -227,7 +231,8 @@ class CameraListTest {
         createCamera(samcheongZoneId, "삼청동 캠");
         createCamera(sogongZoneId, "소공동 캠");
         createCamera(sajikZoneId, "사직동 캠");
-        LocalDateTime lastMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
+        LocalDateTime lastMinute =
+                LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
         insertStat(samcheongZoneId, lastMinute, 5.0, 0.6999);
         insertStat(sogongZoneId, lastMinute, 5.0, 0.7);
         insertStat(sajikZoneId, lastMinute, 5.0, 1.5);
@@ -247,8 +252,7 @@ class CameraListTest {
         insertStat(samcheongZoneId, thisMinute.minusMinutes(2), 0.0, 0.0, 0);
         insertStat(samcheongZoneId, thisMinute.minusMinutes(1), 30.0, 0.4);
 
-        list(null)
-                .andExpect(jsonPath("$[0].recent10m[*].countAvg", contains(10.0, 30.0)));
+        list(null).andExpect(jsonPath("$[0].recent10m[*].countAvg", contains(10.0, 30.0)));
     }
 
     @Test
@@ -281,7 +285,8 @@ class CameraListTest {
         OffsetDateTime previous = null;
         for (JsonNode point : recent) {
             OffsetDateTime at = OffsetDateTime.parse(point.get("at").asString());
-            assertThat(at).isAfterOrEqualTo(OffsetDateTime.now(KST).minusMinutes(10).minusSeconds(5));
+            assertThat(at)
+                    .isAfterOrEqualTo(OffsetDateTime.now(KST).minusMinutes(10).minusSeconds(5));
             if (previous != null) {
                 assertThat(at).isAfter(previous);
             }
@@ -297,7 +302,11 @@ class CameraListTest {
     void list_stat_onlyOwnZone() throws Exception {
         createCamera(samcheongZoneId, "삼청동 캠");
         createCamera(sogongZoneId, "소공동 캠");
-        insertStat(sogongZoneId, LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1), 77.0, 0.3);
+        insertStat(
+                sogongZoneId,
+                LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1),
+                77.0,
+                0.3);
 
         list(null)
                 .andExpect(jsonPath("$[0].name").value("삼청동 캠"))
@@ -370,7 +379,8 @@ class CameraListTest {
     @Test
     @DisplayName("FNC-A-022 캠이 늘어도 쿼리 수가 늘지 않는다(캠마다 따로 조회하지 않음)")
     void list_queryCountDoesNotGrowWithCameraCount() throws Exception {
-        LocalDateTime lastMinute = LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
+        LocalDateTime lastMinute =
+                LocalDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
         createCamera(samcheongZoneId, "삼청동 캠");
         insertStat(samcheongZoneId, lastMinute, 10.0, 0.5);
         long withOneCamera = countStatementsOfList();
@@ -387,7 +397,8 @@ class CameraListTest {
     }
 
     private long countStatementsOfList() throws Exception {
-        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        Statistics statistics =
+                entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
         list(null).andExpect(status().isOk());
         return statistics.getPrepareStatementCount();

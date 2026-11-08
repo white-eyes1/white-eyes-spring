@@ -114,15 +114,16 @@ class HourlyLevelIntegrationTest {
         // (1.5×60 + 1.7×60 + 1.6×30) ÷ 150 = 1.6 → 3단계(시간별 행의 0.1이 아님)
         assertThat(items.get(10).density()).isEqualByComparingTo("1.6000");
         assertThat(items.get(10).level()).isEqualTo(3);
-        assertThat(items.subList(11, 24)).allSatisfy(item -> assertThat(item.level()).isNull());
+        assertThat(items.subList(11, 24))
+                .allSatisfy(item -> assertThat(item.level()).isNull());
         assertThat(items.get(5).level()).isEqualTo(2);
     }
 
     @Test
     @DisplayName("FNC-C-018 지역은 같은 시각 소속 구역의 인원 합 ÷ 면적 합으로 합산한다")
     void region_sumsZones() {
-        List<HourlyLevelItem> items = hourlyLevelService.findHourlyLevels(
-                DashboardTargetType.REGION, regionId("11110"), DAY, NOW);
+        List<HourlyLevelItem> items =
+                hourlyLevelService.findHourlyLevels(DashboardTargetType.REGION, regionId("11110"), DAY, NOW);
 
         // 5시: (80 + 100) ÷ (100 + 100) = 0.9 → 2단계
         assertThat(items.get(5).density()).isEqualByComparingTo("0.9000");
@@ -167,13 +168,19 @@ class HourlyLevelIntegrationTest {
                         .param("date", "2099-13-01"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        mockMvc.perform(get(URL).with(AdminTestLogin.admin()).param("targetType", "DONG").param("targetId", "1"))
+        mockMvc.perform(get(URL).with(AdminTestLogin.admin())
+                        .param("targetType", "DONG")
+                        .param("targetId", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        mockMvc.perform(get(URL).with(AdminTestLogin.admin()).param("targetType", "REGION").param("targetId", "999999"))
+        mockMvc.perform(get(URL).with(AdminTestLogin.admin())
+                        .param("targetType", "REGION")
+                        .param("targetId", "999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"));
-        mockMvc.perform(get(URL).with(AdminTestLogin.admin()).param("targetType", "ZONE").param("targetId", "999999"))
+        mockMvc.perform(get(URL).with(AdminTestLogin.admin())
+                        .param("targetType", "ZONE")
+                        .param("targetId", "999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ZONE_NOT_FOUND"));
     }

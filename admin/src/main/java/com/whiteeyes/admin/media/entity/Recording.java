@@ -44,8 +44,7 @@ public class Recording {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    private Recording(
-            Long cameraId, LocalDateTime startedAt, LocalDateTime endedAt, String videoPath, String boxPath) {
+    private Recording(Long cameraId, LocalDateTime startedAt, LocalDateTime endedAt, String videoPath, String boxPath) {
         this.cameraId = cameraId;
         this.startedAt = startedAt;
         this.endedAt = endedAt;

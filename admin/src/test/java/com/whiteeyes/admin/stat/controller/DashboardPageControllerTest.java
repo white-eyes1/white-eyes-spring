@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /** 공통 틀(#136)이 관리자 앱 화면에서 그려지는지 확인한다: SCR-A-013 헤더, FNC-C-003 CSRF meta, FNC-C-025 범례 자리. */
 @Import(AdminTestUserConfig.class)
@@ -286,11 +287,21 @@ class DashboardPageControllerTest {
     @DisplayName("SCR-A-008 실시간 보기 창 영상 아래에 현재 통계 4칸과 그래프 2행 2열이 있고, 밀집도 그래프는 없다(결정 0016)")
     void statsPage_admin_liveViewHasGraphs() throws Exception {
         String[] expected = {
-            "id=\"live-net\"", ">1시간 순증감<", ">혼잡 단계<", "id=\"live-graphs\"",
-            "<h3>최근 10분 · 혼잡 단계</h3>", "id=\"live-graph-10m\"",
-            "<h3>최근 1시간 · 혼잡 단계</h3>", "id=\"live-graph-60m\"",
-            "<h3>방향별 흐름 · 1시간</h3>", "id=\"live-compass\"", "id=\"live-direction-bars\"",
-            "id=\"live-graph-count\"", "id=\"live-graph-flow\"", "id=\"live-stats-link\"", "통계에서 보기"
+            "id=\"live-net\"",
+            ">1시간 순증감<",
+            ">혼잡 단계<",
+            "id=\"live-graphs\"",
+            "<h3>최근 10분 · 혼잡 단계</h3>",
+            "id=\"live-graph-10m\"",
+            "<h3>최근 1시간 · 혼잡 단계</h3>",
+            "id=\"live-graph-60m\"",
+            "<h3>방향별 흐름 · 1시간</h3>",
+            "id=\"live-compass\"",
+            "id=\"live-direction-bars\"",
+            "id=\"live-graph-count\"",
+            "id=\"live-graph-flow\"",
+            "id=\"live-stats-link\"",
+            "통계에서 보기"
         };
         var result = mockMvc.perform(get("/stats")).andExpect(status().isOk());
         for (String fragment : expected) {

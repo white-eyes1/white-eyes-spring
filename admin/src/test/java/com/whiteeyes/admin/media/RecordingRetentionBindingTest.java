@@ -3,15 +3,17 @@ package com.whiteeyes.admin.media;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.whiteeyes.admin.cleanup.config.RetentionProperties;
-import com.whiteeyes.admin.media.exception.RecordingExpiredException;
-import com.whiteeyes.admin.media.exception.RecordingNotFoundException;
-import com.whiteeyes.admin.media.service.PlaybackFindService;
 import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
+import com.whiteeyes.admin.media.exception.RecordingExpiredException;
+import com.whiteeyes.admin.media.exception.RecordingNotFoundException;
+import com.whiteeyes.admin.media.service.PlaybackFindService;
 
 /** FNC-A-043 설정(retention.recording-days)이 실제 스프링 빈에 연결되어 다시보기 만료 경계를 바꾼다(#182). */
 @SpringBootTest(properties = "retention.recording-days=7")

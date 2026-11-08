@@ -1,5 +1,15 @@
 package com.whiteeyes.admin.event.service;
 
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.event.dto.EventSearchRequest;
 import com.whiteeyes.admin.event.dto.EventSummaryResponse;
 import com.whiteeyes.admin.event.repository.EventSummaryQueryRepository;
@@ -7,14 +17,6 @@ import com.whiteeyes.admin.event.repository.EventSummaryQueryRepository.StatusTy
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventStatus;
 import com.whiteeyes.common.event.entity.EventType;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 이벤트 요약(FNC-A-036 처리 순서 3): 목록과 같은 조건에서 처리 상태 조건만 빼고 상태별 건수를 센다.

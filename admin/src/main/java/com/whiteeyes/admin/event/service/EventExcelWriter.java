@@ -1,22 +1,24 @@
 package com.whiteeyes.admin.event.service;
 
-import com.whiteeyes.admin.event.dto.EventExportRow;
-import com.whiteeyes.admin.event.dto.EventListItem;
-import com.whiteeyes.common.event.entity.EventStatus;
-import com.whiteeyes.common.event.entity.EventType;
-import com.whiteeyes.common.level.service.CongestionLevel;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Map;
+
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+
+import com.whiteeyes.admin.event.dto.EventExportRow;
+import com.whiteeyes.admin.event.dto.EventListItem;
+import com.whiteeyes.common.event.entity.EventStatus;
+import com.whiteeyes.common.event.entity.EventType;
+import com.whiteeyes.common.level.service.CongestionLevel;
 
 /**
  * 이벤트 엑셀 파일을 쓴다(FNC-A-039 처리 순서 2). SXSSF(스트리밍)라 메모리에는 최근 행 몇 개만 두고 나머지는 임시 파일로
@@ -33,8 +35,23 @@ public class EventExcelWriter implements AutoCloseable {
     // 메모리에 둘 행 수(SXSSF 기본값)
     private static final int WINDOW_SIZE = 100;
     private static final String[] HEADERS = {
-        "발생 시각", "종료 시각", "지속(분)", "종류", "시·도", "시·군·구", "읍·면·동", "구역", "최고 단계", "최고 인원",
-        "최고 밀집도(명/㎡)", "최고 증가율(%)", "처리 상태", "조치 항목", "조치 메모", "처리자", "처리 일시"
+        "발생 시각",
+        "종료 시각",
+        "지속(분)",
+        "종류",
+        "시·도",
+        "시·군·구",
+        "읍·면·동",
+        "구역",
+        "최고 단계",
+        "최고 인원",
+        "최고 밀집도(명/㎡)",
+        "최고 증가율(%)",
+        "처리 상태",
+        "조치 항목",
+        "조치 메모",
+        "처리자",
+        "처리 일시"
     };
     private static final String ONGOING_TEXT = "진행 중";
     private static final int SECONDS_PER_MINUTE = 60;

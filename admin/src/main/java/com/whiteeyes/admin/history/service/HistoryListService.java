@@ -1,5 +1,16 @@
 package com.whiteeyes.admin.history.service;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.List;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
 import com.whiteeyes.admin.history.dto.HistoryListItem;
 import com.whiteeyes.admin.history.dto.HistorySearchRequest;
 import com.whiteeyes.admin.history.repository.WorkHistoryQueryRepository;
@@ -8,15 +19,6 @@ import com.whiteeyes.common.exception.BusinessException;
 import com.whiteeyes.common.exception.ErrorCode;
 import com.whiteeyes.common.history.entity.WorkHistory;
 import com.whiteeyes.common.web.PageResponse;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.List;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 작업 기록 조회(FNC-A-053): 기간·계정·행동 종류로 거른 기록을 최신순으로 한 페이지씩 돌려준다.
@@ -40,10 +42,10 @@ public class HistoryListService {
                 toKst(request.from()), toKst(request.to()), request.actorType(), request.loginId(), request.action());
 
         long total = workHistoryQueryRepository.count(condition);
-        List<HistoryListItem> items = workHistoryQueryRepository.findPage(condition, request.page(), request.size())
-                .stream()
-                .map(this::toItem)
-                .toList();
+        List<HistoryListItem> items =
+                workHistoryQueryRepository.findPage(condition, request.page(), request.size()).stream()
+                        .map(this::toItem)
+                        .toList();
         return PageResponse.of(items, request.page(), request.size(), total);
     }
 

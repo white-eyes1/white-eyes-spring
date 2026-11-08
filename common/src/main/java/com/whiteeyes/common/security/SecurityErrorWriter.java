@@ -1,12 +1,14 @@
 package com.whiteeyes.common.security;
 
-import com.whiteeyes.common.exception.ErrorCode;
-import com.whiteeyes.common.web.ErrorResponse;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.exception.ErrorCode;
+import com.whiteeyes.common.web.ErrorResponse;
 
 /**
  * 보안 필터 단계(컨트롤러 앞)에서 난 오류를 공통 오류 응답으로 쓴다(FNC-C-003, conventions.md '오류 응답').
@@ -16,7 +18,8 @@ public final class SecurityErrorWriter {
 
     private SecurityErrorWriter() {}
 
-    public static void write(HttpServletResponse response, JsonMapper jsonMapper, ErrorCode errorCode) throws IOException {
+    public static void write(HttpServletResponse response, JsonMapper jsonMapper, ErrorCode errorCode)
+            throws IOException {
         response.setStatus(errorCode.getStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());

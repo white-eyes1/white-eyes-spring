@@ -1,5 +1,13 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+
 import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStartResponse;
 import com.whiteeyes.admin.camera.exception.AnalyzerUnavailableException;
@@ -15,12 +23,6 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 캠 가동을 분석 서버에 지시한다(FNC-A-020).
@@ -72,7 +74,8 @@ public class CameraStartService {
     }
 
     private StartTarget requestRun(Long cameraId) {
-        Camera camera = cameraRepository.findByIdAndDeletedAtIsNull(cameraId)
+        Camera camera = cameraRepository
+                .findByIdAndDeletedAtIsNull(cameraId)
                 .orElseThrow(() -> new CameraNotFoundException(cameraId));
         if (!isStartable(camera.getStatus())) {
             throw new InvalidCameraStatusException(cameraId, camera.getStatus());
@@ -83,9 +86,9 @@ public class CameraStartService {
     }
 
     private void recordFailure(Long cameraId, String errorMessage) {
-        transactionTemplate.executeWithoutResult(status ->
-                cameraRepository.findByIdAndDeletedAtIsNull(cameraId)
-                        .ifPresent(camera -> camera.updateStatus(CameraStatus.ERROR, null, errorMessage)));
+        transactionTemplate.executeWithoutResult(status -> cameraRepository
+                .findByIdAndDeletedAtIsNull(cameraId)
+                .ifPresent(camera -> camera.updateStatus(CameraStatus.ERROR, null, errorMessage)));
     }
 
     // status·error_message는 결과 기록 전이라 요청 전 그대로이므로 run_requested만 되돌린다.
@@ -94,13 +97,13 @@ public class CameraStartService {
         if (runRequestedBefore) {
             return;
         }
-        transactionTemplate.executeWithoutResult(status ->
-                cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(Camera::cancelRunRequest));
+        transactionTemplate.executeWithoutResult(
+                status -> cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(Camera::cancelRunRequest));
     }
 
     private void recordStarted(Long cameraId, CameraStatus started, LoginAccount actor) {
-        transactionTemplate.executeWithoutResult(status ->
-                cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
+        transactionTemplate.executeWithoutResult(
+                status -> cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
                     // 응답을 기다리는 동안 정지(FNC-A-021)가 끝났다면(run_requested=0) 아무것도 기록하지 않는다
                     if (!camera.isRunRequested()) {
                         return;
@@ -112,7 +115,12 @@ public class CameraStartService {
                     }
                     camera.markFirstStartedIfAbsent(LocalDateTime.now(KST));
                     workRecorder.record(
-                            actor, WorkAction.CAMERA_RUN, WorkTargetType.CAMERA, cameraId, camera.getName(), Map.of("op", "START"));
+                            actor,
+                            WorkAction.CAMERA_RUN,
+                            WorkTargetType.CAMERA,
+                            cameraId,
+                            camera.getName(),
+                            Map.of("op", "START"));
                 }));
     }
 

@@ -5,13 +5,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import jakarta.persistence.LockModeType;
 
 import com.whiteeyes.common.event.entity.Event;
 import com.whiteeyes.common.event.entity.EventStatus;
@@ -53,7 +52,8 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     long countByStatus(EventStatus status);
 
     /** 구역별 이벤트 수를 한 번에 센다(FNC-C-017 오늘 이벤트 수). */
-    @Query("""
+    @Query(
+            """
             select e.zoneId as zoneId, count(e) as eventCount from Event e
             where e.type in :types and e.startedAt >= :from and e.zoneId in :zoneIds
             group by e.zoneId
@@ -64,7 +64,8 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
             @Param("from") LocalDateTime from);
 
     /** 열린(종료 시각 없는) 이벤트가 있는 구역 번호(FNC-C-009 진행 중 이벤트). 처리 상태는 보지 않는다. */
-    @Query("""
+    @Query(
+            """
             select distinct e.zoneId from Event e
             where e.endedAt is null and e.type in :types and e.zoneId in :zoneIds
             """)

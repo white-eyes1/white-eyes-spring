@@ -15,14 +15,25 @@
  * }} options
  *   load: 카드 하나의 최신 화면을 읽는 함수, onResult: 읽은 결과(성공이면 ok=true와 값, 실패면 ok=false)
  */
-export function createSnapshotScheduler({ load, onResult, maxInFlight = 2, intervalMs = 2000, now = () => Date.now() }) {
+export function createSnapshotScheduler({
+    load,
+    onResult,
+    maxInFlight = 2,
+    intervalMs = 2000,
+    now = () => Date.now(),
+}) {
     const cards = new Map();
     let inFlight = 0;
     let paused = false;
 
     const ensure = (id) => {
         if (!cards.has(id)) {
-            cards.set(id, { visible: false, running: false, requestedAt: -Infinity, loading: false });
+            cards.set(id, {
+                visible: false,
+                running: false,
+                requestedAt: -Infinity,
+                loading: false,
+            });
         }
         return cards.get(id);
     };
@@ -70,7 +81,13 @@ export function createSnapshotScheduler({ load, onResult, maxInFlight = 2, inter
             }
             const current = now();
             const due = [...cards.entries()]
-                .filter(([, card]) => card.visible && card.running && !card.loading && current - card.requestedAt >= intervalMs)
+                .filter(
+                    ([, card]) =>
+                        card.visible &&
+                        card.running &&
+                        !card.loading &&
+                        current - card.requestedAt >= intervalMs,
+                )
                 // 오래 기다린 카드부터
                 .sort((first, second) => first[1].requestedAt - second[1].requestedAt);
             const started = [];

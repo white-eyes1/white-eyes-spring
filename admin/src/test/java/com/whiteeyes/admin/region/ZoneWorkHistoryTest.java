@@ -6,14 +6,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.support.AdminTestLogin;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +29,9 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.support.AdminTestLogin;
 
 /** 구역 등록의 작업 기록 연결(FNC-A-014 처리 순서 5, FNC-C-026). */
 @SpringBootTest(properties = "spring.session.jdbc.table-name=SPRING_SESSION_ADMIN")
@@ -106,7 +108,9 @@ class ZoneWorkHistoryTest {
     @Test
     @DisplayName("FNC-C-026 로그인하지 않으면 401 UNAUTHORIZED이고 구역도 작업 기록도 생기지 않는다")
     void register_notLoggedIn_unauthorized() throws Exception {
-        register(null).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+        register(null)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
 
         assertThat(count("zone")).isZero();
         assertThat(count("work_history")).isZero();

@@ -1,10 +1,11 @@
 package com.whiteeyes.admin.event.dto;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import com.whiteeyes.common.constant.InputRules;
 import com.whiteeyes.common.event.entity.EventActionCode;
 import com.whiteeyes.common.event.entity.EventStatus;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 /**
  * 이벤트 처리 상태 변경 요청(PATCH /api/v1/events/{id}/status, FNC-A-038).

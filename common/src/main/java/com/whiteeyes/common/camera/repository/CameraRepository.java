@@ -1,17 +1,19 @@
 package com.whiteeyes.common.camera.repository;
 
-import com.whiteeyes.common.camera.entity.Camera;
-import com.whiteeyes.common.camera.entity.CameraStatus;
-import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.time.LocalDateTime;
 import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.whiteeyes.common.camera.entity.Camera;
+import com.whiteeyes.common.camera.entity.CameraStatus;
 
 public interface CameraRepository extends JpaRepository<Camera, Long> {
 
@@ -49,11 +51,13 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     boolean existsByZoneIdAndDeletedAtIsNullAndStatusIn(Long zoneId, Collection<CameraStatus> statuses);
 
     /** 그 구역의 삭제되지 않은 캠 중 주어진 상태이거나 가동 요청(run_requested=1) 상태인 것이 있는지 본다(구역 삭제 FNC-A-017 처리 순서 1). */
-    @Query("""
+    @Query(
+            """
             select count(c) > 0 from Camera c
             where c.zoneId = :zoneId and c.deletedAt is null and (c.status in :statuses or c.runRequested = true)
             """)
-    boolean existsActiveOrRunRequested(@Param("zoneId") Long zoneId, @Param("statuses") Collection<CameraStatus> statuses);
+    boolean existsActiveOrRunRequested(
+            @Param("zoneId") Long zoneId, @Param("statuses") Collection<CameraStatus> statuses);
 
     /** 처음 가동한 적이 있는 모든 캠. 삭제된 캠도 포함한다(시연용 통계를 가동 시작 전날까지만 만드는 기준, FNC-A-051). */
     List<Camera> findByFirstStartedAtIsNotNull();

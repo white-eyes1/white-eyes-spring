@@ -1,12 +1,14 @@
 package com.whiteeyes.admin.history.dto;
 
-import com.whiteeyes.common.history.entity.ActorType;
-import com.whiteeyes.common.history.entity.WorkAction;
+import java.time.OffsetDateTime;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
-import java.time.OffsetDateTime;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import com.whiteeyes.common.history.entity.ActorType;
+import com.whiteeyes.common.history.entity.WorkAction;
 
 /**
  * 작업 기록 조회 조건(FNC-A-053 입력 항목, GET /api/v1/histories). 비운 값은 그 조건으로 거르지 않는다.

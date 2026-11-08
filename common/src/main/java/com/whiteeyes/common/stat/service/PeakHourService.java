@@ -76,7 +76,8 @@ public class PeakHourService {
         List<PeakHourItem> result = new ArrayList<>(top.size());
         for (int i = 0; i < top.size(); i++) {
             HourAverage item = top.get(i);
-            result.add(new PeakHourItem(i + 1, item.hour(), item.average().setScale(RESULT_SCALE, RoundingMode.HALF_UP)));
+            result.add(
+                    new PeakHourItem(i + 1, item.hour(), item.average().setScale(RESULT_SCALE, RoundingMode.HALF_UP)));
         }
         return result;
     }
@@ -87,11 +88,12 @@ public class PeakHourService {
             return List.of(regionQueryService.getActiveZone(targetId).getId());
         }
         Region region = regionQueryService.getRegion(targetId);
-        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream().map(Region::getId).toList();
+        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream()
+                .map(Region::getId)
+                .toList();
         return dongIds.isEmpty() ? List.of() : regionQueryService.findAllZoneIdsInDongs(dongIds);
     }
 
     /** 한 시간대(0~23시)의 기간 평균 인원. */
-    private record HourAverage(int hour, BigDecimal average) {
-    }
+    private record HourAverage(int hour, BigDecimal average) {}
 }

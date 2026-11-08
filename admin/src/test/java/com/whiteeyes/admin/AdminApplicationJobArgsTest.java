@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
@@ -18,7 +19,8 @@ class AdminApplicationJobArgsTest {
     void detectsJobArgument() {
         assertThat(AdminApplication.isJob(new String[] {"--spring.profiles.active=local", "--job=generate-demo"}))
                 .isTrue();
-        assertThat(AdminApplication.isJob(new String[] {"--spring.profiles.active=local"})).isFalse();
+        assertThat(AdminApplication.isJob(new String[] {"--spring.profiles.active=local"}))
+                .isFalse();
         assertThat(AdminApplication.isJob(new String[] {})).isFalse();
     }
 

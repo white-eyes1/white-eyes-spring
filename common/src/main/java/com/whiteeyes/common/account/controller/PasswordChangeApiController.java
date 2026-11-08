@@ -1,7 +1,5 @@
 package com.whiteeyes.common.account.controller;
 
-import com.whiteeyes.common.account.dto.PasswordChangeRequest;
-import com.whiteeyes.common.account.service.PasswordChangeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -15,6 +13,9 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.whiteeyes.common.account.dto.PasswordChangeRequest;
+import com.whiteeyes.common.account.service.PasswordChangeService;
 
 /**
  * 비밀번호 변경 API(FNC-C-007). 두 앱이 같은 경로로 등록한다: 사용자 앱 /api/v1/me/password, 관리자 앱 /admin/api/v1/me/password.

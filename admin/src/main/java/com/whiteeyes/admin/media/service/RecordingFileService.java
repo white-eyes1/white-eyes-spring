@@ -1,17 +1,19 @@
 package com.whiteeyes.admin.media.service;
 
-import com.whiteeyes.admin.cleanup.config.RetentionProperties;
-import com.whiteeyes.admin.media.entity.Recording;
-import com.whiteeyes.admin.media.exception.RecordingExpiredException;
-import com.whiteeyes.admin.media.exception.RecordingNotFoundException;
-import com.whiteeyes.admin.media.repository.RecordingRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriUtils;
+
+import com.whiteeyes.admin.cleanup.config.RetentionProperties;
+import com.whiteeyes.admin.media.entity.Recording;
+import com.whiteeyes.admin.media.exception.RecordingExpiredException;
+import com.whiteeyes.admin.media.exception.RecordingNotFoundException;
+import com.whiteeyes.admin.media.repository.RecordingRepository;
 
 /**
  * 녹화 영상·좌표 파일을 nginx가 보내도록 내부 주소를 정해 준다(FNC-A-044). 파일은 앱이 읽지 않고,

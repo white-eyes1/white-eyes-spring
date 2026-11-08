@@ -5,9 +5,20 @@ import { createMap } from './map-view.js';
 // 처음 보이는 위치(대전). 동을 고르면 그 동 경계로 맞춘다
 const DEFAULT_VIEW = { center: [36.3504, 127.3845], zoom: 13 };
 
-const DONG_STYLE = { color: '#7d8a9b', weight: 2, dashArray: '8 6', fill: false, interactive: false };
+const DONG_STYLE = {
+    color: '#7d8a9b',
+    weight: 2,
+    dashArray: '8 6',
+    fill: false,
+    interactive: false,
+};
 const ZONE_STYLE = { color: '#3bc99b', weight: 2, fillColor: '#3bc99b', fillOpacity: 0.18 };
-const ZONE_SELECTED_STYLE = { color: '#76a7ff', weight: 3, fillColor: '#4f8cff', fillOpacity: 0.28 };
+const ZONE_SELECTED_STYLE = {
+    color: '#76a7ff',
+    weight: 3,
+    fillColor: '#4f8cff',
+    fillOpacity: 0.28,
+};
 const DRAFT_STYLE = { color: '#76a7ff', weight: 2.5, fillColor: '#4f8cff', fillOpacity: 0.2 };
 
 /**

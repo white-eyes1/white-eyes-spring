@@ -1,5 +1,15 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.client.RestClientException;
+
 import com.whiteeyes.admin.camera.client.AnalyzerClient;
 import com.whiteeyes.admin.camera.dto.CameraStopResponse;
 import com.whiteeyes.admin.camera.exception.CameraNotFoundException;
@@ -12,14 +22,6 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.client.RestClientException;
 
 /**
  * 캠 정지를 분석 서버에 지시한다(FNC-A-021).
@@ -67,7 +69,8 @@ public class CameraStopService {
     }
 
     private void cancelRunRequest(Long cameraId) {
-        cameraRepository.findByIdAndDeletedAtIsNull(cameraId)
+        cameraRepository
+                .findByIdAndDeletedAtIsNull(cameraId)
                 .orElseThrow(() -> new CameraNotFoundException(cameraId))
                 .cancelRunRequest();
     }
@@ -84,7 +87,12 @@ public class CameraStopService {
                         .ifPresent(recording -> recording.close(LocalDateTime.now(KST)));
             }
             workRecorder.record(
-                    actor, WorkAction.CAMERA_RUN, WorkTargetType.CAMERA, cameraId, camera.getName(), Map.of("op", "STOP"));
+                    actor,
+                    WorkAction.CAMERA_RUN,
+                    WorkTargetType.CAMERA,
+                    cameraId,
+                    camera.getName(),
+                    Map.of("op", "STOP"));
         });
     }
 }

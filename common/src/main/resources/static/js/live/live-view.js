@@ -24,7 +24,9 @@ export function initLiveView() {
         return;
     }
     const img = byId('live-img');
-    modal.querySelectorAll('[data-live-close]').forEach((button) => button.addEventListener('click', closeLiveView));
+    modal
+        .querySelectorAll('[data-live-close]')
+        .forEach((button) => button.addEventListener('click', closeLiveView));
     modal.addEventListener('mousedown', (event) => {
         if (event.target === modal) {
             closeLiveView();
@@ -53,7 +55,8 @@ export function openLiveView(camera) {
     current = camera;
     byId('live-cam').textContent = `CAM ${camera.id}`;
     byId('live-name').textContent = camera.name;
-    byId('live-place').textContent = `· ${camera.regionPath} · ${camera.zoneName} · ${formatNumber(Math.round(camera.areaM2))}㎡`;
+    byId('live-place').textContent =
+        `· ${camera.regionPath} · ${camera.zoneName} · ${formatNumber(Math.round(camera.areaM2))}㎡`;
     renderStat(camera);
     modal.hidden = false;
     connect();
@@ -129,7 +132,11 @@ async function openPlayback() {
         return;
     }
     try {
-        const found = await get('/api/v1/playback', { zoneId: current.zoneId, latest: true }, { toast: false });
+        const found = await get(
+            '/api/v1/playback',
+            { zoneId: current.zoneId, latest: true },
+            { toast: false },
+        );
         window.location.href = `${url('/playback')}?zoneId=${current.zoneId}&at=${encodeURIComponent(found.startedAt)}`;
     } catch (error) {
         if (error instanceof ApiError && error.status !== 401) {

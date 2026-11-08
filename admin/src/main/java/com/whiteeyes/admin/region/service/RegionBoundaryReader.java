@@ -1,10 +1,11 @@
 package com.whiteeyes.admin.region.service;
 
-import com.whiteeyes.admin.region.exception.RegionFileFormatException;
-import com.whiteeyes.common.region.entity.Region;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.stereotype.Component;
+
+import com.whiteeyes.admin.region.exception.RegionFileFormatException;
+import com.whiteeyes.common.region.entity.Region;
 
 /** region.boundary(GeoJSON 문자열)를 JTS 도형으로 읽는다(FNC-A-013 소속 동 찾기). 적재 때 검증을 거친 값이라 읽기 실패는 데이터 이상이다. */
 @Component

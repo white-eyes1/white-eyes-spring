@@ -48,7 +48,10 @@ public class MemoryNowCountSource implements NowCountSource {
         LocalDateTime oldest = now.minus(fresh);
         return minuteAccumulatorStore.findLatestSecondByZone().entrySet().stream()
                 .filter(entry -> !entry.getValue().second().isBefore(oldest))
-                .map(entry -> new NowCount(entry.getKey(), entry.getValue().personCount(), entry.getValue().second()))
+                .map(entry -> new NowCount(
+                        entry.getKey(),
+                        entry.getValue().personCount(),
+                        entry.getValue().second()))
                 .toList();
     }
 }

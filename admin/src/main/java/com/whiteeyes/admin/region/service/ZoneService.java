@@ -1,9 +1,5 @@
 package com.whiteeyes.admin.region.service;
 
-import com.whiteeyes.admin.region.dto.ZoneSummary;
-import com.whiteeyes.admin.region.exception.ZoneNotFoundException;
-import com.whiteeyes.common.region.entity.Zone;
-import com.whiteeyes.common.region.repository.ZoneRepository;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
@@ -11,9 +7,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.admin.region.dto.ZoneSummary;
+import com.whiteeyes.admin.region.exception.ZoneNotFoundException;
+import com.whiteeyes.common.region.entity.Zone;
+import com.whiteeyes.common.region.repository.ZoneRepository;
 
 /** 다른 도메인(캠)이 구역을 확인·조회할 때 부르는 구역 도메인의 공개 service. */
 @Service
@@ -35,8 +37,7 @@ public class ZoneService {
      */
     @Transactional(readOnly = true)
     public Map<Long, BigDecimal> findAreasByZoneIds(Set<Long> zoneIds) {
-        return zoneRepository.findAllById(zoneIds).stream()
-                .collect(Collectors.toMap(Zone::getId, Zone::getAreaM2));
+        return zoneRepository.findAllById(zoneIds).stream().collect(Collectors.toMap(Zone::getId, Zone::getAreaM2));
     }
 
     /** 구역 번호 → 구역 요약. 쿼리 한 번으로 모아서 가져온다(캠 목록 FNC-A-022). 없는 번호는 빠진다. */

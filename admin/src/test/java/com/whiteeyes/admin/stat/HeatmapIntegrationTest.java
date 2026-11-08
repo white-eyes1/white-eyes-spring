@@ -129,8 +129,10 @@ class HeatmapIntegrationTest {
         HeatmapResponse response = heatmap(regionId("11110"), Item.COUNT, DayType.WEEKDAY);
 
         assertThat(response.units()).containsExactly(regionId("11110530"), regionId("11110540"));
-        assertThat(response.values().get(String.valueOf(regionId("11110530"))).get(9)).isEqualByComparingTo("30.00");
-        assertThat(response.values().get(String.valueOf(regionId("11110540"))).get(9)).isEqualByComparingTo("60.00");
+        assertThat(response.values().get(String.valueOf(regionId("11110530"))).get(9))
+                .isEqualByComparingTo("30.00");
+        assertThat(response.values().get(String.valueOf(regionId("11110540"))).get(9))
+                .isEqualByComparingTo("60.00");
         assertThat(response.min()).isEqualByComparingTo("30.00");
         assertThat(response.max()).isEqualByComparingTo("60.00");
     }
@@ -148,7 +150,8 @@ class HeatmapIntegrationTest {
                 .andExpect(jsonPath("$.min").value(58.0))
                 .andExpect(jsonPath("$.max").value(58.0));
         // 1년(2099-01-01 ~ 2100-01-01)은 허용, 넘으면 초과
-        mockMvc.perform(request(dong, "2099-01-01", "2100-01-01", "COUNT", "WEEKEND")).andExpect(status().isOk());
+        mockMvc.perform(request(dong, "2099-01-01", "2100-01-01", "COUNT", "WEEKEND"))
+                .andExpect(status().isOk());
         mockMvc.perform(request(dong, "2099-01-01", "2100-01-02", "COUNT", "ALL"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("RANGE_TOO_LONG"));

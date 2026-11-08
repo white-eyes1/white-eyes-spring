@@ -50,8 +50,6 @@ class TrendUserAppTest {
     }
 
     private static MockHttpServletRequestBuilder targetRequest() {
-        return get("/api/v1/dashboard/trend")
-                .param("targetType", "REGION")
-                .param("targetId", "999999");
+        return get("/api/v1/dashboard/trend").param("targetType", "REGION").param("targetId", "999999");
     }
 }

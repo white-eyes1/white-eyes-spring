@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,16 +79,16 @@ class AdminLoginCookieTest {
                 passwordEncoder.encode(PASSWORD));
         String base = "http://localhost:" + port + "/admin";
 
-        HttpResponse<String> loginPage = send(
-                HttpRequest.newBuilder(URI.create(base + "/login")).GET().build());
+        HttpResponse<String> loginPage =
+                send(HttpRequest.newBuilder(URI.create(base + "/login")).GET().build());
         assertThat(loginPage.statusCode()).isEqualTo(200);
         Matcher csrf = CSRF_FIELD.matcher(loginPage.body());
         assertThat(csrf.find()).as("로그인 화면의 CSRF 토큰").isTrue();
         String preLoginCookie = cookieHeader(loginPage, "ADMIN_SESSION");
         assertThat(preLoginCookie).as("로그인 화면이 발급한 세션 쿠키").isNotNull();
 
-        String form = "username=cookie01&password=" + URLEncoder.encode(PASSWORD, StandardCharsets.UTF_8)
-                + "&_csrf=" + URLEncoder.encode(csrf.group(1), StandardCharsets.UTF_8);
+        String form = "username=cookie01&password=" + URLEncoder.encode(PASSWORD, StandardCharsets.UTF_8) + "&_csrf="
+                + URLEncoder.encode(csrf.group(1), StandardCharsets.UTF_8);
         HttpResponse<String> login = send(HttpRequest.newBuilder(URI.create(base + "/login"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .header("Cookie", preLoginCookie)

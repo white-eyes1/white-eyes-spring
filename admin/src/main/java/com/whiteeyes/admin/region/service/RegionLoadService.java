@@ -1,10 +1,5 @@
 package com.whiteeyes.admin.region.service;
 
-import com.whiteeyes.admin.region.dto.RegionSource;
-import com.whiteeyes.admin.region.exception.RegionFileFormatException;
-import com.whiteeyes.common.region.entity.Region;
-import com.whiteeyes.common.region.entity.RegionLevel;
-import com.whiteeyes.common.region.repository.RegionRepository;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -14,10 +9,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.admin.region.dto.RegionSource;
+import com.whiteeyes.admin.region.exception.RegionFileFormatException;
+import com.whiteeyes.common.region.entity.Region;
+import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.repository.RegionRepository;
 
 @Slf4j
 @Service
@@ -41,10 +43,11 @@ public class RegionLoadService {
         List<RegionSource> ordered = sources.stream()
                 .sorted(Comparator.comparing(RegionSource::level))
                 .toList();
-        Map<String, Region> existing = regionRepository
-                .findByCodeIn(ordered.stream().map(RegionSource::code).toList())
-                .stream()
-                .collect(Collectors.toMap(Region::getCode, region -> region));
+        Map<String, Region> existing =
+                regionRepository
+                        .findByCodeIn(ordered.stream().map(RegionSource::code).toList())
+                        .stream()
+                        .collect(Collectors.toMap(Region::getCode, region -> region));
         Map<String, Region> loaded = new HashMap<>();
 
         for (RegionSource source : ordered) {

@@ -8,14 +8,13 @@ import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import com.whiteeyes.admin.demo.service.DemoGenerateConfig.Season;
 import com.whiteeyes.admin.demo.service.DemoGenerateConfig.SurgeDay;
 import com.whiteeyes.admin.demo.service.DemoGenerateConfig.ZoneSetting;
-
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 시연용 통계 생성 설정을 만든다(FNC-A-051 입력 항목 --config). 설정 파일은 선택이다.
@@ -75,6 +74,5 @@ public class DemoConfigReader {
             List<Double> hourWeights,
             Map<DayOfWeek, Double> dayOfWeekWeights,
             Map<Season, Double> seasonWeights,
-            List<SurgeDay> surgeDays) {
-    }
+            List<SurgeDay> surgeDays) {}
 }

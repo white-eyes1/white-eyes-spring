@@ -12,9 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.service.RegionQueryService;
+import com.whiteeyes.common.stat.dto.ComparePeriod;
 import com.whiteeyes.common.stat.dto.CompareRequest;
 import com.whiteeyes.common.stat.dto.CompareResponse;
-import com.whiteeyes.common.stat.dto.ComparePeriod;
 import com.whiteeyes.common.stat.dto.DashboardTargetType;
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository.HourlyCountSum;
@@ -47,7 +47,9 @@ public class CompareService {
             return List.of(regionQueryService.getActiveZone(targetId).getId());
         }
         Region region = regionQueryService.getRegion(targetId);
-        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream().map(Region::getId).toList();
+        List<Long> dongIds = regionQueryService.findEmdsUnder(region).stream()
+                .map(Region::getId)
+                .toList();
         return dongIds.isEmpty() ? List.of() : regionQueryService.findAllZoneIdsInDongs(dongIds);
     }
 

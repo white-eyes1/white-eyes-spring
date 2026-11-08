@@ -115,7 +115,8 @@ class DemoGenerateTest {
     void dailyMatchesHourlySum() throws IOException {
         demoGenerateService.generate(writeConfig(validConfig()), null);
 
-        List<Map<String, Object>> mismatches = jdbcTemplate.queryForList("""
+        List<Map<String, Object>> mismatches = jdbcTemplate.queryForList(
+                """
                 SELECT d.zone_id, d.stat_date FROM zone_stat_daily d
                 JOIN (SELECT zone_id, CAST(stat_at AS DATE) AS stat_date,
                              SUM(in_n) AS in_n, SUM(in_e) AS in_e, SUM(in_s) AS in_s, SUM(in_w) AS in_w,
@@ -134,8 +135,10 @@ class DemoGenerateTest {
                 """);
 
         // 시간별이 있는 (구역, 날짜) 중 2구역의 오늘만 일별이 없다
-        assertThat(count("zone_stat_daily")).isEqualTo(count("SELECT COUNT(DISTINCT zone_id || '@' || CAST(stat_at AS DATE))"
-                + " FROM zone_stat_hourly") - 1);
+        assertThat(count("zone_stat_daily"))
+                .isEqualTo(count("SELECT COUNT(DISTINCT zone_id || '@' || CAST(stat_at AS DATE))"
+                                + " FROM zone_stat_hourly")
+                        - 1);
         assertThat(mismatches).isEmpty();
         // 24시간이 안 되는 일별은 1구역의 첫 가동일(0~12시) 하나뿐
         assertThat(jdbcTemplate.queryForList(
@@ -160,10 +163,14 @@ class DemoGenerateTest {
         assertThat(lastHour(cameraZoneId)).isEqualTo(START_DAY.atTime(12, 0));
         assertThat(firstHour(noCameraZoneId)).isEqualTo(LocalDateTime.of(2025, 10, 21, 0, 0));
         assertThat(lastHour(noCameraZoneId)).isEqualTo(TODAY.atTime(13, 0));
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_daily WHERE stat_date = '" + TODAY + "'")).isZero();
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE zone_id = " + deletedZoneId)).isZero();
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo <> 1")).isZero();
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_daily WHERE is_demo <> 1")).isZero();
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_daily WHERE stat_date = '" + TODAY + "'"))
+                .isZero();
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE zone_id = " + deletedZoneId))
+                .isZero();
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo <> 1"))
+                .isZero();
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_daily WHERE is_demo <> 1"))
+                .isZero();
         assertThat(count("zone_stat_minute")).isZero();
     }
 
@@ -201,7 +208,8 @@ class DemoGenerateTest {
         assertThat(result.hourly()).isEqualTo(NO_CAMERA_ZONE_HOURS);
         assertThat(demoRows()).isEqualTo(before);
         assertThat(pairedHours()).isEqualTo(363 * 24 + 13);
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 0")).isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 0"))
+                .isEqualTo(1);
     }
 
     @Test
@@ -213,7 +221,8 @@ class DemoGenerateTest {
         assertThatThrownBy(() -> demoGenerateService.generate(config, List.of(noCameraZoneId, deletedZoneId)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(String.valueOf(deletedZoneId));
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 1")).isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 1"))
+                .isEqualTo(1);
     }
 
     @Test
@@ -254,7 +263,8 @@ class DemoGenerateTest {
         assertThat(second.deleted().hourly()).isEqualTo(first.hourly());
         assertThat(second.deleted().daily()).isEqualTo(first.daily());
         assertThat(demoRows()).isEqualTo(firstRows);
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 0")).isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 0"))
+                .isEqualTo(1);
         assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE stat_at = '2099-01-01 00:00:00'"))
                 .isEqualTo(1);
     }
@@ -293,7 +303,8 @@ class DemoGenerateTest {
         assertThatThrownBy(() -> demoGenerateService.generate(shortHours, null))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> demoGenerateService.generate(typo, null)).isInstanceOf(IllegalArgumentException.class);
-        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 1")).isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM zone_stat_hourly WHERE is_demo = 1"))
+                .isEqualTo(1);
     }
 
     @Test
@@ -335,7 +346,8 @@ class DemoGenerateTest {
                   "seasonWeights": {"SPRING": 1, "SUMMER": 1, "AUTUMN": 1, "WINTER": 1},
                   "surgeDays": []
                 }
-                """.formatted(cameraZoneId);
+                """
+                .formatted(cameraZoneId);
     }
 
     private Path writeConfig(String content) throws IOException {
@@ -346,10 +358,12 @@ class DemoGenerateTest {
 
     // 1구역의 동쪽 유출 = 2구역의 서쪽 유입이고 반대도 맞는 시각 수
     private long pairedHours() {
-        return count("""
+        return count(
+                """
                 SELECT COUNT(*) FROM zone_stat_hourly a JOIN zone_stat_hourly b ON a.stat_at = b.stat_at
                 WHERE a.zone_id = %d AND b.zone_id = %d AND a.out_e = b.in_w AND b.out_w = a.in_e
-                """.formatted(cameraZoneId, noCameraZoneId));
+                """
+                        .formatted(cameraZoneId, noCameraZoneId));
     }
 
     private List<Map<String, Object>> demoRows() {

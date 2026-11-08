@@ -2,12 +2,14 @@ package com.whiteeyes.admin.support;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
-import com.whiteeyes.common.security.AccountPrincipal;
 import java.util.List;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import com.whiteeyes.common.security.AccountPrincipal;
 
 /**
  * 작업 기록(FNC-C-026)은 행동한 계정을 로그인 정보에서 채우므로, 구역·캠을 만들거나 가동·정지하는 테스트는

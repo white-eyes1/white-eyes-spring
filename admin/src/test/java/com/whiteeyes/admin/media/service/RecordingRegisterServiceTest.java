@@ -63,7 +63,8 @@ class RecordingRegisterServiceTest {
 
         var transactional = method.getAnnotation(org.springframework.transaction.annotation.Transactional.class);
 
-        assertThat(transactional.isolation()).isEqualTo(org.springframework.transaction.annotation.Isolation.READ_COMMITTED);
+        assertThat(transactional.isolation())
+                .isEqualTo(org.springframework.transaction.annotation.Isolation.READ_COMMITTED);
     }
 
     @Test

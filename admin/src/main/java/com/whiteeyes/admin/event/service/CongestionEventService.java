@@ -59,8 +59,7 @@ public class CongestionEventService {
     public void judge(Long zoneId, LocalDateTime statAt, BigDecimal countAvg, BigDecimal density, int sampleSec) {
         // 캠 시작 직후 같은 불완전한 1분은 검사하지 않는다. below_since도 건드리지 않는다(FNC-A-033 처리 순서 1)
         if (sampleSec < minSampleSec) {
-            log.debug("혼잡 이벤트 판정 건너뜀: 결과 초 수 부족 zoneId={} statAt={} sampleSec={}",
-                    zoneId, statAt, sampleSec);
+            log.debug("혼잡 이벤트 판정 건너뜀: 결과 초 수 부족 zoneId={} statAt={} sampleSec={}", zoneId, statAt, sampleSec);
             return;
         }
         LevelTarget target = LevelTarget.zone(zoneId);
@@ -89,8 +88,7 @@ public class CongestionEventService {
         if (openEvent != null) {
             openEvent.raisePeak(level.getLevel(), density, peakCount);
             openEvent.clearBelowSince();
-            log.debug("혼잡 이벤트 갱신 zoneId={} eventId={} level={}",
-                    zoneId, openEvent.getId(), level.getLevel());
+            log.debug("혼잡 이벤트 갱신 zoneId={} eventId={} level={}", zoneId, openEvent.getId(), level.getLevel());
             return;
         }
         Event created = eventRepository.save(Event.openCongestion(
@@ -122,7 +120,7 @@ public class CongestionEventService {
 
     // 0.7이 7E-1로 바뀌지 않게 toPlainString으로 쓴다
     private static String toSnapshotJson(LevelThresholds thresholds) {
-        return "{\"warnDensity\":" + thresholds.warnDensity().toPlainString()
-                + ",\"dangerDensity\":" + thresholds.dangerDensity().toPlainString() + "}";
+        return "{\"warnDensity\":" + thresholds.warnDensity().toPlainString() + ",\"dangerDensity\":"
+                + thresholds.dangerDensity().toPlainString() + "}";
     }
 }

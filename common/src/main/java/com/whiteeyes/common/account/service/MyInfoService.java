@@ -1,5 +1,15 @@
 package com.whiteeyes.common.account.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.common.account.dto.MyInfoResponse;
 import com.whiteeyes.common.account.dto.MyInfoUpdateRequest;
 import com.whiteeyes.common.exception.BusinessException;
@@ -11,14 +21,6 @@ import com.whiteeyes.common.history.service.WorkActorTypeProvider;
 import com.whiteeyes.common.history.service.WorkRecorder;
 import com.whiteeyes.common.security.LoginAccount;
 import com.whiteeyes.common.security.LoginAccountResolver;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 내 정보 조회·수정(FNC-C-006). 로그인한 본인의 행만 읽고 쓴다. 아이디·역할·상태는 바꾸지 않는다.

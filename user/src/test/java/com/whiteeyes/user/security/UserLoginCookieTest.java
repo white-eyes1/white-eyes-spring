@@ -2,8 +2,6 @@ package com.whiteeyes.user.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.whiteeyes.common.account.entity.UserAccount;
-import com.whiteeyes.common.account.repository.UserAccountRepository;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -12,6 +10,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +20,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.whiteeyes.common.account.entity.UserAccount;
+import com.whiteeyes.common.account.repository.UserAccountRepository;
 
 /**
  * 실제 서버를 띄워 HTTP로 로그인한다(FNC-C-001). 쿠키 이름은 내장 서버가 있어야 적용된다.
@@ -88,7 +90,8 @@ class UserLoginCookieTest {
 
     // 로그인 화면에서 CSRF 토큰과 로그인 전 세션 쿠키를 받아 폼 로그인한다
     private LoginResult login(String loginId) throws Exception {
-        HttpResponse<String> loginPage = send(HttpRequest.newBuilder(URI.create(base() + "/login")).GET().build());
+        HttpResponse<String> loginPage =
+                send(HttpRequest.newBuilder(URI.create(base() + "/login")).GET().build());
         assertThat(loginPage.statusCode()).isEqualTo(200);
         Matcher csrf = CSRF_FIELD.matcher(loginPage.body());
         assertThat(csrf.find()).as("로그인 화면의 CSRF 토큰").isTrue();
@@ -143,7 +146,8 @@ class UserLoginCookieTest {
         String loginCookie = cookieHeader(login("cookie02").response(), COOKIE);
         String sessionValue = loginCookie.substring((COOKIE + "=").length());
 
-        HttpResponse<String> both = getWithCookie("/me/password", "ADMIN_SESSION=" + sessionValue + "x; " + loginCookie);
+        HttpResponse<String> both =
+                getWithCookie("/me/password", "ADMIN_SESSION=" + sessionValue + "x; " + loginCookie);
         assertThat(both.statusCode()).as("관리자 앱 쿠키와 함께 보낸 사용자 앱 세션").isEqualTo(200);
         assertThat(cookieHeader(both, "ADMIN_SESSION")).as("관리자 앱 쿠키를 건드리지 않음").isNull();
     }

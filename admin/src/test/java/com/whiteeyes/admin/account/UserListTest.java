@@ -14,13 +14,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import jakarta.persistence.EntityManagerFactory;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.IntStream;
+
+import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +41,8 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlConfig;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.whiteeyes.admin.security.AdminTestUserConfig;
 
 /** 사용자 목록 API 검수 기준: 필터 조합·정렬·페이지 이동(FNC-A-002). */
 @SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
@@ -88,8 +90,7 @@ class UserListTest {
     @Test
     @DisplayName("FNC-A-002 조건이 없으면 탈퇴 계정까지 전체를 최근 가입 순으로")
     void list_noCondition_allIncludingWithdrawn() throws Exception {
-        list("")
-                .andExpect(status().isOk())
+        list("").andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[*].loginId")
                         .value(contains("pct06", "hong05", "park04", "lee03", "kim02", "hong01")))
                 .andExpect(jsonPath("$.page").value(0))
@@ -178,7 +179,8 @@ class UserListTest {
                 .andExpect(jsonPath("$.items[*].loginId").value(contains("lee03")))
                 .andExpect(jsonPath("$.totalElements").value(1));
         list("?active=false")
-                .andExpect(jsonPath("$.items[*].loginId").value(contains("pct06", "hong05", "park04", "kim02", "hong01")))
+                .andExpect(
+                        jsonPath("$.items[*].loginId").value(contains("pct06", "hong05", "park04", "kim02", "hong01")))
                 .andExpect(jsonPath("$.totalElements").value(5));
         list("?active=true&status=ACTIVE&keyword=hong").andExpect(jsonPath("$.items", empty()));
     }
@@ -223,7 +225,8 @@ class UserListTest {
     @Test
     @DisplayName("FNC-A-002 세션 조회는 요청마다 한 번, 일반 목록의 DB 조회는 목록·개수 두 번")
     void list_queryCounts() throws Exception {
-        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        Statistics statistics =
+                entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
         list("?sort=loginId,asc").andExpect(status().isOk());
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);

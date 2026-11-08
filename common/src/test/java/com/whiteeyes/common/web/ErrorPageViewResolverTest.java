@@ -3,6 +3,7 @@ package com.whiteeyes.common.web;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -34,8 +35,7 @@ class ErrorPageViewResolverTest {
     @DisplayName("FNC-C-003 401과 404도 상태에 맞는 문구를 쓴다")
     void unauthorizedAndNotFound_useOwnMessages() {
         assertThat(resolve(HttpStatus.UNAUTHORIZED).getModel()).containsEntry("message", "로그인이 필요합니다.");
-        assertThat(resolve(HttpStatus.NOT_FOUND).getModel())
-                .containsEntry("message", "요청한 대상을 찾을 수 없습니다.");
+        assertThat(resolve(HttpStatus.NOT_FOUND).getModel()).containsEntry("message", "요청한 대상을 찾을 수 없습니다.");
     }
 
     @Test

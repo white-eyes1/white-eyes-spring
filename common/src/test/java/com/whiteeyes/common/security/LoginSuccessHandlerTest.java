@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -38,13 +39,15 @@ class LoginSuccessHandlerTest {
     @Test
     @DisplayName("FNC-C-001 일반 계정은 통계 메인으로 이동한다")
     void success_normalAccount_redirectsToStats() throws Exception {
-        assertThat(redirectLocation(authentication(false, "ROLE_ADMIN"), "/admin")).isEqualTo("/admin/stats");
+        assertThat(redirectLocation(authentication(false, "ROLE_ADMIN"), "/admin"))
+                .isEqualTo("/admin/stats");
     }
 
     @Test
     @DisplayName("FNC-C-001 must_change_password=1이면 비밀번호 변경 화면으로 이동한다")
     void success_mustChangePassword_redirectsToPasswordChange() throws Exception {
-        assertThat(redirectLocation(authentication(true, "ROLE_ADMIN"), "/admin")).isEqualTo("/admin/me/password");
+        assertThat(redirectLocation(authentication(true, "ROLE_ADMIN"), "/admin"))
+                .isEqualTo("/admin/me/password");
     }
 
     @Test
@@ -76,7 +79,8 @@ class LoginSuccessHandlerTest {
 
         handler.onAuthenticationSuccess(request, new MockHttpServletResponse(), authentication(false, "ROLE_ADMIN"));
 
-        assertThat(request.getSession().getAttribute(LoginAttributes.ERROR_MESSAGE)).isNull();
+        assertThat(request.getSession().getAttribute(LoginAttributes.ERROR_MESSAGE))
+                .isNull();
         assertThat(request.getSession().getAttribute(LoginAttributes.LOGIN_ID)).isNull();
     }
 }

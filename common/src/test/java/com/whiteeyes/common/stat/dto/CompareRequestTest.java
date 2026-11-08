@@ -29,7 +29,8 @@ class CompareRequestTest {
 
         CompareRequest lastYear = parse("2026-10-15", "2026-10-21", null, null, "LAST_YEAR", 50);
         assertThat(lastYear.base()).isEqualTo(period("2025-10-16", "2025-10-22"));
-        assertThat(lastYear.base().from().getDayOfWeek()).isEqualTo(lastYear.target().from().getDayOfWeek());
+        assertThat(lastYear.base().from().getDayOfWeek())
+                .isEqualTo(lastYear.target().from().getDayOfWeek());
         assertThat(lastYear.thresholdPct()).isEqualTo(50);
     }
 
@@ -39,8 +40,10 @@ class CompareRequestTest {
         CompareRequest request = parse("2026-10-15", "2026-10-21", "2026-01-01", "2026-01-31", null, null);
 
         assertThat(request.base()).isEqualTo(period("2026-01-01", "2026-01-31"));
-        assertThat(request.target().startAt()).isEqualTo(LocalDate.parse("2026-10-15").atStartOfDay());
-        assertThat(request.target().endAt()).isEqualTo(LocalDate.parse("2026-10-22").atStartOfDay());
+        assertThat(request.target().startAt())
+                .isEqualTo(LocalDate.parse("2026-10-15").atStartOfDay());
+        assertThat(request.target().endAt())
+                .isEqualTo(LocalDate.parse("2026-10-22").atStartOfDay());
     }
 
     @Test
@@ -66,27 +69,36 @@ class CompareRequestTest {
     @DisplayName("FNC-C-020 비정상 기준 %는 5~100만 받는다")
     void thresholdOutOfRange(int threshold) {
         assertThatThrownBy(() -> parse("2026-10-15", "2026-10-21", null, null, "LAST_MONTH", threshold))
-                .isInstanceOfSatisfying(BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("thresholdPct"));
+                .isInstanceOfSatisfying(
+                        BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("thresholdPct"));
     }
 
     @Test
     @DisplayName("FNC-C-020 기준 %는 경계 5와 100을 받는다")
     void thresholdBoundary() throws BindException {
-        assertThat(parse("2026-10-15", "2026-10-21", null, null, "LAST_MONTH", 5).thresholdPct()).isEqualTo(5);
-        assertThat(parse("2026-10-15", "2026-10-21", null, null, "LAST_MONTH", 100).thresholdPct()).isEqualTo(100);
+        assertThat(parse("2026-10-15", "2026-10-21", null, null, "LAST_MONTH", 5)
+                        .thresholdPct())
+                .isEqualTo(5);
+        assertThat(parse("2026-10-15", "2026-10-21", null, null, "LAST_MONTH", 100)
+                        .thresholdPct())
+                .isEqualTo(100);
     }
 
     @Test
     @DisplayName("FNC-C-020 기준 기간은 프리셋과 날짜 중 하나로만 정한다")
     void baseSpecification() {
         assertThatThrownBy(() -> parse("2026-10-15", "2026-10-21", null, null, null, null))
-                .isInstanceOfSatisfying(BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("basePreset"));
+                .isInstanceOfSatisfying(
+                        BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("basePreset"));
         assertThatThrownBy(() -> parse("2026-10-15", "2026-10-21", "2026-01-01", "2026-01-07", "LAST_MONTH", null))
-                .isInstanceOfSatisfying(BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("basePreset"));
+                .isInstanceOfSatisfying(
+                        BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("basePreset"));
         assertThatThrownBy(() -> parse("2026-10-15", "2026-10-21", "2026-01-01", null, null, null))
-                .isInstanceOfSatisfying(BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("baseTo"));
+                .isInstanceOfSatisfying(
+                        BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("baseTo"));
         assertThatThrownBy(() -> parse("2026-10-15", "2026-10-21", null, null, "LAST_WEEK", null))
-                .isInstanceOfSatisfying(BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("basePreset"));
+                .isInstanceOfSatisfying(
+                        BindException.class, e -> assertThat(fieldOf(e)).isEqualTo("basePreset"));
     }
 
     @Test

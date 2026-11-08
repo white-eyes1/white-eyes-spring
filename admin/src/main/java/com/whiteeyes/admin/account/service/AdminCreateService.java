@@ -1,5 +1,15 @@
 package com.whiteeyes.admin.account.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
 import com.whiteeyes.admin.account.dto.AdminCreateRequest;
 import com.whiteeyes.admin.account.dto.AdminCreateResponse;
 import com.whiteeyes.admin.account.entity.AdminAccount;
@@ -9,14 +19,6 @@ import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /**
  * 최고 관리자가 관리자 계정을 만든다(FNC-A-009). 저장과 작업 기록은 한 트랜잭션이다.
@@ -65,7 +67,12 @@ public class AdminCreateService {
         detail.put("role", account.getRole());
         detail.put("password", "발급됨");
         workRecorder.record(
-                actor, WorkAction.ACCOUNT_CHANGE, WorkTargetType.ADMIN_ACCOUNT, account.getId(), account.getLoginId(), detail);
+                actor,
+                WorkAction.ACCOUNT_CHANGE,
+                WorkTargetType.ADMIN_ACCOUNT,
+                account.getId(),
+                account.getLoginId(),
+                detail);
         return new AdminCreateResponse(account.getId(), temporaryPassword);
     }
 

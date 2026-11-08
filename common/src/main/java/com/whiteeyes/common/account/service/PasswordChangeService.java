@@ -1,11 +1,5 @@
 package com.whiteeyes.common.account.service;
 
-import com.whiteeyes.common.account.dto.PasswordChangeRequest;
-import com.whiteeyes.common.exception.BusinessException;
-import com.whiteeyes.common.exception.ErrorCode;
-import com.whiteeyes.common.security.AccountPrincipal;
-import com.whiteeyes.common.security.LoginAccount;
-import com.whiteeyes.common.security.LoginAccountResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -17,6 +11,13 @@ import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.common.account.dto.PasswordChangeRequest;
+import com.whiteeyes.common.exception.BusinessException;
+import com.whiteeyes.common.exception.ErrorCode;
+import com.whiteeyes.common.security.AccountPrincipal;
+import com.whiteeyes.common.security.LoginAccount;
+import com.whiteeyes.common.security.LoginAccountResolver;
 
 /**
  * 비밀번호 변경(FNC-C-007). 현재 비밀번호를 확인하고 새 비밀번호로 바꾼 뒤, 이 계정의 다른 세션을 지우고

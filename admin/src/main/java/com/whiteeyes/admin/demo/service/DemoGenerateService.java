@@ -83,8 +83,7 @@ public class DemoGenerateService {
 
         List<DemoZone> targets =
                 zones.stream().filter(zone -> targetIds.contains(zone.id())).toList();
-        targets.forEach(zone -> log.info(
-                "시연용 통계 만들 구간 zoneId={} 시작={} 끝(제외)={}", zone.id(), zone.start(), zone.end()));
+        targets.forEach(zone -> log.info("시연용 통계 만들 구간 zoneId={} 시작={} 끝(제외)={}", zone.id(), zone.start(), zone.end()));
         if (targets.isEmpty()) {
             return new DemoGenerateResult(0, 0, 0, deleted);
         }
@@ -154,7 +153,10 @@ public class DemoGenerateService {
         if (zoneIds.isEmpty()) {
             throw new IllegalArgumentException("--zone에 구역 번호가 없습니다");
         }
-        List<Long> unknown = zoneIds.stream().filter(id -> !activeIds.contains(id)).distinct().toList();
+        List<Long> unknown = zoneIds.stream()
+                .filter(id -> !activeIds.contains(id))
+                .distinct()
+                .toList();
         if (!unknown.isEmpty()) {
             throw new IllegalArgumentException("--zone의 구역이 없거나 삭제되었습니다: " + unknown);
         }
@@ -172,7 +174,8 @@ public class DemoGenerateService {
         List<DemoDailyStat> days = new ArrayList<>();
         byZone.forEach((zoneId, values) -> {
             if (values.size() == DemoGenerateConfig.HOURS_PER_DAY) {
-                StatRollupCalculator.rollUp(values).ifPresent(rolledUp -> days.add(new DemoDailyStat(zoneId, date, rolledUp)));
+                StatRollupCalculator.rollUp(values)
+                        .ifPresent(rolledUp -> days.add(new DemoDailyStat(zoneId, date, rolledUp)));
             }
         });
         return days;
@@ -196,11 +199,13 @@ public class DemoGenerateService {
         long filled = 0;
         for (Map.Entry<LocalDate, Set<Long>> entry : zoneIdsByDate.entrySet()) {
             LocalDate date = entry.getKey();
-            List<Long> missing = zoneStatHourlyRepository
-                    .findZoneIdsMissingDaily(date, date.atStartOfDay(), date.plusDays(1).atStartOfDay())
-                    .stream()
-                    .filter(entry.getValue()::contains)
-                    .toList();
+            List<Long> missing =
+                    zoneStatHourlyRepository
+                            .findZoneIdsMissingDaily(
+                                    date, date.atStartOfDay(), date.plusDays(1).atStartOfDay())
+                            .stream()
+                            .filter(entry.getValue()::contains)
+                            .toList();
             if (!missing.isEmpty()) {
                 dailyStatService.aggregateDay(date, missing);
                 filled += missing.size();

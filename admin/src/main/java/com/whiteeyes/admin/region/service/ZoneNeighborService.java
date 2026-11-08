@@ -1,5 +1,20 @@
 package com.whiteeyes.admin.region.service;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.history.service.AdminWorkRecorder;
 import com.whiteeyes.admin.region.dto.ZoneNeighborRef;
 import com.whiteeyes.admin.region.exception.InvalidZoneNeighborException;
@@ -13,19 +28,6 @@ import com.whiteeyes.common.region.entity.ZoneNeighborId;
 import com.whiteeyes.common.region.repository.ZoneNeighborRepository;
 import com.whiteeyes.common.region.repository.ZoneRepository;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 구역의 동서남북 이웃을 조회·저장한다(FNC-A-016). 저장하면 반대쪽 구역의 반대 방향도 함께 맞춘다. */
 @Service
@@ -68,7 +70,8 @@ public class ZoneNeighborService {
         LoginAccount actor = workRecorder.requireActor();
         // 처리 순서 1: 구역과 이웃 구역의 존재·삭제 여부·자기 자신 여부 확인
         Zone zone = requireActiveZone(zoneId);
-        Set<Long> neighborIds = requested.values().stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> neighborIds =
+                requested.values().stream().filter(Objects::nonNull).collect(Collectors.toSet());
         if (neighborIds.contains(zoneId)) {
             throw new InvalidZoneNeighborException("자기 자신은 이웃으로 지정할 수 없습니다.");
         }
@@ -119,7 +122,9 @@ public class ZoneNeighborService {
         Map<String, ZoneNeighborRef> response = new LinkedHashMap<>();
         for (ZoneDirection direction : ZoneDirection.values()) {
             Zone neighbor = zones.get(neighborIds.get(direction));
-            response.put(direction.name(), neighbor == null ? null : new ZoneNeighborRef(neighbor.getId(), neighbor.getName()));
+            response.put(
+                    direction.name(),
+                    neighbor == null ? null : new ZoneNeighborRef(neighbor.getId(), neighbor.getName()));
         }
         return response;
     }

@@ -3,26 +3,17 @@ package com.whiteeyes.admin.region;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
-import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
-import com.whiteeyes.admin.camera.service.CameraRegisterService;
-import com.whiteeyes.admin.region.service.RegionLoadService;
-import com.whiteeyes.admin.region.service.ZoneRegisterService;
-import com.whiteeyes.admin.support.AdminTestLogin;
-import com.whiteeyes.common.camera.entity.CameraSourceType;
-import com.whiteeyes.common.region.entity.Region;
-import com.whiteeyes.common.region.entity.RegionLevel;
-import com.whiteeyes.common.region.repository.RegionRepository;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +26,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
+import com.whiteeyes.admin.camera.service.CameraRegisterService;
+import com.whiteeyes.admin.region.service.RegionLoadService;
+import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.security.AdminTestUserConfig;
+import com.whiteeyes.admin.support.AdminTestLogin;
+import com.whiteeyes.common.camera.entity.CameraSourceType;
+import com.whiteeyes.common.region.entity.Region;
+import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.repository.RegionRepository;
 
 /** 지역·구역 목록(FNC-C-008). common 컨트롤러를 관리자 앱 컨텍스트에서 DB(H2+Flyway)와 함께 확인한다. */
 @Import(AdminTestUserConfig.class)
@@ -133,10 +135,10 @@ class RegionListTest {
     @Test
     @DisplayName("FNC-C-008 지역 목록 항목은 api 명세의 필드를 갖고 경계는 GeoJSON 객체, 중심점은 DB 값이다")
     void regions_item_hasSpecFieldsWithBoundaryObject() throws Exception {
-        BigDecimal centerLat = jdbcTemplate.queryForObject(
-                "SELECT center_lat FROM region WHERE code = '11110540'", BigDecimal.class);
-        BigDecimal centerLng = jdbcTemplate.queryForObject(
-                "SELECT center_lng FROM region WHERE code = '11110540'", BigDecimal.class);
+        BigDecimal centerLat =
+                jdbcTemplate.queryForObject("SELECT center_lat FROM region WHERE code = '11110540'", BigDecimal.class);
+        BigDecimal centerLng =
+                jdbcTemplate.queryForObject("SELECT center_lng FROM region WHERE code = '11110540'", BigDecimal.class);
 
         regions(regionId("11110"))
                 .andExpect(jsonPath("$[1].id").value(regionId("11110540")))
@@ -207,9 +209,12 @@ class RegionListTest {
     @Test
     @DisplayName("FNC-C-008 구역 항목은 api 명세의 필드를 갖고 경계는 객체, 면적·중심점이 맞다")
     void zones_item_hasSpecFieldsWithBoundaryObject() throws Exception {
-        BigDecimal areaM2 = jdbcTemplate.queryForObject("SELECT area_m2 FROM zone WHERE id = ?", BigDecimal.class, samcheongZoneA);
-        BigDecimal centerLat = jdbcTemplate.queryForObject("SELECT center_lat FROM zone WHERE id = ?", BigDecimal.class, samcheongZoneA);
-        BigDecimal centerLng = jdbcTemplate.queryForObject("SELECT center_lng FROM zone WHERE id = ?", BigDecimal.class, samcheongZoneA);
+        BigDecimal areaM2 =
+                jdbcTemplate.queryForObject("SELECT area_m2 FROM zone WHERE id = ?", BigDecimal.class, samcheongZoneA);
+        BigDecimal centerLat = jdbcTemplate.queryForObject(
+                "SELECT center_lat FROM zone WHERE id = ?", BigDecimal.class, samcheongZoneA);
+        BigDecimal centerLng = jdbcTemplate.queryForObject(
+                "SELECT center_lng FROM zone WHERE id = ?", BigDecimal.class, samcheongZoneA);
 
         zones(regionId("11110540"))
                 .andExpect(jsonPath("$[0].id").value(samcheongZoneA))
@@ -240,7 +245,8 @@ class RegionListTest {
                 .andExpect(jsonPath("$.name").value("삼청동 1구역"))
                 .andExpect(jsonPath("$.deleted").value(true));
         // 목록에는 여전히 없고, 목록 항목은 deleted=false다
-        zones(null).andExpect(jsonPath("$[*].id", not(hasItem((int) samcheongZoneA))))
+        zones(null)
+                .andExpect(jsonPath("$[*].id", not(hasItem((int) samcheongZoneA))))
                 .andExpect(jsonPath("$[0].deleted").value(false));
     }
 
@@ -266,9 +272,8 @@ class RegionListTest {
     void zones_deletedExcluded() throws Exception {
         jdbcTemplate.update("UPDATE zone SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", samcheongZoneA);
 
-        zones(null)
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[*].id", not(hasItem((int) samcheongZoneA))));
+        zones(null).andExpect(jsonPath("$", hasSize(2))).andExpect(jsonPath("$[*].id", not(hasItem((int)
+                samcheongZoneA))));
         zones(regionId("11110540"))
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].id").value(samcheongZoneB));
@@ -315,13 +320,7 @@ class RegionListTest {
 
     private Region newRegion(Region parent, RegionLevel level, String code, String name) {
         return new Region(
-                parent,
-                level,
-                code,
-                name,
-                SOGONG_SQUARE,
-                new BigDecimal("37.560000"),
-                new BigDecimal("127.060000"));
+                parent, level, code, name, SOGONG_SQUARE, new BigDecimal("37.560000"), new BigDecimal("127.060000"));
     }
 
     private void clearAll() {

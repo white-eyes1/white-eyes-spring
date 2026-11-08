@@ -21,7 +21,8 @@ export function startNotifications() {
             showLinkToast(toastOf(event), EVENT_TOAST_MS);
             window.dispatchEvent(new CustomEvent('we:event-created', { detail: event }));
         },
-        'camera-status': (status) => window.dispatchEvent(new CustomEvent('we:camera-status', { detail: status })),
+        'camera-status': (status) =>
+            window.dispatchEvent(new CustomEvent('we:camera-status', { detail: status })),
     });
 }
 
@@ -49,7 +50,8 @@ function toastOf({ id, type, zoneName, level }) {
     const tail = type === 'CONGESTION' ? ` ${LEVEL_LABEL[level] ?? ''}`.trimEnd() : '';
     return {
         href: url(`/events?eventId=${encodeURIComponent(id)}`),
-        dotClass: type === 'CONGESTION' ? (LEVEL_DOT[level] ?? 'l2') : type === 'SURGE' ? 'surge' : 'off',
+        dotClass:
+            type === 'CONGESTION' ? (LEVEL_DOT[level] ?? 'l2') : type === 'SURGE' ? 'surge' : 'off',
         title: `[${label}] ${zoneName}${tail}`,
         note: '방금',
     };

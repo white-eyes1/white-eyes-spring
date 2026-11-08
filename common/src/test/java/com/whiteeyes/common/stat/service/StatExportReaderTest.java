@@ -61,12 +61,15 @@ class StatExportReaderTest {
                 });
 
         List<String> rows = new ArrayList<>();
-        reader().read(new StatExportPlan(request, "전체", series, 3, 15),
-                (line, point) -> rows.add(point.at().getHour() + "@" + line.zoneId()));
+        reader().read(
+                        new StatExportPlan(request, "전체", series, 3, 15),
+                        (line, point) -> rows.add(point.at().getHour() + "@" + line.zoneId()));
 
         assertThat(calls).containsExactly(List.of(List.of(5L, 3L, 9L), at(0), at(5)));
-        assertThat(rows).containsExactly(
-                "0@5", "0@3", "0@9", "1@5", "1@3", "1@9", "2@5", "2@3", "2@9", "3@5", "3@3", "3@9", "4@5", "4@3", "4@9");
+        assertThat(rows)
+                .containsExactly(
+                        "0@5", "0@3", "0@9", "1@5", "1@3", "1@9", "2@5", "2@3", "2@9", "3@5", "3@3", "3@9", "4@5",
+                        "4@3", "4@9");
     }
 
     @Test
@@ -87,10 +90,13 @@ class StatExportReaderTest {
         });
 
         List<Integer> hours = new ArrayList<>();
-        reader().read(new StatExportPlan(request, "종로구", List.of(line), 2, 7),
-                (series, point) -> hours.add(point.at().getHour()));
+        reader().read(
+                        new StatExportPlan(request, "종로구", List.of(line), 2, 7),
+                        (series, point) -> hours.add(point.at().getHour()));
 
-        assertThat(calls).extracting(StatSeriesRequest::from, StatSeriesRequest::to).containsExactly(tuple(at(10), at(17)));
+        assertThat(calls)
+                .extracting(StatSeriesRequest::from, StatSeriesRequest::to)
+                .containsExactly(tuple(at(10), at(17)));
         assertThat(calls).allSatisfy(call -> assertThat(call.targetId()).isEqualTo(7L));
         assertThat(hours).containsExactly(10, 11, 12, 13, 14, 15, 16);
     }
@@ -147,7 +153,8 @@ class StatExportReaderTest {
     private static StatExportRequest request(StatExportScope scope, String from, String to) throws BindException {
         Long targetId = scope == StatExportScope.ALL ? null : 7L;
         // 줄 하나로 읽는 경우(지역 합산)는 지역에서 합산을 고른 것
-        return StatExportRequest.parse(scope, targetId, "1h", from, to, List.of("COUNT"), scope == StatExportScope.REGION);
+        return StatExportRequest.parse(
+                scope, targetId, "1h", from, to, List.of("COUNT"), scope == StatExportScope.REGION);
     }
 
     private static StatExportSeries zone(long zoneId) {

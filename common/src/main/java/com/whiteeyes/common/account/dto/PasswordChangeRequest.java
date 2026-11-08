@@ -1,9 +1,10 @@
 package com.whiteeyes.common.account.dto;
 
-import com.whiteeyes.common.constant.InputRules;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+
+import com.whiteeyes.common.constant.InputRules;
 
 /**
  * 비밀번호 변경 요청(PATCH /api/v1/me/password, FNC-C-007).

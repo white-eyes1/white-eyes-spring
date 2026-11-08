@@ -1,11 +1,13 @@
 package com.whiteeyes.user.account.service;
 
+import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 import com.whiteeyes.common.account.repository.UserAccountRepository;
 import com.whiteeyes.common.account.service.AccountProfile;
 import com.whiteeyes.common.account.service.AccountProfileStore;
-import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 /** 사용자 앱의 내 정보 조회·수정(FNC-C-006)이 user_account를 읽고 쓰는 곳. 사용자 계정에는 역할이 없다. */
 @Component

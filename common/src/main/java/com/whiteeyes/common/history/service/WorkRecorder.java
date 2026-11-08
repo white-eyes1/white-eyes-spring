@@ -1,14 +1,16 @@
 package com.whiteeyes.common.history.service;
 
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
+
 import com.whiteeyes.common.history.dto.WorkHistoryCommand;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
 import com.whiteeyes.common.security.LoginAccountResolver;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 두 앱이 함께 쓰는 기능에서 한 일을 작업 기록으로 남긴다(FNC-C-026). 행동한 계정은 로그인 정보에서, 계정 종류는

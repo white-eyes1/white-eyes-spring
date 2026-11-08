@@ -1,15 +1,16 @@
 package com.whiteeyes.admin.account.service;
 
-import com.whiteeyes.admin.account.dto.UserListItem;
-import com.whiteeyes.admin.account.dto.UserSearchRequest;
-import com.whiteeyes.admin.account.repository.UserRow;
-import com.whiteeyes.common.web.PageResponse;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
+
+import com.whiteeyes.admin.account.dto.UserListItem;
+import com.whiteeyes.admin.account.dto.UserSearchRequest;
+import com.whiteeyes.admin.account.repository.UserRow;
+import com.whiteeyes.common.web.PageResponse;
 
 /**
  * 조회한 user_account 행에 최근 활동을 붙여 목록 응답을 만든다(FNC-A-002 처리 순서 2·3).
@@ -29,9 +30,8 @@ public final class UserListAssembler {
      */
     public static PageResponse<UserListItem> assemblePage(
             List<UserRow> pageRows, long totalElements, AccountActivities activities, UserSearchRequest request) {
-        List<UserListItem> items = pageRows.stream()
-                .map(row -> toItem(row, activities))
-                .toList();
+        List<UserListItem> items =
+                pageRows.stream().map(row -> toItem(row, activities)).toList();
         return PageResponse.of(items, request.page(), request.size(), totalElements);
     }
 
@@ -86,11 +86,12 @@ public final class UserListAssembler {
     // 같은 값이면 번호로 한 번 더 정렬해 페이지를 넘겨도 순서가 흔들리지 않게 한다. 최근 활동이 없는 계정은 방향과 관계없이 맨 뒤(#32에서 정함)
     private static Comparator<UserListItem> comparatorFor(UserSearchRequest request) {
         boolean ascending = request.isAscending();
-        Comparator<UserListItem> primary = switch (request.sortField()) {
-            case CREATED_AT -> by(UserListItem::createdAt, ascending);
-            case LOGIN_ID -> by(UserListItem::loginId, ascending);
-            case LAST_ACTIVE_AT -> by(UserListItem::lastActiveAt, ascending);
-        };
+        Comparator<UserListItem> primary =
+                switch (request.sortField()) {
+                    case CREATED_AT -> by(UserListItem::createdAt, ascending);
+                    case LOGIN_ID -> by(UserListItem::loginId, ascending);
+                    case LAST_ACTIVE_AT -> by(UserListItem::lastActiveAt, ascending);
+                };
         return primary.thenComparing(by(UserListItem::id, ascending));
     }
 

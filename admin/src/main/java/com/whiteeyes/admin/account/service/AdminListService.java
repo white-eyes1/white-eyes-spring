@@ -1,20 +1,22 @@
 package com.whiteeyes.admin.account.service;
 
-import com.whiteeyes.admin.account.dto.AdminListItem;
-import com.whiteeyes.admin.account.dto.AdminSearchRequest;
-import com.whiteeyes.admin.account.repository.AdminAccountQueryRepository;
-import com.whiteeyes.admin.account.repository.AdminRow;
-import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
-import com.whiteeyes.common.web.PageResponse;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.admin.account.dto.AdminListItem;
+import com.whiteeyes.admin.account.dto.AdminSearchRequest;
+import com.whiteeyes.admin.account.repository.AdminAccountQueryRepository;
+import com.whiteeyes.admin.account.repository.AdminRow;
+import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionTable;
+import com.whiteeyes.common.web.PageResponse;
 
 /**
  * 관리자 계정을 검색·필터·정렬해 페이지 단위로 돌려준다(FNC-A-003, 'FNC-A-002와 같은 방식').
@@ -36,7 +38,8 @@ public class AdminListService {
         List<AdminRow> rows = adminAccountQueryRepository.findPage(request);
         long totalElements = adminAccountQueryRepository.count(request);
         AccountActivities activities = accountActivityService.loadActivities(SessionTable.ADMIN, loginIdsOf(rows));
-        List<AdminListItem> items = rows.stream().map(row -> toItem(row, activities)).toList();
+        List<AdminListItem> items =
+                rows.stream().map(row -> toItem(row, activities)).toList();
         return PageResponse.of(items, request.page(), request.size(), totalElements);
     }
 
@@ -46,7 +49,8 @@ public class AdminListService {
         List<AdminRow> candidates = adminAccountQueryRepository.findCandidates(request, limit + 1);
         boolean truncated = candidates.size() > limit;
         List<AdminRow> considered = truncated ? candidates.subList(0, limit) : candidates;
-        AccountActivities activities = accountActivityService.loadActivities(SessionTable.ADMIN, loginIdsOf(considered));
+        AccountActivities activities =
+                accountActivityService.loadActivities(SessionTable.ADMIN, loginIdsOf(considered));
 
         List<AdminListItem> matched = considered.stream()
                 .map(row -> toItem(row, activities))
@@ -82,11 +86,12 @@ public class AdminListService {
     // 사용자 목록과 같은 규칙: 같은 값이면 번호로 한 번 더, 최근 활동이 없는 계정은 방향과 관계없이 맨 뒤
     private static Comparator<AdminListItem> comparatorFor(AdminSearchRequest request) {
         boolean ascending = request.isAscending();
-        Comparator<AdminListItem> primary = switch (request.sortField()) {
-            case CREATED_AT -> by(AdminListItem::createdAt, ascending);
-            case LOGIN_ID -> by(AdminListItem::loginId, ascending);
-            case LAST_ACTIVE_AT -> by(AdminListItem::lastActiveAt, ascending);
-        };
+        Comparator<AdminListItem> primary =
+                switch (request.sortField()) {
+                    case CREATED_AT -> by(AdminListItem::createdAt, ascending);
+                    case LOGIN_ID -> by(AdminListItem::loginId, ascending);
+                    case LAST_ACTIVE_AT -> by(AdminListItem::lastActiveAt, ascending);
+                };
         return primary.thenComparing(by(AdminListItem::id, ascending));
     }
 

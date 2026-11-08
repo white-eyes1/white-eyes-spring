@@ -62,9 +62,12 @@ class SignupApiControllerTest {
 
         mockMvc.perform(get(CHECK_ID_URL).param("loginId", "hong01"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("""
+                .andExpect(content()
+                        .json(
+                                """
                         {"available": true}
-                        """, JsonCompareMode.STRICT));
+                        """,
+                                JsonCompareMode.STRICT));
     }
 
     @Test
@@ -74,9 +77,12 @@ class SignupApiControllerTest {
 
         mockMvc.perform(get(CHECK_ID_URL).param("loginId", "hong01"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("""
+                .andExpect(content()
+                        .json(
+                                """
                         {"available": false}
-                        """, JsonCompareMode.STRICT));
+                        """,
+                                JsonCompareMode.STRICT));
     }
 
     @ParameterizedTest
@@ -85,11 +91,15 @@ class SignupApiControllerTest {
     void checkLoginId_invalid_badRequest(String loginId) throws Exception {
         mockMvc.perform(get(CHECK_ID_URL).param("loginId", loginId))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json("""
+                .andExpect(content()
+                        .json(
+                                """
                         {"code": "INVALID_INPUT",
                          "message": "입력값을 확인해 주세요.",
                          "fieldErrors": [{"field": "loginId", "message": "%s"}]}
-                        """.formatted(InputRules.LOGIN_ID_MESSAGE), JsonCompareMode.STRICT));
+                        """
+                                        .formatted(InputRules.LOGIN_ID_MESSAGE),
+                                JsonCompareMode.STRICT));
 
         verifyNoInteractions(signupService);
     }
@@ -99,11 +109,14 @@ class SignupApiControllerTest {
     void checkLoginId_missing_badRequest() throws Exception {
         mockMvc.perform(get(CHECK_ID_URL))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json("""
+                .andExpect(content()
+                        .json(
+                                """
                         {"code": "INVALID_INPUT",
                          "message": "입력값을 확인해 주세요.",
                          "fieldErrors": [{"field": "loginId", "message": "필수입니다."}]}
-                        """, JsonCompareMode.STRICT));
+                        """,
+                                JsonCompareMode.STRICT));
 
         verifyNoInteractions(signupService);
     }
@@ -116,9 +129,12 @@ class SignupApiControllerTest {
 
         mockMvc.perform(signupRequest(validBody()))
                 .andExpect(status().isCreated())
-                .andExpect(content().json("""
+                .andExpect(content()
+                        .json(
+                                """
                         {"id": 21, "status": "PENDING"}
-                        """, JsonCompareMode.STRICT));
+                        """,
+                                JsonCompareMode.STRICT));
     }
 
     @ParameterizedTest
@@ -140,9 +156,12 @@ class SignupApiControllerTest {
 
         mockMvc.perform(signupRequest(validBody()))
                 .andExpect(status().isConflict())
-                .andExpect(content().json("""
+                .andExpect(content()
+                        .json(
+                                """
                         {"code": "DUPLICATE_LOGIN_ID", "message": "이미 사용 중인 아이디입니다."}
-                        """, JsonCompareMode.STRICT));
+                        """,
+                                JsonCompareMode.STRICT));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -152,11 +171,15 @@ class SignupApiControllerTest {
             throws Exception {
         mockMvc.perform(signupRequest(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json("""
+                .andExpect(content()
+                        .json(
+                                """
                         {"code": "INVALID_INPUT",
                          "message": "입력값을 확인해 주세요.",
                          "fieldErrors": [{"field": "%s", "message": "%s"}]}
-                        """.formatted(field, message), JsonCompareMode.STRICT));
+                        """
+                                        .formatted(field, message),
+                                JsonCompareMode.STRICT));
 
         verifyNoInteractions(signupService);
     }
@@ -184,16 +207,25 @@ class SignupApiControllerTest {
                 invalidPassword("비밀번호 영문 없음", "12345678"),
                 invalidPassword("비밀번호 공백 포함", "abcd 1234"),
                 invalidPassword("비밀번호 한글 포함", "abcd1234가"),
-                invalid("비밀번호 확인 없음", with(validBody(), "passwordConfirm", null),
-                        "passwordConfirm", InputRules.REQUIRED_MESSAGE),
-                invalid("비밀번호 확인 불일치", with(validBody(), "passwordConfirm", "abcd12345"),
-                        "passwordConfirm", InputRules.PASSWORD_CONFIRM_MESSAGE),
+                invalid(
+                        "비밀번호 확인 없음",
+                        with(validBody(), "passwordConfirm", null),
+                        "passwordConfirm",
+                        InputRules.REQUIRED_MESSAGE),
+                invalid(
+                        "비밀번호 확인 불일치",
+                        with(validBody(), "passwordConfirm", "abcd12345"),
+                        "passwordConfirm",
+                        InputRules.PASSWORD_CONFIRM_MESSAGE),
                 invalid("이름 없음", with(validBody(), "name", null), "name", InputRules.REQUIRED_MESSAGE),
                 invalid("이름 공백만", with(validBody(), "name", "  "), "name", InputRules.REQUIRED_MESSAGE),
                 invalid("이름 51자", with(validBody(), "name", "가".repeat(51)), "name", InputRules.NAME_MESSAGE),
                 invalid("메일 형식 아님", with(validBody(), "email", "not-an-email"), "email", InputRules.EMAIL_MESSAGE),
-                invalid("메일 101자", with(validBody(), "email", "a".repeat(61) + "@" + "b".repeat(35) + ".com"),
-                        "email", InputRules.EMAIL_MESSAGE),
+                invalid(
+                        "메일 101자",
+                        with(validBody(), "email", "a".repeat(61) + "@" + "b".repeat(35) + ".com"),
+                        "email",
+                        InputRules.EMAIL_MESSAGE),
                 invalid("연락처 문자 포함", with(validBody(), "phone", "010-1234-567a"), "phone", InputRules.PHONE_MESSAGE),
                 invalid("연락처 21자", with(validBody(), "phone", "0".repeat(21)), "phone", InputRules.PHONE_MESSAGE));
     }
@@ -224,8 +256,11 @@ class SignupApiControllerTest {
 
     // 비밀번호 확인도 같은 값으로 바꿔 비밀번호 규칙 오류 하나만 나게 한다
     private static Arguments invalidPassword(String description, String password) {
-        return invalid(description, with(validBody(), "password", password, "passwordConfirm", password),
-                "password", InputRules.PASSWORD_MESSAGE);
+        return invalid(
+                description,
+                with(validBody(), "password", password, "passwordConfirm", password),
+                "password",
+                InputRules.PASSWORD_MESSAGE);
     }
 
     // 사용자 앱은 CSRF를 검사하므로(conventions.md 'CSRF') 화면처럼 토큰을 붙여 보낸다

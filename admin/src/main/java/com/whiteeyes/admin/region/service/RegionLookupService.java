@@ -1,19 +1,20 @@
 package com.whiteeyes.admin.region.service;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.region.dto.RegionNames;
 import com.whiteeyes.common.region.entity.Region;
 import com.whiteeyes.common.region.entity.RegionLevel;
 import com.whiteeyes.common.region.exception.RegionNotFoundException;
 import com.whiteeyes.common.region.repository.RegionRepository;
 import com.whiteeyes.common.region.service.RegionQueryService;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 다른 도메인(캠 목록)이 지역을 조회할 때 부르는 지역 도메인의 공개 service. */
 @Service

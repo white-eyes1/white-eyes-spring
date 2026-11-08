@@ -1,11 +1,12 @@
 package com.whiteeyes.common.account.dto;
 
-import jakarta.validation.Constraint;
-import jakarta.validation.Payload;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
 
 /**
  * 비밀번호 변경 요청의 칸끼리 맞춰 보는 규칙(FNC-C-007): 새 비밀번호와 확인이 같아야 하고,

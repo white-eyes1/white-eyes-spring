@@ -12,5 +12,4 @@ import java.util.Map;
  * @param min 모든 칸 중 가장 작은 값(색 정규화). 값이 하나도 없으면 null
  * @param max 모든 칸 중 가장 큰 값
  */
-public record HeatmapResponse(List<Long> units, Map<String, List<BigDecimal>> values, BigDecimal min, BigDecimal max) {
-}
+public record HeatmapResponse(List<Long> units, Map<String, List<BigDecimal>> values, BigDecimal min, BigDecimal max) {}

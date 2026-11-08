@@ -7,12 +7,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.common.security.AccountPrincipal;
-import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +30,8 @@ import org.springframework.session.SessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.whiteeyes.common.security.AccountPrincipal;
 
 /**
  * 실시간 화면·미리보기 권한 확인(FNC-A-041, nginx auth_request).
@@ -103,7 +105,10 @@ class LiveAuthTest {
         check(stoppedCameraId, session).andExpect(status().isForbidden());
         check(999999L, session).andExpect(status().isForbidden());
         mockMvc.perform(get(AUTH_URL).contextPath("/admin").cookie(session)).andExpect(status().isForbidden());
-        mockMvc.perform(get(AUTH_URL).contextPath("/admin").param("cameraId", "abc").cookie(session))
+        mockMvc.perform(get(AUTH_URL)
+                        .contextPath("/admin")
+                        .param("cameraId", "abc")
+                        .cookie(session))
                 .andExpect(status().isForbidden());
 
         jdbcTemplate.update("UPDATE camera SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", runningCameraId);
@@ -116,7 +121,8 @@ class LiveAuthTest {
         check(runningCameraId, null).andExpect(status().isUnauthorized());
         check(runningCameraId, new Cookie(SESSION_COOKIE, "!!!not-base64!!!")).andExpect(status().isUnauthorized());
         // 사용자 앱 등 다른 저장소의 세션 번호는 이 저장소에 없다
-        String foreignId = Base64.getEncoder().encodeToString("some-other-app-session".getBytes(StandardCharsets.UTF_8));
+        String foreignId =
+                Base64.getEncoder().encodeToString("some-other-app-session".getBytes(StandardCharsets.UTF_8));
         check(runningCameraId, new Cookie(SESSION_COOKIE, foreignId)).andExpect(status().isUnauthorized());
     }
 
@@ -139,7 +145,8 @@ class LiveAuthTest {
     @DisplayName("FNC-A-041 확인을 아무리 해도 세션 마지막 접근 시각·만료 시각이 늘지 않고 새 세션·쿠키도 생기지 않는다")
     void check_doesNotRefreshSession() throws Exception {
         Cookie session = sessionCookie("ROLE_ADMIN");
-        Map<String, Object> before = jdbcTemplate.queryForMap("SELECT LAST_ACCESS_TIME, EXPIRY_TIME FROM SPRING_SESSION_ADMIN");
+        Map<String, Object> before =
+                jdbcTemplate.queryForMap("SELECT LAST_ACCESS_TIME, EXPIRY_TIME FROM SPRING_SESSION_ADMIN");
         long sessionRows = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION_ADMIN", Long.class);
 
         for (int i = 0; i < 5; i++) {
@@ -147,11 +154,15 @@ class LiveAuthTest {
                     .andExpect(status().isNoContent())
                     .andExpect(header().doesNotExist("Set-Cookie"));
         }
-        check(runningCameraId, null).andExpect(status().isUnauthorized()).andExpect(header().doesNotExist("Set-Cookie"));
+        check(runningCameraId, null)
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().doesNotExist("Set-Cookie"));
 
-        Map<String, Object> after = jdbcTemplate.queryForMap("SELECT LAST_ACCESS_TIME, EXPIRY_TIME FROM SPRING_SESSION_ADMIN");
+        Map<String, Object> after =
+                jdbcTemplate.queryForMap("SELECT LAST_ACCESS_TIME, EXPIRY_TIME FROM SPRING_SESSION_ADMIN");
         assertThat(after).isEqualTo(before);
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION_ADMIN", Long.class)).isEqualTo(sessionRows);
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION_ADMIN", Long.class))
+                .isEqualTo(sessionRows);
     }
 
     private ResultActions check(long cameraId, Cookie session) throws Exception {
@@ -181,8 +192,8 @@ class LiveAuthTest {
     // 지정한 역할로 로그인한 것처럼 세션을 저장소에 직접 만들고, 브라우저가 보낼 쿠키(세션 번호 Base64)를 돌려준다
     @SuppressWarnings("unchecked")
     private Cookie sessionCookie(String authority) {
-        AccountPrincipal principal =
-                new AccountPrincipal(1L, "someone", "encoded", true, false, List.of(new SimpleGrantedAuthority(authority)));
+        AccountPrincipal principal = new AccountPrincipal(
+                1L, "someone", "encoded", true, false, List.of(new SimpleGrantedAuthority(authority)));
         var authentication = UsernamePasswordAuthenticationToken.authenticated(
                 principal, null, List.of(new SimpleGrantedAuthority(authority)));
         Session session = sessionRepository.createSession();
@@ -190,7 +201,9 @@ class LiveAuthTest {
         // JdbcSession 클래스가 비공개라 저장은 인터페이스(SessionRepository)로 한다
         SessionRepository<Session> repository = (SessionRepository<Session>) (SessionRepository<?>) sessionRepository;
         repository.save(session);
-        return new Cookie(SESSION_COOKIE, Base64.getEncoder().encodeToString(session.getId().getBytes(StandardCharsets.UTF_8)));
+        return new Cookie(
+                SESSION_COOKIE,
+                Base64.getEncoder().encodeToString(session.getId().getBytes(StandardCharsets.UTF_8)));
     }
 
     private long insertCamera(long dongId, String zoneName, String status) {

@@ -1,12 +1,12 @@
 package com.whiteeyes.common.security;
 
-import com.whiteeyes.common.exception.ErrorCode;
+import java.io.IOException;
+import java.util.List;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.DefaultRedirectStrategy;
@@ -14,6 +14,8 @@ import org.springframework.security.web.RedirectStrategy;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.json.JsonMapper;
+
+import com.whiteeyes.common.exception.ErrorCode;
 
 /**
  * must_change_password=1인 계정은 비밀번호 변경 화면·API·로그아웃 외에는 쓰지 못하게 한다(FNC-C-003 처리 순서 4).
@@ -45,8 +47,7 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         if (!mustChangePassword() || isAllowed(request)) {
             filterChain.doFilter(request, response);

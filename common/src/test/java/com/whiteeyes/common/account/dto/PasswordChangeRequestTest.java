@@ -2,11 +2,12 @@ package com.whiteeyes.common.account.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -59,7 +60,8 @@ class PasswordChangeRequestTest {
         String over = max + "b";
 
         assertThat(invalidFields(new PasswordChangeRequest(CURRENT, max, max))).isEmpty();
-        assertThat(invalidFields(new PasswordChangeRequest(CURRENT, over, over))).containsExactly("newPassword");
+        assertThat(invalidFields(new PasswordChangeRequest(CURRENT, over, over)))
+                .containsExactly("newPassword");
     }
 
     @Test

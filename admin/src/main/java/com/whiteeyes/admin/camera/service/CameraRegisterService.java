@@ -1,5 +1,12 @@
 package com.whiteeyes.admin.camera.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.whiteeyes.admin.camera.dto.CameraCreateRequest;
 import com.whiteeyes.admin.camera.dto.CameraResponse;
 import com.whiteeyes.admin.camera.exception.ZoneHasCameraException;
@@ -10,11 +17,6 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 import com.whiteeyes.common.history.entity.WorkAction;
 import com.whiteeyes.common.history.entity.WorkTargetType;
 import com.whiteeyes.common.security.LoginAccount;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** 구역에 캠을 등록한다(FNC-A-018). 등록한 캠은 정지 상태다. */
 @Service
@@ -47,7 +49,8 @@ public class CameraRegisterService {
         detail.put("op", "CREATE");
         detail.put("zoneId", camera.getZoneId());
         detail.put("sourceType", camera.getSourceType());
-        workRecorder.record(actor, WorkAction.CAMERA_CHANGE, WorkTargetType.CAMERA, camera.getId(), camera.getName(), detail);
+        workRecorder.record(
+                actor, WorkAction.CAMERA_CHANGE, WorkTargetType.CAMERA, camera.getId(), camera.getName(), detail);
         return CameraResponse.from(camera);
     }
 }

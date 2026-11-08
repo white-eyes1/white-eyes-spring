@@ -114,8 +114,7 @@ public class SurgeEventService {
     // 증가율 >= 기준: 열린 이벤트가 있으면 최고 값을 갱신하고, 없으면 새로 연다(FNC-A-034 처리 순서 3)
     private void raiseOrOpen(
             Event openEvent, Long zoneId, LocalDateTime statAt, BigDecimal countAvg, BigDecimal previousCountAvg) {
-        BigDecimal rate = countAvg
-                .subtract(previousCountAvg)
+        BigDecimal rate = countAvg.subtract(previousCountAvg)
                 .multiply(PERCENT)
                 .divide(previousCountAvg, RATE_SCALE, RoundingMode.HALF_UP)
                 .min(MAX_RATE);

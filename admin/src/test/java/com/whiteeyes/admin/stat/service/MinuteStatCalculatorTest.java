@@ -39,7 +39,8 @@ class MinuteStatCalculatorTest {
         assertThat(stat.getCountMin()).isEqualTo(12);
         // 22.47 ÷ 150 = 0.1498
         assertThat(stat.getDensity()).isEqualByComparingTo("0.1498");
-        assertThat(List.of(stat.getInN(), stat.getInE(), stat.getInS(), stat.getInW())).containsExactly(6, 2, 0, 0);
+        assertThat(List.of(stat.getInN(), stat.getInE(), stat.getInS(), stat.getInW()))
+                .containsExactly(6, 2, 0, 0);
         assertThat(List.of(stat.getOutN(), stat.getOutE(), stat.getOutS(), stat.getOutW()))
                 .containsExactly(0, 0, 3, 4);
         assertThat(stat.getDwellSumSec()).isEqualTo(50);
@@ -54,9 +55,11 @@ class MinuteStatCalculatorTest {
         // density: 0.13 ÷ 3 = 0.04333… → 0.0433 (반올림 전 평균으로 나누면 0.0417)
         // 체류: 1.25 + 1.25 = 2.5 → 3
         MinuteAccumulator accumulator = new MinuteAccumulator(ZONE_ID, MINUTE);
-        accumulator.put(MINUTE.withSecond(0), result(1, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of(1.25, 1.25)));
+        accumulator.put(
+                MINUTE.withSecond(0), result(1, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of(1.25, 1.25)));
         for (int second = 1; second < 8; second++) {
-            accumulator.put(MINUTE.withSecond(second), result(0, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of()));
+            accumulator.put(
+                    MINUTE.withSecond(second), result(0, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of()));
         }
 
         ZoneStatMinute stat = MinuteStatCalculator.calculate(accumulator, new BigDecimal("3.00"));

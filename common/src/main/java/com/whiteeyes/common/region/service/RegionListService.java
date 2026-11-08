@@ -1,5 +1,13 @@
 package com.whiteeyes.common.region.service;
 
+import java.util.List;
+import java.util.Set;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
+
 import com.whiteeyes.common.camera.service.ZoneCameraService;
 import com.whiteeyes.common.region.dto.RegionResponse;
 import com.whiteeyes.common.region.dto.ZoneResponse;
@@ -10,12 +18,6 @@ import com.whiteeyes.common.region.exception.RegionNotFoundException;
 import com.whiteeyes.common.region.exception.ZoneNotFoundException;
 import com.whiteeyes.common.region.repository.RegionRepository;
 import com.whiteeyes.common.region.repository.ZoneRepository;
-import java.util.List;
-import java.util.Set;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.json.JsonMapper;
 
 /** 시 → 구 → 동 → 구역 순으로 하위 목록과 경계를 내려준다(FNC-C-008). */
 @Service
@@ -64,8 +66,8 @@ public class RegionListService {
             requireRegion(dongId);
             zones = zoneRepository.findByDongIdAndDeletedAtIsNullOrderById(dongId);
         }
-        Set<Long> zoneIdsWithCamera =
-                zoneCameraService.findZoneIdsWithCamera(zones.stream().map(Zone::getId).toList());
+        Set<Long> zoneIdsWithCamera = zoneCameraService.findZoneIdsWithCamera(
+                zones.stream().map(Zone::getId).toList());
         // 처리 순서 4
         return zones.stream()
                 .map(zone -> ZoneResponse.of(
@@ -81,7 +83,8 @@ public class RegionListService {
     @Transactional(readOnly = true)
     public ZoneResponse findZone(Long zoneId) {
         Zone zone = zoneRepository.findById(zoneId).orElseThrow(ZoneNotFoundException::new);
-        boolean hasCamera = !zoneCameraService.findZoneIdsWithCamera(List.of(zoneId)).isEmpty();
+        boolean hasCamera =
+                !zoneCameraService.findZoneIdsWithCamera(List.of(zoneId)).isEmpty();
         return ZoneResponse.of(zone, jsonMapper.readTree(zone.getBoundary()), hasCamera);
     }
 

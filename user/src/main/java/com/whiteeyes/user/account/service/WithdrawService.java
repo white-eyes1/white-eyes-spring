@@ -1,13 +1,8 @@
 package com.whiteeyes.user.account.service;
 
-import com.whiteeyes.common.account.entity.UserAccount;
-import com.whiteeyes.common.account.repository.UserAccountRepository;
-import com.whiteeyes.common.exception.BusinessException;
-import com.whiteeyes.common.exception.ErrorCode;
-import com.whiteeyes.common.security.LoginAccount;
-import com.whiteeyes.common.security.LoginAccountResolver;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,6 +10,13 @@ import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.common.account.entity.UserAccount;
+import com.whiteeyes.common.account.repository.UserAccountRepository;
+import com.whiteeyes.common.exception.BusinessException;
+import com.whiteeyes.common.exception.ErrorCode;
+import com.whiteeyes.common.security.LoginAccount;
+import com.whiteeyes.common.security.LoginAccountResolver;
 
 /**
  * 회원 탈퇴(FNC-U-004). 비밀번호를 확인하고 계정을 WITHDRAWN으로 바꾼 뒤 이 계정의 세션을 지운다.
@@ -54,7 +56,8 @@ public class WithdrawService {
         user.withdraw(LocalDateTime.now(KST));
         // 처리 순서 3: 이 계정의 모든 세션 삭제(지금 세션은 컨트롤러가 무효화)
         int ended = 0;
-        for (String sessionId : sessionRepository.findByPrincipalName(user.getLoginId()).keySet()) {
+        for (String sessionId :
+                sessionRepository.findByPrincipalName(user.getLoginId()).keySet()) {
             if (!sessionId.equals(currentSessionId)) {
                 sessionRepository.deleteById(sessionId);
                 ended++;

@@ -1,11 +1,12 @@
 package com.whiteeyes.admin.camera;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
 
 /**
  * 분석 서버 역할의 가짜 HTTP 서버(캠 가동·정지 테스트가 같이 쓴다). 한 번에 한 응답 방식만 설정하고,

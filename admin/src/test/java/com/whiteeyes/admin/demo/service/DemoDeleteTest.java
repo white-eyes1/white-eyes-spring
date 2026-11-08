@@ -108,7 +108,9 @@ class DemoDeleteTest {
         insertDaily(0, 1, true);
         long otherZoneId = insertOtherZone();
         jdbcTemplate.update(
-                "UPDATE zone_stat_hourly SET zone_id = ? WHERE stat_at < ?", otherZoneId, Timestamp.valueOf(FIRST_HOUR.plusHours(2)));
+                "UPDATE zone_stat_hourly SET zone_id = ? WHERE stat_at < ?",
+                otherZoneId,
+                Timestamp.valueOf(FIRST_HOUR.plusHours(2)));
         insertHourly(4, 1, false);
 
         DemoDeleteResult result = new DemoDeleteService(demoStatRepository, 1).deleteZones(List.of(zoneId));

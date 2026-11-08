@@ -52,7 +52,9 @@ class InternalTokenFilterTest {
 
             assertThat(response.getStatus()).as("보낸 값: %s", sent).isEqualTo(401);
             assertThat(chain.getRequest()).isNull();
-            assertThat(response.getContentAsString()).contains("\"code\":\"UNAUTHORIZED\"").doesNotContain(TOKEN);
+            assertThat(response.getContentAsString())
+                    .contains("\"code\":\"UNAUTHORIZED\"")
+                    .doesNotContain(TOKEN);
         }
     }
 
