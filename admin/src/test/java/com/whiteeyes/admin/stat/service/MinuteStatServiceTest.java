@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 import com.whiteeyes.admin.event.service.CongestionEventService;
+import com.whiteeyes.admin.event.service.StaleEventCloseService;
 import com.whiteeyes.admin.event.service.SurgeEventService;
 import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
@@ -61,6 +62,9 @@ class MinuteStatServiceTest {
     @Mock
     private SurgeEventService surgeEventService;
 
+    @Mock
+    private StaleEventCloseService staleEventCloseService;
+
     private MinuteAccumulatorStore minuteAccumulatorStore;
     private MinuteStatService minuteStatService;
 
@@ -75,6 +79,7 @@ class MinuteStatServiceTest {
                 zoneStatMinuteRepository,
                 congestionEventService,
                 surgeEventService,
+                staleEventCloseService,
                 CLOSE_GRACE_SEC);
     }
 
@@ -288,5 +293,42 @@ class MinuteStatServiceTest {
 
     private SecondResult secondResult(int personCount) {
         return new SecondResult(personCount, DirectionCounts.ZERO, DirectionCounts.ZERO, List.of());
+    }
+
+    @Test
+    @DisplayName("FNC-A-028 마감할 누적기가 없어도 분이 바뀔 때 한 번만 결과 끊김 종료를 검사(마감이 끝난 마지막 분을 넘김)")
+    void checksStaleEventsOncePerMinuteEvenWithoutAccumulators() {
+        minuteStatService.closeEndedMinutes(LocalDateTime.of(2026, 10, 12, 14, 6, 5));
+        minuteStatService.closeEndedMinutes(LocalDateTime.of(2026, 10, 12, 14, 6, 30));
+        minuteStatService.closeEndedMinutes(LocalDateTime.of(2026, 10, 12, 14, 6, 59));
+
+        // 14:06:05에 마감이 끝난 마지막 분은 14:05(14:05는 14:06:05에 마감된다)
+        verify(staleEventCloseService, times(1)).closeStale(LocalDateTime.of(2026, 10, 12, 14, 5));
+
+        minuteStatService.closeEndedMinutes(LocalDateTime.of(2026, 10, 12, 14, 7, 5));
+
+        verify(staleEventCloseService).closeStale(LocalDateTime.of(2026, 10, 12, 14, 6));
+    }
+
+    @Test
+    @DisplayName("FNC-A-028 마감 대기 시간 안(14:07:04)에는 아직 마감되지 않은 분을 넘기지 않음")
+    void staleCheckUsesLastClosedMinuteOnly() {
+        minuteStatService.closeEndedMinutes(LocalDateTime.of(2026, 10, 12, 14, 7, 4));
+
+        verify(staleEventCloseService).closeStale(LocalDateTime.of(2026, 10, 12, 14, 5));
+    }
+
+    @Test
+    @DisplayName("FNC-A-033 결과 끊김 종료가 실패해도 예외를 밖으로 내지 않고 다음 분에 다시 검사")
+    void staleCheckFailureDoesNotPropagate() {
+        willThrow(new IllegalStateException("db down"))
+                .given(staleEventCloseService)
+                .closeStale(any());
+
+        assertThatCode(() -> minuteStatService.closeEndedMinutes(LocalDateTime.of(2026, 10, 12, 14, 6, 5)))
+                .doesNotThrowAnyException();
+        minuteStatService.closeEndedMinutes(LocalDateTime.of(2026, 10, 12, 14, 7, 5));
+
+        verify(staleEventCloseService, times(2)).closeStale(any());
     }
 }

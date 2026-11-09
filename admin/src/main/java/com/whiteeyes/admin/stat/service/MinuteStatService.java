@@ -3,9 +3,11 @@ package com.whiteeyes.admin.stat.service;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.whiteeyes.admin.event.service.CongestionEventService;
+import com.whiteeyes.admin.event.service.StaleEventCloseService;
 import com.whiteeyes.admin.event.service.SurgeEventService;
 import com.whiteeyes.admin.region.service.ZoneService;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
@@ -29,7 +32,10 @@ public class MinuteStatService {
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
     private final CongestionEventService congestionEventService;
     private final SurgeEventService surgeEventService;
+    private final StaleEventCloseService staleEventCloseService;
     private final Duration closeGrace;
+    // 결과 끊김 종료를 마지막으로 검사한 분. 스케줄러는 매초 부르므로 분이 바뀔 때 한 번만 검사한다
+    private final AtomicReference<LocalDateTime> lastStaleCheckedMinute = new AtomicReference<>();
 
     public MinuteStatService(
             MinuteAccumulatorStore minuteAccumulatorStore,
@@ -37,6 +43,7 @@ public class MinuteStatService {
             ZoneStatMinuteRepository zoneStatMinuteRepository,
             CongestionEventService congestionEventService,
             SurgeEventService surgeEventService,
+            StaleEventCloseService staleEventCloseService,
             // 테스트 application.yml이 main 설정을 가리므로 yml을 거치지 않고 환경변수를 바로 읽는다(기본 5초, conventions.md)
             @Value("${MINUTE_CLOSE_GRACE_SEC:5}") long closeGraceSec) {
         this.minuteAccumulatorStore = minuteAccumulatorStore;
@@ -44,6 +51,7 @@ public class MinuteStatService {
         this.zoneStatMinuteRepository = zoneStatMinuteRepository;
         this.congestionEventService = congestionEventService;
         this.surgeEventService = surgeEventService;
+        this.staleEventCloseService = staleEventCloseService;
         this.closeGrace = Duration.ofSeconds(closeGraceSec);
     }
 
@@ -55,9 +63,14 @@ public class MinuteStatService {
      */
     public void closeEndedMinutes(LocalDateTime now) {
         List<MinuteAccumulator> endedMinutes = minuteAccumulatorStore.closeMinutesEndedBy(now.minus(closeGrace));
-        if (endedMinutes.isEmpty()) {
-            return;
+        if (!endedMinutes.isEmpty()) {
+            saveEndedMinutes(endedMinutes);
         }
+        // 마감할 행이 없는 구역도 매 분 검사한다(FNC-A-028 처리 순서 4). 방금 저장한 분이 보이도록 저장·판정 뒤에 돌린다
+        closeStaleEvents(now);
+    }
+
+    private void saveEndedMinutes(List<MinuteAccumulator> endedMinutes) {
         Set<Long> zoneIds =
                 endedMinutes.stream().map(MinuteAccumulator::getZoneId).collect(Collectors.toSet());
         // 마감 시점의 현재 면적으로 계산한다(면적을 바꾸면 이후 통계부터 적용, tables.md 'zone')
@@ -65,6 +78,21 @@ public class MinuteStatService {
 
         for (MinuteAccumulator accumulator : endedMinutes) {
             save(accumulator, areaByZone.get(accumulator.getZoneId()));
+        }
+    }
+
+    // 마감이 끝난 마지막 분 = (now − 마감 대기)를 분으로 내린 값 − 1분. 실패해도 1분 통계 저장은 막지 않고 다음 분에 다시 검사한다
+    // (FNC-A-033 5번)
+    private void closeStaleEvents(LocalDateTime now) {
+        LocalDateTime lastClosedMinute =
+                now.minus(closeGrace).truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
+        if (lastClosedMinute.equals(lastStaleCheckedMinute.getAndSet(lastClosedMinute))) {
+            return;
+        }
+        try {
+            staleEventCloseService.closeStale(lastClosedMinute);
+        } catch (RuntimeException e) {
+            log.error("결과 끊김 이벤트 종료 실패 lastClosedMinute={}", lastClosedMinute, e);
         }
     }
 

@@ -40,6 +40,9 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     /** 종류별 열린 이벤트 전부(캠 이상 감지가 조건이 풀린 것을 닫을 때, FNC-A-035). */
     List<Event> findByTypeAndEndedAtIsNull(EventType type);
 
+    /** 종류들의 열린 이벤트 전부(결과 끊김 종료가 혼잡·급증을 한 번에 훑을 때, FNC-A-033 5번). */
+    List<Event> findByTypeInAndEndedAtIsNull(Collection<EventType> types);
+
     /**
      * 처리 상태를 바꾸기 전에 행을 잠그고 읽는다(FNC-A-038). 관리자 두 명이 같은 이벤트를 동시에 처리하면
      * 늦은 쪽은 앞의 커밋을 기다렸다가 바뀐 상태를 보고 거부된다.
