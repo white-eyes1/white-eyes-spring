@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
 
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
@@ -24,6 +26,7 @@ import com.whiteeyes.common.region.entity.Zone;
 import com.whiteeyes.common.region.repository.ZoneRepository;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.repository.ZoneStatMinuteRepository;
+import com.whiteeyes.common.stat.service.ZoneStatQueryService;
 
 /**
  * 결과 끊김 종료(FNC-A-033 5번, FNC-A-034 5번). 기준은 기본값(최소 30초, 종료 유지 5분)이다.
@@ -42,6 +45,9 @@ class StaleEventCloseServiceTest {
 
     @Autowired
     private CongestionEventService congestionEventService;
+
+    @Autowired
+    private ZoneStatQueryService zoneStatQueryService;
 
     @Autowired
     private EventRepository eventRepository;
@@ -194,6 +200,23 @@ class StaleEventCloseServiceTest {
         staleEventCloseService.closeStale(T0.plusMinutes(5));
 
         assertThat(endedAt(eventId)).isEqualTo(T0.plusMinutes(1));
+    }
+
+    @Test
+    @DisplayName("FNC-A-033 조회 하한(가장 이른 started_at) 앞의 판정 가능 행은 마지막 판정 가능 분 조회에 잡히지 않음")
+    void lastJudgeableQueryIgnoresRowsBeforeLowerBound() {
+        Long beforeOnlyZone = saveZone("테스트 하한앞 구역");
+        Long insideZone = saveZone("테스트 하한안 구역");
+        saveStat(beforeOnlyZone, T0.minusMinutes(1), FULL_SAMPLE_SEC);
+        saveStat(insideZone, T0.minusMinutes(1), FULL_SAMPLE_SEC);
+        saveStat(insideZone, T0, FULL_SAMPLE_SEC);
+        saveStat(insideZone, T0.plusMinutes(1), SHORT_SAMPLE_SEC);
+
+        Map<Long, LocalDateTime> result =
+                zoneStatQueryService.findLastJudgeableMinuteByZone(List.of(beforeOnlyZone, insideZone), T0, 30);
+
+        assertThat(result).doesNotContainKey(beforeOnlyZone);
+        assertThat(result).containsEntry(insideZone, T0);
     }
 
     private Long openCongestion(Long zoneId, LocalDateTime startedAt) {

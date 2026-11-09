@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,8 +85,15 @@ public class StaleEventCloseService {
             return;
         }
         Set<Long> zoneIds = openEvents.stream().map(Event::getZoneId).collect(Collectors.toSet());
+        // 이벤트는 판정 가능한 분에서만 열리므로(started_at의 행이 판정 가능) 정상이면 마지막 판정 가능 분 >= started_at이다.
+        // 그래서 가장 이른 started_at부터만 훑어 보관 기간 전체를 매 분 읽지 않는다. 하한 앞의 행이 빠져도
+        // 마지막 판정 가능 분이 없는 것으로 보아 아래에서 started_at + 1분으로 닫으므로 결과가 같다
+        LocalDateTime earliestStartedAt = openEvents.stream()
+                .map(Event::getStartedAt)
+                .min(Comparator.naturalOrder())
+                .orElseThrow();
         Map<Long, LocalDateTime> lastJudgeableByZone =
-                zoneStatQueryService.findLastJudgeableMinuteByZone(zoneIds, minSampleSec);
+                zoneStatQueryService.findLastJudgeableMinuteByZone(zoneIds, earliestStartedAt, minSampleSec);
 
         LocalDateTime appStartedAt = startedAt.get();
         for (Event event : openEvents) {
