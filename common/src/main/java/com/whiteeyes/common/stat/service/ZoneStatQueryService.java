@@ -37,4 +37,20 @@ public class ZoneStatQueryService {
                         stat.getZoneId(), stat.getStatAt(), stat.getCountAvg(), stat.getDensity(), stat.getSampleSec()))
                 .collect(Collectors.groupingBy(ZoneMinuteStat::zoneId));
     }
+
+    /**
+     * 구역들의 from 이후(포함) 마지막 판정 가능 분(sample_sec >= minSampleSec)의 stat_at을 구역별로 돌려준다. 쿼리 한 번이다.
+     * from 이후에 판정 가능한 행이 없는 구역은 결과에 키가 없다. 결과 끊김 종료(FNC-A-033 5번)가 쓴다.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, LocalDateTime> findLastJudgeableMinuteByZone(
+            Collection<Long> zoneIds, LocalDateTime from, int minSampleSec) {
+        if (zoneIds.isEmpty()) {
+            return Map.of();
+        }
+        return zoneStatMinuteRepository.findLastStatAtByZoneIds(zoneIds, from, minSampleSec).stream()
+                .collect(Collectors.toMap(
+                        ZoneStatMinuteRepository.ZoneLastStatAt::getZoneId,
+                        ZoneStatMinuteRepository.ZoneLastStatAt::getStatAt));
+    }
 }

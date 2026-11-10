@@ -22,6 +22,21 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
     @Query("select max(s.statAt) from ZoneStatMinute s")
     LocalDateTime findLatestStatAt();
 
+    /**
+     * 구역들의 from 이후(포함) 마지막 판정 가능 분(sample_sec >= minSampleSec)의 stat_at. 판정 가능한 행이 없는 구역은 결과에 없다.
+     * 결과 끊김 종료(FNC-A-033 5번)가 열린 이벤트의 구역들을 한 번에 조회한다. 삭제된 구역의 행도 남아 있어 그대로 센다.
+     */
+    @Query(
+            """
+            select s.zoneId as zoneId, max(s.statAt) as statAt from ZoneStatMinute s
+            where s.zoneId in :zoneIds and s.statAt >= :from and s.sampleSec >= :minSampleSec
+            group by s.zoneId
+            """)
+    List<ZoneLastStatAt> findLastStatAtByZoneIds(
+            @Param("zoneIds") Collection<Long> zoneIds,
+            @Param("from") LocalDateTime from,
+            @Param("minSampleSec") int minSampleSec);
+
     /** 그 분의 모든 구역 통계(FNC-C-022). */
     List<ZoneStatMinute> findByStatAt(LocalDateTime statAt);
 
@@ -92,4 +107,12 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
                     """,
             nativeQuery = true)
     void upsert(@Param("stat") ZoneStatMinute stat);
+
+    /** 구역별 마지막 판정 가능 분. */
+    interface ZoneLastStatAt {
+
+        Long getZoneId();
+
+        LocalDateTime getStatAt();
+    }
 }
