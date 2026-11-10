@@ -2,6 +2,10 @@ name: ci
 on:
   pull_request:
     branches: [dev, main]
+  # dev·main에 머지된 결과도 검사한다(PR CI는 올린 시점의 dev 기준이라 합친 결과를 검증하지 않음)
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,4 +16,16 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          # 기본값은 기본 브랜치(main)에서만 캐시를 저장한다. dev·main push가 저장하고, dev 대상 PR은 그 캐시를 읽는다
+          cache-read-only: ${{ github.event_name != 'push' || (github.ref != 'refs/heads/dev' && github.ref != 'refs/heads/main') }}
+      # Java 형식 검사(spotlessCheck)는 build가 함께 돌린다(code-conventions.md 3-1)
       - run: ./gradlew build
+      # 화면 JS 형식·검사(code-conventions.md 5-1). 도구 버전은 package-lock.json에 고정
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint

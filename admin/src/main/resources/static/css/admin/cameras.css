@@ -1,0 +1,15 @@
+/* 캠 관리 화면(SCR-A-006·007) 전용 스타일. 공통 스타일은 we.css */
+.cam-panel { overflow: hidden; }
+.cam-panel .filterbar { border-radius: 12px 12px 0 0; }
+.cam-summary { font-size: 12px; margin-left: auto; }
+.cam-table { --cols: 1.2fr 1.2fr .6fr .8fr .8fr 1.1fr 2.4fr; }
+.cam-table .tr > * { min-width: 0; }
+.cam-right { text-align: right; }
+/* 버튼이 4~5개라 한 줄에 다 들어가지 않으면 줄바꿈한다(셀이 넘친 글자를 자르므로) */
+.cam-table .row-actions { justify-content: flex-end; flex-wrap: wrap; }
+.cam-error { color: #ff8c91; }
+.cam-pending { display: block; white-space: normal; font-size: 11px; line-height: 1.4; }
+.cam-progress { display: flex; align-items: center; gap: 8px; }
+.cam-empty { padding: 28px 16px; text-align: center; font-size: 12px; }
+
+.cam-confirm { max-width: 420px; }

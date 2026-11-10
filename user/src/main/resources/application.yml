@@ -12,15 +12,31 @@ spring:
   session:
     jdbc:
       table-name: SPRING_SESSION_USER
-      cleanup-cron: 0 * * * * *
+      # 만료 세션 정리는 10분마다(FNC-C-004)
+      cleanup-cron: 0 */10 * * * *
   flyway:
     enabled: false
 
 server:
   port: 8080
+  servlet:
+    session:
+      # 마지막 요청 후 이 시간이 지나면 세션 만료(FNC-C-004, conventions.md 세션 만료)
+      timeout: ${SESSION_TIMEOUT:30m}
+      cookie:
+        name: USER_SESSION
+
+# 로그인 화면에 회원가입 링크를 보인다(SCR-C-001, 사용자 앱에만)
+login:
+  signup-link: true
 
 management:
   endpoints:
     web:
       exposure:
         include: health
+
+# 실시간 통계 갱신(FNC-C-022): 앱마다 5초에 한 번 최신 1분 통계 시각을 확인해 SSE로 보낸다
+stats:
+  stream:
+    auto-poll: true

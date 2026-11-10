@@ -8,6 +8,10 @@
 - 이슈의 FNC·API·SCR ID에 해당하는 white-eyes-docs 섹션을 읽고 나서 코드를 쓴다.
 - 명세와 다르게 만들어야 하면 멈추고 사람에게 묻는다. 명세를 임의로 해석하지 않는다.
 - 검수 기준은 테스트로 만든다.
+- 이슈의 '관련 명세 > 화면'에 SCR ID가 있으면 그 화면에서 이 기능에 해당하는 부분까지 만들어야 완료다. 모양은 white-eyes-docs `design/`(시안, 읽는 법 `design/README.md`), 동작·데이터는 screens.md를 따르고, 공통 틀(#136)의 CSS·fragment 위에 붙인다. 시안의 `.anno` 요소와 `data-api`·`data-fnc` 속성은 옮기지 않는다.
+- 이슈 본문의 `## 넘겨받은 일`도 그 이슈에서 할 일이다(다른 이슈에서 미뤄 넘어온 일).
+- 선행 작업이 dev에 없어 처리 순서 일부를 미루면, 그 일을 맡을 열린 이슈 본문 끝 `## 넘겨받은 일`에 체크 항목(할 일, 출처 이슈·PR, 코드 위치)을 추가한다. 받을 이슈가 없으면 멈추고 사람에게 후속 이슈를 요청한다. PR 본문에는 넘긴 이슈 번호를 적는다.
+- 미룬 일을 코드 주석이나 다른 이슈의 코멘트로만 남기지 않는다. 작업을 시작하는 사람은 자기 이슈 본문만 읽기 때문이다.
 
 ## 구조
 - common: 공통 도메인·통계 화면(두 앱이 같이 씀)
@@ -15,19 +19,30 @@
 - admin: 관리자 앱(웹 8081, 내부 8082). 예약 작업·Flyway는 admin에만
 
 ## 명령
-- 빌드·테스트: `./gradlew build`
-- local DB: `cp .env.example .env` 후 값을 채우고 `docker compose up -d` (MySQL 8.4)
-- 환경변수 불러오기: `set -a; source .env; set +a`
-- 사용자 앱: `./gradlew :user:bootRun --args='--spring.profiles.active=local'`
-- 관리자 앱: `./gradlew :admin:bootRun --args='--spring.profiles.active=local'`
+- 빌드·테스트: `./gradlew build` (Java 형식 검사 포함. 형식 정리는 `./gradlew spotlessApply`)
+- 행정구역(FNC-A-012): `admin/src/main/resources/db/regions/R__region_seed.sql`은 손으로 고치지 않는다. 관리자 앱이 시작할 때 Flyway가 적용한다. 지역을 바꿀 때만 다시 만든다(넣는 지역은 white-eyes-docs decisions/0020, 원본은 처음 한 번 받아 `tools/build/region-source`에 둔다)
+  - `cd tools && ../gradlew bootRun --args='region-sql --codes=25,29010,33041,33042,33520,33530,34020,34060,34070,34510 --out=../admin/src/main/resources/db/regions/R__region_seed.sql'`
+  - 시험용(`common/src/testFixtures/resources/region/test-regions.sql`): `--codes=11 --h2 --file=../admin/src/test/resources/region/regions.geojson --out=../common/src/testFixtures/resources/region/test-regions.sql`
+- 화면 JS 형식·검사: Node 22로 `npm ci` 한 번 뒤 `npm run format`(정리)·`npm run lint`(검사). CI가 `format:check`·`lint`를 돌린다
+- local DB: white-eyes-deploy 폴더에서 `docker compose up -d mysql` (MySQL 8.4, 앱별 계정. 그 README '개발할 때')
+- 환경변수: `cp .env.example .env` 후 값을 채우고 `set -a; source .env; set +a`
+- 관리자 앱(먼저, Flyway): `DB_USERNAME=white_eyes_admin DB_PASSWORD=$ADMIN_DB_PASSWORD FLYWAY_DB_USERNAME=white_eyes_flyway FLYWAY_DB_PASSWORD=$FLYWAY_DB_PASSWORD ./gradlew :admin:bootRun --args='--spring.profiles.active=local'`
+  - 시작할 때 Flyway가 표를 만들고 사용자 앱 계정에 표 권한을 준다(`db/mysql/afterMigrate.sql`, 새 표도 자동). 관리자 앱 계정은 데이터 읽기·쓰기만 있어 Flyway 계정을 빼면 시작하지 못한다
+- 사용자 앱: `DB_USERNAME=white_eyes_user DB_PASSWORD=$USER_DB_PASSWORD ./gradlew :user:bootRun --args='--spring.profiles.active=local'`
+- 전체를 컨테이너로 띄우기(화면 연동 시험·시연): white-eyes-deploy `docker compose up -d --build`
 
 ## 규칙
 - 키·비밀번호는 환경변수로만. 새 변수는 .env.example에 이름만 추가한다.
 - 더미 영상·시연 데이터·가중치 파일은 커밋하지 않는다.
-- 시연용 데이터는 Flyway가 아니라 --job=generate-demo로만 넣는다. prod 프로필에서는 시연용 작업이 실행되지 않게 막는다.
+- 시연용 데이터는 Flyway가 아니라 tools의 `generate-demo` 명령으로만 넣는다(`tools/demo/README.md`). tools는 운영 이미지에 넣지 않고, prod 프로필에서는 시연용 명령이 실행되지 않게 막는다.
+- 관리자 앱에 1회 실행 작업(`--job`)을 다시 만들지 않는다. 운영 밖의 일회성 작업은 tools 명령으로 둔다(white-eyes-docs decisions/0020).
 - 설정은 프로필(local·dev·prod)과 환경변수로 나눈다.
 - 로깅은 Log4j2다. Logback(spring-boot-starter-logging)을 다시 들이지 않는다.
 - 테이블·칼럼은 tables.md와 같아야 한다. 다르면 tables.md PR을 먼저 올린다.
+
+## 트러블슈팅
+- 원인을 찾는 데 오래 걸렸거나 다른 팀원도 겪을 문제를 해결하면 `docs/troubleshooting/`에 기록한다. 기준·양식은 그 폴더의 README.md.
+- 원인을 확인하지 못했으면 '미확인(추정: …)'으로 쓴다. 비밀값은 쓰지 않는다.
 
 ## git
 - 브랜치: feature/<이슈 번호>-<이름>. PR 대상은 항상 dev.

@@ -1,0 +1,77 @@
+package com.whiteeyes.admin.region.service;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.whiteeyes.admin.region.dto.RegionNames;
+import com.whiteeyes.common.region.entity.Region;
+import com.whiteeyes.common.region.entity.RegionLevel;
+import com.whiteeyes.common.region.exception.RegionNotFoundException;
+import com.whiteeyes.common.region.repository.RegionRepository;
+import com.whiteeyes.common.region.service.RegionQueryService;
+
+/** 다른 도메인(캠 목록)이 지역을 조회할 때 부르는 지역 도메인의 공개 service. */
+@Service
+@RequiredArgsConstructor
+public class RegionLookupService {
+
+    private final RegionRepository regionRepository;
+    private final RegionQueryService regionQueryService;
+
+    /** 지역(시·도, 시·군·구, 읍·면·동 아무거나) 아래의 읍·면·동 번호. 읍·면·동을 주면 자기 자신이다. */
+    @Transactional(readOnly = true)
+    public List<Long> findDongIdsUnder(Long regionId) {
+        return regionRepository.findIdsOfLevelUnder(regionId, RegionLevel.EMD);
+    }
+
+    /**
+     * 지역이 있는지 확인하고, 있으면 그 아래 읍·면·동 번호를 돌려준다(이벤트 목록 지역 필터, FNC-A-036).
+     *
+     * @throws com.whiteeyes.common.region.exception.RegionNotFoundException 없는 지역이면(404 REGION_NOT_FOUND)
+     */
+    @Transactional(readOnly = true)
+    public List<Long> requireDongIdsUnder(Long regionId) {
+        if (!regionRepository.existsById(regionId)) {
+            throw new RegionNotFoundException();
+        }
+        return findDongIdsUnder(regionId);
+    }
+
+    /** 동 이름이나 소속 시·군·구 이름에 검색어가 들어 있는 읍·면·동 번호(이벤트 목록 검색, FNC-A-036). */
+    @Transactional(readOnly = true)
+    public List<Long> findDongIdsByNameContaining(String keyword) {
+        return regionRepository.findIdsOfLevelByNameOrParentNameContaining(keyword, RegionLevel.EMD);
+    }
+
+    /** 읍·면·동 번호 → 지역 경로("유성구 · 궁동"). 지도 현황(common)과 같은 기준을 쓰도록 RegionQueryService에 맡긴다. */
+    @Transactional(readOnly = true)
+    public Map<Long, String> findPaths(Collection<Long> dongIds) {
+        return regionQueryService.findPaths(dongIds);
+    }
+
+    /** 읍·면·동 번호 → 시·도 / 시·군·구 / 읍·면·동 이름(이벤트 엑셀 FNC-A-039). 상위 두 단계까지 쿼리 한 번으로 가져온다. */
+    @Transactional(readOnly = true)
+    public Map<Long, RegionNames> findNames(Collection<Long> dongIds) {
+        return regionRepository.findAllWithAncestorsByIdIn(dongIds).stream()
+                .collect(Collectors.toMap(Region::getId, this::namesOf, (first, second) -> first));
+    }
+
+    /** 지역(시·도, 시·군·구, 읍·면·동 아무거나)의 이름. 없는 지역이면 null이다. */
+    @Transactional(readOnly = true)
+    public String findName(Long regionId) {
+        return regionRepository.findById(regionId).map(Region::getName).orElse(null);
+    }
+
+    private RegionNames namesOf(Region dong) {
+        Region sigungu = dong.getParent();
+        Region sido = sigungu == null ? null : sigungu.getParent();
+        return new RegionNames(
+                sido == null ? null : sido.getName(), sigungu == null ? null : sigungu.getName(), dong.getName());
+    }
+}

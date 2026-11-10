@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--
+  통계 메인(대시보드) SCR-C-003, 두 앱이 함께 쓰는 화면(FNC-C-008·009·016·025, 캠 패널 FNC-A-022).
+  admin 모델 값이 true일 때만 지역 등록·수정 버튼과 캠 패널이 그려진다(관리자 앱).
+  새 1분 통계는 통계 SSE(FNC-C-022)로 받아 화면을 새로 읽는다.
+  비정상 인원 변동(FNC-C-020)은 펼칠 때 기간 비교 API로 읽는다.
+  보조 지표(FNC-C-030)는 펼친 영역에 필요한 통계 시계열만 읽는다. 이벤트 종류별 건수는 관리자 앱에만 있다(이벤트 요약 API가 관리자 이상).
+  엑셀 다운로드(SCR-C-006, FNC-C-023)는 통계 패널 아래 버튼으로 현재 지역을 넘겨 창을 연다.
+  시간대별 혼잡 단계(FNC-C-018)는 펼칠 때 오늘 0~23시 단계를 읽는다.
+  방문 패턴(FNC-C-028)은 펼칠 때 어제까지 28일의 요일 × 시간 평균 인원을 읽는다.
+  피크 시간 TOP 3(FNC-C-029)·증감 추세(FNC-C-019)는 한 접기 영역(peak-trend)을 함께 쓴다. 피크는 기간 탭(기본 주)의 상위 3개 시간대를,
+  증감은 어제까지 7일을 지난주·지난달·지난해와 비교해 읽는다(펼칠 때).
+  지도 도구 이동 흐름(FNC-C-010)은 동 단계에서 켜면 기간의 구역 간 이동을 화살표로 그린다.
+  지도 도구 히트맵(FNC-C-011)은 켜면 하위 단위를 시간대별 평균값의 파랑 진하기로 칠한다.
+-->
+<head>
+    <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
+    <th:block th:replace="~{fragments/layout :: leaflet}"/>
+    <link rel="stylesheet" th:href="@{/css/stats-main.css}">
+    <link rel="stylesheet" th:href="@{/css/live.css}">
+    <link rel="stylesheet" th:href="@{/css/stats-export.css}">
+    <link rel="stylesheet" th:href="@{/css/camera-modal.css}" th:if="${admin}">
+</head>
+<body class="we">
+<div class="dash" id="dash" th:attr="data-admin=${admin}, data-snapshot-interval-sec=${cardSnapshotIntervalSec}">
+    <header th:replace="${admin} ? ~{fragments/layout :: adminHeader('dashboard')} : ~{fragments/layout :: userHeader('dashboard')}"></header>
+
+    <div class="filterbar">
+        <span class="filter-title">지역 필터</span>
+        <select class="input filter-select" id="filter-sido" aria-label="시·도"></select>
+        <select class="input filter-select" id="filter-sigungu" aria-label="시·군·구"></select>
+        <select class="input filter-select" id="filter-emd" aria-label="읍·면·동"></select>
+        <!-- 실시간 통계 갱신(FNC-C-022) 연결이 끊기면 보인다. 브라우저가 5초 뒤 자동으로 다시 연결한다 -->
+        <span class="stream-status" id="stream-status" role="status" hidden>
+            <i class="dot off"></i>연결 끊김 · 다시 연결하는 중
+        </span>
+        <a class="btn secondary" th:if="${admin}" th:href="@{/zones}" style="margin-left: auto">지역 등록·수정</a>
+    </div>
+
+    <div class="dash-split">
+        <aside class="stat-panel" id="stat-panel">
+            <div class="stat-head">
+                <span><b>통계</b> <span class="target" id="stat-target"></span></span>
+                <button type="button" class="icon-btn" id="panel-collapse" aria-label="통계 패널 접기">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+                </button>
+            </div>
+            <div class="stat-body">
+                <section class="acc zone-box">
+                    <div class="row-between"><strong>구역별 현재 인원</strong><span class="muted small" id="zone-time"></span></div>
+                    <div class="tabrow" role="tablist">
+                        <button type="button" class="btn primary sm" data-zone-tab="count">현재 인원</button>
+                        <button type="button" class="btn secondary sm" data-zone-tab="event">이벤트</button>
+                        <button type="button" class="btn secondary sm" data-zone-tab="level">혼잡 단계</button>
+                    </div>
+                    <div class="donut-row">
+                        <div class="donut" id="zone-donut"><div class="donut-hole"><small class="muted">합계</small><div id="zone-total">-</div></div></div>
+                        <div class="zone-list" id="zone-list"></div>
+                    </div>
+                </section>
+                <section class="acc">
+                    <div class="acc-h">요약<span class="muted small" id="summary-time"></span></div>
+                    <div class="cells">
+                        <div class="cell"><strong id="sum-count">-</strong><span>현재 인원</span></div>
+                        <div class="cell"><strong id="sum-density">-</strong><span>밀집도 명/㎡</span></div>
+                        <div class="cell"><strong id="sum-level">-</strong><span>혼잡 단계</span></div>
+                        <div class="cell"><strong id="sum-cameras">-</strong><span>가동 / 캠</span></div>
+                        <div class="cell"><strong id="sum-events">-</strong><span>오늘 이벤트</span></div>
+                        <div class="cell"><strong id="sum-max">-</strong><span>오늘 최대</span></div>
+                    </div>
+                </section>
+                <!-- 시간대별 혼잡 단계(FNC-C-018): 펼칠 때 오늘 0~23시 단계를 읽는다(stats-main/hourly-levels.js) -->
+                <details class="acc fold" id="hourly-levels">
+                    <summary class="acc-h">시간대별 혼잡 단계<span class="muted small">오늘 0~23시</span></summary>
+                    <div class="acc-b">
+                        <div class="hour-bars" id="hourly-levels-bars" role="img" aria-label="오늘 시간대별 혼잡 단계"></div>
+                        <div class="hour-axis muted"><span>0시</span><span>6</span><span>12</span><span>18</span><span>23시</span></div>
+                        <span class="muted" id="hourly-levels-message" hidden></span>
+                    </div>
+                </details>
+                <!-- 방문 패턴(FNC-C-028): 펼칠 때 어제까지 28일의 요일 × 시간 평균 인원을 읽는다(stats-main/visit-pattern.js) -->
+                <details class="acc fold" id="visit-pattern">
+                    <summary class="acc-h">방문 패턴 (요일×시간)<span class="muted small">어제까지 28일</span></summary>
+                    <div class="acc-b">
+                        <div class="pattern-grid" id="visit-pattern-grid" role="img" aria-label="요일·시간대별 평균 인원"></div>
+                        <span class="muted" id="visit-pattern-message" hidden></span>
+                    </div>
+                </details>
+                <section class="acc">
+                    <div class="acc-h">유입·유출 (추정)<span class="muted small">최근 1분</span></div>
+                    <div class="cells flow">
+                        <div class="cell"><strong class="in" id="flow-in">-</strong><span>유입</span></div>
+                        <div class="cell"><strong class="out" id="flow-out">-</strong><span>유출</span></div>
+                        <div class="cell"><strong id="flow-dir">-</strong><span>주요 방향</span></div>
+                    </div>
+                </section>
+                <section class="acc">
+                    <div class="acc-h">혼잡 기준<span class="muted small" id="level-rule"></span></div>
+                    <ul class="level-rules" id="level-rules"></ul>
+                </section>
+                <!-- 피크 시간 TOP 3(FNC-C-029, stats-main/peak-hours.js)과 그 아래 증감 추세(FNC-C-019, 줄을 누르면 기간 비교, stats-main/trend.js) -->
+                <details class="acc fold" id="peak-trend">
+                    <summary class="acc-h">피크 시간 TOP 3 · 증감 추세<span class="muted small">어제까지</span></summary>
+                    <div class="acc-b">
+                        <div class="peak-periods" id="peak-periods" role="tablist" aria-label="기간">
+                            <button type="button" role="tab" data-period="DAY">일</button>
+                            <button type="button" role="tab" data-period="WEEK">주</button>
+                            <button type="button" role="tab" data-period="MONTH">월</button>
+                            <button type="button" role="tab" data-period="YEAR">연</button>
+                        </div>
+                        <div class="aux-rank peak-list" id="peak-list"></div>
+                        <div class="trend-list" id="trend-list"></div>
+                    </div>
+                </details>
+                <!-- 비정상 인원 변동(FNC-C-020): 펼칠 때 최근 7일을 지난달 같은 요일과 비교해 읽는다 -->
+                <details class="acc fold" id="abnormal-box">
+                    <summary class="acc-h">비정상 인원 변동<span class="muted small">최근 7일 · 지난달 대비</span></summary>
+                    <div class="acc-b">
+                        <div class="muted" id="abnormal-count"></div>
+                        <div class="abnormal-list" id="abnormal-list"></div>
+                        <a class="btn secondary sm" id="abnormal-detail" th:href="@{/stats/graph}">자세히</a>
+                    </div>
+                </details>
+                <!-- 보조 지표(FNC-C-030): 기존 통계 응답으로 화면에서 계산한다(stats-main/aux-metrics.js) -->
+                <details class="acc fold" id="aux-flow">
+                    <summary class="acc-h">방향별 유입·유출 (추정)<span class="muted small">최근 1시간</span></summary>
+                    <div class="acc-b aux-flow" id="aux-flow-body"></div>
+                </details>
+                <details class="acc fold" id="aux-dwell">
+                    <summary class="acc-h">평균 체류 시간 (추정)<span class="muted small">최근 1시간</span></summary>
+                    <div class="acc-b" id="aux-dwell-body"></div>
+                </details>
+                <details class="acc fold" id="aux-spread">
+                    <summary class="acc-h">인원 변동폭<span class="muted small">최근 1시간 · 1분마다</span></summary>
+                    <div class="acc-b" id="aux-spread-body"></div>
+                </details>
+                <details class="acc fold" id="aux-level-time">
+                    <summary class="acc-h">오늘 단계별 머문 시간<span class="muted small">오늘 0시부터</span></summary>
+                    <div class="acc-b" id="aux-level-time-body"></div>
+                </details>
+                <details class="acc fold" id="aux-top-zones">
+                    <summary class="acc-h">혼잡 구역 TOP 5<span class="muted small">밀집도 순</span></summary>
+                    <div class="acc-b aux-rank" id="aux-top-zones-body"></div>
+                </details>
+                <details class="acc fold" id="aux-events" th:if="${admin}">
+                    <summary class="acc-h">오늘 이벤트 종류별 건수<span class="muted small">오늘 0시부터</span></summary>
+                    <div class="acc-b" id="aux-events-body"></div>
+                </details>
+                <details class="acc fold" id="aux-observe">
+                    <summary class="acc-h">관측 상태</summary>
+                    <div class="acc-b">
+                        <div class="row"><span class="grow">통계가 있는 구역</span><b id="aux-observe-zones">-</b></div>
+                        <div class="row"><span class="grow">최근 1시간 수신율</span><span class="aux-rate" id="aux-observe-rate">-</span></div>
+                        <span class="muted">지역 값은 통계가 있는 구역만의 값입니다.</span>
+                    </div>
+                </details>
+                <!-- 그래프 보기(FNC-C-012)·엑셀 다운로드(FNC-C-023): 현재 지역을 넘긴다(panel.js renderGraphLink, stats-main.js openExport) -->
+                <div class="panel-actions">
+                    <a class="btn secondary" id="graph-link" th:href="@{/stats/graph}">그래프 보기</a>
+                    <button type="button" class="btn secondary" id="export-open">엑셀 다운로드</button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="dash-main">
+        <div class="dash-body" id="dash-body">
+        <section class="map dash-map" aria-label="지도">
+            <div class="map-canvas" id="dash-map"></div>
+            <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
+            <div class="map-legend legend" id="map-legend"></div>
+            <!-- 한 단계 위 지역으로 올라가는 뒤로가기(시·도 단계에서는 숨김). 올라갈 지역 이름은 stats-main.js가 넣는다 -->
+            <button type="button" class="btn secondary sm map-back" id="map-back" hidden>← 상위 지역</button>
+            <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 이동 흐름(FNC-C-010)은 동 단계에서만 켤 수 있다(stats-main/flow-tool.js). 히트맵(FNC-C-011): 조건·시간대 슬라이더·재생(stats-main/heatmap-tool.js) -->
+            <div class="map-tools" id="map-tools">
+                <div class="map-tool">
+                    <button type="button" class="btn secondary sm" id="flow-toggle" aria-pressed="false">이동 흐름 (추정)</button>
+                    <select class="input map-tool-select" id="flow-period" aria-label="이동 흐름 기간" hidden>
+                        <option value="1h" selected>최근 1시간</option>
+                        <option value="24h">최근 24시간</option>
+                        <option value="7d">최근 7일</option>
+                        <option value="30d">최근 30일</option>
+                    </select>
+                </div>
+                <span class="map-tool-status" id="flow-status" role="status" hidden></span>
+                <div class="map-tool">
+                    <button type="button" class="btn secondary sm" id="heatmap-toggle" aria-pressed="false">히트맵</button>
+                </div>
+                <div class="heatmap-box" id="heatmap-box" hidden>
+                    <div class="heatmap-row">
+                        <input class="input" type="date" id="heatmap-from" aria-label="히트맵 시작 날짜">
+                        <span class="muted">~</span>
+                        <input class="input" type="date" id="heatmap-to" aria-label="히트맵 끝 날짜">
+                    </div>
+                    <div class="heatmap-row">
+                        <select class="input" id="heatmap-item" aria-label="히트맵 항목">
+                            <option value="COUNT">인원</option>
+                            <option value="DENSITY">밀집도</option>
+                            <option value="INFLOW">유입</option>
+                            <option value="OUTFLOW">유출</option>
+                        </select>
+                        <select class="input" id="heatmap-day-type" aria-label="히트맵 요일">
+                            <option value="ALL">전체 요일</option>
+                            <option value="WEEKDAY">평일</option>
+                            <option value="WEEKEND">주말</option>
+                        </select>
+                    </div>
+                    <div class="heatmap-row">
+                        <button type="button" class="btn secondary sm" id="heatmap-play" aria-pressed="false">재생</button>
+                        <input type="range" id="heatmap-hour" min="0" max="23" step="1" value="0" aria-label="시간대">
+                        <b class="heatmap-hour" id="heatmap-hour-label">0시</b>
+                    </div>
+                    <div class="heatmap-row heatmap-legend"><i></i><span class="muted" id="heatmap-range"></span></div>
+                    <span class="muted" id="heatmap-status" role="status" hidden></span>
+                </div>
+            </div>
+            <!-- 구역 수정(FNC-A-015, 관리자 앱만, 동 단계): 지도에서 꼭짓점을 고치고 면적(현재 → 고친 값)·소속 동 미리보기, 이름 수정(stats-main/zone-edit.js) -->
+            <div class="zone-reg" id="zone-edit" th:if="${admin}" hidden>
+                <form class="zone-reg-form" id="zone-edit-form" novalidate>
+                    <div><p class="eyebrow">EDIT ZONE</p><strong id="zone-edit-title">구역 수정</strong></div>
+                    <p class="zone-reg-note">꼭짓점을 끌어 모양을 고칩니다(변 가운데 점을 끌면 늘어남). 같은 동 안에서만 바꿀 수 있습니다.</p>
+                    <div class="zone-reg-stats">
+                        <div><span class="muted">면적</span><div id="zone-edit-area">-</div></div>
+                        <div><span class="muted">소속 동</span><div id="zone-edit-dong">-</div></div>
+                    </div>
+                    <p class="zone-reg-error" id="zone-edit-error" role="alert" hidden></p>
+                    <label class="field">구역 이름
+                        <input id="zone-edit-name" name="name" class="input" type="text" maxlength="50" autocomplete="off">
+                        <span class="hint err" id="zone-edit-name-error" role="alert" hidden></span>
+                    </label>
+                    <div class="zone-reg-actions">
+                        <button type="button" class="btn secondary" id="zone-edit-cancel">취소</button>
+                        <button type="submit" class="btn primary" id="zone-edit-submit" disabled>저장</button>
+                    </div>
+                </form>
+            </div>
+            <p class="zone-reg-hint" id="zone-reg-hint" th:if="${admin}" hidden>동 안의 빈 곳을 우클릭하면 구역을 등록할 수 있습니다</p>
+            <div class="zone-reg" id="zone-reg" th:if="${admin}" hidden>
+                <div class="zone-reg-guide" id="zone-reg-guide" hidden>
+                    <p>지도를 눌러 꼭짓점을 찍고, 처음 꼭짓점을 다시 눌러 마칩니다.</p>
+                    <button type="button" class="btn secondary sm" id="zone-reg-guide-cancel">취소</button>
+                </div>
+                <form class="zone-reg-form" id="zone-reg-form" hidden novalidate>
+                    <div><p class="eyebrow">NEW ZONE</p><strong>구역 미리보기</strong></div>
+                    <div class="zone-reg-stats">
+                        <div><span class="muted">면적</span><div id="zone-reg-area">-</div></div>
+                        <div><span class="muted">소속 동</span><div id="zone-reg-dong">-</div></div>
+                    </div>
+                    <p class="zone-reg-error" id="zone-reg-error" role="alert" hidden></p>
+                    <label class="field">구역 이름
+                        <input id="zone-reg-name" name="name" class="input" type="text" maxlength="50" autocomplete="off" placeholder="예) 은행선화동 1구역">
+                        <span class="hint err" id="zone-reg-name-error" role="alert" hidden></span>
+                    </label>
+                    <div class="zone-reg-actions">
+                        <button type="button" class="btn secondary" id="zone-reg-cancel">취소</button>
+                        <button type="button" class="btn secondary" id="zone-reg-redraw">다시 그리기</button>
+                        <button type="submit" class="btn primary" id="zone-reg-submit" disabled>구역 등록</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+        </div>
+
+    <section class="deck" id="deck" th:if="${admin}">
+        <div class="deck-grip" id="deck-grip" role="separator" tabindex="0"
+             aria-label="캠 패널 높이 조절(끌어서 조절, 두 번 눌러 전환)"><span></span></div>
+        <div class="deck-head">
+            <span class="muted">지도 화면 안 캠 <b id="deck-count">0</b> 대</span>
+            <div class="deck-tools">
+                <select class="input deck-sort" id="deck-sort" aria-label="정렬">
+                    <option value="density">혼잡도 높은 순</option>
+                    <option value="name">이름순</option>
+                </select>
+                <button type="button" class="btn secondary sm" id="deck-toggle">전체 펼치기</button>
+                <a class="btn secondary sm" th:href="@{/cameras}">캠 관리</a>
+            </div>
+        </div>
+        <div class="deck-cards" id="deck-cards"></div>
+    </section>
+        </div>
+    </div>
+</div>
+<!-- SCR-A-008 실시간 보기 창(관리자 앱만) -->
+<th:block th:if="${admin}">
+    <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
+    <!-- 지도 우클릭 메뉴(stats-main/map-menu.js) -->
+    <div class="map-menu" id="map-menu" role="menu" hidden></div>
+    <!-- 확인 창(구역 삭제·캠 삭제 등, stats-main/confirm-dialog.js) -->
+    <div class="modal-stage zone-reg-modal-stage" id="dash-confirm" hidden>
+        <div class="modal zone-reg-modal" role="alertdialog" aria-modal="true" aria-labelledby="dash-confirm-title">
+            <div class="modal-head">
+                <h2 id="dash-confirm-title">확인</h2>
+                <button class="icon-btn" type="button" aria-label="닫기" data-close>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="dash-confirm-message"></p>
+                <p class="zone-reg-error" id="dash-confirm-error" role="alert" hidden></p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn secondary" type="button" data-close>취소</button>
+                <button class="btn danger" type="button" id="dash-confirm-ok">삭제</button>
+            </div>
+        </div>
+    </div>
+    <!-- 구역 등록 확인 창(빈 곳 우클릭 메뉴의 `구역 등록`을 누르면 연다) -->
+    <div class="modal-stage zone-reg-modal-stage" id="zone-reg-confirm" hidden>
+        <div class="modal zone-reg-modal" role="alertdialog" aria-modal="true" aria-labelledby="zone-reg-confirm-title">
+            <div class="modal-head">
+                <h2 id="zone-reg-confirm-title">구역 등록</h2>
+                <button class="icon-btn" type="button" aria-label="닫기" data-close>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>구역을 등록하시겠습니까? 확인하면 지도에서 꼭짓점을 찍어 구역을 그립니다.</p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn secondary" type="button" data-close>취소</button>
+                <button class="btn primary" type="button" id="zone-reg-ok">확인</button>
+            </div>
+        </div>
+    </div>
+    <!-- SCR-A-007 캠 등록 창: 캠이 없는 구역의 핀을 누르면 이 창을 연다(캠 관리 화면과 같은 창) -->
+    <th:block th:replace="~{fragments/layout :: adminCameraModal}"/>
+</th:block>
+<!-- SCR-C-006 엑셀 다운로드 창(두 앱) -->
+<th:block th:replace="~{fragments/layout :: statExportModal}"/>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/pages/stats-main.js}"></script>
+</body>
+</html>

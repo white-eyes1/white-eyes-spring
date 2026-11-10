@@ -47,3 +47,7 @@ CLAUDE.local.md
 *.pt
 *.pth
 *.mp4
+
+
+### 화면 JS 형식·검사 도구(package.json) ###
+node_modules/

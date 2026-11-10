@@ -1,1 +1,5 @@
 # dev 환경 값은 환경변수로 주입한다.
+spring:
+  # 시각 버전(V<yyyyMMdd>_<HHmm>) 파일이 늦게 머지돼도 적용한다. prod는 기본값(false) 유지
+  flyway:
+    out-of-order: true

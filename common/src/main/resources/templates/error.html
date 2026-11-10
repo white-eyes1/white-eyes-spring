@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="|오류 ${status}|">오류</title>
+</head>
+<body>
+<main>
+    <h1 th:text="${status}">500</h1>
+    <p th:text="${#strings.isEmpty(message)} ? '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' : ${message}">
+        일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.
+    </p>
+    <a th:href="@{/}">처음으로</a>
+</main>
+</body>
+</html>

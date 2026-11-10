@@ -1,0 +1,7 @@
+.git
+.gradle
+**/build
+**/out
+.env
+docs
+node_modules

@@ -1,6 +1,8 @@
 plugins {
     id 'org.springframework.boot' version '4.1.1' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
+    // 형식 검사(code-conventions.md 3-1). ./gradlew spotlessApply로 정리, build가 spotlessCheck를 함께 돌린다
+    id 'com.diffplug.spotless' version '7.0.2' apply false
 }
 
 subprojects {
@@ -8,6 +10,7 @@ subprojects {
     version = '0.0.1-SNAPSHOT'
 
     apply plugin: 'java'
+    apply plugin: 'com.diffplug.spotless'
     apply plugin: 'io.spring.dependency-management'
 
     java {
@@ -26,6 +29,17 @@ subprojects {
         }
     }
 
+    spotless {
+        java {
+            target 'src/*/java/**/*.java'
+            // 4칸 들여쓰기, 줄 길이 120(code-conventions.md 3-1)
+            palantirJavaFormat('2.50.0')
+            // import는 표준 → 외부 → 프로젝트 순으로 묶는다(2-3). static import는 맨 위
+            importOrder('\\#', 'java|javax', '', 'com.whiteeyes')
+            removeUnusedImports()
+        }
+    }
+
     // 로깅은 Log4j2로 통일 (code-conventions.md '로깅')
     configurations.configureEach {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
@@ -39,7 +53,14 @@ subprojects {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
 
+    // 소스는 UTF-8 (code-conventions.md '형식'). 지정하지 않으면 Windows에서 javac가 MS949로 읽는다
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
+        // 기본 512MB로는 admin 시험(스프링 컨텍스트 여러 개)이 CI에서 가끔 Java heap space로 멈춘다
+        maxHeapSize = '1g'
     }
 }

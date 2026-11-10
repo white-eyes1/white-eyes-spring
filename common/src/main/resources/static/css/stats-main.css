@@ -1,0 +1,228 @@
+/* 통계 메인(SCR-C-003) 전용 스타일. 공통 색·버튼·칩은 we.css를 쓴다(white-eyes-docs design/screens/SCR-C-003-*.html에서 옮김) */
+.dash { min-height: 100vh; display: flex; flex-direction: column; }
+.dash.expanded { height: 100vh; }
+.small { font-size: 11px; }
+.row-between { display: flex; justify-content: space-between; align-items: baseline; }
+.filter-select { width: 150px; height: 34px; }
+
+.dash-split { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 0; }
+/* 오른쪽 칸: 지도 아래에 캠 패널을 같은 폭으로 쌓는다. 왼쪽 통계 패널은 이 둘 옆에서 맨 아래까지 이어진다 */
+.dash-main { display: flex; flex-direction: column; flex: 999 1 560px; min-width: 0; min-height: 0; }
+.dash-body { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-height: 560px; }
+/* 넓은 화면: 지도 높이를 화면에서 정한다(헤더·필터 줄·캠 패널 몫을 뺀 나머지). 통계 패널은 자기 높이를 정하지 않고 오른쪽 칸 높이를 따라가며, 내용이 길면 안에서 스크롤된다.
+   캠 수에 따라 캠 패널 높이가 바뀌어도 지도가 흔들리지 않는다 */
+@media (min-width: 860px) {
+    .dash-body { flex: none; height: max(360px, calc(100vh - 495px)); min-height: 0; }
+    .dash[data-admin="false"] .dash-body { flex: 1 1 auto; height: auto; min-height: 560px; }
+    /* 줄바꿈 없이 한 줄로 두어야 오른쪽 칸 높이가 화면 높이에 묶인다(펼친 모양에서 캠 패널이 안에서 스크롤된다) */
+    .dash-split { flex-wrap: nowrap; }
+    .dash-split > .stat-panel { contain: size; overflow: hidden; }
+}
+/* 좁은 화면: 지도와 캠 패널을 위에, 통계 패널을 그 아래에 전체 폭으로 둔다 */
+@media (max-width: 859px) {
+    .dash-split > .stat-panel { order: 1; flex: 1 1 100%; border-right: 0; border-top: 1px solid var(--line); }
+}
+.dash.expanded .dash-body { flex: none; min-height: 0; height: 64px; flex-wrap: nowrap; overflow: hidden; }
+.dash-map { flex: 999 1 560px; min-width: 0; min-height: 0; }
+.map-canvas { position: absolute; inset: 0; }
+.panel-open { position: absolute; left: 14px; bottom: 14px; z-index: 501; }
+.map-legend { position: absolute; top: 14px; left: 14px; z-index: 500; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(13,19,27,.9); }
+/* 캠 패널을 펼치면 지도 칸이 64px까지 얇아져 왼쪽 아래 버튼이 왼쪽 위 범례와 겹친다(#258). 버튼을 위로 올리고 범례를 그 오른쪽으로 민다 */
+.dash.expanded .panel-open { top: 14px; bottom: auto; }
+.dash.expanded .panel-open:not([hidden]) ~ .map-legend { left: 78px; }
+/* 지도 도구(이동 흐름·히트맵): 지도 오른쪽 위 버튼(시안 SCR-C-003). 켠 버튼은 파랑 테두리 */
+.map-tools { position: absolute; top: 14px; right: 14px; z-index: 500; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.map-tool { display: flex; gap: 6px; align-items: center; }
+.map-tools .btn { background: #111a24; }
+.map-tools .btn.on { border-color: var(--blue); color: #cfe0ff; background: #1b2a3d; }
+.map-tools .btn:disabled { opacity: .5; cursor: not-allowed; }
+.map-tool-select { height: 30px; font-size: 12px; }
+.map-tool-status { padding: 4px 8px; border-radius: 6px; background: rgba(13,19,27,.9); color: var(--muted); font-size: 11px; }
+
+/* 히트맵 조건 영역(FNC-C-011): 색은 혼잡 단계와 다른 파랑 계열, min~max 범례 */
+.heatmap-box { display: flex; flex-direction: column; gap: 8px; width: 290px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(13,19,27,.94); font-size: 12px; }
+.heatmap-box[hidden] { display: none; }
+.heatmap-row { display: flex; align-items: center; gap: 6px; }
+.heatmap-row .input { height: 30px; font-size: 12px; min-width: 0; flex: 1; }
+.heatmap-row input[type="range"] { flex: 1; accent-color: #4f8cff; }
+.heatmap-hour { width: 34px; text-align: right; }
+.heatmap-legend i { width: 90px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(79,140,255,.12), rgba(79,140,255,.8)); }
+
+/* 통계 패널 */
+.stat-panel { flex: 0 1 360px; min-width: 300px; border-right: 1px solid var(--line); background: #0d131b; display: flex; flex-direction: column; }
+.stat-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.stat-head .target { color: var(--blue-light); }
+.stat-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+/* 패널 아래 '그래프 보기 / 엑셀 다운로드' 두 버튼(SCR-C-003) */
+.panel-actions { display: flex; gap: 8px; }
+.panel-actions .btn { flex: 1; }
+.acc { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.acc-h { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; font-size: 13px; font-weight: 700; }
+.acc-h .small { font-weight: 400; }
+.zone-box { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.tabrow { display: flex; gap: 6px; }
+.donut-row { display: flex; align-items: center; gap: 16px; }
+.donut { width: 116px; height: 116px; flex: none; border-radius: 50%; background: #1f2a37; display: grid; place-items: center; }
+.donut-hole { width: 74px; height: 74px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; text-align: center; align-content: center; }
+.donut-hole small { font-size: 10px; }
+.donut-hole div { font-size: 17px; font-weight: 700; }
+.zone-list { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; font-size: 11px; }
+.zone-list .row-between > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zone-list .bar { height: 4px; margin-top: 4px; border-radius: 2px; background: #1f2a37; }
+.zone-list .bar i { display: block; height: 4px; border-radius: 2px; }
+.zone-list .dot { margin-right: 5px; }
+.empty { color: var(--muted); font-size: 12px; text-align: center; padding: 8px 0; }
+.cells { padding: 0 12px 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cell { padding: 12px 8px; border-radius: 8px; background: var(--surface-2); text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.cell strong { font-size: 18px; }
+.cell span { font-size: 11px; color: var(--muted); }
+.cells.flow .in { color: #6ee0b9; }
+.cells.flow .out { color: #ffb3b7; }
+.level-rules { list-style: none; margin: 0; padding: 0 14px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.level-rules li { display: flex; align-items: center; gap: 8px; }
+.level-rules .dot { width: 10px; height: 10px; }
+
+/* 접기 영역: 머리를 누르면 펼친다(시안 SCR-C-003-stats-panel-all) */
+.acc.fold > summary { cursor: pointer; list-style: none; justify-content: flex-start; }
+.acc.fold > summary::-webkit-details-marker { display: none; }
+.acc.fold > summary::after { content: ""; width: 7px; height: 7px; margin: -3px 2px 0 8px; border-right: 1.5px solid #8b98a9; border-bottom: 1.5px solid #8b98a9; transform: rotate(45deg); }
+.acc.fold[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.acc.fold > summary .small { margin-left: auto; }
+.acc.fold > summary:not(:has(.small))::after { margin-left: auto; }
+.acc-b { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 11px; }
+.acc-b .btn { align-self: flex-end; }
+.abnormal-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 시간대별 혼잡 단계(FNC-C-018): 0~23시 단계 색 막대(시안 SCR-C-003-stats-panel-all) */
+.hour-bars { display: flex; align-items: flex-end; gap: 2px; height: 70px; }
+.hour-bar { flex: 1; border-radius: 2px 2px 0 0; }
+.hour-bar.empty { background: #2a3646; }
+.hour-axis { display: flex; justify-content: space-between; }
+
+/* 방문 패턴(FNC-C-028): 요일 7행 + 평일·주말 2행 × 24시간. 칸 색은 파랑 한 가지의 진하기(시안 SCR-C-003-stats-panel-all) */
+.pattern-grid { display: grid; grid-template-columns: 24px repeat(24, minmax(0, 1fr)); gap: 2px; align-items: center; }
+.pattern-label { font-size: 9px; }
+.pattern-cell { height: 10px; border-radius: 2px; }
+.pattern-cell.empty { background: #161e29; }
+.pattern-label.separated, .pattern-cell.separated { margin-top: 6px; }
+
+/* 피크 시간 TOP 3(FNC-C-029): 기간 탭은 시안의 칩 모양(켠 탭 .chip.run, 끈 탭 .chip.off) */
+.peak-periods { display: flex; gap: 6px; }
+.peak-periods button { border: 0; cursor: pointer; }
+.peak-periods button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.peak-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 증감 추세(FNC-C-019): 증가 빨강 ▲, 감소 파랑 ▼(시안 SCR-C-003-stats-panel-all). 줄을 누르면 기간 비교로 간다 */
+.trend-list { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid #1e2a38; }
+.trend-row { color: inherit; text-decoration: none; }
+.trend-row:hover .grow { text-decoration: underline; }
+.trend-up { color: #ff8a90; }
+.trend-down { color: #9cc0ff; }
+.abnormal-list .row { display: flex; align-items: center; gap: 8px; }
+
+/* 보조 지표(FNC-C-030) 접기 영역. 모양은 시안 SCR-C-003-stats-panel-all */
+.acc-b .row { display: flex; align-items: center; gap: 8px; }
+.acc-b .grow { flex: 1; min-width: 0; }
+.acc-b .bar { height: 8px; flex: 1; border-radius: 4px; background: #1f2a37; overflow: hidden; }
+.acc-b .bar i { display: block; height: 100%; border-radius: 4px; }
+.aux-flow .dir { width: 36px; flex: none; }
+.aux-flow .flow-bar { background: none; }
+.aux-flow .flow-bar.end { display: flex; justify-content: flex-end; }
+.aux-flow .num { width: 76px; flex: none; text-align: right; white-space: nowrap; }
+.acc-b .big { font-size: 20px; }
+.aux-graph { display: block; width: 100%; }
+.level-stack { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: #1f2a37; }
+.level-time { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.aux-rank .rank { width: 16px; flex: none; }
+.aux-rank .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aux-rank .count { flex: none; white-space: nowrap; }
+.aux-rate { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.aux-unchecked { color: #ff8a90; }
+
+/* 지도 위 구역 핀 */
+.zone-pin { background: none; border: 0; }
+.pin { position: absolute; left: -15px; top: -15px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 2px solid rgba(255,255,255,.85); color: #0b1118; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+/* 사용자 앱 구역 정보 팝업(SCR-C-003): 칩 색이 어두운 바탕용이라 팝업도 어둡게 */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); }
+.zone-popup { min-width: 150px; font-size: 13px; line-height: 1.45; }
+.zone-popup b { display: block; margin-bottom: 6px; }
+.zone-popup > div { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.zone-popup > div > span:first-child { color: var(--muted); }
+.pin.l3 { color: #fff; }
+.pin.off { color: #dfe6ee; }
+.pin b { position: absolute; top: -7px; right: -7px; min-width: 16px; height: 16px; padding: 0 3px; display: grid; place-items: center; border-radius: 8px; background: #fff; color: #0b1118; font-size: 9px; }
+
+/* 캠 패널 */
+.deck { border-top: 1px solid var(--line); background: #0d131b; display: flex; flex-direction: column; min-height: 0; }
+.dash.expanded .deck { flex: 1 1 auto; box-shadow: 0 -12px 30px rgba(0,0,0,.45); }
+.deck-grip { display: flex; justify-content: center; padding: 6px 0 2px; cursor: row-resize; touch-action: none; }
+.deck-grip span { width: 56px; height: 4px; border-radius: 2px; background: #3a4757; }
+.dash.expanded .deck-grip span { width: 72px; height: 5px; background: var(--blue-light); }
+.deck-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px 18px 12px; }
+.deck-head .muted { font-size: 12px; }
+.deck-head b { color: var(--text); }
+.deck-tools { display: flex; align-items: center; gap: 8px; }
+.deck-sort { width: 140px; height: 28px; font-size: 11px; }
+.deck-cards { display: flex; gap: 12px; padding: 0 18px 18px; overflow-x: auto; }
+.dash.expanded .deck-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); align-content: start; overflow-x: hidden; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+.camcard { flex: 0 0 280px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+.dash.expanded .camcard { flex: none; }
+.camcard header { padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.camcard header .row-between { align-items: center; }
+.camcard header strong { font-size: 13px; }
+.camcard .snap { height: 90px; margin: 0 12px; border-radius: 8px; background: linear-gradient(160deg, #18222e, #0b1016); display: grid; place-items: center; color: #6c7888; font-size: 11px; }
+.camcard .recent { margin: 8px 12px 0; display: flex; flex-direction: column; gap: 3px; }
+.camcard .recent-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; }
+.camcard .recent-head b { font-size: 15px; color: var(--text); }
+.camcard .recent-delta { color: #a5b4fc; }
+.camcard .recent-foot { display: flex; justify-content: space-between; font-size: 10px; }
+.camcard .meta { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 11px; color: var(--muted); }
+.camcard .meta b { color: var(--text); }
+.camcard footer { display: flex; gap: 6px; padding: 0 12px 12px; }
+.camcard footer .btn { flex: 1; }
+.camcard .err-msg { padding: 0 12px 8px; color: #ff8a90; font-size: 11px; }
+
+/* 카드 안쪽 칸은 줄어들지 않게 한다. 캠 패널을 펼치면 카드 높이가 제한돼 영상 칸이 4px로 쪼그라들었다(FNC-A-042) */
+.camcard > * { flex-shrink: 0; }
+/* 펼친 모양에서는 시안대로 미리보기를 크게 보인다 */
+.dash.expanded .camcard .snap { height: 140px; }
+/* 펼친 목록(격자)이 높이를 다 채우려고 행 높이를 똑같이 나눠 카드 내용이 잘렸다. 행은 내용 높이로 두고 넘치면 세로 스크롤 */
+.dash.expanded .deck-cards { grid-auto-rows: max-content; }
+
+/* 실시간 통계 갱신 연결 상태(FNC-C-022) */
+.stream-status { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 3px 9px; border-radius: 11px; background: #1d2733; color: #c3ccd8; font-size: 11px; }
+.stream-status[hidden] { display: none; }
+
+/* 지도 우클릭 메뉴(관리자 앱): 우클릭한 자리에 뜨는 작은 메뉴 */
+.map-menu { position: fixed; z-index: 2100; min-width: 200px; max-width: 280px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: rgba(13,19,27,.98); box-shadow: 0 10px 28px rgba(0,0,0,.5); }
+.map-menu[hidden] { display: none; }
+.map-menu-title { padding: 6px 10px 8px; font-size: 12px; font-weight: 700; color: var(--text); border-bottom: 1px solid var(--line); margin-bottom: 4px; overflow-wrap: anywhere; }
+.map-menu-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 8px 10px; border: 0; border-radius: 7px; background: none; color: var(--text); font-size: 13px; text-align: left; cursor: pointer; }
+.map-menu-item:hover:not(:disabled), .map-menu-item:focus-visible { background: #1b2a3d; outline: none; }
+.map-menu-item.danger { color: #ff8c91; }
+.map-menu-item:disabled { color: #6b7a8c; cursor: not-allowed; }
+.map-menu-item small { font-size: 11px; font-weight: 400; color: #8795a8; white-space: normal; }
+
+/* 구역 등록(관리자 앱, 동 단계): 지도 왼쪽 위 범례 아래에 안내·미리보기 카드를 띄운다. 확인 창 틀은 we.css의 .modal-stage */
+.zone-reg { position: absolute; top: 62px; left: 14px; z-index: 1100; width: 300px; max-width: calc(100% - 28px); max-height: calc(100% - 76px); overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; background: rgba(13,19,27,.96); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.zone-reg[hidden], .zone-reg-guide[hidden], .zone-reg-form[hidden] { display: none; }
+.zone-reg-note { margin: 0; font-size: 12px; color: #9aa8b8; }
+.zone-reg-guide { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+.zone-reg-guide p { margin: 0; font-size: 12px; color: #9aa8b8; }
+.zone-reg-form { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.zone-reg-form strong { font-size: 14px; }
+.zone-reg-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.zone-reg-stats > div { padding: 10px; border-radius: 8px; background: #151e29; font-size: 11px; }
+.zone-reg-stats > div > div { margin-top: 2px; font-size: 18px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+.zone-reg-error { margin: 0; padding: 8px 10px; border: 1px solid #5a2a31; border-radius: 8px; background: #1f141a; color: #ff8c91; font-size: 12px; }
+.zone-reg-error[hidden] { display: none; }
+.zone-reg-actions { display: flex; gap: 8px; }
+.zone-reg-actions .btn { flex: 1; padding-left: 8px; padding-right: 8px; }
+.zone-reg-modal-stage { position: fixed; inset: 0; z-index: 2000; height: auto; }
+.zone-reg-modal-stage[hidden] { display: none; }
+.zone-reg-modal { max-width: 420px; }
+.zone-reg-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 500; margin: 0; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(13,19,27,.9); color: #9aa8b8; font-size: 12px; pointer-events: none; white-space: nowrap; }
+.zone-reg-hint[hidden] { display: none; }
+/* 지도 뒤로가기(상위 지역으로 줌아웃): 지도 위쪽 가운데 */
+.map-back { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 501; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-back[hidden] { display: none; }

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('작업 기록')}"/>
+    <link rel="stylesheet" th:href="@{/css/admin/histories.css}">
+</head>
+<body class="we">
+<header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
+<!--
+  SCR-A-012 작업 기록(최고 관리자 전용, FNC-A-053). 표는 화면 JS(js/admin/pages/histories.js)가 GET /api/v1/histories로 받아 채운다.
+-->
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">AUDIT LOG · 최고 관리자 전용</p>
+            <h1>작업 기록</h1>
+            <p>계정 변경, 구역·캠 변경, 캠 가동·정지, 이벤트 처리, 엑셀 내려받기를 기록합니다.</p>
+        </div>
+    </div>
+
+    <section class="panel hs-panel">
+        <form class="filterbar" id="history-filter" role="search" novalidate>
+            <label class="hs-field">
+                <span class="muted">기간</span>
+                <input class="control plain hs-date" type="date" id="filter-from" aria-label="시작일">
+                <span class="muted">~</span>
+                <input class="control plain hs-date" type="date" id="filter-to" aria-label="종료일">
+            </label>
+            <select class="control hs-select" id="filter-actor-type" aria-label="계정 종류">
+                <option value="">계정 종류 전체</option>
+                <option value="USER">사용자</option>
+                <option value="ADMIN">관리자</option>
+            </select>
+            <input class="control plain hs-login-id" type="text" id="filter-login-id" maxlength="20"
+                   placeholder="아이디" aria-label="아이디" autocomplete="off">
+            <select class="control hs-select" id="filter-action" aria-label="행동 종류">
+                <option value="">행동 전체</option>
+                <option value="EXCEL_DOWNLOAD">EXCEL_DOWNLOAD</option>
+                <option value="EVENT_STATUS">EVENT_STATUS</option>
+                <option value="ACCOUNT_CHANGE">ACCOUNT_CHANGE</option>
+                <option value="CAMERA_RUN">CAMERA_RUN</option>
+                <option value="ZONE_CHANGE">ZONE_CHANGE</option>
+                <option value="CAMERA_CHANGE">CAMERA_CHANGE</option>
+            </select>
+            <button class="btn primary hs-search" type="submit" id="history-search">조회</button>
+        </form>
+        <p id="history-error" class="alert hs-notice" role="alert" hidden></p>
+        <div class="table-wrap">
+            <div class="dtable hs-table" role="table" aria-label="작업 기록 목록">
+                <div class="tr th" role="row">
+                    <span role="columnheader">시각</span>
+                    <span role="columnheader">계정</span>
+                    <span role="columnheader">행동</span>
+                    <span role="columnheader">대상</span>
+                    <span role="columnheader"><span class="hs-sr-only">상세 펼치기</span></span>
+                </div>
+                <div id="history-rows" role="rowgroup"></div>
+                <div class="hs-empty" id="history-empty" hidden>
+                    <strong>검색 결과가 없습니다</strong>
+                    <p class="muted">기간이나 조건을 변경해 보세요</p>
+                </div>
+            </div>
+        </div>
+        <div class="pager">
+            <span id="history-total">불러오는 중…</span>
+            <div class="pages" id="history-pages"></div>
+        </div>
+    </section>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/admin/pages/histories.js}"></script>
+</body>
+</html>

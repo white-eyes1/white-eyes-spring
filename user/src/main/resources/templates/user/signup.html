@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('회원가입')}"/>
+    <script type="module" th:src="@{/js/user/pages/signup.js}"></script>
+</head>
+<body class="we">
+<!-- SCR-U-001: 공통 틀(we.css)을 head 조각으로 받는다. 안 받으면 스타일이 하나도 안 붙는다 -->
+<header class="topbar"><a class="brand" th:href="@{/login}">White Eyes</a><div class="head-right"><a class="btn secondary sm" th:href="@{/login}">로그인</a></div></header>
+<main style="padding: 48px 24px; display: flex; justify-content: center">
+    <form id="signup-form" class="panel" novalidate style="width: 100%; max-width: 520px; overflow: hidden">
+        <div class="panel-head"><div><p class="eyebrow">SIGN UP</p><h1 style="margin-top: 4px; font-size: 15px">회원가입</h1></div><span class="muted" style="font-size: 11px">관리자 승인 후 이용</span></div>
+        <div style="padding: 22px; display: flex; flex-direction: column; gap: 14px">
+            <p id="form-error" class="alert" role="alert"></p>
+
+            <div class="field">
+                <label for="loginId">아이디</label>
+                <div style="display: flex; gap: 8px">
+                    <input id="loginId" class="input" style="flex: 1" name="loginId" type="text" maxlength="20" autocomplete="username" required>
+                    <button type="button" id="check-login-id" class="btn secondary" style="min-height: 40px">중복 확인</button>
+                </div>
+                <span id="login-id-status" class="hint ok" aria-live="polite"></span>
+                <span class="hint err" data-error-for="loginId" role="alert"></span>
+            </div>
+
+            <div class="field">
+                <label for="password">비밀번호</label>
+                <input id="password" class="input" name="password" type="password" maxlength="64" autocomplete="new-password" required>
+                <span class="hint">8~64자, 영문·숫자를 각각 1자 이상(특수문자 가능)</span>
+                <span class="hint err" data-error-for="password" role="alert"></span>
+            </div>
+
+            <div class="field">
+                <label for="passwordConfirm">비밀번호 확인</label>
+                <input id="passwordConfirm" class="input" name="passwordConfirm" type="password" maxlength="64"
+                       autocomplete="new-password" required>
+                <span class="hint err" data-error-for="passwordConfirm" role="alert"></span>
+            </div>
+
+            <div class="field">
+                <label for="name">이름</label>
+                <input id="name" class="input" name="name" type="text" maxlength="50" autocomplete="name" required>
+                <span class="hint err" data-error-for="name" role="alert"></span>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                <div class="field" style="flex: 1 1 200px">
+                    <label for="email">메일(선택)</label>
+                    <input id="email" class="input" name="email" type="email" maxlength="100" autocomplete="email">
+                    <span class="hint err" data-error-for="email" role="alert"></span>
+                </div>
+                <div class="field" style="flex: 1 1 160px">
+                    <label for="phone">연락처(선택)</label>
+                    <input id="phone" class="input" name="phone" type="tel" maxlength="20" autocomplete="tel">
+                    <span class="hint err" data-error-for="phone" role="alert"></span>
+                </div>
+            </div>
+
+            <button type="submit" id="signup-submit" class="btn primary lg" style="width: 100%; margin-top: 4px" disabled>가입하기</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

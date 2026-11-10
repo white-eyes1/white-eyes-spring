@@ -1,0 +1,16 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation project(':common')
+    // 행정구역 경계 합치기·내부 점(region-sql, FNC-A-012)
+    implementation 'org.locationtech.jts:jts-core:1.20.0'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation testFixtures(project(':common'))
+    // 시험 DB 스키마는 관리자 앱의 Flyway 마이그레이션으로 만든다
+    testRuntimeOnly project(':admin')
+    testRuntimeOnly 'org.springframework.boot:spring-boot-starter-flyway'
+    testRuntimeOnly 'com.h2database:h2'
+}

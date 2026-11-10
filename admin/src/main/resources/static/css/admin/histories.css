@@ -1,0 +1,27 @@
+/* 작업 기록 화면(SCR-A-012) 전용 스타일. 공통 스타일은 we.css */
+.hs-panel { overflow: hidden; }
+.hs-panel .filterbar { border-radius: 12px 12px 0 0; }
+.hs-field { display: inline-flex; align-items: center; gap: 8px; }
+.hs-date { min-width: 0; padding: 0 10px; color-scheme: dark; }
+.hs-select { min-width: 140px; padding: 0 10px; }
+.hs-login-id { min-width: 160px; }
+.hs-search { margin-left: auto; }
+.hs-notice { margin: 12px 16px 0; }
+
+.hs-table { --cols: 1fr 1fr 1.1fr 2fr 48px; }
+.hs-table .tr > * { min-width: 0; }
+.hs-table .tr.hs-row { cursor: pointer; }
+.hs-table .tr.hs-row:hover { background: rgba(79, 140, 255, .05); }
+.hs-table .tr.hs-row.sel:hover { background: rgba(79, 140, 255, .07); }
+.hs-toggle { padding: 0; border: 0; background: none; color: inherit; font-size: 12px; text-align: right; cursor: pointer; }
+.hs-toggle:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.hs-detail[hidden] { display: none; }
+.hs-detail > * { grid-column: 1 / -1; padding: 0 14px 12px; white-space: normal; }
+.hs-detail pre { margin: 0; padding: 12px 14px; border-radius: 8px; background: #0b1118; color: #c3cdd9; font-size: 11px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hs-empty { padding: 36px 16px; text-align: center; font-size: 13px; }
+.hs-empty p { margin-top: 6px; font-size: 12px; }
+.hs-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.pager .pages button { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
+.pager .pages button.on { background: var(--blue-btn); border-color: #5d95ef; color: #fff; }
+.pager .pages button:disabled { opacity: .4; cursor: default; }

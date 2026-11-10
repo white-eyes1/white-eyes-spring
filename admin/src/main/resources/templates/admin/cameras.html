@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('캠 관리')}"/>
+    <link rel="stylesheet" th:href="@{/css/camera-modal.css}">
+    <link rel="stylesheet" th:href="@{/css/admin/cameras.css}">
+    <link rel="stylesheet" th:href="@{/css/live.css}">
+</head>
+<body class="we">
+<header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">CAMERAS</p>
+            <h1>캠 관리</h1>
+            <p>구역마다 캠 1대. 가동하면 분석 서버가 영상을 분석하고, 더미 캠은 처음 한 번 준비(분석)를 거칩니다.</p>
+        </div>
+        <button type="button" class="btn primary" id="camera-add">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>캠 등록
+        </button>
+    </div>
+
+    <section class="panel cam-panel">
+        <div class="filterbar">
+            <span class="muted cam-summary" id="camera-summary">불러오는 중…</span>
+        </div>
+        <div class="table-wrap">
+            <div class="dtable cam-table" role="table" aria-label="캠 목록">
+                <div class="tr th" role="row">
+                    <span role="columnheader">구역</span>
+                    <span role="columnheader">캠 이름</span>
+                    <span role="columnheader">입력 방식</span>
+                    <span role="columnheader">상태</span>
+                    <span role="columnheader">준비 진행률</span>
+                    <span role="columnheader">오류 내용</span>
+                    <span role="columnheader" class="cam-right">동작</span>
+                </div>
+                <div id="camera-rows" role="rowgroup"></div>
+                <p class="muted cam-empty" id="camera-empty" hidden>등록된 캠이 없습니다. '캠 등록'으로 구역에 캠을 추가하세요.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- SCR-A-007 캠 등록·수정 창(대시보드와 같은 창) -->
+<th:block th:replace="~{fragments/layout :: adminCameraModal}"/>
+
+<!-- FNC-A-023 캠 삭제 확인 창 -->
+<div class="modal-stage cam-modal-stage" id="camera-delete-modal" hidden>
+    <div class="modal cam-modal cam-confirm" role="alertdialog" aria-modal="true" aria-labelledby="camera-delete-title">
+        <div class="modal-head">
+            <h2 id="camera-delete-title">캠 삭제</h2>
+            <button class="icon-btn" type="button" aria-label="닫기" data-delete-close>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="camera-delete-message">이 캠을 삭제할까요? 가동한 적이 있으면 지난 녹화·통계는 남습니다.</p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn secondary" type="button" data-delete-close>취소</button>
+            <button class="btn danger" type="button" id="camera-delete-confirm">삭제</button>
+        </div>
+    </div>
+</div>
+
+<!-- SCR-A-008 실시간 보기 창 -->
+<th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
+
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script type="module" th:src="@{/js/admin/pages/cameras.js}"></script>
+</body>
+</html>

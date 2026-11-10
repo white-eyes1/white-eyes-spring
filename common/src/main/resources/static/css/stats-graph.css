@@ -1,0 +1,74 @@
+/* 통계 그래프(SCR-C-004) 전용 스타일. 공통 색·버튼·입력은 we.css를 쓴다(white-eyes-docs design/screens/SCR-C-004-graph.html에서 옮김) */
+.graph-conditions { padding: 14px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.graph-conditions .input { height: 34px; font-size: 12px; }
+.graph-target, .graph-period, .graph-items { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.graph-target select { max-width: 150px; }
+.graph-target #target-zone { max-width: 210px; } /* '구역 이름 (삭제됨)'이 잘리지 않게 */
+.graph-items { gap: 14px; }
+
+/* 단위 탭 */
+.seg { display: inline-flex; border: 1px solid #253242; border-radius: 8px; overflow: hidden; }
+.seg button { padding: 7px 12px; border: 0; border-right: 1px solid #253242; background: none; color: #9aa7b8; font-size: 12px; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: #1b2a3d; color: #edf2f8; }
+.seg button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* 항목 체크박스: 진짜 체크박스는 숨기고 시안의 네모 표시를 그린다 */
+.ck { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #c3cdd9; cursor: pointer; }
+.ck input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ck i { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid #4a5768; display: inline-block; }
+.ck input:checked + i { background: #356fc9; border-color: #5d95ef; }
+.ck input:focus-visible + i { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.graph-panel { overflow: hidden; }
+.graph-error { margin: 14px 16px 0; }
+.graph-canvas { position: relative; height: 420px; padding: 20px 24px 18px; }
+.graph-empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; }
+.graph-empty[hidden] { display: none; }
+
+/* 하위 비교(FNC-C-014): 그래프 패널 머리 오른쪽 토글과 항목 선택. 토글 모양은 시안의 34×18 스위치 */
+.graph-panel-head { padding: 12px 18px; }
+.compare-controls { display: flex; align-items: center; gap: 12px; }
+.compare-controls .input { height: 30px; font-size: 12px; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #c3cdd9; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch span { width: 34px; height: 18px; border-radius: 9px; background: #2d3b4d; position: relative; display: inline-block; transition: background .15s; }
+.switch span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
+.switch input:checked + span { background: #356fc9; }
+.switch input:checked + span::after { left: 18px; }
+.switch input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.switch input:disabled + span { opacity: .4; }
+.switch:has(input:disabled) { cursor: not-allowed; color: #6b7889; }
+.compare-omitted { padding: 0 24px 16px; font-size: 12px; }
+.compare-omitted[hidden] { display: none; }
+.graph-items.is-disabled { opacity: .45; pointer-events: none; }
+
+/* 단계별 들어가기(FNC-C-013): 이동 경로와 1시간 점 선택 창(시안 SCR-C-004 그래프 패널) */
+.drill-path { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: #8b98a9; }
+.drill-path button { padding: 0; border: 0; background: none; color: #8b98a9; font: inherit; cursor: pointer; }
+.drill-path button:hover { color: #c3cdd9; text-decoration: underline; }
+.drill-path button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.drill-path b { color: #edf2f8; }
+.point-menu { position: absolute; z-index: 5; padding: 10px 12px; border: 1px solid #2d3b4d; border-radius: 8px; background: #0f1720; font-size: 12px; box-shadow: 0 10px 24px rgba(0, 0, 0, .4); }
+.point-menu[hidden] { display: none; }
+.point-menu-actions { display: flex; gap: 6px; margin-top: 8px; }
+.point-menu-actions:empty { display: none; }
+.point-menu .btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+#point-menu-notice { margin-top: 6px; }
+
+/* 통합 그래프 아래 세 칸(결정 0016): 통합 그래프와 같은 폭·간격으로 세로로 잇는다 */
+.graph-panels { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.graph-panels[hidden] { display: none; }
+.graph-sub-head { padding: 12px 18px; }
+.graph-sub-head h2 { font-size: 13px; }
+.graph-sub-head h2 .muted { font-size: 11px; font-weight: 400; margin-left: 6px; }
+.graph-legend { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #8b98a9; }
+.graph-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-left: 8px; }
+.graph-legend .l1 { background: #34a37f; } .graph-legend .l2 { background: #c98a1c; } .graph-legend .l3 { background: #d9475a; }
+.graph-legend .in { background: #a5b4fc; } .graph-legend .out { background: #4f46e5; }
+.graph-legend .congested { background: rgba(239, 77, 85, .35); }
+.graph-sub-label { margin: 10px 24px 0; font-size: 11px; color: #8b98a9; }
+.graph-sub-canvas { position: relative; height: 200px; padding: 10px 24px 14px; }
+.graph-sub-canvas.count { height: 150px; }
+.graph-sub-canvas.flow { height: 300px; }
+.graph-sub-canvas.direction { height: 180px; }

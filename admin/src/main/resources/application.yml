@@ -12,17 +12,67 @@ spring:
   session:
     jdbc:
       table-name: SPRING_SESSION_ADMIN
-      cleanup-cron: 0 * * * * *
+      # 만료 세션 정리는 10분마다(FNC-C-004)
+      cleanup-cron: 0 */10 * * * *
   flyway:
     enabled: true
+    # 표를 만들고 사용자 앱 계정에 권한을 주는 계정(conventions.md 'DB 계정'). 관리자 앱 계정은 데이터 읽기·쓰기만 가진다.
+    # 따로 주지 않으면 관리자 앱 계정을 쓴다(시험 H2)
+    user: ${FLYWAY_DB_USERNAME:${spring.datasource.username}}
+    password: ${FLYWAY_DB_PASSWORD:${spring.datasource.password}}
+    # db/migration: 스키마 / db/regions: 행정구역(FNC-A-012, tools의 region-sql로 만든 반복 마이그레이션)
+    # db/mysql: 사용자 앱 계정 표 권한(afterMigrate, MySQL만)
+    locations: classpath:db/migration,classpath:db/regions,classpath:db/mysql
+    placeholders:
+      user_db_username: ${USER_DB_USERNAME:white_eyes_user}
+      user_db_host: ${USER_DB_HOST:%}
+    # 서버마다 VM이 달라 DB가 늦게 뜰 수 있다(overview.md '서버 환경'). 시작 때 접속을 다시 시도한다
+    connect-retries: 12
+  task:
+    scheduling:
+      # 시간별·일별 집계와 빠진 집계 보충이 길어져도 1분 마감(1초마다)이 밀리지 않게 스레드를 나눈다(FNC-A-028~031)
+      pool:
+        size: 3
 
 server:
   port: 8081
   servlet:
     context-path: /admin
+    session:
+      # 마지막 요청 후 이 시간이 지나면 세션 만료(FNC-C-004, conventions.md 세션 만료)
+      timeout: ${SESSION_TIMEOUT:30m}
+      cookie:
+        name: ADMIN_SESSION
+
+# 최고 관리자 최초 등록용(FNC-A-001). 값은 환경변수로만 준다
+super-admin:
+  login-id: ${SUPER_ADMIN_LOGIN_ID:}
+  initial-password: ${SUPER_ADMIN_INITIAL_PASSWORD:}
+
+# 활동 중 판단 기준 시간(conventions.md '활동 중 판단', FNC-A-002)
+account:
+  active-window: ${ACTIVE_WINDOW:30m}
+
+# 오래된 데이터 보관 일수(conventions.md, FNC-A-032)
+retention:
+  stat-minute-days: ${STAT_MINUTE_RETENTION_DAYS:90}
+  recording-days: ${RECORDING_RETENTION_DAYS:30}
 
 management:
   endpoints:
     web:
       exposure:
         include: health
+
+analyzer:
+  base-url: ${ANALYZER_BASE_URL}
+
+internal-api:
+  token: ${INTERNAL_API_TOKEN}
+  # 내부 통신 포트. 이 포트에는 /internal/** 만 연결한다(FNC-C-003, conventions.md '모듈·포트')
+  port: 8082
+
+# 실시간 통계 갱신(FNC-C-022): 앱마다 5초에 한 번 최신 1분 통계 시각을 확인해 SSE로 보낸다
+stats:
+  stream:
+    auto-poll: true
