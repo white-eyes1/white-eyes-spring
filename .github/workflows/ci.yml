@@ -16,6 +16,9 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          # 기본값은 기본 브랜치(main)에서만 캐시를 저장한다. dev·main push가 저장하고, dev 대상 PR은 그 캐시를 읽는다
+          cache-read-only: ${{ github.event_name != 'push' || (github.ref != 'refs/heads/dev' && github.ref != 'refs/heads/main') }}
       # Java 형식 검사(spotlessCheck)는 build가 함께 돌린다(code-conventions.md 3-1)
       - run: ./gradlew build
       # 화면 JS 형식·검사(code-conventions.md 5-1). 도구 버전은 package-lock.json에 고정
