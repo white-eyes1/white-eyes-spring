@@ -5,6 +5,17 @@ White Eyes의 **사용자 앱과 관리자 앱**(Spring Boot). 통계를 보여�
 > 프로젝트 전체 소개: [white-eyes-introduce](https://github.com/white-eyes1/white-eyes-introduce) · 명세: [white-eyes-docs](https://github.com/white-eyes1/white-eyes-docs) · 분석 서버: [white-eyes-flask](https://github.com/white-eyes1/white-eyes-flask) · 전체 실행: [white-eyes-deploy](https://github.com/white-eyes1/white-eyes-deploy)
 
 
+## 목차
+- [구성](#구성)
+- [주요 기능](#주요-기능)
+- [화면](#화면)
+- [분석 서버와의 연결](#분석-서버와의-연결)
+- [데이터 구조](#데이터-구조)
+- [기술 스택](#기술-스택)
+- [시작하기](#시작하기)
+- [협업 규칙](#협업-규칙)
+- [관련 저장소](#관련-저장소)
+
 ## 구성
 
 | 모듈 | 역할 | 포트 |
@@ -14,7 +25,7 @@ White Eyes의 **사용자 앱과 관리자 앱**(Spring Boot). 통계를 보여�
 | `admin` | 관리자 앱(운영·수집). 계정·구역·캠 관리, 캠 가동·정지(분석 서버에 지시), 분석 결과 수신·집계, 이벤트 판정·처리, 영상 권한 확인, **예약 작업과 Flyway는 여기서만** | 웹 8081, 내부 API 8082 |
 | `tools` | 개발·시연용 명령줄 도구(행정구역 SQL 생성, 시연용 통계 생성·삭제). 운영 이미지에는 넣지 않는다 | - |
 
-두 앱으로 나눈 이유는 장애·배포 분리, 관리 기능을 외부 공개 앱에서 떼어내는 보안, 사용자 트래픽과 수집·집계의 부하 분리다. 예약 작업과 DB 마이그레이션을 두 앱에 모두 두면 중복 실행되므로 관리자 앱에서만 돈다.
+앱을 둘로 나눈 데에는 이유가 있다. 장애와 배포를 따로 가져가고, 관리 기능을 외부에 공개하는 앱에서 떼어내 보안을 챙기고, 사용자 트래픽과 수집·집계 부하를 갈라놓기 위해서다. 예약 작업과 DB 마이그레이션은 두 앱에 모두 두면 중복 실행되기 때문에 관리자 앱에서만 돌린다.
 
 ```
 white-eyes-spring
@@ -54,16 +65,24 @@ white-eyes-spring
 |---|---|
 | ![관리자 앱 구역 관리](docs/images/admin-zones.png) | ![관리자 앱 캠 관리](docs/images/admin-cameras.png) |
 
-> white-eyes-deploy의 `docker compose`로 직접 띄워 캡처했다. 통계 그래프에는 시연용 데이터가 포함되어 있다(화면에도 표시됨). 분석 영상의 원본 장면은 싣지 않았다.
+> white-eyes-deploy의 `docker compose`로 직접 띄워서 캡처했다. 통계 그래프에는 시연용 데이터가 들어 있고, 화면에도 그렇게 표시된다. 분석 영상의 원본 장면은 싣지 않았다.
 
 ## 분석 서버와의 연결
 
-관리자 앱이 분석 서버([white-eyes-flask](https://github.com/white-eyes1/white-eyes-flask))와 HTTP로만 통신한다. 서로의 코드를 가져다 쓰지 않는다. 계약은 [api/analyzer.md](https://github.com/white-eyes1/white-eyes-docs/blob/main/api/analyzer.md)이다.
+![서비스 구성도](docs/images/architecture.png)
+
+관리자 앱은 분석 서버([white-eyes-flask](https://github.com/white-eyes1/white-eyes-flask))와 HTTP로만 통신하고, 서로의 코드는 가져다 쓰지 않는다. 주고받는 내용은 [api/analyzer.md](https://github.com/white-eyes1/white-eyes-docs/blob/main/api/analyzer.md)에 정해 두었다.
 
 | 방향 | 내용 |
 |---|---|
 | 관리자 앱 → 분석 서버 | 캠 분석 시작·정지 지시 |
-| 분석 서버 → 관리자 앱 | 분석 결과(1초마다), 캠 상태, 녹화 등록, 다시 켜졌을 때 '가동 중이어야 하는 캠' 목록 조회 |
+| 분석 서버 → 관리자 앱 | 분석 결과(1초마다), 캠 상태, 녹화 등록, 다시 켜졌을 때 '가동 중인 캠' 목록 조회 |
+
+## 데이터 구조
+
+![ERD](docs/images/erd.png)
+
+테이블 구조와 관계를 주요 칼럼만 추려 그렸다. 칼럼 전체는 [tables.md](https://github.com/white-eyes1/white-eyes-docs/blob/main/tables.md)에 있다.
 
 ## 기술 스택
 
@@ -81,7 +100,7 @@ white-eyes-spring
 
 ## 시작하기
 
-전체를 한 번에 띄우려면 [white-eyes-deploy](https://github.com/white-eyes1/white-eyes-deploy)의 `docker compose up -d --build`가 가장 쉽다. 아래는 앱을 직접 띄우는 개발용 방법이다.
+전체를 한 번에 띄우려면 [white-eyes-deploy](https://github.com/white-eyes1/white-eyes-deploy)에서 `docker compose up -d --build`를 하는 것이 가장 쉽다. 아래는 앱만 직접 띄워 개발할 때의 방법이다.
 
 ### 준비
 - JDK 17, (화면 JS 검사용) Node 22
