@@ -31,9 +31,13 @@ import com.whiteeyes.common.security.LoginAccount;
 @RequiredArgsConstructor
 public class ForceLogoutService {
 
+    // 사용자 계정 조회
     private final UserAccountRepository userAccountRepository;
+    // 관리자 계정 조회
     private final AdminAccountRepository adminAccountRepository;
+    // 세션 삭제·개수 확인
     private final AccountSessionService accountSessionService;
+    // 로그인한 관리자 확인과 작업 기록 저장
     private final AdminWorkRecorder workRecorder;
 
     /** 사용자의 세션을 모두 지운다. 세션이 없어도 200(0건)이고 작업 기록은 남긴다. */
@@ -41,6 +45,7 @@ public class ForceLogoutService {
     public ForceLogoutResponse logoutUser(Long userId) {
         // 로그인하지 않은 요청은 세션을 지우기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
+        // 처리 순서 1: 대상 사용자 확인(없으면 404). 상태와 관계없이 세션만 지우므로 행 잠금은 쓰지 않는다
         UserAccount user = userAccountRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
         // 처리 순서 2: 사용자 앱 세션 표에서 login_id로 찾아 모두 삭제
@@ -65,6 +70,7 @@ public class ForceLogoutService {
         if (actor.accountId().equals(adminId)) {
             throw new ForceLogoutSelfException();
         }
+        // 처리 순서 1: 대상 관리자 확인(없으면 404)
         AdminAccount admin =
                 adminAccountRepository.findById(adminId).orElseThrow(() -> new AdminNotFoundException(adminId));
 

@@ -28,13 +28,16 @@ import com.whiteeyes.common.camera.service.ZoneCameraService;
 @RequiredArgsConstructor
 public class PlaybackFindService {
 
+    // 응답 시각에 붙일 한국 시간 오프셋(+09:00). DB 시각은 오프셋 없이 KST로 저장돼 있다.
     private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
     // 이어 재생(FNC-A-045): 다음 녹화가 현재 녹화 끝보다 이만큼까지 앞서 시작해도 이어지는 것으로 보고, 이 시간보다 많이 비면 끝낸다
     private static final Duration CONTINUE_OVERLAP = Duration.ofSeconds(2);
     private static final Duration CONTINUE_MAX_GAP = Duration.ofSeconds(10);
 
+    // 구역에 속한 캠 ID를 알려 주는 서비스(삭제된 캠 포함).
     private final ZoneCameraService zoneCameraService;
     private final RecordingRepository recordingRepository;
+    // 녹화 보관 기간(일) 설정.
     private final RetentionProperties retentionProperties;
 
     /**
@@ -53,10 +56,12 @@ public class PlaybackFindService {
             throw new RecordingExpiredException();
         }
         // 처리 순서 2·3: 구역의 캠(삭제 포함) 녹화 중 at을 포함하고 started_at이 가장 늦은 것
+        // 구역의 캠으로 녹화를 찾는다. 캠이 삭제됐어도 과거 녹화는 볼 수 있어야 해서 삭제된 캠도 포함한다.
         List<Long> cameraIds = zoneCameraService.findCameraIdsInZone(zoneId);
         if (cameraIds.isEmpty()) {
             throw new RecordingNotFoundException();
         }
+        // at 시각을 품은 녹화 중 가장 늦게 시작한 한 건.
         Optional<Recording> containing = recordingRepository.findContaining(cameraIds, at, Limit.of(1)).stream()
                 .findFirst();
         if (containing.isPresent()) {
@@ -67,6 +72,7 @@ public class PlaybackFindService {
         }
         // 분 시작 시각(이벤트 시작·1분 통계 점)은 그 1분 전체를 뜻한다. 그 1분 안에서 녹화가 시작했으면(캠 가동 직후)
         // 가장 이른 녹화의 처음으로 보낸다(#260). 분 중간 시각은 이 규칙을 쓰지 않아 녹화 없는 구간은 '영상 없음'이다
+        // 초·나노가 0이면 '분 시작 시각'으로 보고, 그 1분 안에서 시작한 녹화를 찾아 준다.
         if (at.getSecond() == 0 && at.getNano() == 0) {
             Recording startedInMinute =
                     recordingRepository.findStartedBetween(cameraIds, at, at.plusMinutes(1), Limit.of(1)).stream()
@@ -106,10 +112,13 @@ public class PlaybackFindService {
      */
     @Transactional(readOnly = true)
     public PlaybackResponse findNext(Long recordingId, String basePath) {
+        // 기준이 되는 현재 녹화.
         Recording current = recordingRepository.findById(recordingId).orElseThrow(RecordingNotFoundException::new);
+        // 종료 시각이 없는 녹화는 아직 끝나지 않아 이어질 녹화가 없다.
         if (current.getEndedAt() == null) {
             throw new NextRecordingNotFoundException();
         }
+        // 현재 녹화가 끝나기 2초 전 이후에 시작한 같은 캠의 가장 이른 녹화를 후보로 잡는다(조각 사이의 시각이 약간 겹치거나 어긋나도 이어 보기 위함).
         Recording next = recordingRepository
                 .findFollowing(
                         current.getCameraId(),
@@ -118,12 +127,14 @@ public class PlaybackFindService {
                         Limit.of(1))
                 .stream()
                 .findFirst()
+                // 후보가 현재 녹화 끝보다 10초를 넘게 뒤에 시작하면 사이에 영상이 빈 것이므로 이어지지 않는다고 본다.
                 .filter(candidate ->
                         !candidate.getStartedAt().isAfter(current.getEndedAt().plus(CONTINUE_MAX_GAP)))
                 .orElseThrow(NextRecordingNotFoundException::new);
         return toResponse(next, 0, basePath);
     }
 
+    /** 녹화를 응답으로 바꾼다. 파일 경로 대신 녹화 ID 기반 주소(영상·좌표)를 만들어 내려, 서버 파일 경로가 노출되지 않게 한다. */
     private PlaybackResponse toResponse(Recording recording, double seekSec, String basePath) {
         String recordingPath = basePath + "/api/v1/recordings/" + recording.getId();
         return new PlaybackResponse(
@@ -135,6 +146,7 @@ public class PlaybackFindService {
                 toOffset(recording.getEndedAt()));
     }
 
+    /** 시각에 한국 오프셋을 붙인다. 진행 중 녹화의 종료 시각(null)은 그대로 null. */
     private OffsetDateTime toOffset(LocalDateTime time) {
         return time == null ? null : time.atOffset(KST_OFFSET);
     }

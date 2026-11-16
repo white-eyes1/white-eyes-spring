@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 /**
  * 구역별 시간별 통계(tables.md 'zone_stat_hourly'). 관리자 앱이 정시 직후 1분 통계를 묶어 저장한다(FNC-A-029).
  */
+// 시간별 통계 테이블과 매핑되는 엔티티. 키는 (zone_id, stat_at) 복합 키라 @IdClass를 쓴다
 @Entity
 @Table(name = "zone_stat_hourly")
 @IdClass(ZoneStatHourlyId.class)
@@ -26,6 +27,7 @@ public class ZoneStatHourly extends ZoneStatRollup {
     @Column(name = "stat_at")
     private LocalDateTime statAt;
 
+    // 공통 칼럼은 부모(ZoneStatRollup)가 채우고, 시간별만의 키 칼럼(구간 시작 시각)을 여기서 채운다
     public ZoneStatHourly(Long zoneId, LocalDateTime statAt, StatValues values, boolean demo) {
         super(zoneId, values, demo);
         this.statAt = statAt;

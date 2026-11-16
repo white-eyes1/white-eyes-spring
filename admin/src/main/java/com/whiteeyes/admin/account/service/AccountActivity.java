@@ -8,4 +8,5 @@ import java.time.LocalDateTime;
  * @param lastActiveAt 최근 활동 시각(KST). 세션도 로그인 기록도 없으면 null
  * @param active 세션이 있고 그 마지막 접근 시각이 활동 중 판단 기준 시간 안이면 true(세션이 없으면 false)
  */
+// AccountActivities.activityOf가 계산해 돌려주는 결과 값
 public record AccountActivity(LocalDateTime lastActiveAt, boolean active) {}

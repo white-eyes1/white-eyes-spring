@@ -6,6 +6,7 @@ import com.whiteeyes.common.exception.ErrorCode;
 /** 같은 login_id의 관리자 계정이 이미 있다(FNC-A-009, 409 DUPLICATE_LOGIN_ID). 사용자 계정 아이디와는 별개로 본다. */
 public class DuplicateAdminLoginIdException extends BusinessException {
 
+    /** 서비스가 미리 중복을 확인해서 발견했을 때 쓴다. */
     public DuplicateAdminLoginIdException() {
         super(ErrorCode.DUPLICATE_LOGIN_ID);
     }

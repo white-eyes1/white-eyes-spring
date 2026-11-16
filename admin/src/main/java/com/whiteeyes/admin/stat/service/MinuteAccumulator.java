@@ -16,15 +16,20 @@ import java.util.TreeMap;
  */
 public class MinuteAccumulator {
 
+    // 어느 구역의 누적기인지
     private final long zoneId;
+    // 어느 1분 구간(초가 0인 시작 시각)인지
     private final LocalDateTime minute;
+    // 초 → 그 초의 결과. 같은 초가 다시 오면 덮어쓰고, TreeMap이라 항상 시간 순으로 꺼낼 수 있다
     private final TreeMap<LocalDateTime, SecondResult> resultsBySecond = new TreeMap<>();
 
+    /** 저장소(MinuteAccumulatorStore)만 만들 수 있게 같은 패키지 안에서만 호출한다. */
     MinuteAccumulator(long zoneId, LocalDateTime minute) {
         this.zoneId = zoneId;
         this.minute = minute;
     }
 
+    /** 이 누적기가 속한 구역 번호. */
     public long getZoneId() {
         return zoneId;
     }
@@ -39,18 +44,21 @@ public class MinuteAccumulator {
         return resultsBySecond.values().stream().map(SecondResult::personCount).toList();
     }
 
+    /** 그 분에 들어온 인원의 방향별 합계(초별 in을 모두 더한다). */
     public DirectionCounts getInTotal() {
         return resultsBySecond.values().stream()
                 .map(SecondResult::in)
                 .reduce(DirectionCounts.ZERO, DirectionCounts::plus);
     }
 
+    /** 그 분에 나간 인원의 방향별 합계(초별 out을 모두 더한다). */
     public DirectionCounts getOutTotal() {
         return resultsBySecond.values().stream()
                 .map(SecondResult::out)
                 .reduce(DirectionCounts.ZERO, DirectionCounts::plus);
     }
 
+    /** 그 분에 들어온 체류 시간(초)을 모두 더한 값. */
     public double getDwellSumSec() {
         return resultsBySecond.values().stream()
                 .flatMap(result -> result.dwellSec().stream())
@@ -58,6 +66,7 @@ public class MinuteAccumulator {
                 .sum();
     }
 
+    /** 그 분에 들어온 체류 시간 항목의 개수(평균 체류 시간의 분모). */
     public int getDwellCount() {
         return resultsBySecond.values().stream()
                 .mapToInt(result -> result.dwellSec().size())
@@ -74,6 +83,7 @@ public class MinuteAccumulator {
         return Optional.ofNullable(resultsBySecond.lastEntry());
     }
 
+    /** 그 초의 결과를 넣는다. 같은 초가 이미 있으면 덮어쓴다(재전송 대응). 호출은 저장소의 잠금 안에서만 한다. */
     void put(LocalDateTime second, SecondResult result) {
         resultsBySecond.put(second, result);
     }

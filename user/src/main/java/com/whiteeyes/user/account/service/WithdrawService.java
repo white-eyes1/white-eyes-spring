@@ -30,8 +30,10 @@ public class WithdrawService {
     // DB에는 한국 시간(KST)으로 저장한다(conventions.md '시각 형식')
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
+    // 계정 조회·잠금, 비밀번호 비교, 세션 정리에 필요한 협력 객체들.
     private final UserAccountRepository userAccountRepository;
     private final PasswordEncoder passwordEncoder;
+    // 로그인 아이디(principal name)로 그 계정의 모든 세션을 찾는 Spring Session 저장소.
     private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
     private final LoginAccountResolver loginAccountResolver;
 
@@ -44,20 +46,27 @@ public class WithdrawService {
      */
     @Transactional
     public void withdraw(String password, String currentSessionId) {
+        // 지금 로그인한 계정을 얻는다. 로그인하지 않았으면 여기서 401 예외가 난다.
         LoginAccount account = loginAccountResolver.require();
+        // 행을 잠그고(FOR UPDATE) 읽는다. 같은 계정의 탈퇴 요청이 동시에 두 번 들어와도 한 번씩 차례로 처리된다.
         UserAccount user = userAccountRepository
                 .findByIdForUpdate(account.accountId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
         // 처리 순서 1: 비밀번호 확인
+        // 입력한 평문과 저장된 해시를 비교한다. 틀리면 탈퇴하지 않는다.
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BusinessException(ErrorCode.WRONG_PASSWORD);
         }
         // 처리 순서 2: status=WITHDRAWN, withdrawn_at=현재 시각
+        // 행을 삭제하지 않고 상태만 바꾼다. 시각은 DB 규칙대로 KST다.
         user.withdraw(LocalDateTime.now(KST));
         // 처리 순서 3: 이 계정의 모든 세션 삭제(지금 세션은 컨트롤러가 무효화)
+        // 끝낸 세션 수(로그 출력용).
         int ended = 0;
+        // 세션 저장소는 로그인 아이디를 키로 이 계정의 모든 세션을 돌려준다(기기 여러 대에서 로그인한 경우 포함).
         for (String sessionId :
                 sessionRepository.findByPrincipalName(user.getLoginId()).keySet()) {
+            // 지금 세션은 건너뛴다. 여기서 지우면 요청 끝에 Spring Session이 다시 저장해 되살아나므로 컨트롤러가 invalidate한다.
             if (!sessionId.equals(currentSessionId)) {
                 sessionRepository.deleteById(sessionId);
                 ended++;

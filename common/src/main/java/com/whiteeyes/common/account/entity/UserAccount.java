@@ -19,44 +19,57 @@ import org.hibernate.generator.EventType;
 /**
  * 사용자 계정(tables.md user_account). 탈퇴해도 행을 지우지 않고 status만 WITHDRAWN으로 바꾼다.
  */
+// JPA 엔티티. user_account 테이블 한 행에 대응한다
 @Entity
 @Table(name = "user_account")
 @Getter
+// JPA가 쓰는 기본 생성자만 열어 두고(protected), 만들 때는 createPending 같은 정적 메서드를 쓰게 한다
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserAccount {
 
+    // 기본키. DB의 자동 증가 값(IDENTITY)을 쓴다
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 로그인 아이디. 중복 불가이며 탈퇴해도 행이 남아 같은 아이디로 다시 가입할 수 없다
     @Column(name = "login_id", nullable = false, length = 20, unique = true)
     private String loginId;
 
+    // bcrypt 해시 문자열(60자). 평문은 저장하지 않는다
     @Column(nullable = false, length = 60)
     private String password;
 
+    // 이름
     @Column(nullable = false, length = 50)
     private String name;
 
+    // 메일. 선택 값이라 null 허용
     @Column(length = 100)
     private String email;
 
+    // 연락처. 선택 값이라 null 허용
     @Column(length = 20)
     private String phone;
 
+    // 계정 상태. 숫자 순서가 아니라 이름 문자열로 저장해 enum 순서를 바꿔도 데이터가 깨지지 않는다
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserAccountStatus status;
 
+    // 1이면 다음에 비밀번호를 바꿔야만 서비스를 쓸 수 있다(관리자 재설정 직후)
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    // 마지막 로그인 성공 시각
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    // 탈퇴 처리한 시각. 탈퇴하지 않았으면 null
     @Column(name = "withdrawn_at")
     private LocalDateTime withdrawnAt;
 
+    // 아래 두 시각 칸은 insertable·updatable=false로 JPA가 값을 쓰지 않고, @Generated로 INSERT·UPDATE 뒤에 DB가 채운 값을 읽어 온다
     // DB 기본값(CURRENT_TIMESTAMP)이 채운다.
     @Generated(event = EventType.INSERT)
     @Column(name = "created_at", insertable = false, updatable = false)
@@ -72,6 +85,7 @@ public class UserAccount {
      *
      * @param encodedPassword bcrypt로 암호화한 비밀번호
      */
+    // 새 계정 객체를 만들고 칸을 채운다. 가입 직후라 승인 대기 상태이고 비밀번호 변경 강제는 꺼 둔다
     public static UserAccount createPending(
             String loginId, String encodedPassword, String name, String email, String phone) {
         UserAccount account = new UserAccount();
@@ -80,6 +94,7 @@ public class UserAccount {
         account.name = name;
         account.email = email;
         account.phone = phone;
+        // 관리자가 승인(approve)하기 전까지는 로그인할 수 없는 상태다
         account.status = UserAccountStatus.PENDING;
         account.mustChangePassword = false;
         return account;
@@ -91,6 +106,7 @@ public class UserAccount {
      * @param encodedPassword bcrypt로 암호화한 비밀번호
      */
     public void changePassword(String encodedPassword) {
+        // 해시로 교체하고, 아래에서 변경 강제를 끈다(스스로 바꿨으므로 더는 강제할 이유가 없다)
         this.password = encodedPassword;
         this.mustChangePassword = false;
     }
@@ -108,6 +124,7 @@ public class UserAccount {
      * @param encodedPassword bcrypt로 암호화한 임시 비밀번호
      */
     public void resetPassword(String encodedPassword) {
+        // 관리자가 정한 임시 비밀번호로 교체하고, 아래에서 변경 강제를 켜 사용자가 곧바로 자기 비밀번호로 바꾸게 한다
         this.password = encodedPassword;
         this.mustChangePassword = true;
     }

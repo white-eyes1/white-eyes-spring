@@ -30,10 +30,12 @@ import com.whiteeyes.common.level.service.CongestionLevel;
  */
 public class EventExcelWriter implements AutoCloseable {
 
+    // 시트 이름(테스트·다른 클래스에서 참조)
     public static final String SHEET_NAME = "이벤트";
 
     // 메모리에 둘 행 수(SXSSF 기본값)
     private static final int WINDOW_SIZE = 100;
+    // 첫 행의 열 제목. 인덱스가 append()에서 쓰는 열 번호와 같다(0~16)
     private static final String[] HEADERS = {
         "발생 시각",
         "종료 시각",
@@ -53,7 +55,9 @@ public class EventExcelWriter implements AutoCloseable {
         "처리자",
         "처리 일시"
     };
+    // 진행 중 이벤트의 종료 시각 칸에 쓰는 글자
     private static final String ONGOING_TEXT = "진행 중";
+    // 지속 시간을 초에서 분으로 바꿀 때 나누는 수
     private static final int SECONDS_PER_MINUTE = 60;
 
     // 화면 표시 이름(conventions.md 코드 값)
@@ -61,6 +65,7 @@ public class EventExcelWriter implements AutoCloseable {
             Map.of(EventType.CONGESTION, "혼잡", EventType.SURGE, "급증", EventType.CAM_FAULT, "캠 이상");
     private static final Map<EventStatus, String> STATUS_LABELS =
             Map.of(EventStatus.UNCHECKED, "미확인", EventStatus.CHECKED, "확인 중", EventStatus.RESOLVED, "조치완료");
+    // 조치 코드 -> 화면에 보이는 이름. 목록에 없는 코드는 코드 그대로 쓴다
     private static final Map<String, String> ACTION_LABELS = Map.of(
             "ONSITE_OK", "현장 확인·정상",
             "STAFF", "인력 배치",
@@ -68,17 +73,23 @@ public class EventExcelWriter implements AutoCloseable {
             "CAM_CHECK", "캠 점검 요청",
             "OTHER", "기타");
 
+    // 스트리밍 방식 엑셀. 행을 WINDOW_SIZE개까지만 메모리에 두어 건수가 많아도 메모리를 아낀다
     private final SXSSFWorkbook workbook = new SXSSFWorkbook(WINDOW_SIZE);
     private final SXSSFSheet sheet;
+    // 셀 서식은 워크북에 개수 제한이 있어 열 종류별로 한 번만 만들어 모든 행이 공유한다: 시각, 분(소수 1자리), 값(소수 최대 4자리)
     private final CellStyle timeStyle;
     private final CellStyle minuteStyle;
     private final CellStyle valueStyle;
+    // 다음에 쓸 행 번호. 0행은 머리글이라 1부터 시작
     private int nextRow = 1;
 
+    // 생성 시 시트와 머리글을 한 번 만든다
     public EventExcelWriter() {
+        // 디스크로 내린 임시 파일을 압축해 용량을 줄인다
         workbook.setCompressTempFiles(true);
         sheet = workbook.createSheet(SHEET_NAME);
 
+        // 서식 문자열을 셀 서식으로 등록
         DataFormat format = workbook.createDataFormat();
         timeStyle = workbook.createCellStyle();
         timeStyle.setDataFormat(format.getFormat("yyyy-mm-dd hh:mm"));
@@ -87,10 +98,12 @@ public class EventExcelWriter implements AutoCloseable {
         valueStyle = workbook.createCellStyle();
         valueStyle.setDataFormat(format.getFormat("#,##0.00##"));
 
+        // 머리글은 굵게
         CellStyle headerStyle = workbook.createCellStyle();
         Font bold = workbook.createFont();
         bold.setBold(true);
         headerStyle.setFont(bold);
+        // 머리글 행 작성
         Row header = sheet.createRow(0);
         for (int column = 0; column < HEADERS.length; column++) {
             header.createCell(column).setCellValue(HEADERS[column]);
@@ -98,27 +111,34 @@ public class EventExcelWriter implements AutoCloseable {
             // 스트리밍 시트는 자동 너비를 쓸 수 없어 고정 너비(글자 수 × 256)
             sheet.setColumnWidth(column, widthOf(column) * 256);
         }
+        // 머리글 행을 고정해 스크롤해도 보이게 한다
         sheet.createFreezePane(0, 1);
     }
 
     /** 이벤트 한 건을 한 행으로 쓴다. 부르는 순서가 행 순서다. */
     public void append(EventExportRow exportRow) {
+        // 행 하나 = 이벤트 한 건. 열 번호는 HEADERS 순서와 같다
         EventListItem item = exportRow.item();
         Row row = sheet.createRow(nextRow++);
+        // 0 발생 시각
         setTime(row, 0, item.startedAt().toLocalDateTime());
+        // 1 종료 시각. 진행 중이면 시각 대신 글자
         if (item.ongoing() || item.endedAt() == null) {
             setText(row, 1, ONGOING_TEXT);
         } else {
             setTime(row, 1, item.endedAt().toLocalDateTime());
         }
+        // 2 지속 시간을 분 단위로 환산(소수 유지)
         row.createCell(2).setCellValue((double) item.durationSec() / SECONDS_PER_MINUTE);
         row.getCell(2).setCellStyle(minuteStyle);
+        // 3 종류, 4~6 시·도/시·군·구/읍·면·동, 7 구역, 8 최고 단계
         setText(row, 3, TYPE_LABELS.getOrDefault(item.type(), item.type().name()));
         setText(row, 4, exportRow.sido());
         setText(row, 5, exportRow.sigungu());
         setText(row, 6, exportRow.emd());
         setText(row, 7, item.zoneName());
         setText(row, 8, levelName(item.peakLevel()));
+        // 9 최고 인원(캠 이상은 null이라 비운다)
         if (item.peakCount() != null) {
             row.createCell(9).setCellValue(item.peakCount());
         }
@@ -128,6 +148,7 @@ public class EventExcelWriter implements AutoCloseable {
         } else if (item.type() == EventType.SURGE) {
             setNumber(row, 11, item.peakValue());
         }
+        // 12 처리 상태, 13~14 조치 항목·메모, 15 처리자, 16 처리 일시. 처리 전이면 비워 둔다
         setText(row, 12, STATUS_LABELS.getOrDefault(item.status(), item.status().name()));
         setText(row, 13, actionLabel(exportRow.actionCode()));
         setText(row, 14, exportRow.actionNote());
@@ -138,22 +159,26 @@ public class EventExcelWriter implements AutoCloseable {
     }
 
     /** 다 쓴 파일을 내보낸다. */
+    // 워크북을 출력 스트림에 쓴다(이때 임시 파일의 행이 합쳐진다)
     public void writeTo(OutputStream out) throws IOException {
         workbook.write(out);
     }
 
     /** 임시 파일을 지운다. */
     @Override
+    // 닫고(dispose) 임시 파일을 지운다. try-with-resources에서 자동 호출된다
     public void close() throws IOException {
         workbook.close();
         workbook.dispose();
     }
 
+    /** 시각 셀을 쓰고 날짜·시각 서식을 입힌다. */
     private void setTime(Row row, int column, LocalDateTime time) {
         row.createCell(column).setCellValue(time);
         row.getCell(column).setCellStyle(timeStyle);
     }
 
+    /** 숫자 셀을 쓴다. 값이 없으면 칸을 비워 둔다(0과 구분). */
     private void setNumber(Row row, int column, BigDecimal value) {
         if (value != null) {
             row.createCell(column).setCellValue(value.doubleValue());
@@ -161,12 +186,14 @@ public class EventExcelWriter implements AutoCloseable {
         }
     }
 
+    /** 글자 셀을 쓴다. null이면 칸을 비워 둔다. */
     private static void setText(Row row, int column, String text) {
         if (text != null) {
             row.createCell(column).setCellValue(text);
         }
     }
 
+    /** 단계 번호를 단계 이름으로 바꾼다. 모르는 번호면 숫자를 그대로 쓴다. */
     private static String levelName(Integer level) {
         if (level == null) {
             return null;
@@ -178,10 +205,12 @@ public class EventExcelWriter implements AutoCloseable {
                 .orElse(String.valueOf(level));
     }
 
+    /** 조치 코드를 화면 이름으로 바꾼다. 없으면 null, 모르는 코드면 코드 그대로. */
     private static String actionLabel(String actionCode) {
         return actionCode == null ? null : ACTION_LABELS.getOrDefault(actionCode, actionCode);
     }
 
+    /** 열 너비(글자 수). 시각·메모·밀집도처럼 긴 열만 넓게, 나머지는 14. */
     private static int widthOf(int column) {
         return switch (column) {
             case 0, 1, 16 -> 18;

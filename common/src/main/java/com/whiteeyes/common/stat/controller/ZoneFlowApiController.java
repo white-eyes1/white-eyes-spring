@@ -18,14 +18,17 @@ import com.whiteeyes.common.stat.service.ZoneFlowService;
 @RequiredArgsConstructor
 public class ZoneFlowApiController {
 
+    // 이동 흐름 계산은 서비스가 맡는다
     private final ZoneFlowService zoneFlowService;
 
     // 권한 '사용자 이상'은 접근 권한 검사(FNC-C-003)의 공통 규칙으로 붙는다.
     // common은 -parameters 없이 컴파일되므로 요청 값 이름을 애너테이션에 적는다
+    /** 기간 동안 구역에서 나간 인원을 방향(N·E·S·W)별로 모아, 어느 구역으로 이동했는지와 함께 돌려준다 */
     @GetMapping("/api/v1/map/flows")
     public List<ZoneFlowItem> getFlows(
             @RequestParam("regionId") long regionId, @RequestParam("from") String from, @RequestParam("to") String to)
             throws BindException {
+        // 시각은 문자열로 받아 ZoneFlowRequest.parse가 읽고 검사한다
         return zoneFlowService.findFlows(ZoneFlowRequest.parse(regionId, from, to));
     }
 }

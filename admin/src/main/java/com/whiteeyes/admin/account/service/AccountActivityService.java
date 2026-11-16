@@ -18,8 +18,11 @@ import com.whiteeyes.admin.account.repository.SessionActivityRepository.SessionT
 @RequiredArgsConstructor
 public class AccountActivityService {
 
+    // 세션 표에서 마지막 접근 시각을 읽는 저장소
     private final SessionActivityRepository sessionActivityRepository;
+    // 활동 중으로 보는 기준 시간 설정(기본 30분)
     private final ActiveWindowProperties activeWindowProperties;
+    // 현재 시각과 시간대를 주는 시계. 시스템 시각을 직접 부르지 않고 주입받는다
     private final Clock clock;
 
     /**
@@ -28,7 +31,9 @@ public class AccountActivityService {
      * @param table 사용자 목록은 USER, 관리자 목록은 ADMIN
      */
     public AccountActivities loadActivities(SessionTable table, Collection<String> loginIds) {
+        // 지금에서 기준 시간을 뺀 시각. 이 이후에 접근한 계정이 활동 중이다
         LocalDateTime activeSince = LocalDateTime.now(clock).minus(activeWindowProperties.activeWindow());
+        // 목록 전체 아이디의 세션을 한 번에 읽어 계산 도구에 담아 돌려준다
         return new AccountActivities(
                 sessionActivityRepository.findLastAccessTimes(table, loginIds), clock.getZone(), activeSince);
     }

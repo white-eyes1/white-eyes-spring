@@ -20,7 +20,14 @@ public class CameraSourceUriValidator {
     private static final String DUMMY_SUFFIX = ".mp4";
     private static final String PARENT_PATH = "..";
 
+    /**
+     * 입력 방식에 맞게 영상 주소를 검사하고, 규칙을 어기면 InvalidSourceUriException을 던진다.
+     *
+     * @param sourceType 입력 방식(LIVE 또는 DUMMY)
+     * @param sourceUri 공백을 지운 영상 주소
+     */
     public void validate(CameraSourceType sourceType, String sourceUri) {
+        // DB 컬럼 길이(255)를 넘기 전에 막는다. 요청 DTO에서도 길이를 보지만 수정 요청 등은 여기서 한 번 더 확인한다.
         if (sourceUri.length() > MAX_LENGTH) {
             throw new InvalidSourceUriException("영상 주소는 " + MAX_LENGTH + "자 이하로 입력해 주세요.");
         }
@@ -31,6 +38,7 @@ public class CameraSourceUriValidator {
                 }
             }
             case DUMMY -> {
+                // 더미는 공유 폴더 안 영상만 허용한다. '..'를 막는 것은 폴더 밖 파일을 가리키는 경로 조작(path traversal)을 막기 위함이다.
                 if (!sourceUri.startsWith(DUMMY_PREFIX)
                         || !sourceUri.endsWith(DUMMY_SUFFIX)
                         || sourceUri.contains(PARENT_PATH)) {

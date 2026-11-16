@@ -29,6 +29,12 @@ public class CameraRegisterService {
     private final AdminWorkRecorder workRecorder;
 
     @Transactional
+    /**
+     * 캠을 등록한다. 한 트랜잭션 안에서 검증·저장·작업 기록을 하므로 어느 하나라도 실패하면 전부 취소된다.
+     *
+     * @param request 구역·이름·입력 방식·영상 주소
+     * @return 등록된 캠(정지 상태)
+     */
     public CameraResponse register(CameraCreateRequest request) {
         // 로그인하지 않은 요청은 캠을 만들기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
@@ -39,6 +45,7 @@ public class CameraRegisterService {
             throw new ZoneHasCameraException(request.zoneId());
         }
         // 처리 순서 3: 영상 주소 규칙 검사
+        // 앞뒤 공백을 지운 값으로 검사하고 저장해, 공백만 다른 주소가 따로 저장되지 않게 한다.
         String sourceUri = request.sourceUri().trim();
         sourceUriValidator.validate(request.sourceType(), sourceUri);
         // 처리 순서 4: 저장(status=STOPPED, run_requested=0은 Camera 생성자가 정한다)

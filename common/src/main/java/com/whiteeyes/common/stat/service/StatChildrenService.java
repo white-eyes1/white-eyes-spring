@@ -40,9 +40,12 @@ public class StatChildrenService {
     public static final int MAX_SERIES = 10;
 
     // 순위 비교에만 쓰는 평균의 자릿수
+    // 평균을 비교용으로만 쓰므로 넉넉하게 6자리로 둔다
     private static final int AVERAGE_SCALE = 6;
 
+    // 상위 지역과 그 하위 단위를 찾을 때 쓴다
     private final RegionQueryService regionQueryService;
+    // 단위별 점을 통계 그래프와 같은 규칙으로 얻으려고 시계열 서비스를 재사용한다
     private final StatSeriesService statSeriesService;
 
     /**
@@ -50,26 +53,34 @@ public class StatChildrenService {
      */
     @Transactional(readOnly = true)
     public StatChildrenResponse findChildren(StatChildrenRequest request) {
+        // 상위 지역을 찾는다. 없으면 404
         Region region = regionQueryService.getRegion(request.regionId());
+        // 읍·면·동이면 하위 단위가 구역이고, 그보다 위면 하위 지역이다
         List<ChildSeries> children =
                 region.getLevel() == RegionLevel.EMD ? zoneChildren(region, request) : regionChildren(region, request);
 
+        // 하위 단위가 10개를 넘으면 인원 평균이 큰 10개만 보여 줄 번호로 고른다
         Set<Long> shown = topByCountAvg(children);
         List<StatChildrenResponse.Series> series = children.stream()
+                // 순위가 아니라 원래 목록 순서를 유지한 채 선택된 것만 남긴다(그래프 색이 순위에 따라 바뀌지 않게)
                 .filter(child -> shown.contains(child.id()))
                 .map(child -> toSeries(child, request.item()))
                 .toList();
+        // 빠진 하위 단위 수를 같이 알려 화면이 '나머지 n개 생략'을 보여 준다
         return new StatChildrenResponse(series, children.size() - series.size());
     }
 
     // 읍·면·동 아래는 구역. 목록·지도처럼 삭제되지 않은 구역만 하위 단위로 본다(통계 엑셀 '구역별 펼치기'와 같은 규칙)
     private List<ChildSeries> zoneChildren(Region dong, StatChildrenRequest request) {
         List<Zone> zones = regionQueryService.findZonesInDongs(List.of(dong.getId())).stream()
+                // 구역을 번호 순으로 고정해 응답 순서가 늘 같게 한다
                 .sorted(Comparator.comparing(Zone::getId))
                 .toList();
+        // 구역이 없으면 빈 IN 쿼리를 피하고 빈 목록으로 끝낸다
         if (zones.isEmpty()) {
             return List.of();
         }
+        // 구역별 점을 한 번에 읽는다(구역마다 조회하지 않는다)
         Map<Long, List<StatSeriesPoint>> pointsByZone = statSeriesService.findZoneSeries(
                 zones.stream().map(Zone::getId).toList(), request.interval(), request.from(), request.to());
         return zones.stream()
@@ -80,6 +91,7 @@ public class StatChildrenService {
     // 하위 지역은 지역 대상 그래프와 같은 계산(소속 구역 합산, 지역 안 이동 제외)
     private List<ChildSeries> regionChildren(Region region, StatChildrenRequest request) {
         List<ChildSeries> result = new ArrayList<>();
+        // 하위 지역마다 지역 대상 시계열(소속 구역 합산, 지역 안 이동 제외)을 구한다
         for (Region child : regionQueryService.findChildRegions(region.getId())) {
             List<StatSeriesPoint> points = statSeriesService
                     .findSeries(new StatSeriesRequest(
@@ -92,9 +104,11 @@ public class StatChildrenService {
 
     // 인원 평균(값이 있는 점의 countAvg 평균)이 큰 순서로 10개. 통계가 전혀 없는 단위는 맨 뒤, 같으면 목록 순서
     private static Set<Long> topByCountAvg(List<ChildSeries> children) {
+        // 10개 이하면 정렬할 필요 없이 모두 보여 준다
         if (children.size() <= MAX_SERIES) {
             return new HashSet<>(children.stream().map(ChildSeries::id).toList());
         }
+        // 평균이 큰 순서. 평균이 null(통계 없음)인 단위는 가장 뒤로 보낸다. 정렬이 안정적이라 같으면 목록 순서가 유지된다
         Comparator<ChildSeries> byAverageDesc = Comparator.comparing(
                 ChildSeries::countAverage, Comparator.nullsLast(Comparator.<BigDecimal>reverseOrder()));
         return new HashSet<>(children.stream()
@@ -104,8 +118,10 @@ public class StatChildrenService {
                 .toList());
     }
 
+    /** 하위 단위의 점들을 응답용 계열로 바꾼다 */
     private static StatChildrenResponse.Series toSeries(ChildSeries child, StatExportItem item) {
         List<StatChildrenResponse.Point> points = child.points().stream()
+                // 점마다 고른 항목 값 하나만 남긴다. 값이 없는 구간은 value가 null로 남아 그래프가 끊긴다
                 .map(point -> new StatChildrenResponse.Point(point.at(), valueOf(point, item)))
                 .toList();
         return new StatChildrenResponse.Series(child.id(), child.name(), points);
@@ -123,6 +139,7 @@ public class StatChildrenService {
     }
 
     private static BigDecimal sum(Map<String, Integer> flow) {
+        // 통계가 없는 점은 방향 정보가 null이므로 합 대신 null로 돌려준다
         return flow == null
                 ? null
                 : BigDecimal.valueOf(
@@ -133,6 +150,7 @@ public class StatChildrenService {
     private record ChildSeries(long id, String name, List<StatSeriesPoint> points) {
 
         // 값이 있는 점이 없으면 null
+        // 순위 매기는 데 쓰는 평균. 값이 있는 점끼리만 평균을 낸다(통계 없는 구간이 평균을 낮추지 않게)
         BigDecimal countAverage() {
             List<BigDecimal> values = points.stream()
                     .map(StatSeriesPoint::countAvg)

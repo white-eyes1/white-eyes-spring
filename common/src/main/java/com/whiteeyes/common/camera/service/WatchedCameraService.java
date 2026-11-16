@@ -16,6 +16,7 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 @RequiredArgsConstructor
 public class WatchedCameraService {
 
+    // 캠 저장소
     private final CameraRepository cameraRepository;
 
     /** 감시 대상 캠의 값. 다른 도메인에 엔티티를 넘기지 않으려고 필요한 것만 담는다. */
@@ -25,6 +26,7 @@ public class WatchedCameraService {
     @Transactional(readOnly = true)
     public List<WatchedCamera> findWatchedCameras() {
         return cameraRepository.findByRunRequestedTrueAndDeletedAtIsNullOrderByIdAsc().stream()
+                // 엔티티를 값 객체로 바꿔 camera 도메인 밖으로 엔티티가 새지 않게 한다
                 .map(WatchedCameraService::toWatched)
                 .toList();
     }
@@ -34,10 +36,12 @@ public class WatchedCameraService {
     public Optional<WatchedCamera> findWatchedCamera(Long cameraId) {
         return cameraRepository
                 .findByIdAndDeletedAtIsNull(cameraId)
+                // 삭제되지 않았더라도 가동 요청이 꺼진 캠은 감시 대상이 아니다
                 .filter(Camera::isRunRequested)
                 .map(WatchedCameraService::toWatched);
     }
 
+    /** 엔티티에서 감시에 필요한 값(번호·구역·상태)만 꺼낸다. */
     private static WatchedCamera toWatched(Camera camera) {
         return new WatchedCamera(camera.getId(), camera.getZoneId(), camera.getStatus());
     }

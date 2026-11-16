@@ -9,4 +9,5 @@ import java.math.BigDecimal;
  * @param monthRate 28일 전 같은 7일 대비 증감률(%)
  * @param yearRate 364일 전 같은 7일 대비 증감률(%)
  */
+// 7·28·364일 간격은 모두 7의 배수라 대상 기간과 같은 요일 구성으로 비교된다
 public record TrendResponse(BigDecimal weekRate, BigDecimal monthRate, BigDecimal yearRate) {}

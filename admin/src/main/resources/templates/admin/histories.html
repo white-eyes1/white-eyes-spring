@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <!--/* 공통 레이아웃의 head 조각(제목 '작업 기록')과 이 화면 전용 스타일. */-->
     <th:block th:replace="~{fragments/layout :: head('작업 기록')}"/>
     <link rel="stylesheet" th:href="@{/css/admin/histories.css}">
 </head>
 <body class="we">
+<!--/* 관리자 공통 상단 메뉴 조각('manage'는 현재 메뉴 강조용). */-->
 <header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
 <!--
   SCR-A-012 작업 기록(최고 관리자 전용, FNC-A-053). 표는 화면 JS(js/admin/pages/histories.js)가 GET /api/v1/histories로 받아 채운다.
 -->
+<!--/* 작업 기록 화면. 필터 줄, 오류 문구, 표, 페이지 순이며 표 내용은 histories.js가 채운다. */-->
 <main class="page">
     <div class="page-heading">
         <div>
@@ -19,9 +22,11 @@
     </div>
 
     <section class="panel hs-panel">
+        <!--/* 조회 조건 폼. 기간, 계정 종류, 아이디, 행동 종류를 고르고 '조회'를 눌러야 적용된다(제출은 JS가 받아 처리한다). */-->
         <form class="filterbar" id="history-filter" role="search" novalidate>
             <label class="hs-field">
                 <span class="muted">기간</span>
+                <!--/* 기간의 시작일·종료일. 기본값은 JS가 오늘 포함 최근 7일로 채운다. 종료일은 그 날 전체를 포함한다. */-->
                 <input class="control plain hs-date" type="date" id="filter-from" aria-label="시작일">
                 <span class="muted">~</span>
                 <input class="control plain hs-date" type="date" id="filter-to" aria-label="종료일">
@@ -33,6 +38,7 @@
             </select>
             <input class="control plain hs-login-id" type="text" id="filter-login-id" maxlength="20"
                    placeholder="아이디" aria-label="아이디" autocomplete="off">
+            <!--/* 행동 종류. 값은 서버의 작업 기록 행동 코드와 같아야 한다. */-->
             <select class="control hs-select" id="filter-action" aria-label="행동 종류">
                 <option value="">행동 전체</option>
                 <option value="EXCEL_DOWNLOAD">EXCEL_DOWNLOAD</option>
@@ -44,8 +50,10 @@
             </select>
             <button class="btn primary hs-search" type="submit" id="history-search">조회</button>
         </form>
+        <!--/* 조회 오류 문구 자리(처음엔 숨김). */-->
         <p id="history-error" class="alert hs-notice" role="alert" hidden></p>
         <div class="table-wrap">
+            <!--/* div로 만든 표(role로 표 의미를 부여). 마지막 열은 상세 펼침 버튼 칸이며 열 이름은 화면에는 안 보이고 보조 기술에만 읽힌다(hs-sr-only). */-->
             <div class="dtable hs-table" role="table" aria-label="작업 기록 목록">
                 <div class="tr th" role="row">
                     <span role="columnheader">시각</span>
@@ -54,13 +62,16 @@
                     <span role="columnheader">대상</span>
                     <span role="columnheader"><span class="hs-sr-only">상세 펼치기</span></span>
                 </div>
+                <!--/* 행 자리. 한 건당 기록 줄과 펼침 줄 한 쌍을 JS가 만든다. */-->
                 <div id="history-rows" role="rowgroup"></div>
+                <!--/* 조건에 맞는 기록이 없을 때만 보이는 안내. */-->
                 <div class="hs-empty" id="history-empty" hidden>
                     <strong>검색 결과가 없습니다</strong>
                     <p class="muted">기간이나 조건을 변경해 보세요</p>
                 </div>
             </div>
         </div>
+        <!--/* 총 건수와 페이지 버튼 자리. */-->
         <div class="pager">
             <span id="history-total">불러오는 중…</span>
             <div class="pages" id="history-pages"></div>
@@ -68,6 +79,7 @@
     </section>
 </main>
 
+<!--/* 공통 스크립트와 이 화면의 스크립트(ES 모듈). */-->
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/histories.js}"></script>
 </body>

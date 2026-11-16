@@ -21,8 +21,10 @@ import com.whiteeyes.common.event.repository.EventRepository;
 @RequiredArgsConstructor
 public class TodayEventCountService {
 
+    // 오늘 이벤트 수에는 캠 이상을 넣지 않는다
     private static final List<EventType> COUNTED_TYPES = List.of(EventType.CONGESTION, EventType.SURGE);
 
+    // 이벤트 저장소
     private final EventRepository eventRepository;
 
     /**
@@ -33,11 +35,14 @@ public class TodayEventCountService {
      */
     @Transactional(readOnly = true)
     public Map<Long, Integer> countByZone(Collection<Long> zoneIds, LocalDateTime from) {
+        // 빈 목록으로 IN 쿼리를 보내지 않는다
         if (zoneIds.isEmpty()) {
             return Map.of();
         }
+        // 집계 행(구역·건수)을 구역 번호 → 건수 맵으로 옮긴다
         Map<Long, Integer> countByZone = new HashMap<>();
         for (EventRepository.ZoneEventCount row : eventRepository.countByZone(zoneIds, COUNTED_TYPES, from)) {
+            // 건수는 long으로 오지만 응답은 int이므로 범위를 넘으면 예외가 나게 toIntExact를 쓴다
             countByZone.put(row.getZoneId(), Math.toIntExact(row.getEventCount()));
         }
         return countByZone;
@@ -51,6 +56,7 @@ public class TodayEventCountService {
      */
     @Transactional(readOnly = true)
     public int countTotal(Collection<Long> zoneIds, LocalDateTime from) {
+        // 구역별 건수를 구해 모두 더한다. 위 메서드를 재사용해 쿼리 조건을 한 곳에서만 관리한다
         return countByZone(zoneIds, from).values().stream()
                 .mapToInt(Integer::intValue)
                 .sum();

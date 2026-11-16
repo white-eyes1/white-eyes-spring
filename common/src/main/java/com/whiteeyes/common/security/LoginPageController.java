@@ -20,11 +20,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 @ConditionalOnClass(name = "org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration")
 public class LoginPageController {
 
+    // 통계 메인으로의 이동. 컨텍스트 경로는 스프링이 붙인다
     private static final String STATS_REDIRECT = "redirect:/stats";
     private static final String LOGIN_VIEW = "login";
+    // ?signup=done이면 가입 완료 안내를 보인다
     private static final String SIGNUP_DONE = "done";
 
+    // 화면에 보이는 앱 이름. 설정(spring.application.name)에서 오며 없으면 white-eyes
     private final String appName;
+    // 회원가입 링크를 보일지. 설정(login.signup-link)으로 사용자 앱에서만 켠다
     private final boolean signupLink;
 
     public LoginPageController(
@@ -34,6 +38,10 @@ public class LoginPageController {
         this.signupLink = signupLink;
     }
 
+    /**
+     * 로그인 화면을 보여 준다. 이미 로그인한 사용자는 통계 메인으로 보내고, 로그인에 실패해 돌아온 경우에는
+     * 세션에 남겨 둔 실패 문구와 아이디를 모델로 옮긴다.
+     */
     @GetMapping("/login")
     public String loginPage(
             Authentication authentication,
@@ -49,6 +57,7 @@ public class LoginPageController {
         // 가입을 마치고 넘어온 경우(?signup=done)에만 완료 안내를 보인다. 회원가입이 있는 사용자 앱에서만
         model.addAttribute("signupDone", signupLink && SIGNUP_DONE.equals(signup));
         // 실패 직후 한 번만 보이도록 꺼내면서 지운다
+        // false를 주어 세션이 없을 때 새로 만들지 않는다(로그인 화면을 보기만 하는데 세션이 생기지 않게)
         HttpSession session = request.getSession(false);
         if (session != null) {
             model.addAttribute("errorMessage", session.getAttribute(LoginAttributes.ERROR_MESSAGE));
@@ -60,11 +69,13 @@ public class LoginPageController {
     }
 
     // 앱 주소만 입력해도(/, 관리자 앱 /admin/) 통계 메인으로 보낸다. 로그인 전이면 보안 설정이 로그인 화면으로 보낸다
+    /** 루트 주소 접근을 통계 메인으로 보낸다. */
     @GetMapping("/")
     public String root() {
         return STATS_REDIRECT;
     }
 
+    /** 실제로 로그인한 상태인지. 스프링 시큐리티는 로그인 전에도 익명 인증을 넣어 두므로 익명은 제외한다. */
     private boolean isLoggedIn(Authentication authentication) {
         return authentication != null
                 && authentication.isAuthenticated()

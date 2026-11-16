@@ -29,32 +29,42 @@ import com.whiteeyes.common.web.PageResponse;
 @RequiredArgsConstructor
 public class HistoryListService {
 
+    // DB는 KST를 오프셋 없이 저장한다
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
+    // 필드: 조회 쿼리, JSON 변환기
     private final WorkHistoryQueryRepository workHistoryQueryRepository;
     private final JsonMapper jsonMapper;
 
     /** @throws BusinessException 시작 시각이 끝 시각보다 앞서지 않으면(400 INVALID_INPUT) */
+    // 읽기 전용 트랜잭션: 조회만 하므로 불필요한 쓰기 준비를 하지 않는다
     @Transactional(readOnly = true)
     public PageResponse<HistoryListItem> list(HistorySearchRequest request) {
+        // 잘못된 기간이면 조회 전에 거부
         validate(request);
+        // 요청의 OffsetDateTime을 DB 기준 KST 시각으로 바꿔 조회 조건을 만든다
         Condition condition = new Condition(
                 toKst(request.from()), toKst(request.to()), request.actorType(), request.loginId(), request.action());
 
+        // 총 건수(전체 페이지 수 계산용)
         long total = workHistoryQueryRepository.count(condition);
+        // 한 페이지를 읽어 응답용 행으로 바꾼다(순서 유지)
         List<HistoryListItem> items =
                 workHistoryQueryRepository.findPage(condition, request.page(), request.size()).stream()
                         .map(this::toItem)
                         .toList();
+        // 목록과 페이지 정보를 한 응답으로 묶는다
         return PageResponse.of(items, request.page(), request.size(), total);
     }
 
+    /** 시작이 끝보다 앞이어야 한다. 같아도 안 된다(끝은 '미만'이라 빈 기간이 된다). */
     private void validate(HistorySearchRequest request) {
         if (request.from() != null && request.to() != null && !request.from().isBefore(request.to())) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "시작 시각은 끝 시각보다 앞이어야 합니다.");
         }
     }
 
+    /** 기록 한 건을 화면용 행으로 바꾼다. */
     private HistoryListItem toItem(WorkHistory history) {
         return new HistoryListItem(
                 history.getId(),
@@ -74,6 +84,7 @@ public class HistoryListService {
         return detail == null ? null : jsonMapper.readTree(detail);
     }
 
+    /** 요청의 오프셋 시각을 KST 벽시계 시각으로 바꾼다. null은 그대로 null. */
     private static LocalDateTime toKst(OffsetDateTime time) {
         return time == null ? null : time.atZoneSameInstant(KST).toLocalDateTime();
     }

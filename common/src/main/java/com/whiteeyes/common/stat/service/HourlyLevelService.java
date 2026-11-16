@@ -24,8 +24,10 @@ import com.whiteeyes.common.stat.dto.StatTargetType;
 @RequiredArgsConstructor
 public class HourlyLevelService {
 
+    // 하루의 시간 칸 수. 데이터가 없는 시간도 칸은 만들어 항상 24개를 돌려준다
     private static final int HOURS_PER_DAY = 24;
 
+    // 구역·지역 합산 규칙을 시계열 서비스와 똑같이 쓰려고 통계 시계열 계산을 재사용한다
     private final StatSeriesService statSeriesService;
 
     /**
@@ -38,21 +40,27 @@ public class HourlyLevelService {
     @Transactional(readOnly = true)
     public List<HourlyLevelItem> findHourlyLevels(
             DashboardTargetType targetType, long targetId, LocalDate date, LocalDateTime now) {
+        // 대시보드 대상 종류를 시계열 대상 종류로 옮긴다(이름만 다른 같은 의미의 enum이다)
         StatTargetType seriesType =
                 targetType == DashboardTargetType.ZONE ? StatTargetType.ZONE : StatTargetType.REGION;
+        // 조회할 날짜의 0시. 끝은 다음 날 0시(미포함)라 정확히 하루가 된다
         LocalDateTime dayStart = date.atStartOfDay();
+        // 시간 단위 시계열을 받는다. 시계열은 기간 안의 모든 구간을 빠짐없이 채워 주므로 hours는 항상 24개다
         List<StatSeriesPoint> hours = statSeriesService
                 .findSeries(
                         new StatSeriesRequest(seriesType, targetId, StatInterval.HOUR, dayStart, dayStart.plusDays(1)))
                 .items();
 
+        // 0~23시를 차례로 돌며 칸을 만든다
         List<HourlyLevelItem> result = new ArrayList<>(HOURS_PER_DAY);
         for (int hour = 0; hour < HOURS_PER_DAY; hour++) {
             StatSeriesPoint point = hours.get(hour);
+            // 오늘의 지금 시간은 아직 정시 마감 전이라 시간별 통계가 없다. 대신 그 시간의 1분 통계를 즉석에서 묶어 계산한다
             if (date.equals(now.toLocalDate()) && hour == now.getHour()) {
                 LocalDateTime hourStart = dayStart.plusHours(hour);
                 point = statSeriesService.findMinuteRollup(seriesType, targetId, hourStart, hourStart.plusHours(1));
             }
+            // 밀집도가 없다는 것은 통계가 없는 시간이므로 단계도 비운다(단계만 있고 값이 없는 칸이 되지 않게)
             result.add(new HourlyLevelItem(hour, point.density() == null ? null : point.level(), point.density()));
         }
         return result;

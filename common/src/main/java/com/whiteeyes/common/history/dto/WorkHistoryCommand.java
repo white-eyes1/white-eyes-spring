@@ -16,6 +16,7 @@ import com.whiteeyes.common.history.entity.WorkTargetType;
  * @param targetName 기록 당시 대상 이름. 없으면 null
  * @param detail 상세 JSON 문자열. 비밀번호 값은 넣지 않고 '변경됨'만 적는 것은 호출하는 쪽이 지킨다. 없으면 null
  */
+// 서비스 계층끼리 작업 기록 한 건을 넘기는 값 묶음. 엔티티를 직접 만들지 않고 이 값으로 요청한다
 public record WorkHistoryCommand(
         ActorType actorType,
         Long actorId,

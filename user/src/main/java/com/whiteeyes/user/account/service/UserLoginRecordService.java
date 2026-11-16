@@ -23,9 +23,15 @@ public class UserLoginRecordService implements LoginRecorder {
 
     private final UserAccountRepository userAccountRepository;
 
+    /**
+     * 로그인에 성공한 계정의 마지막 로그인 시각을 갱신한다.
+     *
+     * @param loginId 로그인한 아이디
+     */
     @Override
     @Transactional
     public void record(String loginId) {
+        // 계정이 없으면 아무것도 하지 않는다. 있으면 엔티티의 시각만 바꾸고 UPDATE는 트랜잭션 종료 시 변경 감지로 나간다.
         userAccountRepository.findByLoginId(loginId).ifPresent(account -> account.recordLogin(LocalDateTime.now(KST)));
     }
 }

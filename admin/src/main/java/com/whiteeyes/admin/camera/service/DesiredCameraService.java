@@ -14,6 +14,7 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 @RequiredArgsConstructor
 public class DesiredCameraService {
 
+    // run_requested(가동 요청) 플래그로 '켜 두어야 할 캠'을 판단한다.
     private final CameraRepository cameraRepository;
 
     /**

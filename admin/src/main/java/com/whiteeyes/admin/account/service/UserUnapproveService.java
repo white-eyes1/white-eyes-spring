@@ -29,10 +29,14 @@ public class UserUnapproveService {
 
     // 승인(FNC-A-006)의 detail과 같은 표기로 반대 방향을 남긴다
     private static final Map<String, String> UNAPPROVE_DETAIL = Map.of("status", "ACTIVE→PENDING");
+    // 409 오류 문구에 들어가는 하려던 일
     private static final String ACTION = "승인 취소";
 
+    // 대상 사용자 조회(행 잠금)
     private final UserAccountRepository userAccountRepository;
+    // 대상의 세션을 지운다
     private final AccountSessionService accountSessionService;
+    // 로그인한 관리자 확인과 작업 기록 저장
     private final AdminWorkRecorder workRecorder;
 
     /**
@@ -43,7 +47,9 @@ public class UserUnapproveService {
     public void unapprove(Long userId) {
         // 로그인하지 않은 요청은 상태를 바꾸기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
+        // 행을 잠그고 읽어 동시에 취소·변경하는 요청과 엇갈리지 않게 한다
         UserAccount user =
+                // 행을 잠그고 읽어 동시에 취소·변경하는 요청과 엇갈리지 않게 한다
                 userAccountRepository.findByIdForUpdate(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
         // 처리 순서 1: 대상 status=ACTIVE 확인

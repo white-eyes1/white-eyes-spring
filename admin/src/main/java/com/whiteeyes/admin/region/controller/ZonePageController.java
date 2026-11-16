@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class ZonePageController {
 
+    /** 구역 관리 화면을 연다. 화면 데이터는 템플릿에 싣지 않고, 화면 JS가 위 REST API를 불러 채운다. */
     @GetMapping("/zones")
     public String zonesPage() {
+        // 뷰 이름만 돌려준다. 실제 HTML 템플릿 해석은 Thymeleaf 뷰 리졸버가 한다
         return "admin/zones";
     }
 }

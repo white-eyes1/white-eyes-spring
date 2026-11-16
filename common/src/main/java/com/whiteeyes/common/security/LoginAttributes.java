@@ -6,8 +6,11 @@ package com.whiteeyes.common.security;
  */
 public final class LoginAttributes {
 
+    // 세션에 실패 문구를 담는 키
     public static final String ERROR_MESSAGE = "LOGIN_ERROR_MESSAGE";
+    // 세션에 다시 채워 줄 아이디를 담는 키
     public static final String LOGIN_ID = "LOGIN_ID";
 
+    // 상수만 모은 클래스라 객체를 만들지 못하게 막는다
     private LoginAttributes() {}
 }

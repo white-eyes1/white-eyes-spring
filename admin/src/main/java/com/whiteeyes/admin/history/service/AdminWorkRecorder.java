@@ -22,6 +22,7 @@ import com.whiteeyes.common.security.LoginAccountResolver;
 @RequiredArgsConstructor
 public class AdminWorkRecorder {
 
+    // 필드: 지금 로그인한 계정 확인, 작업 기록 저장(common), JSON 변환기
     private final LoginAccountResolver loginAccountResolver;
     private final WorkHistoryService workHistoryService;
     private final JsonMapper jsonMapper;
@@ -30,11 +31,13 @@ public class AdminWorkRecorder {
      * 지금 로그인한 관리자를 돌려준다. 로그인하지 않았으면 401로 거부한다.
      * 작업을 시작하기 전에 불러 두면 기록할 수 없는 요청을 일을 한 뒤가 아니라 처음에 거부할 수 있다.
      */
+    // 로그인 정보가 없으면 resolver가 401 예외를 던진다
     public LoginAccount requireActor() {
         return loginAccountResolver.require();
     }
 
     /** 대상 이름은 기록 당시 이름을 넘긴다. detail은 JSON으로 바꿔 저장한다(비밀번호 값은 넣지 않는다). */
+    // 호출한 쪽의 트랜잭션에 참여한다. 업무 변경과 기록이 함께 저장되거나 함께 되돌려진다
     public void record(
             LoginAccount actor,
             WorkAction action,
@@ -42,6 +45,7 @@ public class AdminWorkRecorder {
             Long targetId,
             String targetName,
             Map<String, ?> detail) {
+        // 기록 명령을 만든다: 행동한 계정은 ADMIN과 로그인 정보의 번호·아이디, 그 뒤는 행동·대상 정보
         workHistoryService.record(new WorkHistoryCommand(
                 ActorType.ADMIN,
                 actor.accountId(),
@@ -50,6 +54,7 @@ public class AdminWorkRecorder {
                 targetType,
                 targetId,
                 targetName,
+                // detail이 없으면 null, 있으면 JSON 문자열로 저장한다(작업 기록 목록·이벤트 처리 이력이 다시 객체로 읽는다)
                 detail == null ? null : jsonMapper.writeValueAsString(detail)));
     }
 }

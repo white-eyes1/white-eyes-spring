@@ -24,9 +24,13 @@ import com.whiteeyes.common.region.repository.ZoneRepository;
 @RequiredArgsConstructor
 public class RegionListService {
 
+    // 지역 저장소
     private final RegionRepository regionRepository;
+    // 구역 저장소
     private final ZoneRepository zoneRepository;
+    // 구역에 캠이 있는지는 camera 도메인의 공개 서비스를 통해서만 묻는다(다른 도메인 저장소를 직접 쓰지 않는 규칙)
     private final ZoneCameraService zoneCameraService;
+    // DB에 문자열로 저장된 경계(GeoJSON)를 JSON 트리로 바꾸는 도구
     private final JsonMapper jsonMapper;
 
     /**
@@ -36,17 +40,20 @@ public class RegionListService {
      */
     @Transactional(readOnly = true)
     public List<RegionResponse> findRegions(Long parentId) {
+        // 부모가 없으면 시·도 목록, 있으면 그 아래 지역을 담는다
         List<Region> regions;
         if (parentId == null) {
             // 처리 순서 1
             regions = regionRepository.findByLevelOrderByCode(RegionLevel.SIDO);
         } else {
             // 처리 순서 2
+            // 없는 지역 번호면 빈 목록이 아니라 404로 알린다
             requireRegion(parentId);
             regions = regionRepository.findByParent_IdOrderByCode(parentId);
         }
         // 처리 순서 4: 경계와 중심점을 함께 반환
         return regions.stream()
+                // 경계 문자열을 JSON 객체로 바꿔 응답에 넣는다
                 .map(region -> RegionResponse.of(region, jsonMapper.readTree(region.getBoundary())))
                 .toList();
     }
@@ -59,6 +66,7 @@ public class RegionListService {
     @Transactional(readOnly = true)
     public List<ZoneResponse> findZones(Long dongId) {
         // 처리 순서 3
+        // 동이 없으면 전체, 있으면 그 동의 구역을 담는다
         List<Zone> zones;
         if (dongId == null) {
             zones = zoneRepository.findByDeletedAtIsNullOrderById();
@@ -66,6 +74,7 @@ public class RegionListService {
             requireRegion(dongId);
             zones = zoneRepository.findByDongIdAndDeletedAtIsNullOrderById(dongId);
         }
+        // 캠 유무를 구역마다 따로 묻지 않고, 모든 구역 번호를 모아 한 번에 묻는다
         Set<Long> zoneIdsWithCamera = zoneCameraService.findZoneIdsWithCamera(
                 zones.stream().map(Zone::getId).toList());
         // 처리 순서 4
@@ -82,12 +91,14 @@ public class RegionListService {
      */
     @Transactional(readOnly = true)
     public ZoneResponse findZone(Long zoneId) {
+        // findById라서 삭제 표시된 구역도 가져온다(응답의 deleted로 구분)
         Zone zone = zoneRepository.findById(zoneId).orElseThrow(ZoneNotFoundException::new);
         boolean hasCamera =
                 !zoneCameraService.findZoneIdsWithCamera(List.of(zoneId)).isEmpty();
         return ZoneResponse.of(zone, jsonMapper.readTree(zone.getBoundary()), hasCamera);
     }
 
+    /** 지역이 있는지 확인하고 없으면 404 예외를 던진다. */
     private void requireRegion(Long regionId) {
         if (!regionRepository.existsById(regionId)) {
             throw new RegionNotFoundException();

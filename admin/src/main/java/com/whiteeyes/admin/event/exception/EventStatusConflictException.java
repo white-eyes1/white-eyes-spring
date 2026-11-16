@@ -6,6 +6,7 @@ import com.whiteeyes.common.exception.ErrorCode;
 /** 처리 상태를 바꿀 수 없을 때(FNC-A-038): 다른 관리자가 먼저 처리했거나, 앞으로 가는 변경이 아니다. 409 STATUS_CONFLICT. */
 public class EventStatusConflictException extends BusinessException {
 
+    // 아래 정적 팩토리로만 만든다. 원인마다 메시지가 고정되어 화면에 그대로 보인다
     private EventStatusConflictException(String message) {
         super(ErrorCode.STATUS_CONFLICT, message);
     }

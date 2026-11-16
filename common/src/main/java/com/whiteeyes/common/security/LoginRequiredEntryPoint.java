@@ -17,9 +17,12 @@ import com.whiteeyes.common.exception.ErrorCode;
  */
 public class LoginRequiredEntryPoint implements AuthenticationEntryPoint {
 
+    // 화면 요청이 로그인 안 된 상태일 때 보낼 곳
     private static final String LOGIN_URL = "/login";
 
+    // API 오류 응답을 JSON으로 쓰는 도구
     private final JsonMapper jsonMapper;
+    // 컨텍스트 경로를 붙여 이동시키는 도구
     private final RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
 
     public LoginRequiredEntryPoint(JsonMapper jsonMapper) {
@@ -30,6 +33,7 @@ public class LoginRequiredEntryPoint implements AuthenticationEntryPoint {
     public void commence(
             HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException {
+        // API는 화면으로 보낼 수 없으므로 공통 오류 형식의 JSON(401)을 쓴다
         if (ApiRequests.isApi(request)) {
             SecurityErrorWriter.write(response, jsonMapper, ErrorCode.UNAUTHORIZED);
             return;

@@ -13,17 +13,21 @@ public enum StatExportItem {
     OUTFLOW("유출"),
     DWELL("평균 체류");
 
+    // 엑셀 열 머리글에 쓰는 한글 이름
     private final String label;
 
+    // enum 상수마다 열 머리글을 받아 둔다
     StatExportItem(String label) {
         this.label = label;
     }
 
     /** 요청 값(COUNT 등)으로 찾는다. 없는 값이면 빈 값. */
     public static Optional<StatExportItem> fromCode(String code) {
+        // valueOf는 모르는 값에 예외를 던지므로, 요청 검증에서 오류를 직접 만들 수 있게 Optional로 돌려준다
         return Arrays.stream(values()).filter(item -> item.name().equals(code)).findFirst();
     }
 
+    // 엑셀 열 머리글 문자열
     public String getLabel() {
         return label;
     }

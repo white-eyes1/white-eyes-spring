@@ -7,5 +7,6 @@ package com.whiteeyes.common.security;
 @FunctionalInterface
 public interface LoginRecorder {
 
+    // 함수형 인터페이스라 앱이 람다로 구현할 수 있다
     void record(String loginId);
 }

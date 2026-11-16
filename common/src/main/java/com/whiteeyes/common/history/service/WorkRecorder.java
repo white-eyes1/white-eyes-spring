@@ -21,9 +21,13 @@ import com.whiteeyes.common.security.LoginAccountResolver;
 @RequiredArgsConstructor
 public class WorkRecorder {
 
+    // 현재 로그인한 계정(행동한 사람)을 가져오는 도구
     private final LoginAccountResolver loginAccountResolver;
+    // 앱마다 다른 계정 종류(USER/ADMIN)를 알려 주는 도구
     private final WorkActorTypeProvider actorTypeProvider;
+    // 실제 저장을 맡는 서비스
     private final WorkHistoryService workHistoryService;
+    // detail 맵을 JSON 문자열로 바꾸는 도구
     private final JsonMapper jsonMapper;
 
     /**
@@ -42,6 +46,7 @@ public class WorkRecorder {
             Long targetId,
             String targetName,
             Map<String, ?> detail) {
+        // 행동한 사람(종류·번호·아이디)과 행동·대상을 모아 기록 입력 값을 만든다
         workHistoryService.record(new WorkHistoryCommand(
                 actorTypeProvider.actorType(),
                 actor.accountId(),
@@ -50,6 +55,7 @@ public class WorkRecorder {
                 targetType,
                 targetId,
                 targetName,
+                // 상세 내용이 없으면 null로 저장하고, 있으면 JSON 문자열로 바꿔 저장한다
                 detail == null ? null : jsonMapper.writeValueAsString(detail)));
     }
 }

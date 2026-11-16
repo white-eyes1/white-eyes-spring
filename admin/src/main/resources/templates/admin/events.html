@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <!--/* 공통 레이아웃의 head 조각(제목 '이벤트 로그')과 이 화면·상세 창 영상 영역의 스타일. */-->
     <th:block th:replace="~{fragments/layout :: head('이벤트 로그')}"/>
     <link rel="stylesheet" th:href="@{/css/admin/events.css}">
     <link rel="stylesheet" th:href="@{/css/admin/event-video.css}">
 </head>
 <body class="we">
+<!--/* 관리자 공통 상단 메뉴 조각('events'는 현재 메뉴 강조용). */-->
 <header th:replace="~{fragments/layout :: adminHeader('events')}"></header>
+<!--/* 이벤트 로그 화면(SCR-A-010). 요약 카드, 필터, 표, 페이지는 events.js가 채우고, 상세 창과 조치 창은 아래에 있다. */-->
 <main class="page">
     <div class="page-heading">
         <div>
@@ -21,6 +24,7 @@
     </div>
 
     <!-- 요약 카드: 현재 필터의 기간·지역·종류·검색어 기준 처리 상태별 건수(상태 필터는 받지 않음) -->
+    <!--/* 요약 카드 네 칸. 숫자는 events.js가 id(summary-*)로 찾아 채운다. */-->
     <div class="ev-summary" aria-label="이벤트 요약">
         <div class="panel sum"><span class="muted" id="summary-total-label">전체</span><strong id="summary-total">-</strong></div>
         <div class="panel sum"><span class="muted">미확인</span><strong class="ev-unchecked" id="summary-unchecked">-</strong></div>
@@ -29,6 +33,7 @@
     </div>
 
     <section class="panel ev-panel">
+        <!--/* 필터 줄. 값이 바뀌면 events.js가 바로 다시 조회하므로 제출 버튼은 없다(form 제출은 JS가 막는다). 기간·종류는 '상세 필터'를 펼치면 보인다. */-->
         <form class="filterbar" id="event-filter" role="search" novalidate>
             <select class="control ev-select" id="filter-status" aria-label="처리 상태">
                 <option value="">전체 상태</option>
@@ -36,10 +41,12 @@
                 <option value="CHECKED">확인 중</option>
                 <option value="RESOLVED">조치완료</option>
             </select>
+            <!--/* 검색어 입력(구역·지역·캠). 입력을 멈춘 뒤 잠깐 있다가 조회된다. */-->
             <input class="control ev-keyword" type="search" id="filter-keyword" maxlength="50"
                    placeholder="구역·지역·캠 검색" aria-label="구역·지역·캠 검색" autocomplete="off">
             <button class="btn secondary ev-detail-toggle" type="button" id="filter-detail-toggle"
                     aria-expanded="false" aria-controls="filter-detail">상세 필터</button>
+            <!--/* 상세 필터 영역(기간, 종류). 처음엔 숨겨져 있고 '상세 필터' 버튼으로 펼친다(aria-controls로 연결). */-->
             <div class="ev-detail" id="filter-detail" hidden>
                 <label class="ev-field">
                     <span class="muted">기간</span>
@@ -56,6 +63,7 @@
             </div>
         </form>
         <div class="table-wrap">
+            <!--/* div로 만든 표(role로 표 의미를 부여). 머리글 다음에 행 자리(event-rows)와 빈 목록 안내가 온다. 행은 JS가 만든다. */-->
             <div class="dtable ev-table" role="table" aria-label="이벤트 목록">
                 <div class="tr th" role="row">
                     <span role="columnheader">발생 시각</span>
@@ -73,6 +81,7 @@
                 </div>
             </div>
         </div>
+        <!--/* 총 건수와 페이지 버튼 자리. */-->
         <div class="pager">
             <span id="event-total">불러오는 중…</span>
             <div class="pages" id="event-pages"></div>
@@ -81,6 +90,7 @@
 </main>
 
 <!-- SCR-A-011 이벤트 상세 창 중 이벤트 정보·처리 이력(FNC-A-037). 발생 시점 영상·다시보기 이동은 FNC-A-040 -->
+<!--/* 이벤트 상세 창 본체. hidden 속성으로 열고 닫으며 tabindex=-1이라 열릴 때 코드가 초점을 줄 수 있다. 제목 칩과 정보 목록은 JS가 채운다. */-->
 <div class="modal-stage ev-modal-stage" id="detail-modal" hidden>
     <div class="modal ev-modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="이벤트 상세">
         <div class="modal-head">
@@ -93,10 +103,13 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
             </button>
         </div>
+        <!--/* 창 본문: 발생 시점 영상 영역, 이벤트 정보 목록(dl), 처리 이력. */-->
         <div class="modal-body ev-modal-body">
             <!-- 발생 시점 영상(FNC-A-040): 혼잡·급증이고 보관 기간 안일 때만 보인다 -->
+            <!--/* 영상 영역. 캠 이상·보관 기간 경과 이벤트는 event-video.js가 이 영역을 숨긴 채로 둔다. */-->
             <section class="ev-video" id="detail-video" aria-label="발생 시점 영상" hidden>
                 <strong class="ev-video-head">발생 시점 영상</strong>
+                <!--/* 영상(video) 위에 탐지 박스를 그리는 캔버스(canvas), 안내 문구, 라벨을 겹쳐 놓는다. 캔버스는 장식이라 aria-hidden이다. */-->
                 <div class="ev-video-feed" id="detail-video-feed">
                     <video class="ev-video-player" id="detail-video-player" controls playsinline preload="auto" hidden></video>
                     <canvas class="ev-video-boxes" id="detail-video-boxes" aria-hidden="true"></canvas>
@@ -104,20 +117,24 @@
                     <div class="ev-video-notice" id="detail-video-notice" role="status">불러오는 중…</div>
                     <span class="ev-video-label" id="detail-video-label" hidden></span>
                 </div>
+                <!--/* 발생 앞뒤 30분 인원 띠. SVG 좌표(600x34)는 event-video.js의 CHART_WIDTH·HEIGHT와 같아야 한다. 이벤트 구간(range)과 발생 시각(mark)은 CSS 위치로 겹쳐 그린다. */-->
                 <div class="ev-video-chart" id="detail-video-chart" role="img" aria-label="발생 전후 30분 인원">
                     <span class="ev-video-range" id="detail-video-range"></span>
                     <svg viewBox="0 0 600 34" preserveAspectRatio="none" aria-hidden="true"><path class="ev-video-line" id="detail-video-line" d=""></path></svg>
                     <span class="ev-video-mark" id="detail-video-mark"></span>
                     <p class="ev-video-chart-empty muted" id="detail-video-chart-empty" hidden>통계 없음</p>
                 </div>
+                <!--/* 시간 눈금 자리(시작·발생·끝). */-->
                 <div class="ev-video-axis muted" id="detail-video-axis"></div>
             </section>
+            <!--/* 이벤트 정보 목록(항목명 dt, 값 dd). 값은 JS가 채운다. */-->
             <dl class="kv" id="detail-info"></dl>
             <div class="ev-history">
                 <strong>처리 이력</strong>
                 <div id="detail-histories"></div>
             </div>
         </div>
+        <!--/* 다시보기 링크는 기본으로 숨겨져 있고 JS가 주소를 만들어 켠다. */-->
         <div class="modal-foot">
             <a class="btn secondary" id="detail-open-playback" href="#" hidden>다시보기 화면에서 크게 보기</a>
             <button class="btn primary" type="button" data-close>닫기</button>
@@ -126,6 +143,7 @@
 </div>
 
 <!-- SCR-A-011 조치 완료 창(FNC-A-038). 표의 [조치하기]로 열린다 -->
+<!--/* 조치 완료 창 본체. 선택 항목은 JS가 읽어 서버에 보낸다. novalidate라 브라우저 기본 검증 대신 JS가 저장 버튼 활성 조건을 관리한다. */-->
 <div class="modal-stage ev-modal-stage" id="action-modal" hidden>
     <form class="modal ev-action-modal" id="action-form" tabindex="-1" role="dialog" aria-modal="true"
           aria-labelledby="action-title" novalidate>
@@ -139,6 +157,7 @@
             </button>
         </div>
         <div class="modal-body">
+            <!--/* 조치 항목 선택(필수). value는 서버의 조치 코드와 같다. 기타(OTHER)는 메모가 필수다. */-->
             <fieldset class="field ev-action-field">
                 <legend>조치 항목 (필수)</legend>
                 <div class="ev-opts">
@@ -149,6 +168,7 @@
                     <label class="ev-opt"><input type="radio" name="actionCode" value="OTHER"><i></i>기타</label>
                 </div>
             </fieldset>
+            <!--/* 조치 메모. 최대 200자이며 글자 수는 JS가 아래에 보인다. */-->
             <label class="field">
                 <span>조치 메모 <span class="muted">(기타면 필수, 200자 이하)</span></span>
                 <textarea class="input ev-note" id="action-note" maxlength="200" rows="3" autocomplete="off"></textarea>
@@ -158,11 +178,13 @@
         </div>
         <div class="modal-foot">
             <button class="btn secondary" type="button" data-action-close>취소</button>
+            <!--/* 처음엔 disabled이고, 필수값이 채워질 때 event-action.js가 켠다. */-->
             <button class="btn primary" type="submit" id="action-save" disabled>조치완료로 저장</button>
         </div>
     </form>
 </div>
 
+<!--/* 공통 스크립트와 이 화면의 스크립트(ES 모듈). 조치 창·영상 영역 코드는 events.js가 가져와 쓴다. */-->
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/events.js}"></script>
 </body>

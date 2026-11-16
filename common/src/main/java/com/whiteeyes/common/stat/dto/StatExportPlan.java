@@ -14,6 +14,7 @@ public record StatExportPlan(
         StatExportRequest request, String targetName, List<StatExportSeries> series, int sourceZoneCount, long rows) {
 
     /** 대상 줄마다 구역 시계열을 따로 읽는지(지역 기본·전체). 아니면(구역, 지역 합산) 줄 하나를 통계 그래프와 같은 방법으로 읽는다. */
+    // 범위가 전체(ALL)이거나, 지역인데 합산하지 않는 경우만 구역별로 따로 읽는다
     public boolean perZone() {
         return request.scope() == StatExportScope.ALL || (request.scope() == StatExportScope.REGION && !request.sum());
     }

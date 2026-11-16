@@ -34,6 +34,7 @@ import com.whiteeyes.common.security.LoginAccount;
 @RequiredArgsConstructor
 public class CameraStopService {
 
+    // 분석 서버에 정지를 전달하지 못했을 때 응답 warning에 담는 문구.
     private static final String DELIVERY_FAILED_WARNING = "분석 서버에 전달 실패";
     private static final int STOPPED_PROGRESS = 0;
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
@@ -41,10 +42,17 @@ public class CameraStopService {
     private final CameraRepository cameraRepository;
     private final AnalyzerClient analyzerClient;
     private final TransactionTemplate transactionTemplate;
+    // 더미 캠의 마지막 녹화를 닫기 위해 사용한다.
     private final RecordingRepository recordingRepository;
     private final AdminWorkRecorder workRecorder;
     private final CamFaultEventService camFaultEventService;
 
+    /**
+     * 캠 정지의 전체 흐름. 분석 서버 전달이 실패해도 앱 쪽은 정지로 저장하고, 실패는 응답의 warning으로만 알린다.
+     *
+     * @param cameraId 정지할 캠 ID
+     * @return 항상 STOPPED와, 전달 실패 시 경고 문구
+     */
     public CameraStopResponse stop(Long cameraId) {
         // 로그인하지 않은 요청은 정지를 시작하기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
@@ -52,6 +60,7 @@ public class CameraStopService {
         transactionTemplate.executeWithoutResult(status -> cancelRunRequest(cameraId));
 
         // 처리 순서 2: 분석 서버에 정지 지시(타임아웃 15초). 준비 중이면 분석 서버가 준비를 취소한다
+        // 전달에 성공하면 null 그대로 응답한다.
         String warning = null;
         try {
             analyzerClient.stopCamera(cameraId);
@@ -68,6 +77,7 @@ public class CameraStopService {
         return new CameraStopResponse(CameraStatus.STOPPED, warning);
     }
 
+    /** 1단계(트랜잭션): run_requested=0으로 되돌린다. 캠이 없으면 CameraNotFoundException. */
     private void cancelRunRequest(Long cameraId) {
         cameraRepository
                 .findByIdAndDeletedAtIsNull(cameraId)
@@ -75,6 +85,7 @@ public class CameraStopService {
                 .cancelRunRequest();
     }
 
+    /** 3단계(트랜잭션): 정지 상태 저장, 열린 캠 이상 이벤트 닫기, 더미 캠 녹화 닫기, 작업 기록을 한 번에 한다. */
     private void markStopped(Long cameraId, LoginAccount actor) {
         cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
             camera.updateStatus(CameraStatus.STOPPED, STOPPED_PROGRESS, null);

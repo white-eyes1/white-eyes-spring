@@ -17,6 +17,7 @@ import com.whiteeyes.common.event.entity.EventType;
  * @param peakValue 혼잡은 밀집도(명/㎡), 급증은 증가율(%), 캠 이상은 null
  * @param peakCount 캠 이상은 null
  */
+// 목록·엑셀·상세가 함께 쓰는 한 행. 값은 EventListService.toItem에서 계산한다
 public record EventListItem(
         Long id,
         EventType type,

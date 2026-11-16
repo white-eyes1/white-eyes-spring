@@ -7,11 +7,13 @@
   회원 탈퇴(FNC-U-004)는 사용자 앱에만 보인다: 버튼 → 탈퇴 창(SCR-U-003) → 확인 창 → DELETE /api/v1/me(js/user/withdraw.js, 사용자 앱 파일).
   비밀번호 변경이 강제된 계정은 이 화면에 오지 못하고 /me/password(password.html)로 간다.
 -->
+<!--/* 화면 머리: 공통 head 조각과, 사용자 앱에서만 쓰는 탈퇴 창 스타일(css) */-->
 <head>
     <th:block th:replace="~{fragments/layout :: head('내 정보')}"/>
     <link rel="stylesheet" th:unless="${admin}" th:href="@{/css/user/withdraw.css}">
 </head>
 <body class="we">
+<!--/* th:replace가 th:if보다 먼저 처리되므로 th:block으로 감싼다. 관리자·사용자 헤더를 앱에 맞게 고른다 */-->
 <th:block th:if="${admin}">
     <header th:replace="~{fragments/layout :: adminHeader('')}"></header>
 </th:block>
@@ -19,6 +21,7 @@
     <header th:replace="~{fragments/layout :: userHeader('')}"></header>
 </th:block>
 
+<!--/* 내 정보 폼. 값은 my-info.js가 서버에서 읽어 채우고, 아이디·역할은 읽기 전용이다. 저장 버튼은 값을 받은 뒤에 켜진다 */-->
 <main style="padding: 64px 24px; display: flex; flex-direction: column; align-items: center; gap: 24px">
     <form class="panel" id="profile-form" novalidate style="width: 100%; max-width: 480px; overflow: hidden">
         <div class="panel-head">
@@ -28,11 +31,13 @@
             <label class="field">아이디
                 <input class="input" type="text" name="loginId" readonly>
             </label>
+            <!--/* 역할 표시는 관리자 앱에서만 */-->
             <label class="field" th:if="${admin}">역할
                 <input class="input" type="text" name="role" readonly>
             </label>
             <label class="field">이름
                 <input class="input" type="text" name="name" autocomplete="name" required>
+                <!--/* data-hint-for: my-info.js가 입력 중 안내·오류를 이 자리에 쓴다 */-->
                 <span class="hint" data-hint-for="name">1~50자</span>
             </label>
             <label class="field">메일
@@ -47,6 +52,7 @@
         </div>
     </form>
 
+    <!--/* 비밀번호 변경 패널(password-panel 조각). 비밀번호 변경 화면과 같은 패널을 쓴다 */-->
     <th:block th:replace="~{account/password-panel :: passwordPanel}"/>
 
     <!-- 회원 탈퇴(SCR-C-002 회원 탈퇴 버튼, FNC-U-004): 사용자 앱에만 -->
@@ -61,6 +67,7 @@
     </section>
 </main>
 
+<!--/* 아래 두 창(탈퇴 입력, 탈퇴 확인)은 사용자 앱에서만 렌더링한다 */-->
 <th:block th:unless="${admin}">
 <!-- 회원 탈퇴 창 SCR-U-003. 비밀번호가 비어 있으면 '탈퇴' 버튼을 끈다 -->
 <div class="modal-stage withdraw-modal-stage" id="withdraw-modal" hidden>
@@ -104,6 +111,7 @@
 </div>
 </th:block>
 
+<!--/* 화면 스크립트: 공통 헤더, 내 정보, 비밀번호 변경, (사용자 앱만) 탈퇴 */-->
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/my-info.js}"></script>
 <script type="module" th:src="@{/js/pages/password-change.js}"></script>

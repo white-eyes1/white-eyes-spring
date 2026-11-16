@@ -19,14 +19,19 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Component
 public class UserSessionStore {
 
+    // 사용자 앱이 쓰는 Spring Session 표 이름
     private static final String USER_SESSION_TABLE = "SPRING_SESSION_USER";
 
+    // 로그인 아이디로 세션을 찾고 지울 수 있는 Spring Session의 JDBC 구현
     private final JdbcIndexedSessionRepository sessionRepository;
 
     public UserSessionStore(JdbcOperations jdbcOperations, PlatformTransactionManager transactionManager) {
+        // 스프링이 만드는 빈이 아니라 직접 만든다(클래스 설명 참고). 트랜잭션 템플릿은 앱의 트랜잭션 관리자를 쓴다
         this.sessionRepository =
                 new JdbcIndexedSessionRepository(jdbcOperations, new TransactionTemplate(transactionManager));
+        // 기본 표가 아니라 사용자 앱 전용 표를 쓰게 한다
         this.sessionRepository.setTableName(USER_SESSION_TABLE);
+        // 직접 만든 객체는 스프링이 초기화를 불러 주지 않으므로, 표 이름을 반영한 SQL 준비를 여기서 직접 한다
         this.sessionRepository.afterPropertiesSet();
     }
 

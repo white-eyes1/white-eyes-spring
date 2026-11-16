@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <!--/* 공통 레이아웃의 head 조각(제목 '다시보기')과 이 화면 전용 스타일. */-->
     <th:block th:replace="~{fragments/layout :: head('다시보기')}"/>
     <link rel="stylesheet" th:href="@{/css/admin/playback.css}">
 </head>
 <body class="we">
+<!--/* 관리자 공통 상단 메뉴 조각('stats'는 현재 메뉴 강조용). */-->
 <header th:replace="~{fragments/layout :: adminHeader('stats')}"></header>
+<!--/* 다시보기 화면(SCR-A-009). 구역 id와 시각은 주소 쿼리로 받으며 제목·부제·시계는 playback.js가 채운다. */-->
 <main class="page">
     <div class="page-heading">
         <div>
@@ -19,8 +22,10 @@
         </div>
     </div>
 
+    <!--/* 위쪽 영역: 왼쪽 영상 재생부, 오른쪽 이 시점의 1분 통계. */-->
     <div class="pb-top">
         <section class="panel pb-player-panel">
+            <!--/* 영상 위에 탐지 박스 캔버스, 안내 문구, 라벨을 겹쳐 놓는다. 영상과 캔버스는 처음엔 숨겨져 있다가 녹화를 찾으면 보인다. */-->
             <div class="pb-feed" id="pb-feed">
                 <video id="pb-video" class="pb-video" playsinline preload="auto" hidden></video>
                 <canvas id="pb-boxes" class="pb-boxes" aria-hidden="true" hidden></canvas>
@@ -28,6 +33,7 @@
                 <div class="pb-notice" id="pb-notice" role="status">불러오는 중…</div>
                 <span class="pb-feed-label" id="pb-feed-label" hidden></span>
             </div>
+            <!--/* 재생 조작 줄: 재생/정지, 이전·다음 이벤트, 재생 속도, 박스 표시 스위치. 녹화가 없는 동안 버튼이 꺼져 있다. 속도 버튼의 data-rate가 재생 배율이다. */-->
             <div class="pb-controls">
                 <button type="button" class="icon-btn" id="pb-toggle" aria-label="재생" disabled>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path id="pb-toggle-icon" d="M8 5v14l11-7z"></path></svg>
@@ -39,12 +45,14 @@
                     <button type="button" data-rate="2">2×</button>
                     <button type="button" data-rate="4">4×</button>
                 </span>
+                <!--/* 탐지 박스 표시 스위치(role=switch, aria-checked로 켜짐 상태를 알림). */-->
                 <label class="pb-box-toggle" for="pb-box-switch">박스 표시
                     <button type="button" class="pb-switch" id="pb-box-switch" role="switch" aria-checked="true"><i></i></button>
                 </label>
             </div>
         </section>
 
+        <!--/* 재생 위치가 속한 1분의 통계 패널. 값은 id(pb-stat-*)로 JS가 채우고, 통계가 없으면 안내를 보인다. 그 시각이 이벤트 구간이면 이벤트 안내 상자가 보인다. */-->
         <aside class="panel pb-stat-panel" aria-label="이 시점의 1분 통계">
             <div class="pb-stat-head"><strong>이 시점의 1분 통계</strong><span class="muted" id="pb-stat-minute">-</span></div>
             <div class="pb-stat-grid">
@@ -63,6 +71,7 @@
         </aside>
     </div>
 
+    <!--/* 통계 시간축. 위에는 보이는 범위(30분·1시간·3시간·오늘)와 항목(인원·밀집도·유입유출) 선택 버튼, 아래에는 그래프와 띠 등이 있다. */-->
     <section class="panel pb-timeline" aria-label="통계 시간축">
         <div class="pb-timeline-head">
             <strong>통계 타임라인</strong>
@@ -80,6 +89,7 @@
             <span class="muted pb-hint">세로 막대를 끌거나 그래프를 누르면 그 시각으로 영상이 이동합니다</span>
         </div>
 
+        <!--/* 그래프 영역. 그래프(SVG, 가상 좌표 1000x220으로 playback.js의 CHART_WIDTH·HEIGHT와 같음) 위에 이벤트 구간 층, 경계선 이름, 재생 위치 막대를 겹치고, 아래에 단계 색 띠, 녹화 구간 띠, 시각 눈금을 둔다. */-->
         <div class="pb-chart-wrap">
             <div class="pb-chart" id="pb-chart">
                 <div id="pb-events-layer" class="pb-events-layer"></div>
@@ -89,6 +99,7 @@
                     <g id="pb-lines"></g>
                 </svg>
                 <div id="pb-guide-labels" class="pb-guide-labels"></div>
+                <!--/* 재생 위치 막대와 말풍선. 그래프를 누르거나 끌면 그 시각으로 영상이 이동한다. */-->
                 <div class="pb-playhead" id="pb-playhead" hidden>
                     <span class="pb-playhead-handle" id="pb-playhead-handle" aria-hidden="true"></span>
                     <span class="pb-playhead-tip" id="pb-playhead-tip"></span>
@@ -99,6 +110,7 @@
             <div class="pb-rec-strip" id="pb-rec-strip" aria-label="녹화가 있는 구간" hidden></div>
             <div class="pb-axis muted" id="pb-axis"></div>
         </div>
+        <!--/* 그래프 범례. */-->
         <div class="pb-legend muted">
             <span><i class="dot pb-dot-line"></i> 1분 평균 값 (옅은 띠: 최대·최소)</span>
             <span>가운데 띠: 영상이 있는 분만 혼잡 단계 색</span>
@@ -108,6 +120,7 @@
     </section>
 </main>
 
+<!--/* 공통 스크립트와 이 화면의 스크립트(ES 모듈). */-->
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/playback.js}"></script>
 </body>

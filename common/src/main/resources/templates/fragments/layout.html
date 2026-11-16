@@ -11,18 +11,24 @@
 
 <!-- 모든 화면의 <head> 공통 부분. title은 '제목 - White Eyes'로 붙는다 -->
 <th:block th:fragment="head(title)">
+    <!--/* 문서 메타: 문자 인코딩, 모바일 폭. 아래 _csrf 메타는 js/common/api.js가 읽어 서버 변경 요청의 X-CSRF-TOKEN 헤더에 넣는다 */-->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="_csrf" th:content="${_csrf?.token}">
+    <!--/* 앱 컨텍스트 경로(관리자 앱은 /admin). api.js의 url()이 모든 호출 주소 앞에 붙인다 */-->
     <meta name="context-path" th:content="@{/}">
+    <!--/* 탭 제목: 호출한 화면이 준 제목에 ' - White Eyes'를 붙인다 */-->
     <title th:text="|${title} - White Eyes|">White Eyes</title>
+    <!--/* 폰트(Noto Sans KR)를 Google Fonts에서 받는다. preconnect는 연결을 미리 열어 두는 힌트 */-->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&amp;display=swap">
+    <!--/* 두 앱이 함께 쓰는 공통 스타일 */-->
     <link rel="stylesheet" th:href="@{/css/we.css}">
 </th:block>
 
 <!-- 지도가 필요한 화면만 <head>에 더한다. Leaflet 코드는 js/map/ 안에서만 쓴다 -->
 <th:block th:fragment="leaflet">
+    <!--/* Leaflet(지도)와 Geoman(다각형 그리기) 스타일·스크립트. 전역 L로 쓰이며 js/map/ 안에서만 다룬다 */-->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -31,7 +37,9 @@
 
 <!-- SCR-A-013 관리자 공통 헤더. active: dashboard | stats | events | manage -->
 <header th:fragment="adminHeader(active)" class="we topbar" data-header="admin">
+    <!--/* 로고. 누르면 통계 대시보드로 간다 */-->
     <a class="brand" th:href="@{/stats}">White Eyes<small>관리자</small></a>
+    <!--/* 주요 메뉴. active 값과 같은 탭에 on 클래스를 붙여 현재 화면을 강조한다 */-->
     <nav class="tabs" aria-label="주요 메뉴">
         <a class="tab" th:classappend="${active == 'dashboard'} ? 'on'" th:href="@{/stats}">대시보드</a>
         <a class="tab" th:classappend="${active == 'stats'} ? 'on'" th:href="@{/stats/graph}">통계</a>
@@ -40,12 +48,14 @@
             <!-- 미확인 이벤트 배지(FNC-A-048). 탭은 필터 없이 SCR-A-010으로, 배지만 미확인 필터로 간다. 숫자는 알림 스트림이 채우고, 0이면 숨긴다 -->
             <a class="badge-count" th:href="@{/events(status='UNCHECKED')}" id="unchecked-badge" hidden></a>
         </div>
+        <!--/* '관리' 드롭다운. 열고 닫기는 js/common/header.js(data-menu 속성)가 맡는다 */-->
         <div class="menu-wrap" data-menu>
             <button type="button" class="tab" th:classappend="${active == 'manage'} ? 'on'"
                     aria-haspopup="true" aria-expanded="false" data-menu-toggle>관리
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
             </button>
             <div class="menu-list" hidden data-menu-list>
+                <!--/* 구역·캠·사용자 관리는 모든 관리자에게, 관리자 관리·작업 기록은 최고 관리자(superAdmin)에게만 보인다 */-->
                 <a th:href="@{/zones}">구역 관리</a>
                 <a th:href="@{/cameras}">캠 관리</a>
                 <a th:href="@{/users}">사용자 관리</a>
@@ -55,10 +65,13 @@
         </div>
     </nav>
     <div class="head-right">
+        <!--/* 혼잡 단계 범례. header.js가 /api/v1/meta/levels로 채운다 */-->
         <div class="legend" id="level-legend" aria-label="혼잡 단계 범례"></div>
+        <!--/* 사용자 메뉴: 내 정보, 로그아웃. 로그아웃은 POST이므로 th:action이 CSRF 토큰을 숨은 칸으로 넣는다 */-->
         <div class="usermenu-wrap" data-menu>
             <button type="button" class="usermenu" aria-haspopup="true" aria-expanded="false" data-menu-toggle>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+                <!--/* 현재 로그인한 아이디(서버가 모델로 넘김). th:text는 HTML을 이스케이프한다 */-->
                 <span th:text="${currentLoginId}">admin</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
             </button>
@@ -72,15 +85,18 @@
 
 <!-- SCR-A-007 캠 등록·수정 창. 캠 관리 화면과 대시보드(캠 없는 구역의 핀)가 같이 쓴다. js/camera/camera-form.js, css/camera-modal.css -->
 <div th:fragment="adminCameraModal" class="modal-stage cam-modal-stage" id="camera-modal" hidden>
+    <!--/* 캠 등록·수정 창 틀. 동작은 camera-form.js가 이 id들(camera-*)로 찾아 붙는다. 처음에는 hidden */-->
     <form class="modal cam-modal" id="camera-form" role="dialog" aria-modal="true" aria-labelledby="camera-modal-title" novalidate>
         <div class="modal-head">
             <h2 id="camera-modal-title">캠 등록</h2>
+            <!--/* data-close 가 붙은 버튼은 camera-form.js가 창 닫기에 연결한다 */-->
             <button class="icon-btn" type="button" aria-label="닫기" data-close>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
             </button>
         </div>
         <div class="modal-body">
             <p class="alert" id="camera-form-error" role="alert" hidden></p>
+            <!--/* 구역 선택. 등록 때는 캠이 없는 구역만 채워지고, 수정 때는 현재 구역 하나만 보이며 잠긴다 */-->
             <div class="field">
                 <label for="camera-zone">구역</label>
                 <select class="input" id="camera-zone" name="zoneId"></select>
@@ -93,12 +109,14 @@
                 <span class="hint err" data-error-for="name" hidden></span>
             </div>
             <div class="field">
+                <!--/* 입력 방식: DUMMY(시연용 영상 파일)와 LIVE(RTSP). 바꾸면 영상 주소 안내 문구가 바뀐다 */-->
                 <span id="camera-type-label">입력 방식</span>
                 <div class="seg" role="radiogroup" aria-labelledby="camera-type-label">
                     <label><input type="radio" name="sourceType" value="DUMMY" checked><span>더미 영상</span></label>
                     <label><input type="radio" name="sourceType" value="LIVE"><span>라이브(RTSP)</span></label>
                 </div>
             </div>
+            <!--/* 영상 주소와 안내 문구 자리 */-->
             <div class="field">
                 <label for="camera-uri">영상 주소</label>
                 <input class="input" id="camera-uri" name="sourceUri" type="text" maxlength="255" autocomplete="off">
@@ -107,6 +125,7 @@
             </div>
             <p class="muted cam-note">파일이 실제로 있는지는 가동할 때 분석 서버가 확인합니다.</p>
         </div>
+        <!--/* 취소·저장. 저장 버튼은 form submit이므로 camera-form.js의 submitForm이 처리한다 */-->
         <div class="modal-foot">
             <button class="btn secondary" type="button" data-close>취소</button>
             <button class="btn primary" type="submit" id="camera-save">저장</button>
@@ -116,6 +135,7 @@
 
 <!-- SCR-A-008 실시간 보기 창(관리자 앱). 대시보드 지도 핀·캠 카드와 캠 관리의 '실시간 보기'에서 연다. 동작은 js/live/live-view.js -->
 <div th:fragment="adminLiveModal" class="modal-stage live-modal-stage" id="live-modal" hidden>
+    <!--/* 실시간 보기 창 틀. 아래 id들은 live-view.js·live-graphs.js가 채운다 */-->
     <div class="modal live-modal" role="dialog" aria-modal="true" aria-label="실시간 보기">
         <div class="modal-head">
             <div>
@@ -127,6 +147,7 @@
             </button>
         </div>
         <div class="live-body">
+            <!--/* 영상 영역: img에 MJPEG 스트림을 직접 연결한다. 연결 중·실패 안내와 다시 시도 버튼, LIVE 배지, 현재 인원 배지 */-->
             <div class="live-feed">
                 <img id="live-img" alt="실시간 영상" hidden>
                 <div class="live-notice" id="live-notice" role="status" hidden>
@@ -138,6 +159,7 @@
             </div>
         </div>
         <!-- 현재 통계 4칸(통계 SSE로 갱신). 1시간 순증감은 아래 그래프와 같은 응답의 유입 합 − 유출 합 -->
+        <!--/* 현재 통계 4칸과 다시보기 버튼(최근 녹화로 이동) */-->
         <div class="live-foot">
             <div class="live-stat"><span class="muted">현재 인원</span><div class="value" id="live-count">-</div></div>
             <div class="live-stat"><span class="muted">밀집도</span><div class="value"><span id="live-density">-</span> <small class="muted">명/㎡</small></div></div>
@@ -150,16 +172,19 @@
           캠 카드·통계 그래프(1m)와 같은 1분 통계·같은 단계(level)라 같은 분이면 같은 값이다
         -->
         <div class="live-graphs" id="live-graphs">
+            <!--/* 왼쪽 위: 최근 10분 단계 색 막대 */-->
             <section class="live-graph">
                 <h3>최근 10분 · 혼잡 단계</h3>
                 <div class="live-graph-body" id="live-graph-10m"></div>
                 <div class="live-axis muted"><span>-10분</span><span>지금</span></div>
             </section>
+            <!--/* 오른쪽 위: 최근 1시간 단계 색 막대 */-->
             <section class="live-graph">
                 <h3>최근 1시간 · 혼잡 단계</h3>
                 <div class="live-graph-body" id="live-graph-60m"></div>
                 <div class="live-axis muted"><span>-60분</span><span>-30분</span><span>지금</span></div>
             </section>
+            <!--/* 왼쪽 아래: 방향별 흐름(나침반 + 방향별 막대) */-->
             <section class="live-graph">
                 <h3>방향별 흐름 · 1시간</h3>
                 <div class="live-direction">
@@ -167,12 +192,14 @@
                     <div class="live-direction-bars" id="live-direction-bars"></div>
                 </div>
             </section>
+            <!--/* 오른쪽 아래: 인원 선과 유입·유출 막대. 제목 오른쪽 링크는 같은 조건의 통계 그래프 화면으로 간다 */-->
             <section class="live-graph">
                 <h3>최근 1시간 · 인원 · 유입·유출 <a class="live-stats-link" id="live-stats-link" href="#">통계에서 보기 ↗</a></h3>
                 <div class="live-graph-body" id="live-graph-count"></div>
                 <div class="live-graph-body" id="live-graph-flow"></div>
                 <div class="live-axis muted"><span>-60분</span><span>-30분</span><span>지금</span></div>
             </section>
+            <!--/* 색 범례와 그래프 읽기 실패 문구(평소 숨김) */-->
             <p class="live-graph-legend muted"><i class="in"></i>유입<i class="out"></i>유출<i class="l1"></i>정상<i class="l2"></i>주의<i class="l3"></i>위험·주의 이상 구간<i class="now"></i>지금</p>
             <p class="muted live-graph-error" id="live-graph-error" hidden>그래프를 불러오지 못했습니다.</p>
         </div>
@@ -184,6 +211,7 @@
   <head>에 css/stats-export.css를 더한다. 동작은 js/export/export-modal.js
 -->
 <div th:fragment="statExportModal" class="modal-stage export-modal-stage" id="export-modal" hidden>
+    <!--/* 엑셀 다운로드 창 틀. 동작은 export-modal.js가 export-* id로 연결한다. 항목 value는 서버가 받는 항목 코드 */-->
     <form class="modal export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" novalidate>
         <div class="modal-head">
             <h2 id="export-title">엑셀 다운로드</h2>
@@ -192,13 +220,16 @@
             </button>
         </div>
         <div class="modal-body">
+            <!--/* 범위(구역/지역/전체). 선택지는 창을 열 때 JS가 채운다 */-->
             <label class="field">범위
                 <select class="input" id="export-scope"></select>
             </label>
+            <!--/* 지역 범위일 때만 보이는 합산 옵션 */-->
             <div class="export-sum" id="export-sum-row" hidden>
                 <label class="ck"><input type="checkbox" id="export-sum"><i></i>지역 합산으로 받기</label>
                 <span class="export-sum-hint">체크하면 지역을 합산해 한 줄로 받습니다. 체크하지 않으면 소속 구역별로 받습니다</span>
             </div>
+            <!--/* 기간: 시작·끝 시각 입력과 단위 선택. 단위별 최대 기간은 JS가 검사한다 */-->
             <div class="export-period">
                 <label class="field export-period-range">기간
                     <span class="export-period-inputs">
@@ -218,6 +249,7 @@
                     </select>
                 </label>
             </div>
+            <!--/* 내려받을 항목. 체크 하나도 없으면 다운로드 버튼이 꺼진다 */-->
             <div class="field">항목
                 <div class="export-items" id="export-items">
                     <label class="ck"><input type="checkbox" value="COUNT" checked><i></i>인원</label>
@@ -227,6 +259,7 @@
                     <label class="ck"><input type="checkbox" value="DWELL"><i></i>평균 체류</label>
                 </div>
             </div>
+            <!--/* 입력 검사 이유 문구와 서버 오류 문구 자리(평소 숨김) */-->
             <p class="hint err export-reason" id="export-reason" role="status" hidden></p>
             <p class="alert" id="export-error" role="alert" hidden></p>
         </div>
@@ -238,6 +271,7 @@
 </div>
 
 <!-- SCR-U-004 사용자 공통 헤더(틀만). active: dashboard | stats -->
+<!--/* 사용자 앱 헤더: 관리 메뉴 없이 대시보드·통계 탭과 사용자 메뉴만 둔다 */-->
 <header th:fragment="userHeader(active)" class="we topbar" data-header="user">
     <a class="brand" th:href="@{/stats}">White Eyes<small>혼잡 현황</small></a>
     <nav class="tabs" aria-label="주요 메뉴">
@@ -261,6 +295,7 @@
 </header>
 
 <!-- 화면 맨 아래에 둔다. 헤더 동작(범례·메뉴)을 붙인다 -->
+<!--/* 헤더 동작(범례 채우기, 메뉴 열고 닫기, 관리자일 때 알림 연결)을 담은 모듈 스크립트 */-->
 <th:block th:fragment="scripts">
     <script type="module" th:src="@{/js/common/header.js}"></script>
 </th:block>

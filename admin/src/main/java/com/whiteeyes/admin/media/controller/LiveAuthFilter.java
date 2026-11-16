@@ -20,25 +20,30 @@ import com.whiteeyes.admin.media.service.LiveAuthService;
  */
 public class LiveAuthFilter extends OncePerRequestFilter {
 
+    // 쿠키 세션 조회와 권한 판정은 서비스가 하고, 이 필터는 결과를 HTTP 상태 코드로 바꾸기만 한다.
     private final LiveAuthService liveAuthService;
 
     public LiveAuthFilter(LiveAuthService liveAuthService) {
         this.liveAuthService = liveAuthService;
     }
 
+    /** 요청을 컨트롤러로 넘기지 않고 이 자리에서 상태 코드(204/401/403)만 정해 응답한다. */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        // 권한 확인은 GET만 쓴다. 다른 메서드는 열어 주지 않는다(403).
         if (!"GET".equals(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
+        // 판정 결과를 응답 코드로 바꾼다: 열어 줌 204, 로그인 없음 401, 권한 없음·가동 중 아님 403. nginx가 이 셋 외에는 500으로 바꾸므로 그 밖의 값은 만들지 않는다.
         int status =
                 switch (liveAuthService.check(request, request.getParameter("cameraId"))) {
                     case OK -> HttpServletResponse.SC_NO_CONTENT;
                     case UNAUTHENTICATED -> HttpServletResponse.SC_UNAUTHORIZED;
                     case FORBIDDEN -> HttpServletResponse.SC_FORBIDDEN;
                 };
+        // 본문 없이 상태 코드만 보낸다.
         response.setStatus(status);
     }
 }

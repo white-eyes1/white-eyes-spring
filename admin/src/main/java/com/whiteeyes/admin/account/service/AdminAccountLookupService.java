@@ -21,10 +21,13 @@ public class AdminAccountLookupService {
     /** 관리자 번호 → 로그인 아이디. 없는 번호는 결과에 없다. */
     @Transactional(readOnly = true)
     public Map<Long, String> findLoginIds(Collection<Long> adminIds) {
+        // 빈 목록이면 DB를 조회하지 않는다
         if (adminIds.isEmpty()) {
             return Map.of();
         }
+        // 번호 목록을 한 번에 읽어 번호 -> 아이디 맵으로 만든다
         return adminAccountRepository.findAllById(adminIds).stream()
+                // 같은 번호가 겹치면 앞의 값을 쓴다(겹침 시 toMap이 예외를 던지지 않게 하는 보호 장치)
                 .collect(Collectors.toMap(AdminAccount::getId, AdminAccount::getLoginId, (first, second) -> first));
     }
 }

@@ -30,18 +30,23 @@ public class UserAccountQueryRepository {
     // MySQL에서 백슬래시는 문자열 안 이스케이프로도 쓰여 헷갈리므로 LIKE 이스케이프 문자로 '!'를 쓴다
     private static final char LIKE_ESCAPE = '!';
 
+    // JPA 표준 EntityManager. 조건이 동적이라 Criteria 쿼리를 직접 만들어 실행한다
     private final EntityManager entityManager;
 
     /** 조건·정렬을 적용한 한 페이지. 최근 활동 정렬은 세션 정보가 있어야 하므로 여기서 다루지 않는다. */
     public List<UserRow> findPage(UserSearchRequest request) {
+        // 최근 활동은 DB 칼럼이 아니라 세션 표에서 계산하는 값이라 DB 정렬이 불가능하다.
+        // 서비스가 isSessionDependent()로 메모리 처리 경로로 보내므로, 여기 오면 호출이 잘못된 것이라 예외로 막는다
         if (request.sortField() == AccountSortField.LAST_ACTIVE_AT) {
             throw new IllegalArgumentException("최근 활동 정렬은 메모리에서 처리한다");
         }
+        // 페이지 번호 * 크기는 int 범위를 넘을 수 있어 long으로 계산한다
         long offset = (long) request.page() * request.size();
         // page에는 상한이 없어, 읽을 수 있는 범위를 넘으면 빈 페이지다
         if (offset > Integer.MAX_VALUE) {
             return List.of();
         }
+        // 조건·정렬이 붙은 쿼리에 시작 위치와 개수를 걸어 한 페이지만 읽는다
         return select(request, sortOrder(request.sortField(), request.isAscending()))
                 .setFirstResult((int) offset)
                 .setMaxResults(request.size())
@@ -50,9 +55,11 @@ public class UserAccountQueryRepository {
 
     /** 조건에 맞는 전체 계정 수. */
     public long count(UserSearchRequest request) {
+        // Criteria 쿼리를 만드는 도구. 아래에서 count 쿼리를 만든다
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Long> query = cb.createQuery(Long.class);
         Root<UserAccount> root = query.from(UserAccount.class);
+        // 목록과 같은 조건(conditions)으로 개수만 센다. 같은 메서드를 써서 목록과 전체 개수의 기준이 어긋나지 않게 한다
         query.select(cb.count(root)).where(conditions(cb, root, request));
         return entityManager.createQuery(query).getSingleResult();
     }
@@ -62,16 +69,20 @@ public class UserAccountQueryRepository {
      * 최근 활동 정렬이면 그와 가장 가까운 마지막 로그인 최근 순, 아니면 요청한 정렬 순이다.
      */
     public List<UserRow> findCandidates(UserSearchRequest request, int limit) {
+        // 최근 활동 정렬이면 DB에서는 가장 비슷한 '마지막 로그인 최근 순'으로 상한까지 읽고, 정확한 정렬은 서비스가 세션 정보로 메모리에서 한다
         List<SortKey> sortKeys = request.sortField() == AccountSortField.LAST_ACTIVE_AT
                 ? lastLoginRecentFirst()
                 : sortOrder(request.sortField(), request.isAscending());
+        // 정렬한 앞쪽 limit개까지만 읽는다
         return select(request, sortKeys).setMaxResults(limit).getResultList();
     }
 
     private TypedQuery<UserRow> select(UserSearchRequest request, List<SortKey> sortKeys) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        // 엔티티 전체가 아니라 목록에 필요한 칼럼만 UserRow로 바로 담는다(비밀번호 등은 읽지 않음)
         CriteriaQuery<UserRow> query = cb.createQuery(UserRow.class);
         Root<UserAccount> root = query.from(UserAccount.class);
+        // 아래 칼럼 순서는 UserRow 생성자의 매개변수 순서와 같아야 한다
         query.select(cb.construct(
                         UserRow.class,
                         root.get("id"),
@@ -88,9 +99,12 @@ public class UserAccountQueryRepository {
     }
 
     private Predicate[] conditions(CriteriaBuilder cb, Root<UserAccount> root, UserSearchRequest request) {
+        // 값이 들어온 조건만 모아 AND로 이어 붙인다. 안 들어온 조건은 거르지 않는다
         List<Predicate> predicates = new ArrayList<>();
         if (request.keyword() != null) {
+            // 앞뒤에 %를 붙여 아이디나 이름 어디에든 검색어가 들어 있으면 맞는 부분 일치로 만든다
             String pattern = "%" + escapeLike(request.keyword()) + "%";
+            // 아이디 또는 이름 중 하나만 맞아도 된다(OR)
             predicates.add(cb.or(
                     cb.like(root.get("loginId"), pattern, LIKE_ESCAPE),
                     cb.like(root.get("name"), pattern, LIKE_ESCAPE)));
@@ -104,20 +118,26 @@ public class UserAccountQueryRepository {
         if (request.joinedToExclusive() != null) {
             predicates.add(cb.lessThan(root.get("createdAt"), request.joinedToExclusive()));
         }
+        // where(...)가 배열을 받으므로 배열로 바꾼다. 여러 조건은 모두 만족해야 한다(AND)
         return predicates.toArray(Predicate[]::new);
     }
 
     // 검색어의 %와 _는 와일드카드가 아니라 글자 그대로 찾는다(#32에서 정함)
+    // LIKE에서 특별한 문자(%, _)와 이스케이프 문자(!) 앞에 !를 붙여 글자 그대로 찾게 한다.
+    // !를 가장 먼저 바꿔야 뒤 치환이 만든 !가 다시 바뀌지 않는다
     private static String escapeLike(String keyword) {
         return keyword.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
     // 같은 값이면 번호로 한 번 더 정렬해 페이지를 넘겨도 순서가 흔들리지 않게 한다(UserListAssembler와 같은 규칙)
+    // 정렬 기준을 엔티티 속성 이름으로 바꾸고, 2차 기준으로 번호(id)를 같은 방향으로 덧붙인다.
+    // 값이 같은 행끼리도 순서가 고정되어 페이지를 넘길 때 중복·누락이 생기지 않는다
     private static List<SortKey> sortOrder(AccountSortField field, boolean ascending) {
         String attribute =
                 switch (field) {
                     case CREATED_AT -> "createdAt";
                     case LOGIN_ID -> "loginId";
+                        // 최근 활동은 세션에서 계산하는 값이라 여기서 쓸 수 없다
                     case LAST_ACTIVE_AT -> throw new IllegalArgumentException("최근 활동은 DB 칼럼이 아니다");
                 };
         return List.of(new SortKey(attribute, ascending), new SortKey("id", ascending));
@@ -128,6 +148,7 @@ public class UserAccountQueryRepository {
         return List.of(new SortKey("lastLoginAt", false), new SortKey("id", false));
     }
 
+    // 정렬 키 목록을 Criteria의 오름차순/내림차순 정렬 객체로 바꾼다
     private static List<Order> toOrders(CriteriaBuilder cb, Root<UserAccount> root, List<SortKey> sortKeys) {
         return sortKeys.stream()
                 .map(sortKey -> {
@@ -137,5 +158,6 @@ public class UserAccountQueryRepository {
                 .toList();
     }
 
+    // 정렬할 엔티티 속성 이름과 방향(오름차순이면 true)을 묶은 값
     private record SortKey(String attribute, boolean ascending) {}
 }

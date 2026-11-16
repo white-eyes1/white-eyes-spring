@@ -12,4 +12,5 @@ import java.util.Map;
  * @param min 모든 칸 중 가장 작은 값(색 정규화). 값이 하나도 없으면 null
  * @param max 모든 칸 중 가장 큰 값
  */
+// min·max는 화면이 색 농도를 0~1로 맞출 때 쓰는 값이다. values의 키가 문자열인 것은 JSON 객체 키가 문자열이어서다
 public record HeatmapResponse(List<Long> units, Map<String, List<BigDecimal>> values, BigDecimal min, BigDecimal max) {}

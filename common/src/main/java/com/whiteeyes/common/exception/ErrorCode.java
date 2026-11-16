@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
  * 기능별 코드(예: ZONE_NOT_FOUND)는 그 기능의 이슈에서 이 enum에 추가한다.
  */
 public enum ErrorCode {
+    // 각 상수는 (HTTP 상태, 기본 메시지) 쌍이다. 응답 JSON의 code에는 상수 이름이 그대로 나간다. 아래는 상태별로 묶여 있다(400 → 401 → 403 → 404 → 405 → 409 →
+    // 422 → 502 → 500)
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값을 확인해 주세요."),
     WRONG_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
     INVALID_POLYGON(HttpStatus.BAD_REQUEST, "구역 모양이 올바르지 않습니다."),
@@ -15,14 +17,18 @@ public enum ErrorCode {
     RANGE_TOO_LONG(HttpStatus.BAD_REQUEST, "조회 기간이 너무 깁니다."),
     TOO_MANY_ROWS(HttpStatus.BAD_REQUEST, "내려받을 행이 너무 많습니다."),
     INVALID_RANGE(HttpStatus.BAD_REQUEST, "조회 기간이 올바르지 않습니다."),
+    // 인증·권한 관련
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
+    // 대상을 찾지 못한 경우. 일반용(NOT_FOUND)과 기능별(ZONE_NOT_FOUND 등)이 있다
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 대상을 찾을 수 없습니다."),
     ZONE_NOT_FOUND(HttpStatus.NOT_FOUND, "구역을 찾을 수 없습니다."),
     REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "지역을 찾을 수 없습니다."),
     RECORDING_NOT_FOUND(HttpStatus.NOT_FOUND, "영상 없음"),
     RECORDING_EXPIRED(HttpStatus.NOT_FOUND, "보관 기간 지남"),
+    // 지원하지 않는 HTTP 메서드
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 요청 방식입니다."),
+    // 409: 이미 있거나 현재 상태와 충돌하는 경우
     DUPLICATE(HttpStatus.CONFLICT, "이미 존재합니다."),
     DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
     DUPLICATE_ZONE_NAME(HttpStatus.CONFLICT, "같은 동에 같은 이름의 구역이 있습니다."),
@@ -32,12 +38,17 @@ public enum ErrorCode {
     CAMERA_NOT_STOPPED(HttpStatus.CONFLICT, "정지 상태에서만 처리할 수 있습니다. 먼저 캠을 정지해 주세요."),
     CAMERA_RUNNING(HttpStatus.CONFLICT, "가동 중인 캠이 있어 삭제할 수 없습니다. 캠을 먼저 정지해 주세요."),
     CAMERA_STOPPING(HttpStatus.CONFLICT, "이전 정지가 아직 끝나지 않았습니다. 잠시 뒤 다시 시작해 주세요."),
+    // 요청 형식은 맞지만 처리할 수 없는 경우(422)
     SOURCE_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "영상 파일·스트림을 찾을 수 없습니다."),
+    // 502: 다른 서버(분석 서버·외부 API)와 연결하지 못한 경우
     ANALYZER_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "분석 서버에 연결할 수 없습니다."),
     EXTERNAL_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "외부 서버에 연결할 수 없습니다."),
+    // 예상하지 못한 서버 오류. 원인은 응답에 싣지 않고 로그에만 남긴다
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
 
+    // 응답 HTTP 상태
     private final HttpStatus status;
+    // 사용자에게 보이는 기본 문구
     private final String message;
 
     ErrorCode(HttpStatus status, String message) {
@@ -45,10 +56,12 @@ public enum ErrorCode {
         this.message = message;
     }
 
+    /** 이 오류가 응답할 HTTP 상태. */
     public HttpStatus getStatus() {
         return status;
     }
 
+    /** 기본 메시지. 호출하는 쪽이 따로 메시지를 주지 않았을 때 쓰인다. */
     public String getMessage() {
         return message;
     }

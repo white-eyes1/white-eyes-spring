@@ -12,6 +12,7 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 @RequiredArgsConstructor
 public class CameraRunningService {
 
+    // 캠 저장소
     private final CameraRepository cameraRepository;
 
     /** 캠이 있고 삭제되지 않았으며 상태가 RUNNING인지. */
@@ -19,6 +20,7 @@ public class CameraRunningService {
     public boolean isRunning(Long cameraId) {
         return cameraRepository
                 .findByIdAndDeletedAtIsNull(cameraId)
+                // 캠이 있으면 상태만 비교하고, 없거나 삭제된 캠이면 아래에서 false가 된다
                 .map(camera -> camera.getStatus() == CameraStatus.RUNNING)
                 .orElse(false);
     }

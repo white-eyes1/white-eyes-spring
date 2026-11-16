@@ -16,8 +16,13 @@ import com.whiteeyes.admin.notification.service.NotificationBroadcaster;
 @RequiredArgsConstructor
 public class NotificationStreamController {
 
+    // 연결된 구독자 목록을 관리하고 실제로 보내는 쪽.
     private final NotificationBroadcaster notificationBroadcaster;
 
+    /**
+     * 알림 SSE 연결을 연다. 응답은 닫히지 않고 이어지며, 서버가 이벤트를 밀어 보낸다.
+     * 캐시를 막고 nginx 버퍼링을 꺼서 이벤트가 지연 없이 브라우저에 닿게 한다.
+     */
     @GetMapping(path = "/api/v1/notifications/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> stream() {
         return ResponseEntity.ok()

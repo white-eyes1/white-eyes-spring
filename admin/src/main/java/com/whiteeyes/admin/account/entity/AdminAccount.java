@@ -17,42 +17,53 @@ import lombok.NoArgsConstructor;
 /**
  * 관리자 계정(tables.md admin_account). 관리자 앱만 쓰는 테이블이라 common이 아니라 admin에 둔다(package-structure.md 4장).
  */
+// JPA 엔티티. 기본 생성자는 JPA용으로 protected로 막고, 생성은 아래 정적 팩터리 메서드로만 한다(상태를 바꾸는 메서드도 이 클래스 안에 둔다)
 @Entity
 @Table(name = "admin_account")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AdminAccount {
 
+    // 기본 키. 번호는 DB가 자동으로 매긴다(IDENTITY)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 로그인 아이디. 최대 20자이고 중복될 수 없다
     @Column(name = "login_id", nullable = false, length = 20, unique = true)
     private String loginId;
 
+    // bcrypt로 암호화한 비밀번호(60자 고정 길이). 평문은 저장하지 않는다
     @Column(nullable = false, length = 60)
     private String password;
 
+    // 이름
     @Column(nullable = false, length = 50)
     private String name;
 
+    // 메일(선택). 입력하지 않으면 NULL
     @Column(length = 100)
     private String email;
 
+    // 연락처(선택). 입력하지 않으면 NULL
     @Column(length = 20)
     private String phone;
 
+    // 권한 등급. 문자열(이름)로 저장해 enum 순서를 바꿔도 DB 값이 틀어지지 않는다
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AdminRole role;
 
+    // 계정 상태(ACTIVE·DISABLED). 문자열로 저장한다
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AdminStatus status;
 
+    // true이면 다음 로그인 때 비밀번호를 바꾸게 한다(임시 비밀번호로 만든·재설정한 계정)
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    // 마지막 로그인 시각(KST). 로그인한 적이 없으면 NULL
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
@@ -73,10 +84,12 @@ public class AdminAccount {
      * @param encodedPassword 이미 bcrypt로 바꾼 비밀번호. 평문을 넘기지 않는다
      */
     public static AdminAccount createSuperAdmin(String loginId, String encodedPassword, String name) {
+        // protected 기본 생성자를 쓸 수 있는 건 같은 클래스 안이기 때문이다
         AdminAccount account = new AdminAccount();
         account.loginId = loginId;
         account.password = encodedPassword;
         account.name = name;
+        // 최고 관리자는 바로 쓸 수 있는 ACTIVE로 시작하고, 초기 비밀번호는 환경변수로 정해 둔 값이라 첫 로그인에서 바꾸게 한다
         account.role = AdminRole.SUPER_ADMIN;
         account.status = AdminStatus.ACTIVE;
         account.mustChangePassword = true;
@@ -97,15 +110,18 @@ public class AdminAccount {
         account.name = name;
         account.email = email;
         account.phone = phone;
+        // 일반 관리자 역할. 임시 비밀번호로 만들었으므로 첫 로그인 때 변경을 강제한다(mustChangePassword)
         account.role = AdminRole.ADMIN;
         account.status = AdminStatus.ACTIVE;
         account.mustChangePassword = true;
+        // 누가 만들었는지 남긴다(최고 관리자 번호)
         account.createdBy = createdBy;
         return account;
     }
 
     /** 로그인에 성공한 시각을 남긴다(FNC-C-001). */
     public void recordLogin(LocalDateTime loggedInAt) {
+        // 시각은 호출한 쪽이 정한다(KST)
         this.lastLoginAt = loggedInAt;
     }
 
@@ -116,6 +132,7 @@ public class AdminAccount {
      */
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+        // 사용자가 직접 바꿨으므로 변경 강제를 끈다
         this.mustChangePassword = false;
     }
 

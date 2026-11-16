@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.whiteeyes.admin.media.entity.Recording;
 
+// 아래 쿼리 메서드의 Limit 인자는 '첫 줄만 필요할 때' 불필요하게 많은 행을 읽지 않도록 건수를 제한하기 위한 것이다.
 public interface RecordingRepository extends JpaRepository<Recording, Long> {
 
     /** 그 캠의 종료 시각이 빈 녹화 중 가장 나중에 시작한 것(FNC-A-021 처리 순서 4). */
@@ -25,6 +26,7 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
      * @return 닫은 녹화 수
      */
     // 늦게 도착한 등록이 더 나중에 시작한 녹화를 과거 시각으로 닫지 않도록 started_at < closedAt만 닫는다
+    // 벌크 UPDATE는 영속성 컨텍스트를 거치지 않으므로, 실행 후 컨텍스트를 비워 이전에 읽어 둔 엔티티와 DB가 어긋나지 않게 한다.
     @Modifying(clearAutomatically = true)
     @Query("update Recording r set r.endedAt = :closedAt"
             + " where r.cameraId = :cameraId and r.endedAt is null and r.startedAt < :closedAt")
@@ -57,6 +59,7 @@ public interface RecordingRepository extends JpaRepository<Recording, Long> {
      * @return 지운 건수
      */
     // 건수 제한이 있는 삭제는 JPQL로 쓸 수 없어 네이티브로 쓴다(MySQL·H2 모두 DELETE ... LIMIT 지원)
+    // 호출하는 곳에 트랜잭션이 없어도(스케줄러) 배치마다 독립적으로 커밋되도록 이 메서드에서 직접 트랜잭션을 연다.
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query(value = "DELETE FROM recording WHERE started_at < :cutoff LIMIT :limit", nativeQuery = true)

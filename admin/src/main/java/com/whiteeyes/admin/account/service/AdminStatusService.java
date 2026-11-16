@@ -34,8 +34,11 @@ public class AdminStatusService {
     private static final Map<String, String> DISABLE_DETAIL = Map.of("status", "ACTIVE→DISABLED");
     private static final Map<String, String> ENABLE_DETAIL = Map.of("status", "DISABLED→ACTIVE");
 
+    // 대상 관리자 조회(행 잠금)
     private final AdminAccountRepository adminAccountRepository;
+    // 비활성화할 때 대상의 세션을 지운다
     private final AccountSessionService accountSessionService;
+    // 로그인한 관리자 확인과 작업 기록 저장
     private final AdminWorkRecorder workRecorder;
 
     /** ACTIVE → DISABLED로 바꾸고 그 관리자의 세션을 모두 지운다. 최고 관리자는 대상이 될 수 없다. */
@@ -43,6 +46,7 @@ public class AdminStatusService {
     public void disable(Long adminId) {
         // 로그인하지 않은 요청은 상태를 바꾸기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
+        // 행을 잠그고 읽어 두 최고 관리자의 동시 변경이 엇갈리지 않게 한다(늦은 쪽은 바뀐 상태를 보고 409)
         AdminAccount admin = adminAccountRepository
                 .findByIdForUpdate(adminId)
                 .orElseThrow(() -> new AdminNotFoundException(adminId));
@@ -51,6 +55,7 @@ public class AdminStatusService {
         if (admin.getRole() == AdminRole.SUPER_ADMIN) {
             throw new SuperAdminTargetException("비활성화");
         }
+        // ACTIVE인 계정만 비활성화할 수 있다(이미 비활성이면 409)
         if (admin.getStatus() != AdminStatus.ACTIVE) {
             throw new InvalidAdminStatusException(adminId, admin.getStatus(), "비활성화");
         }
@@ -74,10 +79,12 @@ public class AdminStatusService {
     @Transactional
     public void enable(Long adminId) {
         LoginAccount actor = workRecorder.requireActor();
+        // 비활성화와 같이 행을 잠그고 읽는다
         AdminAccount admin = adminAccountRepository
                 .findByIdForUpdate(adminId)
                 .orElseThrow(() -> new AdminNotFoundException(adminId));
 
+        // DISABLED인 계정만 활성화할 수 있다(이미 활성이면 409)
         if (admin.getStatus() != AdminStatus.DISABLED) {
             throw new InvalidAdminStatusException(adminId, admin.getStatus(), "활성화");
         }
@@ -90,6 +97,7 @@ public class AdminStatusService {
                 adminId,
                 admin.getLoginId(),
                 ENABLE_DETAIL);
+        // 활성화에는 지울 세션이 없다(비활성화 때 이미 모두 지웠다)
         log.info("관리자 활성화 adminId={}", adminId);
     }
 }

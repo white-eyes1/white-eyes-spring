@@ -8,4 +8,5 @@ package com.whiteeyes.common.stat.dto;
  * @param direction 나간 방향 N·E·S·W
  * @param count 기간의 그 방향 유출 합
  */
+// toZoneId가 null인 항목은 이웃 구역이 없는 방향(관측 범위 밖)으로 나간 인원이다
 public record ZoneFlowItem(long fromZoneId, Long toZoneId, String direction, long count) {}

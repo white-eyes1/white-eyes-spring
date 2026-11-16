@@ -15,6 +15,7 @@ import com.whiteeyes.common.stat.exception.InvalidRangeException;
  */
 public record ZoneFlowRequest(long regionId, LocalDateTime from, LocalDateTime to) {
 
+    // 검증 오류에 붙일 객체 이름
     private static final String OBJECT_NAME = "zoneFlowRequest";
     // GlobalExceptionHandler의 형식 오류 문구와 같은 문장
     private static final String INVALID_FORMAT_MESSAGE = "형식이 올바르지 않습니다.";
@@ -27,7 +28,9 @@ public record ZoneFlowRequest(long regionId, LocalDateTime from, LocalDateTime t
      * @throws InvalidRangeException 끝이 시작보다 늦지 않으면(400 INVALID_RANGE, FNC-C-010 예외 상황 '기간 오류')
      */
     public static ZoneFlowRequest parse(long regionId, String fromText, String toText) throws BindException {
+        // 형식 오류를 칸별로 모으기 위한 객체
         MapBindingResult errors = new MapBindingResult(new HashMap<>(), OBJECT_NAME);
+        // 시각 형식은 통계 시계열 조회와 같은 파서를 재사용한다
         Optional<LocalDateTime> from = StatSeriesRequest.parseTime(fromText);
         if (from.isEmpty()) {
             errors.addError(new FieldError(OBJECT_NAME, "from", INVALID_FORMAT_MESSAGE));
@@ -39,6 +42,7 @@ public record ZoneFlowRequest(long regionId, LocalDateTime from, LocalDateTime t
         if (errors.hasErrors()) {
             throw new BindException(errors);
         }
+        // 형식은 맞지만 기간이 거꾸로이거나 비었으면, 형식 오류(INVALID_INPUT)와 구분해 기간 오류(INVALID_RANGE)로 던진다
         if (!to.get().isAfter(from.get())) {
             throw new InvalidRangeException(TO_NOT_AFTER_FROM_MESSAGE);
         }

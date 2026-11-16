@@ -37,6 +37,7 @@ public record EventSearchRequest(
         @Min(value = 0, message = PAGE_MESSAGE) Integer page,
         @Min(value = 1, message = SIZE_MESSAGE) @Max(value = MAX_SIZE, message = SIZE_MESSAGE) Integer size) {
 
+    // (아래 두 상수는 레코드 컴포넌트의 어노테이션에서도 쓰이므로 static으로 둔다)
     // 페이지 기본값·최대값(conventions.md '공통 API 규칙 > 페이지')
     public static final int DEFAULT_SIZE = 20;
     public static final int MAX_SIZE = 100;
@@ -44,9 +45,12 @@ public record EventSearchRequest(
     private static final String PAGE_MESSAGE = "페이지는 0 이상이어야 합니다.";
     private static final String SIZE_MESSAGE = "한 페이지 개수는 1~100이어야 합니다.";
 
+    // 컴팩트 생성자: 요청 값을 정규화한다(비운 목록은 빈 목록, 공백 검색어는 null, overlap은 기본 false, page는 0, size는 20)
     public EventSearchRequest {
+        // 불변 복사본으로 만들어 이후 바뀌지 않게 한다
         types = types == null ? List.of() : List.copyOf(types);
         statuses = statuses == null ? List.of() : List.copyOf(statuses);
+        // 앞뒤 공백을 떼어 같은 검색어가 같게 취급되게 한다
         keyword = keyword == null || keyword.isBlank() ? null : keyword.strip();
         overlap = overlap != null && overlap;
         page = page == null ? 0 : page;

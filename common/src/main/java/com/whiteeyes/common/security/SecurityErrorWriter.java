@@ -16,10 +16,13 @@ import com.whiteeyes.common.web.ErrorResponse;
  */
 public final class SecurityErrorWriter {
 
+    // 정적 메서드만 모은 유틸 클래스라 객체를 만들지 못하게 막는다
     private SecurityErrorWriter() {}
 
+    /** 오류 코드의 상태와 기본 메시지로 JSON 오류 응답을 직접 쓴다. */
     public static void write(HttpServletResponse response, JsonMapper jsonMapper, ErrorCode errorCode)
             throws IOException {
+        // 상태 코드·콘텐츠 타입·문자 인코딩을 먼저 정한 뒤 본문을 쓴다. 한글이 깨지지 않도록 UTF-8을 지정한다
         response.setStatus(errorCode.getStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());

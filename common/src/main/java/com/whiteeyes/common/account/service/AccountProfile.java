@@ -5,6 +5,7 @@ package com.whiteeyes.common.account.service;
  *
  * @param role 관리자 계정의 역할. 사용자 계정이면 null
  */
+// 사용자와 관리자 계정 테이블의 칸 차이를 이 한 모양으로 맞춘다. 비밀번호 해시는 일부러 넣지 않았다
 public record AccountProfile(
         Long id,
         String loginId,

@@ -7,6 +7,7 @@ import com.whiteeyes.common.exception.ErrorCode;
 public class CameraStoppingException extends BusinessException {
 
     // 응답 문구가 화면에 그대로 나가므로(screens.md) 캠 번호를 붙이지 않고 기본 메시지를 쓴다
+    // 409 CAMERA_STOPPING으로 응답한다. 호출하는 쪽은 잠시 뒤 다시 시도하면 된다.
     public CameraStoppingException() {
         super(ErrorCode.CAMERA_STOPPING);
     }

@@ -9,4 +9,5 @@ import java.math.BigDecimal;
  * @param hour 0~23시
  * @param avgCount 그 시간대의 평균 인원
  */
+// rank는 평균 인원이 큰 순서(1이 가장 붐빔)
 public record PeakHourItem(int rank, int hour, BigDecimal avgCount) {}

@@ -31,9 +31,12 @@ public record EventExportRequest(
         String keyword,
         Boolean overlap) {
 
+    // 컴팩트 생성자: 요청 값을 정규화한다. 비운 목록은 빈 목록(조건 없음), 공백뿐인 검색어는 null, overlap은 null이면 false
     public EventExportRequest {
+        // 불변 복사본으로 만들어 이후 바뀌지 않게 한다
         types = types == null ? List.of() : List.copyOf(types);
         statuses = statuses == null ? List.of() : List.copyOf(statuses);
+        // 앞뒤 공백을 떼어 같은 검색어가 같게 취급되게 한다
         keyword = keyword == null || keyword.isBlank() ? null : keyword.strip();
         overlap = overlap != null && overlap;
     }

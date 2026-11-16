@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class PlaybackPageController {
 
+    // 화면 틀(템플릿)만 돌려준다. 녹화·통계 데이터는 화면 JS가 API로 받아 채운다.
     @GetMapping("/playback")
     public String playbackPage() {
         return "admin/playback";

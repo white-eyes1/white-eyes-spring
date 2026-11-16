@@ -28,9 +28,13 @@ import com.whiteeyes.common.security.LoginAccount;
 @RequiredArgsConstructor
 public class AdminCreateService {
 
+    // 관리자 계정 저장·중복 확인
     private final AdminAccountRepository adminAccountRepository;
+    // 비밀번호를 bcrypt로 암호화한다
     private final PasswordEncoder passwordEncoder;
+    // 임시 비밀번호(평문)를 무작위로 만든다
     private final TemporaryPasswordGenerator temporaryPasswordGenerator;
+    // 로그인한 관리자 확인과 작업 기록 저장
     private final AdminWorkRecorder workRecorder;
 
     /**
@@ -50,11 +54,13 @@ public class AdminCreateService {
         AdminAccount account = AdminAccount.createAdmin(
                 request.loginId(),
                 passwordEncoder.encode(temporaryPassword),
+                // 이름은 앞뒤 공백을 지워 저장한다
                 request.name().strip(),
                 emptyToNull(request.email()),
                 emptyToNull(request.phone()),
                 actor.accountId());
         try {
+            // flush로 INSERT를 바로 실행해야 유일 조건 위반이 이 try 안에서 드러난다
             adminAccountRepository.saveAndFlush(account);
         } catch (DataIntegrityViolationException ex) {
             // 동시에 만들면 둘 다 위 확인을 통과할 수 있어 login_id 유일 조건이 막는다(회원가입과 같은 처리)
@@ -65,6 +71,7 @@ public class AdminCreateService {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("op", "CREATE");
         detail.put("role", account.getRole());
+        // 비밀번호 값 자체는 기록하지 않고 '발급됨'이라는 사실만 남긴다
         detail.put("password", "발급됨");
         workRecorder.record(
                 actor,
@@ -73,6 +80,7 @@ public class AdminCreateService {
                 account.getId(),
                 account.getLoginId(),
                 detail);
+        // 평문 임시 비밀번호는 여기서 응답으로만 나간다
         return new AdminCreateResponse(account.getId(), temporaryPassword);
     }
 

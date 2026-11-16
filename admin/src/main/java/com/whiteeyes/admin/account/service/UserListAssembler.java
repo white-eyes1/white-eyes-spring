@@ -21,6 +21,7 @@ public final class UserListAssembler {
     /** 세션 정보를 붙인 뒤 처리하는 목록의 최대 계정 수(FNC-A-002 업무 규칙). 넘으면 이만큼만 다룬다(#32에서 정함). */
     public static final int SESSION_DEPENDENT_LIMIT = 1000;
 
+    // 정적 메서드만 모은 클래스라 객체를 만들지 못하게 막는다
     private UserListAssembler() {}
 
     /**
@@ -30,6 +31,7 @@ public final class UserListAssembler {
      */
     public static PageResponse<UserListItem> assemblePage(
             List<UserRow> pageRows, long totalElements, AccountActivities activities, UserSearchRequest request) {
+        // 각 행에 세션 기반 활동 정보를 붙여 응답 항목으로 바꾼다
         List<UserListItem> items =
                 pageRows.stream().map(row -> toItem(row, activities)).toList();
         return PageResponse.of(items, request.page(), request.size(), totalElements);
@@ -43,17 +45,21 @@ public final class UserListAssembler {
      */
     public static PageResponse<UserListItem> assembleInMemory(
             List<UserRow> candidates, AccountActivities activities, UserSearchRequest request) {
+        // 호출한 쪽이 상한+1개까지 읽어 오므로, 상한을 넘었다면 더 있다는 뜻이다
         boolean truncated = candidates.size() > SESSION_DEPENDENT_LIMIT;
+        // 상한을 넘으면 앞쪽 상한만큼만 다룬다
         List<UserRow> limited = truncated ? candidates.subList(0, SESSION_DEPENDENT_LIMIT) : candidates;
 
         List<UserListItem> matched = limited.stream()
                 .map(row -> toItem(row, activities))
+                // active 조건을 보내지 않았으면 모두 통과, 보냈으면 일치하는 계정만 남긴다
                 .filter(item -> request.active() == null || item.active() == request.active())
                 .sorted(comparatorFor(request))
                 .toList();
 
         // page에는 상한이 없어 int로 곱하면 넘칠 수 있다
         int from = (int) Math.min((long) request.page() * request.size(), matched.size());
+        // 시작 위치 이후 size개까지, 목록 끝을 넘지 않게 자른다
         int to = Math.min(from + request.size(), matched.size());
         return PageResponse.of(matched.subList(from, to), request.page(), request.size(), matched.size(), truncated);
     }
@@ -64,6 +70,7 @@ public final class UserListAssembler {
     }
 
     private static UserListItem toItem(UserRow row, AccountActivities activities) {
+        // 세션이 있으면 세션 접근 시각, 없으면 마지막 로그인 시각이 '최근 활동'이다
         AccountActivity activity = activities.activityOf(row.loginId(), row.lastLoginAt());
         ZoneId zone = activities.zone();
         return new UserListItem(
@@ -95,6 +102,7 @@ public final class UserListAssembler {
         return primary.thenComparing(by(UserListItem::id, ascending));
     }
 
+    // 값이 null(최근 활동 없음)인 계정은 오름·내림차순과 관계없이 맨 뒤로 보낸다
     private static <T extends Comparable<? super T>> Comparator<UserListItem> by(
             Function<UserListItem, T> key, boolean ascending) {
         Comparator<T> order = ascending ? Comparator.naturalOrder() : Comparator.reverseOrder();

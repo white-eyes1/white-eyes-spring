@@ -7,6 +7,7 @@ import com.whiteeyes.common.exception.ErrorCode;
 public class RegionNotFoundException extends BusinessException {
 
     public RegionNotFoundException() {
+        // 기본 메시지는 ErrorCode에 정의돼 있다
         super(ErrorCode.REGION_NOT_FOUND);
     }
 }

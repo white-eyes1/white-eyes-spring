@@ -25,6 +25,7 @@ import com.whiteeyes.admin.media.repository.RecordingRepository;
 public class RecordingFileService {
 
     /** nginx의 internal location(conventions.md 'nginx 경로 규칙'). 외부에서 직접 요청하면 404다 */
+    // 외부에서 직접 열 수 없는 nginx 내부 경로의 앞부분.
     static final String PROTECTED_PREFIX = "/protected/media/";
 
     private final RecordingRepository recordingRepository;
@@ -48,6 +49,7 @@ public class RecordingFileService {
         return PROTECTED_PREFIX + encodePath(findRetained(recordingId, now).getBoxPath());
     }
 
+    /** 녹화를 찾고 보관 기간(30일) 안인지 확인한다. 없으면 RecordingNotFoundException, 지났으면 RecordingExpiredException. */
     private Recording findRetained(Long recordingId, LocalDateTime now) {
         Recording recording = recordingRepository.findById(recordingId).orElseThrow(RecordingNotFoundException::new);
         // 보관 기간(RECORDING_RETENTION_DAYS)이 지난 행은 매일 정리되지만 정리 전에도 보내지 않는다
@@ -58,6 +60,7 @@ public class RecordingFileService {
     }
 
     // 헤더 값은 ASCII여야 하고 nginx가 주소를 해석하므로 구분자 '/'를 뺀 나머지를 퍼센트 인코딩한다
+    // (위 주석 참고) 경로의 한글·공백 등을 안전하게 만든다.
     private String encodePath(String path) {
         return UriUtils.encodePath(path, StandardCharsets.UTF_8);
     }

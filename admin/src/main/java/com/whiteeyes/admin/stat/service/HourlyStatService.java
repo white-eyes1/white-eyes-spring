@@ -23,7 +23,9 @@ import com.whiteeyes.common.stat.service.StatRollupCalculator;
 @RequiredArgsConstructor
 public class HourlyStatService {
 
+    // 묶을 재료인 1분 통계
     private final ZoneStatMinuteRepository zoneStatMinuteRepository;
+    // 묶은 결과를 저장하는 시간별 통계
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
 
     /**
@@ -43,12 +45,15 @@ public class HourlyStatService {
      * @param zoneIds 묶을 구역 번호. null이면 그 시간의 전 구역
      */
     public synchronized void aggregateHour(LocalDateTime hourStart, Collection<Long> zoneIds) {
+        // 그 정시 이상, 다음 정시 미만인 1분 행을 모두 읽는다(반열린 구간이라 경계 시각이 두 시간에 겹치지 않는다)
         List<ZoneStatMinute> minutes = zoneStatMinuteRepository.findByStatAtGreaterThanEqualAndStatAtLessThan(
                 hourStart, hourStart.plusHours(1));
+        // 구역별로 나눈다. zoneIds가 주어지면 그 구역만 남기고, null이면 전 구역을 대상으로 한다
         Map<Long, List<ZoneStatMinute>> minutesByZone = minutes.stream()
                 .filter(minute -> zoneIds == null || zoneIds.contains(minute.getZoneId()))
                 .collect(Collectors.groupingBy(ZoneStatMinute::getZoneId));
 
+        // 구역마다 따로 저장한다. 한 구역이 실패해도 나머지 구역 집계는 계속한다
         minutesByZone.forEach((zoneId, zoneMinutes) -> {
             try {
                 save(zoneId, hourStart, zoneMinutes);
@@ -59,9 +64,12 @@ public class HourlyStatService {
         log.info("시간별 통계 저장 statAt={} zones={}", hourStart, minutesByZone.size());
     }
 
+    /** 한 구역의 그 시간 1분 행들을 시간별 행 하나로 묶어 저장한다. 같은 키의 행이 있으면 덮어쓴다. */
     private void save(Long zoneId, LocalDateTime hourStart, List<ZoneStatMinute> zoneMinutes) {
+        // 1분 행을 시간별·일별이 함께 쓰는 공통 값 형태로 바꾼다(시간별과 일별이 같은 계산을 쓰도록)
         List<StatValues> rows =
                 zoneMinutes.stream().map(StatRollupCalculator::of).toList();
+        // 합치는 계산은 공통 계산기에 맡긴다. 받은 초가 있는 행이 하나도 없으면 빈 값이다
         StatValues rolledUp = StatRollupCalculator.rollUp(rows).orElse(null);
         if (rolledUp == null) {
             log.warn("시간별 통계 건너뜀: 받은 초가 있는 1분 통계 없음 zoneId={} statAt={}", zoneId, hourStart);

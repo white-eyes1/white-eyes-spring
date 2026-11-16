@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--/* 오류 화면(Spring Boot가 오류 때 렌더링). 공통 틀 없이 최소 구성이라 오류가 나도 이 화면은 의존 없이 뜬다 */-->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--/* 탭 제목에 HTTP 상태 코드 */-->
     <title th:text="|오류 ${status}|">오류</title>
 </head>
 <body>
 <main>
+    <!--/* 상태 코드와 안내 문구. 서버가 준 message가 비어 있으면 기본 문구를 쓴다. th:text는 HTML을 이스케이프한다 */-->
     <h1 th:text="${status}">500</h1>
     <p th:text="${#strings.isEmpty(message)} ? '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' : ${message}">
         일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.
     </p>
+    <!--/* 처음 화면으로 돌아가는 링크 */-->
     <a th:href="@{/}">처음으로</a>
 </main>
 </body>

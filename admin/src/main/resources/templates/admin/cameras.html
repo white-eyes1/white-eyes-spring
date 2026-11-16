@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <!--/* 공통 레이아웃의 head 조각(제목 '캠 관리')과, 캠 등록 창·실시간 보기 창·이 화면 전용 스타일. */-->
     <th:block th:replace="~{fragments/layout :: head('캠 관리')}"/>
     <link rel="stylesheet" th:href="@{/css/camera-modal.css}">
     <link rel="stylesheet" th:href="@{/css/admin/cameras.css}">
     <link rel="stylesheet" th:href="@{/css/live.css}">
 </head>
 <body class="we">
+<!--/* 관리자 공통 상단 메뉴 조각('manage'는 현재 메뉴 강조용). */-->
 <header th:replace="~{fragments/layout :: adminHeader('manage')}"></header>
+<!--/* 페이지 머리글(제목, 설명, 캠 등록 버튼). 캠 등록 버튼은 cameras.js가 id로 찾아 등록 창을 연다. */-->
 <main class="page">
     <div class="page-heading">
         <div>
@@ -20,11 +23,13 @@
         </button>
     </div>
 
+    <!--/* 캠 목록 영역: 요약 줄(총 대수·상태별 개수), 표 머리글, 행 자리. 행은 cameras.js가 만든다. */-->
     <section class="panel cam-panel">
         <div class="filterbar">
             <span class="muted cam-summary" id="camera-summary">불러오는 중…</span>
         </div>
         <div class="table-wrap">
+            <!--/* div와 role 속성으로 만든 표(role=table/row/columnheader)다. 칸마다 보조 설명을 넣을 수 있도록 table 대신 div를 썼고, 접근성을 위해 role을 직접 단다. */-->
             <div class="dtable cam-table" role="table" aria-label="캠 목록">
                 <div class="tr th" role="row">
                     <span role="columnheader">구역</span>
@@ -35,7 +40,9 @@
                     <span role="columnheader">오류 내용</span>
                     <span role="columnheader" class="cam-right">동작</span>
                 </div>
+                <!--/* 캠 행이 들어가는 자리. */-->
                 <div id="camera-rows" role="rowgroup"></div>
+                <!--/* 등록된 캠이 없을 때만 보이는 안내. */-->
                 <p class="muted cam-empty" id="camera-empty" hidden>등록된 캠이 없습니다. '캠 등록'으로 구역에 캠을 추가하세요.</p>
             </div>
         </div>
@@ -43,9 +50,11 @@
 </main>
 
 <!-- SCR-A-007 캠 등록·수정 창(대시보드와 같은 창) -->
+<!--/* 캠 등록·수정 창은 공통 레이아웃의 조각으로 가져온다(대시보드와 같은 창). 동작은 camera/camera-form.js가 맡는다. */-->
 <th:block th:replace="~{fragments/layout :: adminCameraModal}"/>
 
 <!-- FNC-A-023 캠 삭제 확인 창 -->
+<!--/* 삭제 확인 창. 버튼의 data-delete-close는 cameras.js가 닫기 동작을 연결하는 표시이고, 삭제 확인 버튼은 camera-delete-confirm이다. */-->
 <div class="modal-stage cam-modal-stage" id="camera-delete-modal" hidden>
     <div class="modal cam-modal cam-confirm" role="alertdialog" aria-modal="true" aria-labelledby="camera-delete-title">
         <div class="modal-head">
@@ -65,8 +74,10 @@
 </div>
 
 <!-- SCR-A-008 실시간 보기 창 -->
+<!--/* 실시간 보기 창도 공통 레이아웃 조각이며 live/live-view.js가 제어한다. */-->
 <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
 
+<!--/* 공통 스크립트와 이 화면의 스크립트(ES 모듈). 화면 코드는 cameras.js에서 시작한다. */-->
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/admin/pages/cameras.js}"></script>
 </body>

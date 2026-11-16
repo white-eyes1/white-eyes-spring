@@ -8,5 +8,6 @@ import com.whiteeyes.common.history.entity.ActorType;
  */
 public interface WorkActorTypeProvider {
 
+    // 이 앱에서 로그인한 계정이 사용자인지 관리자인지 돌려준다
     ActorType actorType();
 }

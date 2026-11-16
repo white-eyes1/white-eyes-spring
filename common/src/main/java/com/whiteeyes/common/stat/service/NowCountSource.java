@@ -21,14 +21,19 @@ public interface NowCountSource {
     List<NowCount> findAllFresh(LocalDateTime now);
 
     /** 신선한 구역들의 현재 인원 합. 신선한 값이 하나도 없으면 빈 값(화면은 1분 평균으로 되돌린다). */
+    // 구현체가 없는 쪽(사용자 앱)에서도 쓸 수 있도록 합산 로직을 인터페이스의 기본 메서드로 제공한다
     default OptionalInt sumFresh(Collection<Long> zoneIds, LocalDateTime now) {
+        // 합산할 구역이 없으면 조회 없이 '값 없음'으로 끝낸다
         if (zoneIds.isEmpty()) {
             return OptionalInt.empty();
         }
+        // 신선한 값(최근 몇 초 이내)만 모은다. 오래된 값은 현재 인원으로 보기 어려워 제외된다
         Map<Long, NowCount> found = findFresh(zoneIds, now);
+        // 신선한 값이 하나도 없으면 0명이 아니라 '값 없음'이다. 0으로 내리면 실제로 비어 있다는 뜻으로 오해된다
         if (found.isEmpty()) {
             return OptionalInt.empty();
         }
+        // 구역별 현재 인원을 모두 더한다
         return OptionalInt.of(
                 found.values().stream().mapToInt(NowCount::personCount).sum());
     }
@@ -38,5 +43,6 @@ public interface NowCountSource {
      *
      * @param at 그 인원이 찍힌 초(KST)
      */
+    // 구현체가 만들어 돌려주는 값 묶음(구역 번호, 그 시점 인원, 찍힌 초)
     record NowCount(long zoneId, int personCount, LocalDateTime at) {}
 }

@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <!--/* 공통 head 조각(스타일·메타). 인자는 브라우저 탭 제목 */-->
     <th:block th:replace="~{fragments/layout :: head('승인 대기')}"/>
 </head>
 <body class="we">
 <!-- SCR-U-002: 승인 대기 계정은 다른 메뉴를 쓸 수 없어 헤더에 이름만 둔다 -->
+<!--/* 승인 대기 상태에서는 메뉴 없이 상단 막대와 안내 카드만 보인다. 카드는 가운데 정렬 */-->
 <header class="topbar"><span class="brand">White Eyes</span></header>
 <main style="padding: 96px 24px; display: flex; justify-content: center">
     <section class="panel" style="width: 100%; max-width: 480px; padding: 36px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+        <!--/* 시계 모양 아이콘을 원형 배경으로 감싼 장식(스크린리더에는 읽히지 않게 aria-hidden) */-->
         <div style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: rgba(245,158,11,.14); color: #ffc15a">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
         </div>
@@ -22,6 +25,7 @@
         </form>
     </section>
 </main>
+<!--/* 공통 스크립트 조각(헤더 동작 등)을 맨 끝에서 불러온다 */-->
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>

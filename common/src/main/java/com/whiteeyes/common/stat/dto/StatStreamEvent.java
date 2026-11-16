@@ -9,8 +9,10 @@ import java.util.List;
  *
  * @param statAt 그 1분의 시각(한국 시간 오프셋)
  */
+// SSE로 새 1분 통계가 저장될 때마다 보내는 이벤트의 본문
 public record StatStreamEvent(OffsetDateTime statAt, List<Item> items) {
 
     /** 구역 하나의 1분 통계. level은 혼잡 단계(1 정상 / 2 주의 / 3 위험). */
+    // zoneId 구역 번호, countAvg 그 1분 평균 인원, density 밀집도(명/㎡)
     public record Item(Long zoneId, BigDecimal countAvg, BigDecimal density, int level) {}
 }

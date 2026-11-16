@@ -21,7 +21,9 @@ import com.whiteeyes.common.stat.service.NowCountSource;
 @Component
 public class MemoryNowCountSource implements NowCountSource {
 
+    // 구역별 최근 1초 결과가 들어 있는 메모리 누적기 저장소
     private final MinuteAccumulatorStore minuteAccumulatorStore;
+    // 이 시간보다 오래된 초는 '현재 인원'으로 쓰지 않는다
     private final Duration fresh;
 
     public MemoryNowCountSource(
@@ -33,10 +35,13 @@ public class MemoryNowCountSource implements NowCountSource {
     }
 
     @Override
+    /** 요청한 구역 중 최신 인원이 있는 구역만 구역 번호 → 현재 인원으로 돌려준다. 오래된 구역은 빠진다. */
     public Map<Long, NowCount> findFresh(Collection<Long> zoneIds, LocalDateTime now) {
+        // 찾을 구역이 없으면 누적기를 훑을 필요가 없다
         if (zoneIds.isEmpty()) {
             return Map.of();
         }
+        // 아래 필터에서 contains를 반복하므로 해시 집합으로 바꿔 둔다
         Set<Long> wanted = new HashSet<>(zoneIds);
         return findAllFresh(now).stream()
                 .filter(count -> wanted.contains(count.zoneId()))
@@ -44,8 +49,11 @@ public class MemoryNowCountSource implements NowCountSource {
     }
 
     @Override
+    /** 전 구역의 현재 인원 중 아직 신선한 것만 돌려준다. */
     public List<NowCount> findAllFresh(LocalDateTime now) {
+        // 이 시각 이전의 초는 오래된 값이다. 정확히 경계인 초는 신선한 것으로 본다(isBefore로 걸러내므로)
         LocalDateTime oldest = now.minus(fresh);
+        // 구역별 가장 최근 1초 결과를 읽어, 신선한 것만 현재 인원 값으로 바꾼다
         return minuteAccumulatorStore.findLatestSecondByZone().entrySet().stream()
                 .filter(entry -> !entry.getValue().second().isBefore(oldest))
                 .map(entry -> new NowCount(

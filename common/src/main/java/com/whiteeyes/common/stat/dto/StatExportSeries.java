@@ -12,4 +12,5 @@ package com.whiteeyes.common.stat.dto;
  * @param emd 읍·면·동 이름. 시·군·구까지의 합산이면 '(지역 합산)'
  * @param zoneName 구역 이름. 지역 합산이면 '(지역 합산)'
  */
+// 엑셀 한 줄의 대상 정보를 미리 담아 두어, 파일을 쓰는 중에 DB를 다시 읽지 않게 한다
 public record StatExportSeries(Long zoneId, String sido, String sigungu, String emd, String zoneName) {}

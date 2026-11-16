@@ -15,17 +15,23 @@
   지도 도구 히트맵(FNC-C-011)은 켜면 하위 단위를 시간대별 평균값의 파랑 진하기로 칠한다.
 -->
 <head>
+    <!--/* 공통 head 조각(스타일·메타) */-->
     <th:block th:replace="~{fragments/layout :: head('대시보드')}"/>
+    <!--/* 지도 라이브러리(Leaflet, Geoman). 지도가 필요한 화면만 불러온다 */-->
     <th:block th:replace="~{fragments/layout :: leaflet}"/>
+    <!--/* 이 화면 전용 스타일. 캠 등록 창 스타일은 관리자 앱에서만 불러온다 */-->
     <link rel="stylesheet" th:href="@{/css/stats-main.css}">
     <link rel="stylesheet" th:href="@{/css/live.css}">
     <link rel="stylesheet" th:href="@{/css/stats-export.css}">
     <link rel="stylesheet" th:href="@{/css/camera-modal.css}" th:if="${admin}">
 </head>
 <body class="we">
+<!--/* 대시보드 최상위 틀. data-admin(관리자 앱 여부)과 data-snapshot-interval-sec(캠 카드 미리보기 갱신 간격, 서버 설정값)을 JS가 읽는다 */-->
 <div class="dash" id="dash" th:attr="data-admin=${admin}, data-snapshot-interval-sec=${cardSnapshotIntervalSec}">
+    <!--/* 앱에 맞는 공통 헤더 */-->
     <header th:replace="${admin} ? ~{fragments/layout :: adminHeader('dashboard')} : ~{fragments/layout :: userHeader('dashboard')}"></header>
 
+    <!--/* 지역 필터 막대: 시·도 -> 시·군·구 -> 읍·면·동 선택. 선택지는 stats-main.js가 채운다. 관리자에게는 구역 관리 화면 링크가 보인다 */-->
     <div class="filterbar">
         <span class="filter-title">지역 필터</span>
         <select class="input filter-select" id="filter-sido" aria-label="시·도"></select>
@@ -38,6 +44,7 @@
         <a class="btn secondary" th:if="${admin}" th:href="@{/zones}" style="margin-left: auto">지역 등록·수정</a>
     </div>
 
+    <!--/* 왼쪽 통계 패널(접기 가능) + 오른쪽 지도·캠 패널 */-->
     <div class="dash-split">
         <aside class="stat-panel" id="stat-panel">
             <div class="stat-head">
@@ -47,6 +54,7 @@
                 </button>
             </div>
             <div class="stat-body">
+                <!--/* 구역별 현재 인원: 탭 3개(현재 인원, 이벤트, 혼잡 단계)로 도넛과 목록을 바꾼다. panel.js가 그린다 */-->
                 <section class="acc zone-box">
                     <div class="row-between"><strong>구역별 현재 인원</strong><span class="muted small" id="zone-time"></span></div>
                     <div class="tabrow" role="tablist">
@@ -59,6 +67,7 @@
                         <div class="zone-list" id="zone-list"></div>
                     </div>
                 </section>
+                <!--/* 요약 6칸. panel.js가 값을 채운다 */-->
                 <section class="acc">
                     <div class="acc-h">요약<span class="muted small" id="summary-time"></span></div>
                     <div class="cells">
@@ -87,6 +96,7 @@
                         <span class="muted" id="visit-pattern-message" hidden></span>
                     </div>
                 </details>
+                <!--/* 최근 1분 유입·유출과 주요 방향 */-->
                 <section class="acc">
                     <div class="acc-h">유입·유출 (추정)<span class="muted small">최근 1분</span></div>
                     <div class="cells flow">
@@ -95,11 +105,13 @@
                         <div class="cell"><strong id="flow-dir">-</strong><span>주요 방향</span></div>
                     </div>
                 </section>
+                <!--/* 혼잡 단계 이름과 기준 밀집도(서버가 준 값을 읽기 전용으로 보임) */-->
                 <section class="acc">
                     <div class="acc-h">혼잡 기준<span class="muted small" id="level-rule"></span></div>
                     <ul class="level-rules" id="level-rules"></ul>
                 </section>
                 <!-- 피크 시간 TOP 3(FNC-C-029, stats-main/peak-hours.js)과 그 아래 증감 추세(FNC-C-019, 줄을 누르면 기간 비교, stats-main/trend.js) -->
+                <!--/* details: 펼칠 때만 값을 읽는 접기 영역. 각 영역의 JS가 toggle 이벤트로 감지한다 */-->
                 <details class="acc fold" id="peak-trend">
                     <summary class="acc-h">피크 시간 TOP 3 · 증감 추세<span class="muted small">어제까지</span></summary>
                     <div class="acc-b">
@@ -114,6 +126,7 @@
                     </div>
                 </details>
                 <!-- 비정상 인원 변동(FNC-C-020): 펼칠 때 최근 7일을 지난달 같은 요일과 비교해 읽는다 -->
+                <!--/* 비정상 인원 변동: 펼칠 때 기간 비교 API로 읽는다 */-->
                 <details class="acc fold" id="abnormal-box">
                     <summary class="acc-h">비정상 인원 변동<span class="muted small">최근 7일 · 지난달 대비</span></summary>
                     <div class="acc-b">
@@ -123,6 +136,7 @@
                     </div>
                 </details>
                 <!-- 보조 지표(FNC-C-030): 기존 통계 응답으로 화면에서 계산한다(stats-main/aux-metrics.js) -->
+                <!--/* 보조 지표 영역들. id는 aux-metrics.js의 FOLDS 키와 같아야 한다 */-->
                 <details class="acc fold" id="aux-flow">
                     <summary class="acc-h">방향별 유입·유출 (추정)<span class="muted small">최근 1시간</span></summary>
                     <div class="acc-b aux-flow" id="aux-flow-body"></div>
@@ -143,6 +157,7 @@
                     <summary class="acc-h">혼잡 구역 TOP 5<span class="muted small">밀집도 순</span></summary>
                     <div class="acc-b aux-rank" id="aux-top-zones-body"></div>
                 </details>
+                <!--/* 이벤트 종류별 건수는 관리자 앱에서만 렌더링한다 */-->
                 <details class="acc fold" id="aux-events" th:if="${admin}">
                     <summary class="acc-h">오늘 이벤트 종류별 건수<span class="muted small">오늘 0시부터</span></summary>
                     <div class="acc-b" id="aux-events-body"></div>
@@ -156,6 +171,7 @@
                     </div>
                 </details>
                 <!-- 그래프 보기(FNC-C-012)·엑셀 다운로드(FNC-C-023): 현재 지역을 넘긴다(panel.js renderGraphLink, stats-main.js openExport) -->
+                <!--/* 현재 지역으로 그래프 화면·엑셀 다운로드를 연다 */-->
                 <div class="panel-actions">
                     <a class="btn secondary" id="graph-link" th:href="@{/stats/graph}">그래프 보기</a>
                     <button type="button" class="btn secondary" id="export-open">엑셀 다운로드</button>
@@ -163,8 +179,10 @@
             </div>
         </aside>
 
+        <!--/* 오른쪽: 지도(dash-body)와 아래 캠 패널(deck, 관리자 앱만) */-->
         <div class="dash-main">
         <div class="dash-body" id="dash-body">
+        <!--/* 지도 영역: 지도 칸, 통계 패널을 다시 펴는 버튼, 단계 색 범례 */-->
         <section class="map dash-map" aria-label="지도">
             <div class="map-canvas" id="dash-map"></div>
             <button type="button" class="btn secondary sm panel-open" id="panel-open" hidden>통계</button>
@@ -172,9 +190,11 @@
             <!-- 한 단계 위 지역으로 올라가는 뒤로가기(시·도 단계에서는 숨김). 올라갈 지역 이름은 stats-main.js가 넣는다 -->
             <button type="button" class="btn secondary sm map-back" id="map-back" hidden>← 상위 지역</button>
             <!-- 지도 도구(시안 SCR-C-003 지도 오른쪽 위). 이동 흐름(FNC-C-010)은 동 단계에서만 켤 수 있다(stats-main/flow-tool.js). 히트맵(FNC-C-011): 조건·시간대 슬라이더·재생(stats-main/heatmap-tool.js) -->
+            <!--/* 지도 도구 상자: 이동 흐름(동 단계만), 히트맵(조건 입력·시간대 슬라이더·재생) */-->
             <div class="map-tools" id="map-tools">
                 <div class="map-tool">
                     <button type="button" class="btn secondary sm" id="flow-toggle" aria-pressed="false">이동 흐름 (추정)</button>
+                    <!--/* option value(1h 24h 7d 30d)는 flow-tool.js의 PERIOD_HOURS 키와 같다 */-->
                     <select class="input map-tool-select" id="flow-period" aria-label="이동 흐름 기간" hidden>
                         <option value="1h" selected>최근 1시간</option>
                         <option value="24h">최근 24시간</option>
@@ -186,6 +206,7 @@
                 <div class="map-tool">
                     <button type="button" class="btn secondary sm" id="heatmap-toggle" aria-pressed="false">히트맵</button>
                 </div>
+                <!--/* 히트맵 조건 상자. option value는 서버 히트맵 API의 item·dayType 코드 */-->
                 <div class="heatmap-box" id="heatmap-box" hidden>
                     <div class="heatmap-row">
                         <input class="input" type="date" id="heatmap-from" aria-label="히트맵 시작 날짜">
@@ -215,6 +236,7 @@
                 </div>
             </div>
             <!-- 구역 수정(FNC-A-015, 관리자 앱만, 동 단계): 지도에서 꼭짓점을 고치고 면적(현재 → 고친 값)·소속 동 미리보기, 이름 수정(stats-main/zone-edit.js) -->
+            <!--/* 구역 수정·등록 패널의 입력 요소(관리자 앱만). id는 zone-edit.js·zone-register.js가 사용 */-->
             <div class="zone-reg" id="zone-edit" th:if="${admin}" hidden>
                 <form class="zone-reg-form" id="zone-edit-form" novalidate>
                     <div><p class="eyebrow">EDIT ZONE</p><strong id="zone-edit-title">구역 수정</strong></div>
@@ -234,7 +256,9 @@
                     </div>
                 </form>
             </div>
+            <!--/* 동 단계에서 빈 곳 우클릭 안내(관리자 앱만) */-->
             <p class="zone-reg-hint" id="zone-reg-hint" th:if="${admin}" hidden>동 안의 빈 곳을 우클릭하면 구역을 등록할 수 있습니다</p>
+            <!--/* 구역 등록 패널: 그리기 안내 -> 면적·소속 동 미리보기 + 이름 입력 */-->
             <div class="zone-reg" id="zone-reg" th:if="${admin}" hidden>
                 <div class="zone-reg-guide" id="zone-reg-guide" hidden>
                     <p>지도를 눌러 꼭짓점을 찍고, 처음 꼭짓점을 다시 눌러 마칩니다.</p>
@@ -261,6 +285,7 @@
         </section>
         </div>
 
+    <!--/* 캠 패널(관리자 앱만): 손잡이로 높이를 조절하고 카드는 deck.js가 채운다 */-->
     <section class="deck" id="deck" th:if="${admin}">
         <div class="deck-grip" id="deck-grip" role="separator" tabindex="0"
              aria-label="캠 패널 높이 조절(끌어서 조절, 두 번 눌러 전환)"><span></span></div>
@@ -281,6 +306,7 @@
     </div>
 </div>
 <!-- SCR-A-008 실시간 보기 창(관리자 앱만) -->
+<!--/* 관리자 앱 전용 창들을 한 번에 둔다: 실시간 보기, 지도 우클릭 메뉴, 확인 창, 구역 등록 확인 창, 캠 등록 창 */-->
 <th:block th:if="${admin}">
     <th:block th:replace="~{fragments/layout :: adminLiveModal}"/>
     <!-- 지도 우클릭 메뉴(stats-main/map-menu.js) -->

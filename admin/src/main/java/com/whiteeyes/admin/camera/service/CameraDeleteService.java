@@ -25,12 +25,22 @@ import com.whiteeyes.common.security.LoginAccount;
 @RequiredArgsConstructor
 public class CameraDeleteService {
 
+    // DB에는 한국 시간을 시간대 없이 저장하므로, 삭제 시각도 KST 기준으로 만든다.
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final CameraRepository cameraRepository;
+    // 관리자 작업 기록(누가 무엇을 했는지)을 남기는 도구.
     private final AdminWorkRecorder workRecorder;
 
     @Transactional
+    /**
+     * 캠을 삭제한다. 분석 서버를 부르지 않으므로 하나의 트랜잭션으로 묶어, 작업 기록이 실패하면 삭제도 취소한다.
+     *
+     * @param cameraId 삭제할 캠 ID
+     * @return 실제 삭제(HARD)인지 삭제 표시(SOFT)인지
+     * @throws CameraNotFoundException 없거나 이미 삭제된 캠
+     * @throws CameraNotStoppedException 정지 상태가 아니거나 가동 요청이 남은 캠
+     */
     public CameraDeleteResponse delete(Long cameraId) {
         // 로그인하지 않은 요청은 삭제하기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
@@ -45,6 +55,7 @@ public class CameraDeleteService {
         }
         // 처리 순서 2: 가동한 적이 없으면 실제 삭제, 있으면 deleted_at 설정
         CameraDeleteResponse.Mode mode;
+        // 한 번도 가동하지 않았으면 녹화·통계 등 딸린 이력이 없으므로 행을 지워도 된다. 가동한 적이 있으면 이력 보존을 위해 삭제 표시만 한다.
         if (camera.getFirstStartedAt() == null) {
             cameraRepository.delete(camera);
             mode = CameraDeleteResponse.Mode.HARD;
@@ -53,6 +64,7 @@ public class CameraDeleteService {
             mode = CameraDeleteResponse.Mode.SOFT;
         }
         // 처리 순서 3: 작업 기록(CAMERA_CHANGE). 같은 트랜잭션이라 기록이 실패하면 삭제도 취소된다
+        // 작업 기록의 상세 내용. LinkedHashMap으로 넣은 순서대로 기록한다.
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("op", "DELETE");
         detail.put("zoneId", camera.getZoneId());

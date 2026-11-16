@@ -33,9 +33,11 @@ public class LiveAuthService {
 
     private static final Set<String> ADMIN_AUTHORITIES = Set.of("ROLE_ADMIN", "ROLE_SUPER_ADMIN");
 
+    // 세션 저장소를 직접 읽는다. Spring Security를 거치면 세션 접근 시각이 갱신돼 만료가 늘어나기 때문이다.
     private final SessionRepository<? extends Session> sessionRepository;
     // 세션 쿠키 이름과 Base64 해석은 로그인 때 쿠키를 만든 것과 같은 설정을 쓴다
     private final CookieSerializer cookieSerializer;
+    // 캠이 가동 중(RUNNING)인지 확인하는 서비스.
     private final CameraRunningService cameraRunningService;
 
     /** 확인 결과. 응답 상태는 OK 204 / UNAUTHENTICATED 401 / FORBIDDEN 403 */
@@ -47,6 +49,12 @@ public class LiveAuthService {
 
     /**
      * @param cameraIdText 쿼리의 cameraId 원문(숫자가 아니거나 없으면 가동 중인 캠이 아니므로 FORBIDDEN)
+     */
+    /**
+     * 쿠키의 세션으로 로그인·역할을 확인하고, 캠이 가동 중인지 본 뒤 열어 줄지 정한다.
+     *
+     * @param request 쿠키(세션 번호)를 읽을 요청
+     * @return OK / UNAUTHENTICATED / FORBIDDEN
      */
     public Result check(HttpServletRequest request, String cameraIdText) {
         try {
@@ -69,7 +77,9 @@ public class LiveAuthService {
         }
     }
 
+    /** 요청 쿠키의 세션 번호들로 세션을 찾아, 인증이 끝난 로그인 정보를 돌려준다. 없으면 null. */
     private Authentication findAuthentication(HttpServletRequest request) {
+        // 같은 이름의 쿠키가 여러 개일 수 있어 후보를 모두 확인한다.
         List<String> sessionIds = cookieSerializer.readCookieValues(request);
         for (String sessionId : sessionIds) {
             // findById는 만료된 세션이면 null을 돌려준다. 접근 시각을 고치거나 저장하는 일은 하지 않는다
@@ -77,6 +87,7 @@ public class LiveAuthService {
             if (session == null) {
                 continue;
             }
+            // 로그인 시 스프링 시큐리티가 세션에 저장해 둔 보안 컨텍스트.
             Object context = session.getAttribute(SECURITY_CONTEXT);
             if (context instanceof SecurityContext securityContext
                     && securityContext.getAuthentication() != null
@@ -87,12 +98,14 @@ public class LiveAuthService {
         return null;
     }
 
+    /** 권한 목록에 ADMIN 또는 SUPER_ADMIN이 있는지. */
     private boolean hasAdminRole(Authentication authentication) {
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(ADMIN_AUTHORITIES::contains);
     }
 
+    /** 쿼리의 cameraId 문자열을 숫자로 바꾼다. 없거나 숫자가 아니면 null(그러면 호출부가 403으로 답한다). */
     private Long parseCameraId(String text) {
         if (text == null) {
             return null;

@@ -41,10 +41,13 @@ public class UserAccountDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String loginId) {
+        // 아이디로 찾되 탈퇴 계정은 걸러 "없는 계정"으로 취급한다(문구·응답 시간으로 탈퇴 여부가 드러나지 않게).
         UserAccount account = userAccountRepository
                 .findByLoginId(loginId)
                 .filter(found -> found.getStatus() != UserAccountStatus.WITHDRAWN)
                 .orElseThrow(() -> new UsernameNotFoundException("로그인할 수 있는 사용자 계정이 없습니다"));
+        // 로그인 정보 객체. 인자 순서: 계정 번호, 아이디, 암호화된 비밀번호, 사용 가능 여부(항상 true), 비밀번호 변경 필요 여부, 권한 목록.
+        // 비밀번호 일치 확인은 여기서 하지 않고 AuthenticationProvider가 한다.
         return new AccountPrincipal(
                 account.getId(),
                 account.getLoginId(),
@@ -54,6 +57,9 @@ public class UserAccountDetailsService implements UserDetailsService {
                 List.of(new SimpleGrantedAuthority(ROLE_PREFIX + role(account.getStatus()))));
     }
 
+    /**
+     * 계정 상태를 권한 이름으로 바꾼다. PENDING이면 승인 대기 전용 권한, 그 밖(ACTIVE)은 일반 사용자 권한이다.
+     */
     private String role(UserAccountStatus status) {
         return status == UserAccountStatus.PENDING ? UserRoles.PENDING : UserRoles.USER;
     }

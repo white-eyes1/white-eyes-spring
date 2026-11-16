@@ -13,5 +13,6 @@ import com.whiteeyes.common.event.entity.EventStatus;
  * @param actionCode 조치완료로 바꿀 때 고른 조치 항목. 아니면 null
  * @param actionNote 조치 메모. 없으면 null
  */
+// 처리 이력 한 줄. 값은 work_history의 detail JSON에서 읽으며(EventDetailService), 읽을 수 없으면 null이다
 public record EventHistoryItem(
         OffsetDateTime at, String loginId, EventStatus from, EventStatus to, String actionCode, String actionNote) {}

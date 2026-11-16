@@ -37,12 +37,21 @@ public class CameraStatusService {
     private final CameraRepository cameraRepository;
     private final AnalyzerClient analyzerClient;
     private final TransactionTemplate transactionTemplate;
+    // 캠 이상 이벤트(오류 시작/복구)를 열고 닫는 서비스.
     private final CamFaultEventService camFaultEventService;
+    // 화면의 알림 SSE로 캠 상태 변경을 보내는 발행기.
     private final NotificationPublisher notificationPublisher;
 
+    /**
+     * 분석 서버의 상태 보고를 저장하고, 그에 따라 캠 이상 이벤트를 열거나 닫는다.
+     *
+     * @param cameraId 캠 ID
+     * @param request 보고된 상태·진행률·오류 메시지
+     */
     public void reportStatus(Long cameraId, CameraStatusUpdateRequest request) {
         // 정지를 원하는 캠(run_requested=0)의 RUNNING 보고는 반영하지 않고 분석 서버에 정지를 다시 지시한다(엇갈림 정리)
         AppliedReport applied = transactionTemplate.execute(status -> apply(cameraId, request));
+        // 정지시킨 캠을 분석 서버가 아직 돌리고 있는 엇갈림이다. 상태를 반영하지 않고 정지 지시만 다시 보낸다.
         if (applied.mismatched()) {
             stopMismatchedCamera(cameraId);
             return;
@@ -55,13 +64,16 @@ public class CameraStatusService {
     private record AppliedReport(boolean mismatched, CameraStatus previous) {}
 
     /** 보고를 반영한다. */
+    // 트랜잭션 안에서 실행되며, 알림 발행까지 이 안에서 호출한다(커밋 뒤 전송은 NotificationPublisher가 맡는다).
     private AppliedReport apply(Long cameraId, CameraStatusUpdateRequest request) {
         Camera camera = cameraRepository
                 .findByIdAndDeletedAtIsNull(cameraId)
                 .orElseThrow(() -> new CameraNotFoundException(cameraId));
+        // 가동 요청이 취소된(정지된) 캠에 RUNNING 보고가 오면 정지와 가동이 엇갈린 것이다. 이 보고는 저장하지 않는다.
         if (request.status() == CameraStatus.RUNNING && !camera.isRunRequested()) {
             return new AppliedReport(true, camera.getStatus());
         }
+        // 갱신 전 상태: 로그와, 오류에서 복구됐는지 판단(이벤트 닫기)에 쓴다.
         CameraStatus previous = camera.getStatus();
         camera.updateStatus(request.status(), request.progress(), request.errorMessage());
         // 준비 중 진행률 보고는 자주 오므로 상태가 바뀔 때만 INFO
@@ -77,12 +89,14 @@ public class CameraStatusService {
     }
 
     // run_requested=0인 RUNNING 보고는 걸러졌으므로 여기 온 RUNNING은 가동 요청된 캠이다
+    /** 상태 보고에 따라 캠 이상 이벤트를 연다(ERROR) 또는 닫는다(RUNNING 복구). 상태 저장과 분리해, 실패해도 상태는 유지한다. */
     private void handleCamFaultEvent(Long cameraId, CameraStatus reported, CameraStatus previous) {
         try {
             if (reported == CameraStatus.ERROR) {
                 camFaultEventService.openOnError(cameraId, LocalDateTime.now(KST));
             } else if (reported == CameraStatus.RUNNING) {
                 camFaultEventService.closeOnRecovered(
+                        // 세 번째 인자: 직전이 RUNNING이 아니었는지(복구 전환인지). 이미 RUNNING이던 캠의 반복 보고와 구분한다.
                         cameraId, LocalDateTime.now(KST), previous != CameraStatus.RUNNING);
             }
         } catch (RuntimeException e) {
@@ -91,6 +105,7 @@ public class CameraStatusService {
         }
     }
 
+    /** 엇갈린 캠(정지 요청 후에도 RUNNING 보고)의 분석 서버 쪽을 다시 정지시킨다. 실패해도 보고 처리는 성공으로 끝낸다. */
     private void stopMismatchedCamera(Long cameraId) {
         try {
             analyzerClient.stopCamera(cameraId);

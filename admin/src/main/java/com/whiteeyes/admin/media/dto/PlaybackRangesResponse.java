@@ -8,5 +8,6 @@ import java.util.List;
  */
 public record PlaybackRangesResponse(List<Range> ranges) {
 
+    /** 녹화가 이어진 한 구간. 시각은 한국 시간 오프셋(+09:00)을 붙여 내려간다. */
     public record Range(OffsetDateTime from, OffsetDateTime to) {}
 }

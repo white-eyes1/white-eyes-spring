@@ -10,6 +10,8 @@ import com.whiteeyes.common.account.entity.UserAccountStatus;
  * @param createdAt 가입 시각(KST)
  * @param lastLoginAt 마지막 로그인 시각(KST). 로그인한 적이 없으면 null
  */
+// 엔티티가 아니라 조회 전용 값이다. Criteria의 construct가 쿼리 칼럼을 이 순서대로 생성자에 넣으므로
+// 순서를 바꾸면 UserAccountQueryRepository.select도 함께 바꿔야 한다
 public record UserRow(
         Long id,
         String loginId,

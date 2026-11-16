@@ -18,6 +18,7 @@ import com.whiteeyes.common.camera.entity.CameraStatus;
  */
 public record CameraListItem(
         Long id,
+        // 캠이 속한 구역의 ID·이름과, 구역이 속한 지역 경로·면적(㎡). 구역을 못 찾으면 이름·경로는 null, 면적은 0이다.
         Long zoneId,
         String zoneName,
         String regionPath,
@@ -28,7 +29,9 @@ public record CameraListItem(
         CameraStatus status,
         Integer progress,
         String errorMessage,
+        // 가동 요청 여부. true면 분석 서버가 꺼져 있다가 켜져도 다시 가동해야 하는 캠이다.
         boolean runRequested,
+        // 최근 1분 통계(없으면 null). 화면 캠 카드의 현재 인원·밀집도·혼잡 단계 표시에 쓴다.
         Stat stat,
         int todayEventCount,
         List<RecentCount> recent10m) {

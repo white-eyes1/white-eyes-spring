@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 /**
  * 기간 비교표의 한 칸(요일 × 시간). 평균·증감률은 소수 첫째 자리까지다.
  *
+ * <p>요일 × 시간 168칸이 한 칸씩 이 레코드로 내려가며, 화면은 증감률과 abnormal 여부로 칸 색을 정한다.
+ *
  * @param weekday 1=월 … 7=일(ISO)
  * @param hour 0~23
  * @param targetAvg 대상 기간 그 칸의 평균 인원. 통계가 없으면 null

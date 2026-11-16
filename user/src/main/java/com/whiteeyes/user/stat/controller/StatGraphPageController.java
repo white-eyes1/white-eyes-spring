@@ -11,8 +11,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class StatGraphPageController {
 
+    /**
+     * 통계 그래프 화면을 보여준다.
+     *
+     * @param model 템플릿에 admin 여부를 넘기는 모델
+     * @return 뷰 이름(공통 템플릿 stats/graph)
+     */
     @GetMapping("/stats/graph")
     public String graphPage(Model model) {
+        // 공통 템플릿이 사용자용/관리자용을 가르는 값. 사용자 앱이므로 false.
         model.addAttribute("admin", false);
         return "stats/graph";
     }

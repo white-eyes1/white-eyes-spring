@@ -18,6 +18,7 @@ public record StatChildrenResponse(List<Series> series, int omitted) {
      * @param id 하위 지역 번호, 상위가 읍·면·동이면 구역 번호
      * @param points 조회 기간의 모든 구간(시각 순). 통계가 없는 구간은 value가 null
      */
+    // 화면은 이 계열 하나를 선 하나로 그린다(하위 단위끼리 겹쳐 비교)
     public record Series(long id, String name, List<Point> points) {}
 
     /**

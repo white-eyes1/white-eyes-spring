@@ -2,6 +2,7 @@
 // 1y → 그 해 1M, 1M → 그 달 1d, 1w → 그 주 1d, 1d → 그 날 1h, 1h → 그 시간 1m, 1m → 더 내려가지 않음.
 // 시각은 브라우저 시각으로 다룬다(stats-graph.js와 같음). to는 끝을 포함하지 않는 다음 구간 시작이다.
 
+// 1시간(밀리초). 1시간 점에서 1분 단위로 내려갈 때 끝 시각을 구하는 데 쓴다
 const HOUR_MS = 3_600_000;
 
 /**
@@ -11,13 +12,17 @@ const HOUR_MS = 3_600_000;
  * @returns {{interval: string, from: Date, to: Date} | null}
  */
 export function drillDown(interval, at) {
+    // 누른 점의 구간 시작 시각을 연·월·일로 풀어 둔다(월은 0부터)
     const year = at.getFullYear();
     const month = at.getMonth();
     const day = at.getDate();
+    // 현재 단위에 따라 한 단계 아래 단위와 기간(from 포함, to 미포함)을 정한다
     switch (interval) {
         case '1y':
+            // 연 -> 그 해 1월 1일부터 다음 해 1월 1일 전까지, 월 단위
             return { interval: '1M', from: new Date(year, 0, 1), to: new Date(year + 1, 0, 1) };
         case '1M':
+            // 월 -> 그 달 1일부터 다음 달 1일 전까지, 일 단위(월이 12를 넘으면 Date가 알아서 다음 해로 넘긴다)
             return {
                 interval: '1d',
                 from: new Date(year, month, 1),
@@ -25,21 +30,25 @@ export function drillDown(interval, at) {
             };
         case '1w':
             // 1w 점은 월요일 시작(conventions.md '통계 단위')이라 그 날부터 7일
+            // 주 -> 시작일부터 7일, 일 단위
             return {
                 interval: '1d',
                 from: new Date(year, month, day),
                 to: new Date(year, month, day + 7),
             };
         case '1d':
+            // 일 -> 그 날 0시부터 다음 날 0시 전까지, 시간 단위
             return {
                 interval: '1h',
                 from: new Date(year, month, day),
                 to: new Date(year, month, day + 1),
             };
         case '1h': {
+            // 시간 -> 그 시각 정각부터 1시간, 분 단위
             const from = new Date(year, month, day, at.getHours());
             return { interval: '1m', from, to: new Date(from.getTime() + HOUR_MS) };
         }
+        // 1분 점은 더 내려갈 단계가 없다
         default:
             return null;
     }
@@ -52,6 +61,7 @@ export function drillDown(interval, at) {
  * @param {string|null} parentInterval 바로 위 칸을 만든 점의 단위(처음 칸이면 null)
  */
 export function crumbLabel(interval, at, parentInterval) {
+    // 이름에 쓸 연·월(1부터)·일
     const year = at.getFullYear();
     const month = at.getMonth() + 1;
     const day = at.getDate();
@@ -59,10 +69,13 @@ export function crumbLabel(interval, at, parentInterval) {
         case '1y':
             return `${year}년`;
         case '1M':
+            // 위 칸이 같은 해의 월 단위 점이면 연도를 생략한다
             return parentInterval === '1y' ? `${month}월` : `${year}년 ${month}월`;
         case '1w':
+            // 주 단위는 위 칸 정보와 상관없이 날짜 전체를 보인다
             return `${year}년 ${month}월 ${day}일 주`;
         case '1d':
+            // 위 칸이 월 단위면 일만, 주 단위면 월·일만 보이고 아니면 연·월·일 전체
             return parentInterval === '1M'
                 ? `${day}일`
                 : parentInterval === '1w'

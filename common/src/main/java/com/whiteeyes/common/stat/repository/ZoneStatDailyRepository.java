@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.whiteeyes.common.stat.entity.ZoneStatDaily;
 import com.whiteeyes.common.stat.entity.ZoneStatDailyId;
 
+// 일별 통계 조회용 저장소. 메서드 이름만으로 쿼리가 만들어지는 Spring Data 규칙을 쓴다
 public interface ZoneStatDailyRepository extends JpaRepository<ZoneStatDaily, ZoneStatDailyId> {
 
     /** 구역들의 from 이상 to 미만 날짜의 일별 통계. 통계 시계열 1d(FNC-C-012)가 구역 수와 관계없이 한 번에 읽는다. */

@@ -20,13 +20,17 @@ import org.springframework.format.annotation.DateTimeFormat;
  * @param page 0부터
  * @param size 1~100
  */
+// 가입일 끝이 시작보다 앞서지 않는지 두 필드를 함께 검사한다(JoinedDateRangeValidator)
 @JoinedDateRange
+// 쿼리 문자열 값을 그대로 받는 레코드다. 값이 없으면 null로 오며, 기본값은 아래 compact 생성자가 채운다
 public record UserSearchRequest(
         String keyword,
         @Pattern(regexp = STATUS_PATTERN, message = STATUS_MESSAGE) String status,
+        // 가입일은 yyyy-MM-dd 날짜 형식으로 받는다
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate joinedFrom,
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate joinedTo,
         Boolean active,
+        // 정렬은 '기준' 또는 '기준,방향' 형식만 허용한다
         @Pattern(regexp = SORT_PATTERN, message = SORT_MESSAGE) String sort,
         @Min(value = 0, message = PAGE_MESSAGE) Integer page,
         @Min(value = 1, message = SIZE_MESSAGE) @Max(value = MAX_SIZE, message = SIZE_MESSAGE) Integer size) {
@@ -37,29 +41,40 @@ public record UserSearchRequest(
     // 정렬 기본값은 명세에 없어 최근 가입 순으로 정함(#32)
     public static final String DEFAULT_SORT = "createdAt,desc";
 
+    // 검증용 정규식과 오류 문구. 정규식과 문구가 서로 맞아야 하므로 한곳에 모아 둔다
     private static final String STATUS_PATTERN = "PENDING|ACTIVE|WITHDRAWN";
     private static final String SORT_PATTERN = "(createdAt|loginId|lastActiveAt)(,(asc|desc))?";
     private static final String STATUS_MESSAGE = "상태는 PENDING·ACTIVE·WITHDRAWN 중 하나여야 합니다.";
     private static final String SORT_MESSAGE = "정렬은 createdAt·loginId·lastActiveAt 중 하나와 asc·desc로 지정해 주세요.";
     private static final String PAGE_MESSAGE = "페이지는 0 이상이어야 합니다.";
     private static final String SIZE_MESSAGE = "한 페이지 개수는 1~100이어야 합니다.";
+    // 정렬 방향 문자열. 방향이 없거나 desc가 아니면 오름차순으로 본다(isAscending)
     private static final String DESC = "desc";
 
+    /** 생성할 때 비었거나 공백뿐인 값을 null로 정리하고, 빠진 값에 기본값을 채운다. */
     public UserSearchRequest {
+        // 검색어: 비었으면 null(조건 없음), 아니면 앞뒤 공백을 지운다
         keyword = keyword == null || keyword.isBlank() ? null : keyword.strip();
+        // 상태: 빈 문자열도 '전체'로 취급해 null로 맞춘다
         status = status == null || status.isBlank() ? null : status;
+        // 정렬: 없으면 최근 가입 순
         sort = sort == null || sort.isBlank() ? DEFAULT_SORT : sort;
+        // 페이지: 없으면 첫 페이지
         page = page == null ? 0 : page;
+        // 크기: 없으면 기본 크기
         size = size == null ? DEFAULT_SIZE : size;
     }
 
     /** 검증을 통과한 뒤에만 부른다. */
     public AccountSortField sortField() {
+        // 쉼표 앞부분이 정렬 기준이다("loginId,desc" -> "loginId")
         return AccountSortField.fromParamName(sort.split(",")[0]);
     }
 
+    /** 오름차순인지. 방향을 생략했거나 desc가 아니면 오름차순이다. */
     public boolean isAscending() {
         String[] parts = sort.split(",");
+        // 쉼표 뒤 값이 없거나 desc가 아닐 때만 true
         return parts.length < 2 || !DESC.equals(parts[1]);
     }
 
@@ -73,11 +88,13 @@ public record UserSearchRequest(
 
     /** 가입 시각 하한(포함). 없으면 null. */
     public LocalDateTime joinedFromInclusive() {
+        // 그날 0시부터. 이 시각 이상(>=)이면 조건에 맞는다
         return joinedFrom == null ? null : joinedFrom.atStartOfDay();
     }
 
     /** 가입 시각 상한(미포함). joinedTo 그날까지 넣으려고 다음 날 0시로 바꾼다. 없으면 null. */
     public LocalDateTime joinedToExclusive() {
+        // 끝 날짜를 포함하려고 '다음 날 0시 미만(<)'으로 바꾼다. 23:59:59.999 같은 경계 값 문제를 피한다
         return joinedTo == null ? null : joinedTo.plusDays(1).atStartOfDay();
     }
 }

@@ -15,17 +15,21 @@ public record LevelThresholds(BigDecimal warnDensity, BigDecimal dangerDensity) 
      * 비교는 compareTo로 해서 0.7과 0.7000을 같은 값으로 본다.
      */
     public CongestionLevel levelOf(BigDecimal density) {
+        // 높은 단계부터 검사한다. 위험 경계 이상이면 주의 조건도 만족하지만 더 높은 단계가 이겨야 하기 때문이다
         if (density.compareTo(dangerDensity) >= 0) {
             return CongestionLevel.DANGER;
         }
+        // 위험이 아니고 주의 경계 이상이면 주의
         if (density.compareTo(warnDensity) >= 0) {
             return CongestionLevel.CAUTION;
         }
+        // 두 경계 모두 못 넘으면 정상
         return CongestionLevel.NORMAL;
     }
 
     /** 그 단계가 시작되는 밀집도. 정상은 0. */
     public BigDecimal minDensityOf(CongestionLevel level) {
+        // 단계마다 그 단계가 시작되는 밀도를 돌려준다. 정상은 아래쪽 한계가 없어 0이다
         return switch (level) {
             case NORMAL -> BigDecimal.ZERO;
             case CAUTION -> warnDensity;

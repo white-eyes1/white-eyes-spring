@@ -12,20 +12,25 @@
   기간 비교 화면(SCR-C-005)은 결정 0016으로 없앴다.
 -->
 <head>
+    <!--/* 공통 head 조각. 인자는 탭 제목 */-->
     <th:block th:replace="~{fragments/layout :: head('통계 그래프')}"/>
     <!-- 그래프가 필요한 화면만 Chart.js를 더한다. Chart.js 코드는 js/chart/ 안에서만 쓴다 -->
     <script src="https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js"></script>
+    <!--/* 이 화면 전용 스타일(그래프 배치)과 엑셀 다운로드 창 스타일 */-->
     <link rel="stylesheet" th:href="@{/css/stats-graph.css}">
     <link rel="stylesheet" th:href="@{/css/stats-export.css}">
 </head>
 <body class="we">
+<!--/* 앱에 따라 관리자 헤더/사용자 헤더 조각을 고른다. 인자는 현재 메뉴 강조 키 */-->
 <header th:replace="${admin} ? ~{fragments/layout :: adminHeader('stats')} : ~{fragments/layout :: userHeader('stats')}"></header>
 <main class="page">
+    <!--/* 제목 줄: 시연용 데이터 배지(JS가 필요할 때만 보임)와 엑셀 다운로드 버튼 */-->
     <div class="page-heading">
         <div><p class="eyebrow">STATISTICS</p><h1>통계 그래프 <span class="chip demo" id="demo-badge" hidden>시연용 데이터 포함</span></h1></div>
         <button type="button" class="btn secondary" id="export-open">엑셀 다운로드</button>
     </div>
 
+    <!--/* 조회 조건 영역: 대상(시·도, 시·군·구, 읍·면·동, 구역), 단위 탭, 기간, 항목. 값은 stats-graph.js가 읽고 채운다 */-->
     <section class="panel graph-conditions" aria-label="조회 조건">
         <div class="graph-target">
             <select class="input" id="target-sido" aria-label="시·도"></select>
@@ -33,6 +38,7 @@
             <select class="input" id="target-emd" aria-label="읍·면·동"></select>
             <select class="input" id="target-zone" aria-label="구역"></select>
         </div>
+        <!--/* 단위 탭. data-interval 값은 서버 API의 interval 값(1m 1h 1d 1w 1M 1y)과 같다 */-->
         <div class="seg" role="tablist" aria-label="단위" id="interval-tabs">
             <button type="button" role="tab" data-interval="1m">1분</button>
             <button type="button" role="tab" data-interval="1h">1시간</button>
@@ -41,12 +47,14 @@
             <button type="button" role="tab" data-interval="1M">1월</button>
             <button type="button" role="tab" data-interval="1y">1년</button>
         </div>
+        <!--/* 기간: datetime-local 입력. 끝 칸은 마지막 분을 보이고, 서버에는 1분을 더해 보낸다 */-->
         <div class="graph-period">
             <input class="input" type="datetime-local" id="period-from" aria-label="시작 시각">
             <span class="muted">~</span>
             <input class="input" type="datetime-local" id="period-end" aria-label="끝 시각">
             <button type="button" class="btn primary sm" id="period-apply">조회</button>
         </div>
+        <!--/* 그래프에 그릴 항목. value는 SERIES_ITEMS의 키(series-chart.js) */-->
         <div class="graph-items" id="graph-items" aria-label="항목">
             <label class="ck"><input type="checkbox" value="count" checked><i></i>인원</label>
             <label class="ck"><input type="checkbox" value="density" checked><i></i>밀집도</label>
@@ -60,12 +68,14 @@
         </label>
     </section>
 
+    <!--/* 통합 그래프 패널 */-->
     <section class="panel graph-panel" aria-label="통계 그래프">
         <div class="panel-head graph-panel-head">
             <!-- 이동 경로(FNC-C-013): 들어간 단계(연>월>일>시). 누르면 그 단계로 돌아간다. 들어가기 전에는 비어 있다 -->
             <nav class="drill-path" id="drill-path" aria-label="이동 경로"></nav>
             <!-- 하위 비교(FNC-C-014): 대상이 지역일 때만 켤 수 있다. 켜면 고른 항목 하나를 하위 단위별 선으로 겹쳐 그린다 -->
             <div class="compare-controls">
+                <!--/* option value는 서버 하위 비교 API(stats/children)가 받는 항목 코드 */-->
                 <select class="input" id="compare-item" aria-label="하위 비교 항목" hidden>
                     <option value="COUNT">인원</option>
                     <option value="DENSITY">밀집도</option>
@@ -78,6 +88,7 @@
                 </label>
             </div>
         </div>
+        <!--/* 오류 문구, 캔버스(Chart.js가 그림), '데이터 없음' 문구 */-->
         <p class="alert graph-error" id="graph-error" role="alert" hidden></p>
         <div class="graph-canvas">
             <canvas id="series-chart" role="img" aria-label="통계 그래프"></canvas>
@@ -93,6 +104,7 @@
         <p class="muted compare-omitted" id="compare-omitted" hidden></p>
     </section>
 
+    <!--/* 통합 그래프 아래 세 칸. 같은 응답으로 chart/panel-charts.js가 그린다 */-->
     <div class="graph-panels" id="graph-panels">
         <section class="panel graph-sub" aria-label="시간별 인원 · 혼잡 단계">
             <div class="panel-head graph-sub-head">
@@ -123,6 +135,7 @@
         </section>
     </div>
 </main>
+<!--/* 엑셀 다운로드 창과 공통 스크립트, 이 화면 스크립트 */-->
 <th:block th:replace="~{fragments/layout :: statExportModal}"/>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script type="module" th:src="@{/js/pages/stats-graph.js}"></script>

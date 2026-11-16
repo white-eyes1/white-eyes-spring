@@ -18,12 +18,14 @@ import com.whiteeyes.admin.account.service.UserUnapproveService;
 @RequiredArgsConstructor
 public class UserUnapproveApiController {
 
+    // 상태 확인·세션 삭제·작업 기록은 서비스가 한 트랜잭션으로 처리한다
     private final UserUnapproveService userUnapproveService;
 
     /** ACTIVE → PENDING으로 되돌리고 세션을 모두 지운다. ACTIVE가 아니면 409, 없는 사용자는 404다. */
     @PostMapping("/{id}/unapprove")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unapprove(@PathVariable("id") Long id) {
+        // 예외(404·409)는 서비스가 던지고 공통 예외 처리기가 응답으로 바꾼다
         userUnapproveService.unapprove(id);
     }
 }

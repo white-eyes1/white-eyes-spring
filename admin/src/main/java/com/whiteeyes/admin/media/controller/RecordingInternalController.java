@@ -21,6 +21,10 @@ public class RecordingInternalController {
 
     private final RecordingRegisterService recordingRegisterService;
 
+    /**
+     * 분석 서버가 녹화 파일을 만들 때마다 보내는 등록 요청을 받는다(FNC-A-026).
+     * 등록하면 201 Created와 새 녹화 ID를 돌려준다.
+     */
     @PostMapping
     public ResponseEntity<RecordingRegisterResponse> registerRecording(
             @Valid @RequestBody RecordingRegisterRequest request) {

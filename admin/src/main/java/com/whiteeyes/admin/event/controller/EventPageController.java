@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class EventPageController {
 
+    // 화면 뼈대만 돌려준다. 데이터는 화면 JS가 API로 받는다
     @GetMapping("/events")
     public String eventsPage() {
+        // 뷰 이름 -> templates/admin/events 템플릿
         return "admin/events";
     }
 }

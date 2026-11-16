@@ -23,8 +23,10 @@ import com.whiteeyes.common.security.AccountPrincipal;
 @RequiredArgsConstructor
 public class AdminUserDetailsService implements UserDetailsService {
 
+    // 스프링 시큐리티는 권한 이름 앞에 ROLE_을 붙이는 규칙을 쓴다(hasRole 검사와 맞추기 위함)
     private static final String ROLE_PREFIX = "ROLE_";
 
+    // 로그인 아이디로 관리자 계정을 찾는 저장소
     private final AdminAccountRepository adminAccountRepository;
 
     /**
@@ -34,9 +36,11 @@ public class AdminUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String loginId) {
+        // 계정이 없으면 UsernameNotFoundException으로 로그인을 거부한다
         AdminAccount account = adminAccountRepository
                 .findByLoginId(loginId)
                 .orElseThrow(() -> new UsernameNotFoundException("관리자 계정이 없습니다"));
+        // 스프링 시큐리티가 쓰는 로그인 주체를 만든다: 번호, 아이디, 암호화된 비밀번호, 사용 가능 여부(ACTIVE), 비밀번호 변경 강제 여부, 권한 순서
         return new AccountPrincipal(
                 account.getId(),
                 account.getLoginId(),

@@ -13,6 +13,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param centerLat 구역일 때만 내보낸다(api/public.md)
  * @param level 혼잡 단계 1~3(FNC-C-025)
  */
+// 필드 요약: id·name 단위 번호와 이름, countAvg 최근 1분 평균 인원, density 밀집도(명/㎡), statAt 통계 시각,
+// todayEventCount 오늘 이벤트 수, ongoingEvent 지금 진행 중인 이벤트가 있는지, centerLng 구역일 때만 내보내는 중심 경도
 public record MapStatusItem(
         long id,
         String name,

@@ -5,7 +5,10 @@ package com.whiteeyes.common.stat.dto;
  * 구역 하나, 지역(시·도, 시·군·구, 읍·면·동), 전체(삭제되지 않은 모든 구역).
  */
 public enum StatExportScope {
+    // 구역 하나
     ZONE,
+    // 지역 하나(합산하거나 소속 구역별로)
     REGION,
+    // 삭제되지 않은 모든 구역
     ALL
 }

@@ -8,6 +8,7 @@ import com.whiteeyes.common.camera.entity.CameraSourceType;
 
 /** sourceUri의 입력 방식별 규칙은 service가 확인한다(처리 순서 3). 여기서는 비었는지와 길이만 본다. */
 public record CameraCreateRequest(
+        // 캠이 속할 구역 ID. 존재하는 구역인지는 service가 확인한다.
         @NotNull(message = "필수입니다.") Long zoneId,
         @NotBlank(message = "필수입니다.") @Size(max = 50, message = "50자 이하로 입력해 주세요.") String name,
         @NotNull(message = "필수입니다.") CameraSourceType sourceType,

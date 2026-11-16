@@ -18,6 +18,7 @@ import com.whiteeyes.common.history.repository.WorkHistoryRepository;
 @RequiredArgsConstructor
 public class WorkHistoryService {
 
+    // 작업 기록 저장소. 이 서비스만 저장소에 접근한다
     private final WorkHistoryRepository workHistoryRepository;
 
     /**
@@ -27,6 +28,7 @@ public class WorkHistoryService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void record(WorkHistoryCommand command) {
+        // 입력 값(Command)을 엔티티로 바꿔 저장한다. INSERT만 일어난다
         workHistoryRepository.save(new WorkHistory(
                 command.actorType(),
                 command.actorId(),
@@ -41,6 +43,7 @@ public class WorkHistoryService {
     /** 한 대상의 한 행동 기록을 오래된 것부터 돌려준다(이벤트 처리 이력, FNC-A-037). 조회라 기록하지 않는다. */
     @Transactional(readOnly = true)
     public List<WorkHistory> findByTarget(WorkTargetType targetType, Long targetId, WorkAction action) {
+        // 오래된 순으로 읽어 처리 이력이 시간 순으로 보이게 한다
         return workHistoryRepository.findByTargetTypeAndTargetIdAndActionOrderByCreatedAtAscIdAsc(
                 targetType, targetId, action);
     }

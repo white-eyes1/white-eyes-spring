@@ -19,10 +19,15 @@ import com.whiteeyes.common.web.PageResponse;
 @RequiredArgsConstructor
 public class HistoryApiController {
 
+    // 실제 조회는 서비스가 한다. 컨트롤러는 요청 받기와 응답 내보내기만 한다
     private final HistoryListService historyListService;
 
+    /**
+     * 작업 기록 목록. 쿼리스트링을 HistorySearchRequest로 묶고 @Valid로 아이디 길이·page·size 범위를 검사한 뒤 서비스에 넘긴다.
+     */
     @GetMapping
     public PageResponse<HistoryListItem> list(@Valid @ModelAttribute HistorySearchRequest request) {
+        // 조건에 맞는 한 페이지를 그대로 응답한다
         return historyListService.list(request);
     }
 }

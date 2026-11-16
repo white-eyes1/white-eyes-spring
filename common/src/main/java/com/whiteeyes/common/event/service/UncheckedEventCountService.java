@@ -16,8 +16,10 @@ import com.whiteeyes.common.event.repository.EventRepository;
 @RequiredArgsConstructor
 public class UncheckedEventCountService {
 
+    // 이벤트 저장소
     private final EventRepository eventRepository;
 
+    /** 미확인(UNCHECKED) 상태 이벤트의 전체 개수를 돌려준다. */
     @Transactional(readOnly = true)
     public UncheckedCountResponse count() {
         return new UncheckedCountResponse(eventRepository.countByStatus(EventStatus.UNCHECKED));

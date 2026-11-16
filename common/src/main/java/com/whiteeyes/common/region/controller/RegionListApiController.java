@@ -19,13 +19,16 @@ import com.whiteeyes.common.region.service.RegionListService;
 @RequiredArgsConstructor
 public class RegionListApiController {
 
+    // 목록·경계 조회는 서비스가 맡고, 컨트롤러는 요청 파라미터를 넘기고 결과를 그대로 응답한다
     private final RegionListService regionListService;
 
+    /** 지역 목록. parentId가 없으면 시·도, 있으면 그 바로 아래 지역을 돌려준다. */
     @GetMapping("/api/v1/regions")
     public List<RegionResponse> getRegions(@RequestParam(name = "parentId", required = false) Long parentId) {
         return regionListService.findRegions(parentId);
     }
 
+    /** 구역 목록. dongId(읍·면·동)가 없으면 전체, 있으면 그 동의 구역이다. 삭제된 구역은 빠진다. */
     @GetMapping("/api/v1/zones")
     public List<ZoneResponse> getZones(@RequestParam(name = "dongId", required = false) Long dongId) {
         return regionListService.findZones(dongId);

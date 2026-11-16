@@ -37,15 +37,19 @@ public class NotificationPublisher {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
+    // 실제로 구독자에게 보내는 쪽.
     private final NotificationBroadcaster broadcaster;
+    // 알림에 넣을 구역 이름을 구하기 위해 사용한다.
     private final ZoneService zoneService;
     private final UncheckedEventCountService uncheckedEventCountService;
+    // 알림 처리를 부른 순서대로 한 스레드에서 실행한다. 데몬 스레드라 앱 종료를 막지 않는다.
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "notification-publish");
         thread.setDaemon(true);
         return thread;
     });
 
+    // 앱 종료 시 대기 중인 알림 작업을 멈춘다.
     @PreDestroy
     void shutdown() {
         executor.shutdownNow();
@@ -58,6 +62,7 @@ public class NotificationPublisher {
      * @param startedAt 이벤트 발생 시각(KST)
      */
     public void eventCreated(long eventId, EventType type, long zoneId, Integer level, LocalDateTime startedAt) {
+        // 구역 이름 조회·JSON 변환은 커밋 뒤 별도 스레드에서 한다.
         afterCommit(() -> {
             EventCreatedMessage message = new EventCreatedMessage(
                     eventId,
@@ -81,11 +86,16 @@ public class NotificationPublisher {
     }
 
     // 지워진 구역이어도 이름은 남아 있다. 구역 행이 없으면 번호로 대신한다
+    /** 구역 ID의 이름을 구한다. 구역을 못 찾으면 '구역 N' 형태로 대신한다. */
     private String zoneNameOf(long zoneId) {
         ZoneSummary zone = zoneService.findSummaries(Set.of(zoneId)).get(zoneId);
         return zone == null ? "구역 " + zoneId : zone.name();
     }
 
+    /**
+     * 작업을 트랜잭션 커밋 뒤에 실행하도록 맡긴다. 트랜잭션 안에서 불렸으면 커밋 콜백으로 등록하고(롤백되면 실행되지 않는다),
+     * 트랜잭션이 없으면 곧바로 실행한다.
+     */
     private void afterCommit(Runnable job) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -99,6 +109,7 @@ public class NotificationPublisher {
         submit(job);
     }
 
+    /** 작업을 전용 스레드에 넘기고, 실행 중 예외는 로그만 남기고 삼킨다. */
     private void submit(Runnable job) {
         try {
             executor.execute(() -> {

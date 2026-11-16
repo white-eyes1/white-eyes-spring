@@ -36,6 +36,7 @@ import com.whiteeyes.admin.camera.service.CameraUpdateService;
 @RequiredArgsConstructor
 public class CameraApiController {
 
+    // 기능별로 service를 나눠 두었고, 컨트롤러는 요청을 받아 해당 service에 넘기기만 한다.
     private final CameraRegisterService cameraRegisterService;
     private final CameraListService cameraListService;
     private final CameraStartService cameraStartService;
@@ -43,11 +44,21 @@ public class CameraApiController {
     private final CameraUpdateService cameraUpdateService;
     private final CameraDeleteService cameraDeleteService;
 
+    /**
+     * 캠 목록 조회(FNC-A-022). regionId를 주면 그 지역(하위 포함)의 캠만, 없으면 전체를 돌려준다.
+     *
+     * @param regionId 지역 필터(선택)
+     */
     @GetMapping
     public List<CameraListItem> list(@RequestParam(required = false) Long regionId) {
         return cameraListService.list(regionId);
     }
 
+    /**
+     * 캠 가동(FNC-A-020). 분석 서버에 시작을 지시하고 돌려받은 상태를 응답한다.
+     *
+     * @param id 캠 ID
+     */
     @PostMapping("/{id}/start")
     public CameraStartResponse start(@PathVariable Long id) {
         return cameraStartService.start(id);
@@ -71,6 +82,11 @@ public class CameraApiController {
         return cameraDeleteService.delete(id);
     }
 
+    /**
+     * 캠 등록(FNC-A-018). 검증을 통과하면 새 자원을 만들었으므로 200이 아니라 201 Created로 응답한다.
+     *
+     * @param request 구역·이름·입력 방식·영상 주소(Bean Validation으로 형식 검증)
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CameraResponse register(@Valid @RequestBody CameraCreateRequest request) {

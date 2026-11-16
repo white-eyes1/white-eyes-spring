@@ -7,7 +7,9 @@ package com.whiteeyes.admin.camera.dto;
 public record CameraDeleteResponse(Mode mode) {
 
     public enum Mode {
+        // 가동한 적이 없어 DB 행을 실제로 지웠다.
         HARD,
+        // 가동 이력이 있어 행은 남기고 삭제 시각만 표시했다(녹화·통계 이력 보존).
         SOFT
     }
 }

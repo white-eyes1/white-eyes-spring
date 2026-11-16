@@ -32,6 +32,12 @@ public class CameraInternalController {
         return desiredCameraService.findDesiredCameras();
     }
 
+    /**
+     * 분석 서버가 캠 상태가 바뀔 때마다 보내는 상태 보고를 받는다(FNC-A-025). 저장 후 본문 없이 204로 응답한다.
+     *
+     * @param cameraId 캠 ID
+     * @param request 새 상태·진행률·오류 메시지
+     */
     @PatchMapping("/{id}/status")
     public ResponseEntity<Void> reportStatus(
             @PathVariable("id") Long cameraId, @Valid @RequestBody CameraStatusUpdateRequest request) {

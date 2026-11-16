@@ -10,8 +10,10 @@ import java.util.Optional;
 public interface AccountPasswordStore {
 
     /** 계정 번호로 저장된 비밀번호 해시를 찾는다. 계정이 없으면 빈 값. */
+    // 비밀번호 확인(현재 비밀번호 비교) 때 쓴다
     Optional<String> findEncodedPassword(Long accountId);
 
     /** 새 비밀번호 해시를 저장하고 must_change_password를 끈다. */
+    // 이미 암호화된 값을 받는다. 암호화는 서비스가 한다
     void changePassword(Long accountId, String encodedPassword);
 }

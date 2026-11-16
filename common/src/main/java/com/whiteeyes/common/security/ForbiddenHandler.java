@@ -16,6 +16,7 @@ import com.whiteeyes.common.exception.ErrorCode;
  */
 public class ForbiddenHandler implements AccessDeniedHandler {
 
+    // API 오류 응답을 JSON으로 쓰는 도구
     private final JsonMapper jsonMapper;
 
     public ForbiddenHandler(JsonMapper jsonMapper) {
@@ -25,10 +26,12 @@ public class ForbiddenHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex)
             throws IOException {
+        // API 요청은 화면으로 보낼 수 없으므로 공통 오류 형식의 JSON(403)을 직접 쓰고 끝낸다
         if (ApiRequests.isApi(request)) {
             SecurityErrorWriter.write(response, jsonMapper, ErrorCode.FORBIDDEN);
             return;
         }
+        // 화면 요청은 서버 오류 처리(/error)로 넘겨 공통 오류 화면이 보이게 한다
         response.sendError(HttpServletResponse.SC_FORBIDDEN);
     }
 }

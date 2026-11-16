@@ -33,10 +33,15 @@ public class AdminPasswordResetService {
     // 명세(FNC-A-005 처리 순서 4)의 detail 표기를 그대로 옮긴다. 비밀번호 값은 넣지 않는다
     private static final Map<String, String> RESET_DETAIL = Map.of("password", "변경됨");
 
+    // 대상 관리자 조회(행 잠금)
     private final AdminAccountRepository adminAccountRepository;
+    // 임시 비밀번호를 bcrypt로 암호화한다
     private final PasswordEncoder passwordEncoder;
+    // 임시 비밀번호(평문) 생성기
     private final TemporaryPasswordGenerator temporaryPasswordGenerator;
+    // 대상의 세션을 지운다
     private final AccountSessionService accountSessionService;
+    // 로그인한 관리자 확인과 작업 기록 저장
     private final AdminWorkRecorder workRecorder;
 
     /**
@@ -49,6 +54,7 @@ public class AdminPasswordResetService {
     public PasswordResetResponse reset(Long adminId) {
         // 로그인하지 않은 요청은 비밀번호를 바꾸기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
+        // 행을 잠그고 읽어, 같은 계정을 동시에 바꾸는 요청과 엇갈리지 않게 한다
         AdminAccount admin = adminAccountRepository
                 .findByIdForUpdate(adminId)
                 .orElseThrow(() -> new AdminNotFoundException(adminId));
@@ -59,6 +65,7 @@ public class AdminPasswordResetService {
 
         // 처리 순서 1·2: 임시 비밀번호는 bcrypt 값만 저장하고 평문은 응답으로 한 번만 돌려준다
         String temporaryPassword = temporaryPasswordGenerator.generate();
+        // 암호화한 값으로 바꾸고 다음 로그인 때 비밀번호 변경을 강제한다(엔티티의 resetPassword)
         admin.resetPassword(passwordEncoder.encode(temporaryPassword));
         // 처리 순서 4: 작업 기록. 계정의 대상 이름은 아이디다(tables.md work_history.target_name)
         workRecorder.record(
@@ -70,6 +77,7 @@ public class AdminPasswordResetService {
                 RESET_DETAIL);
         // 처리 순서 3: 대상의 모든 세션 삭제. 되돌릴 수 없어 기록 뒤 맨 끝에 한다
         int deletedSessions = accountSessionService.endAdminSessions(admin.getLoginId());
+        // 로그에는 번호와 세션 수만 남기고 비밀번호는 남기지 않는다
         log.info("관리자 비밀번호 재설정 adminId={} 삭제한 세션={}", adminId, deletedSessions);
         return new PasswordResetResponse(temporaryPassword);
     }

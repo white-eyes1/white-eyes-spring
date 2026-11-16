@@ -34,10 +34,15 @@ public class UserPasswordResetService {
     // 409 오류 문구에 들어가는 하려던 일
     private static final String ACTION = "비밀번호를 재설정";
 
+    // 대상 사용자 조회(행 잠금)
     private final UserAccountRepository userAccountRepository;
+    // 임시 비밀번호를 bcrypt로 암호화한다
     private final PasswordEncoder passwordEncoder;
+    // 임시 비밀번호(평문) 생성기
     private final TemporaryPasswordGenerator temporaryPasswordGenerator;
+    // 대상의 세션을 지운다
     private final AccountSessionService accountSessionService;
+    // 로그인한 관리자 확인과 작업 기록 저장
     private final AdminWorkRecorder workRecorder;
 
     /**
@@ -50,20 +55,25 @@ public class UserPasswordResetService {
     public PasswordResetResponse reset(Long userId) {
         // 로그인하지 않은 요청은 비밀번호를 바꾸기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
+        // 행을 잠그고 읽어 같은 계정의 동시 변경과 엇갈리지 않게 한다
         UserAccount user =
+                // 행을 잠그고 읽어 같은 계정의 동시 변경과 엇갈리지 않게 한다
                 userAccountRepository.findByIdForUpdate(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        // 탈퇴 계정은 로그인할 수 없어 임시 비밀번호를 줘도 쓸 곳이 없으므로 409로 거부한다
         if (user.getStatus() == UserAccountStatus.WITHDRAWN) {
             throw new InvalidUserStatusException(userId, user.getStatus(), ACTION);
         }
 
         // 처리 순서 2·3: 임시 비밀번호는 bcrypt 값만 저장하고 평문은 응답으로 한 번만 돌려준다
         String temporaryPassword = temporaryPasswordGenerator.generate();
+        // 암호화한 값으로 바꾼다(변경 강제 처리는 엔티티의 resetPassword가 한다)
         user.resetPassword(passwordEncoder.encode(temporaryPassword));
         // 처리 순서 4: 대상의 모든 세션 삭제(사용자 앱 세션 표, 호출한 쪽 트랜잭션에 합쳐짐)
         int deletedSessions = accountSessionService.endUserSessions(user.getLoginId());
         // 처리 순서 5: 작업 기록. 계정의 대상 이름은 아이디다(tables.md work_history.target_name)
         workRecorder.record(
                 actor, WorkAction.ACCOUNT_CHANGE, WorkTargetType.USER_ACCOUNT, userId, user.getLoginId(), RESET_DETAIL);
+        // 로그에는 번호와 세션 수만 남기고 비밀번호는 남기지 않는다
         log.info("사용자 비밀번호 재설정 userId={} 삭제한 세션={}", userId, deletedSessions);
         return new PasswordResetResponse(temporaryPassword);
     }

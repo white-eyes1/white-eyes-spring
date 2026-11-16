@@ -4,6 +4,7 @@ import com.whiteeyes.common.exception.BusinessException;
 import com.whiteeyes.common.exception.ErrorCode;
 
 // 명세(FNC-A-020·021)가 캠 없음을 공통 NOT_FOUND로 정하고 CAMERA_NOT_FOUND는 따로 두지 않아 공통 코드를 쓴다
+/** 없거나 삭제된 캠을 찾았을 때(404 NOT_FOUND). */
 public class CameraNotFoundException extends BusinessException {
 
     public CameraNotFoundException(Long cameraId) {

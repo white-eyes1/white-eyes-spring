@@ -23,12 +23,14 @@ import com.whiteeyes.common.event.entity.EventType;
 public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
 
     /** 그 구역의 행이 하나라도 있는지(구역 삭제 FNC-A-017 처리 순서 2의 이력 확인). */
+    // 이벤트 이력이 있는 구역은 지우지 않고 삭제 표시만 하는 판단에 쓴다
     boolean existsByZoneId(Long zoneId);
 
     /**
      * 구역·종류의 열린(종료 시각 없는) 이벤트. 열린 이벤트는 하나만 두는 것이 규칙이지만(evtdet-004),
      * 어긋나서 둘이 되더라도 판정이 멈추지 않게 가장 먼저 만든 것을 돌려준다.
      */
+    // EndedAtIsNull = 아직 닫히지 않은(열린) 이벤트. First...OrderByIdAsc로 가장 먼저 만든 하나만 가져온다
     Optional<Event> findFirstByZoneIdAndTypeAndEndedAtIsNullOrderByIdAsc(Long zoneId, EventType type);
 
     /** 캠의 열린 이벤트(캠 이상 FNC-A-035). 어긋나 둘이 되어도 멈추지 않게 가장 먼저 만든 것을 돌려준다. */
@@ -47,6 +49,7 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
      * 처리 상태를 바꾸기 전에 행을 잠그고 읽는다(FNC-A-038). 관리자 두 명이 같은 이벤트를 동시에 처리하면
      * 늦은 쪽은 앞의 커밋을 기다렸다가 바뀐 상태를 보고 거부된다.
      */
+    // SELECT ... FOR UPDATE로 행을 잠가, 동시에 처리하는 다른 트랜잭션이 커밋될 때까지 기다리게 한다
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Event e where e.id = :id")
     Optional<Event> findByIdForUpdate(@Param("id") Long id);
@@ -55,6 +58,7 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     long countByStatus(EventStatus status);
 
     /** 구역별 이벤트 수를 한 번에 센다(FNC-C-017 오늘 이벤트 수). */
+    // 구역별 이벤트 수를 GROUP BY로 한 번에 센다. 인터페이스 projection(ZoneEventCount)의 getter 이름과 별칭(zoneId, eventCount)이 같아야 값이 매핑된다
     @Query(
             """
             select e.zoneId as zoneId, count(e) as eventCount from Event e
@@ -67,6 +71,7 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
             @Param("from") LocalDateTime from);
 
     /** 열린(종료 시각 없는) 이벤트가 있는 구역 번호(FNC-C-009 진행 중 이벤트). 처리 상태는 보지 않는다. */
+    // 열린 이벤트가 하나라도 있는 구역만 중복 없이(distinct) 가져온다
     @Query(
             """
             select distinct e.zoneId from Event e
@@ -76,6 +81,7 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
             @Param("zoneIds") Collection<Long> zoneIds, @Param("types") Collection<EventType> types);
 
     /** 구역 하나의 이벤트 수. */
+    // 구역별 집계 결과를 담는 projection 인터페이스. 쿼리 결과의 별칭과 getter 이름이 대응한다
     interface ZoneEventCount {
 
         Long getZoneId();

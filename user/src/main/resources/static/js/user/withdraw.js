@@ -4,12 +4,16 @@
 import { ApiError, del, url } from '../common/api.js';
 import { showToast } from '../common/toast.js';
 
+// 탈퇴 API(DELETE)
 const ME_API = '/api/v1/me';
+// 성공 안내 문구
 const DONE_MESSAGE = '탈퇴되었습니다';
 const DEFAULT_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+// 탈퇴 후 이동할 로그인 화면 경로와, 안내 문구를 볼 수 있는 대기 시간
 const LOGIN_PATH = '/login';
 const MOVE_DELAY_MS = 1200;
 
+// 화면 요소: 탈퇴 열기 버튼, 비밀번호 입력 창, 확인 창
 const byId = (id) => document.getElementById(id);
 const openButton = byId('withdraw-open');
 const modal = byId('withdraw-modal');
@@ -24,6 +28,7 @@ const confirmOk = byId('withdraw-confirm-ok');
 // 요청 진행 중이거나 탈퇴가 끝나 이동을 기다리는 중이면 창을 닫거나 다시 보내지 않는다
 let busy = false;
 
+// 탈퇴 창 열기: 이전 입력·오류를 비우고 비밀번호 입력에 포커스
 function openModal() {
     form.reset();
     clearErrors();
@@ -32,6 +37,7 @@ function openModal() {
     passwordInput.focus();
 }
 
+// 진행 중에는 닫을 수 없다
 function closeModal() {
     if (busy) {
         return;
@@ -41,11 +47,13 @@ function closeModal() {
 }
 
 // 빈 값이면 버튼 비활성(screens.md SCR-U-003)
+// 입력이 있어야 버튼을 켜고, 입력을 고치면 이전 오류는 지운다
 function onPasswordInput() {
     submitButton.disabled = passwordInput.value === '';
     clearErrors();
 }
 
+// 탈퇴 버튼(폼 전송): 바로 보내지 않고 확인 창을 한 번 더 띄운다
 function openConfirm(event) {
     event.preventDefault();
     if (passwordInput.value === '' || busy) {
@@ -56,6 +64,7 @@ function openConfirm(event) {
     confirmOk.focus();
 }
 
+// 확인 창 닫기(진행 중에는 닫지 않음)
 function closeConfirm() {
     if (busy) {
         return;
@@ -63,19 +72,23 @@ function closeConfirm() {
     confirmModal.hidden = true;
 }
 
+// 확인 창의 '탈퇴' 버튼: 서버에 탈퇴를 요청한다
 async function withdraw() {
     if (busy) {
         return;
     }
+    // 이중 요청 방지 표시를 켠다
     busy = true;
     confirmOk.disabled = true;
     submitButton.disabled = true;
     try {
+        // 비밀번호를 본문에 담아 DELETE. 오류는 창 안에 보이려고 토스트를 끈다
         await del(ME_API, { body: { password: passwordInput.value }, toast: false });
         passwordInput.value = '';
         showToast(DONE_MESSAGE);
         window.setTimeout(() => window.location.assign(url(LOGIN_PATH)), MOVE_DELAY_MS);
         return; // 이동할 때까지 busy를 풀지 않는다
+    // 실패하면 다시 시도할 수 있게 상태를 되돌리고 확인 창을 닫아 비밀번호 칸 쪽에 오류를 보인다
     } catch (error) {
         busy = false;
         confirmModal.hidden = true;
@@ -85,6 +98,7 @@ async function withdraw() {
     }
 }
 
+// 오류 종류별 표시: 비밀번호 틀림과 필드 오류는 비밀번호 칸 아래, 그 밖은 폼 오류
 function showError(error) {
     if (error instanceof ApiError && error.code === 'WRONG_PASSWORD') {
         showPasswordError(error.message);
@@ -99,12 +113,14 @@ function showError(error) {
     }
 }
 
+// 비밀번호 칸 오류 표시(문구와 빨간 테두리)
 function showPasswordError(message) {
     passwordHint.textContent = message;
     passwordHint.hidden = false;
     passwordInput.classList.add('err');
 }
 
+// 오류 표시를 모두 지운다
 function clearErrors() {
     formError.hidden = true;
     formError.textContent = '';
@@ -113,6 +129,7 @@ function clearErrors() {
     passwordInput.classList.remove('err');
 }
 
+// 이벤트 연결: 열기, 입력, 전송, 닫기 버튼들, 확인, Esc
 openButton.addEventListener('click', openModal);
 passwordInput.addEventListener('input', onPasswordInput);
 form.addEventListener('submit', openConfirm);

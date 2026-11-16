@@ -36,9 +36,11 @@ import com.whiteeyes.common.security.PasswordChangeRequiredFilter;
 @Configuration
 public class AdminSecurityConfig {
 
+    // 아래 경로는 모두 컨텍스트 경로(/admin)를 뗀 값이다.
     private static final String LOGIN_PATH = "/login";
     private static final String INTERNAL_PATH = "/internal/**";
     private static final String LIVE_AUTH_PATH = "/api/v1/live/auth";
+    // hasRole(...)에는 ROLE_ 접두어 없는 이름을 쓴다(스프링이 ROLE_을 붙여 비교한다).
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
     // 권한 표(관리자 앱): 공개 경로와 정적 파일, 오류 화면
@@ -58,6 +60,7 @@ public class AdminSecurityConfig {
     @Order(0)
     public SecurityFilterChain adminLiveAuthFilterChain(HttpSecurity http, LiveAuthService liveAuthService)
             throws Exception {
+        // 이 체인은 실시간 권한 확인 경로에만 적용한다(@Order가 낮을수록 먼저 매칭된다).
         http.securityMatcher(LIVE_AUTH_PATH)
                 .csrf(AbstractHttpConfigurer::disable)
                 .securityContext(AbstractHttpConfigurer::disable)
@@ -72,6 +75,10 @@ public class AdminSecurityConfig {
         return http.build();
     }
 
+    /**
+     * 내부 API(/internal/**) 필터 체인. 사람 로그인이 아니라 서버끼리의 호출이므로 세션 없이 내부 토큰 헤더만으로 인증한다.
+     * 분석 서버 같은 내부 호출자가 쓰는 경로다.
+     */
     @Bean
     @Order(1)
     public SecurityFilterChain adminInternalFilterChain(
@@ -87,6 +94,10 @@ public class AdminSecurityConfig {
         return http.build();
     }
 
+    /**
+     * 관리자 웹 화면·API 필터 체인(나머지 모든 경로). 폼 로그인과 세션을 쓰고, 경로별 역할 권한 표를 적용한다.
+     * 공개 경로는 누구나, 관리자 계정 관리·이력은 SUPER_ADMIN만, 그 밖은 ADMIN 또는 SUPER_ADMIN이 접근한다.
+     */
     @Bean
     @Order(2)
     public SecurityFilterChain adminWebFilterChain(
@@ -95,6 +106,7 @@ public class AdminSecurityConfig {
             AdminLoginRecordService loginRecordService,
             JsonMapper jsonMapper)
             throws Exception {
+        // 요청 매칭 순서가 중요하다: 공개 경로 허용 -> SUPER_ADMIN 전용 경로 -> 그 밖의 모든 경로는 관리자 이상. 앞에서 매칭된 규칙이 우선한다.
         http.authenticationProvider(adminAuthenticationProvider)
                 .authorizeHttpRequests(requests -> requests.requestMatchers(PUBLIC_PATHS)
                         .permitAll()
@@ -118,6 +130,9 @@ public class AdminSecurityConfig {
         return http.build();
     }
 
+    /**
+     * 아이디·비밀번호 인증기. 비활성 계정 판정을 비밀번호 확인 뒤로 미뤄, 틀린 비밀번호로는 계정 존재 여부를 알 수 없게 한다.
+     */
     @Bean
     public AuthenticationProvider adminAuthenticationProvider(
             AdminUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
@@ -125,11 +140,14 @@ public class AdminSecurityConfig {
         provider.setPasswordEncoder(passwordEncoder);
         // 기본은 비밀번호를 보기 전에 비활성화를 판정한다. 비활성화 문구가 계정 존재를 드러내지 않도록
         // 비밀번호가 맞은 뒤에만 판정한다
+        // 인증 전 검사를 비워 둔다(기본 검사는 비활성·잠김 등을 비밀번호 확인 전에 판정한다).
         provider.setPreAuthenticationChecks(user -> {});
+        // 비밀번호가 맞은 뒤에만 비활성 여부를 검사한다.
         provider.setPostAuthenticationChecks(disabledAfterPasswordCheck());
         return provider;
     }
 
+    /** 비밀번호 확인 뒤 실행되는 검사: 비활성화된 계정이면 로그인을 거부한다. */
     private UserDetailsChecker disabledAfterPasswordCheck() {
         return user -> {
             if (!user.isEnabled()) {

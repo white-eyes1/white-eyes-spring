@@ -8,9 +8,11 @@ import java.time.OffsetDateTime;
  * @param seekSec 재생 시작 위치(초) = 찾은 시각 − 녹화 시작 시각. latest 요청이면 0
  */
 public record PlaybackResponse(
+        // 찾은 녹화 번호와, 영상·좌표 파일을 받는 주소(관리자 앱 컨텍스트 경로 포함).
         Long recordingId,
         String videoUrl,
         String boxesUrl,
         double seekSec,
+        // 녹화의 시작·종료 시각(한국 오프셋 포함). 진행 중 녹화는 endedAt이 null이다.
         OffsetDateTime startedAt,
         OffsetDateTime endedAt) {}

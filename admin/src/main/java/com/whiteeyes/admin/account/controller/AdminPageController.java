@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AdminPageController {
 
+    /** 관리자 관리 화면 템플릿(admin/admins)을 돌려준다. 데이터 없이 틀만 렌더링하고 목록은 JS가 API로 채운다. */
     @GetMapping("/admins")
     public String admins() {
+        // 뷰 이름이다. Thymeleaf가 templates/admin/admins.html을 찾아 렌더링한다
         return "admin/admins";
     }
 }

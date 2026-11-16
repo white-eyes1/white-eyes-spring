@@ -17,12 +17,14 @@ import com.whiteeyes.tools.demo.repository.DemoStatRepository;
 @RequiredArgsConstructor
 public class DemoDeleteService {
 
+    // 한 문장으로 지우는 최대 건수. 한 번에 지우면 DB 잠금이 길어지므로 나눠 지운다.
     static final int BATCH_SIZE = 10_000;
 
     private final DemoStatRepository demoStatRepository;
 
     /** @return 표별 지운 건수 */
     public DemoDeleteResult deleteAll() {
+        // 표 하나씩 BATCH_SIZE건 단위로 지운다. 지운 건수가 한도보다 작아지면 더 지울 행이 없는 것이다.
         long hourly = deleteInBatches(
                 limit -> demoStatRepository.deleteDemoRows(DemoStatRepository.HOURLY_TABLE, limit), BATCH_SIZE);
         long daily = deleteInBatches(
@@ -37,6 +39,7 @@ public class DemoDeleteService {
      * @return 표별 지운 건수
      */
     public DemoDeleteResult deleteZones(Collection<Long> zoneIds) {
+        // deleteAll과 같은 방식으로 지우되, 지정한 구역의 행만 지운다.
         long hourly = deleteInBatches(
                 limit -> demoStatRepository.deleteDemoRows(DemoStatRepository.HOURLY_TABLE, zoneIds, limit),
                 BATCH_SIZE);
@@ -49,6 +52,7 @@ public class DemoDeleteService {
     static long deleteInBatches(IntUnaryOperator deleteBatch, int batchSize) {
         long total = 0;
         int deleted;
+        // 적어도 한 번은 지운다. 지운 건수가 한도와 같으면 아직 남았을 수 있어 한 번 더 지우고, 한도보다 적으면 끝낸다.
         do {
             deleted = deleteBatch.applyAsInt(batchSize);
             total += deleted;

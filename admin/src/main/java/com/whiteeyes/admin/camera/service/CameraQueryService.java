@@ -23,6 +23,7 @@ import com.whiteeyes.common.camera.repository.CameraRepository;
 @RequiredArgsConstructor
 public class CameraQueryService {
 
+    // 다른 기능(분석 결과 수신, 이벤트 목록, 녹화 등록 등)이 캠 정보를 읽을 때 쓰는 조회 전용 창구.
     private final CameraRepository cameraRepository;
 
     /**
@@ -31,12 +32,14 @@ public class CameraQueryService {
     @Transactional(readOnly = true)
     public Map<Long, Long> findZoneIdsOfReceivingCameras(Set<Long> cameraIds) {
         return cameraRepository.findAllById(cameraIds).stream()
+                // 삭제되지 않았고 가동 요청된 캠의 결과만 받는다. 정지한 캠에 늦게 도착한 결과는 버리기 위함.
                 .filter(camera -> camera.getDeletedAt() == null && camera.isRunRequested())
                 .collect(Collectors.toMap(Camera::getId, Camera::getZoneId));
     }
 
     /** 캠 번호 → 캠 이름. 삭제된 캠도 포함한다(이벤트 목록의 캠 이름, FNC-A-036). */
     @Transactional(readOnly = true)
+    // 삭제된 캠도 과거 이벤트에 이름을 보여줘야 하므로 deletedAt으로 거르지 않는다.
     public Map<Long, String> findNamesByIds(Collection<Long> cameraIds) {
         return cameraRepository.findAllById(cameraIds).stream()
                 .collect(Collectors.toMap(Camera::getId, Camera::getName));
@@ -56,6 +59,7 @@ public class CameraQueryService {
     public Map<Long, LocalDateTime> findFirstStartedAtByZone() {
         return cameraRepository.findByFirstStartedAtIsNotNull().stream()
                 .collect(Collectors.toMap(
+                        // 같은 구역에 캠이 여러 번 등록됐을 수 있어(삭제 후 재등록) 키가 겹치면 더 이른 시각을 고른다.
                         Camera::getZoneId, Camera::getFirstStartedAt, BinaryOperator.minBy(LocalDateTime::compareTo)));
     }
 

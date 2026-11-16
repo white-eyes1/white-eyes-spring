@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <!--/* 공통 head 조각 */-->
     <th:block th:replace="~{fragments/layout :: head('로그인')}"/>
 </head>
 <body class="we">
 <!-- SCR-C-001: 두 앱이 같은 템플릿을 쓰고 앱 이름만 다르게 보인다 -->
+<!--/* 왼쪽 소개 영역과 오른쪽 로그인 폼을 나란히 둔다(좁은 화면에서는 flex-wrap으로 위아래로 쌓임) */-->
 <div style="min-height: 100vh; display: flex; flex-wrap: wrap">
     <section style="flex: 1 1 520px; padding: 64px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--line); background: #0c121a">
         <p class="brand" style="font-size: 18px">White Eyes</p>
@@ -17,17 +19,23 @@
         <p class="muted" style="font-size: 11px">© White Eyes 팀</p>
     </section>
     <section style="flex: 1 1 520px; display: grid; place-items: center; padding: 48px">
+        <!--/* 로그인 폼. POST /login은 Spring Security가 처리한다. th:action이 CSRF 토큰을 숨은 칸으로 넣는다. username·password 이름은 Security 기본값 */-->
         <form class="panel" th:action="@{/login}" method="post" style="width: 100%; max-width: 400px; padding: 32px; display: flex; flex-direction: column; gap: 18px">
+            <!--/* appName은 서버가 모델로 준 앱 이름(관리자 앱/사용자 앱) */-->
             <h2 style="font-size: 22px" th:text="|${appName} 로그인|">white-eyes 로그인</h2>
+            <!--/* 회원가입을 마치고 돌아왔을 때(signupDone) 안내 */-->
             <p class="alert" th:if="${signupDone}" role="status" style="border-color: #2f7f64; background: #12281f; color: #63d7ae">가입 신청이 완료되었습니다. 관리자 승인 후 이용할 수 있습니다.</p>
+            <!--/* 로그인 실패 등 서버가 준 오류 문구(errorMessage) */-->
             <p class="alert" th:if="${errorMessage != null}" th:text="${errorMessage}" role="alert">오류 문구</p>
             <label class="field">아이디
+                <!--/* 실패해도 아이디를 다시 채워 준다(loginId) */-->
                 <input class="input" type="text" name="username" maxlength="20" required autofocus th:value="${loginId}">
             </label>
             <label class="field">비밀번호
                 <input class="input" type="password" name="password" required>
             </label>
             <button class="btn primary lg" type="submit" style="width: 100%">로그인</button>
+            <!--/* 회원가입 링크는 사용자 앱에서만 보인다(signupLink) */-->
             <p class="muted" th:if="${signupLink}" style="text-align: center; font-size: 12px">계정이 없나요? <a th:href="@{/signup}" style="color: #76a7ff">회원가입</a></p>
         </form>
     </section>

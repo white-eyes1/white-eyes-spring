@@ -17,11 +17,14 @@ import com.whiteeyes.common.exception.ErrorCode;
  * 서버 기본 오류 정보에는 문구가 없어 403에도 '일시적인 오류' 문구가 나오므로, 문구는 ErrorCode의 기본 문장을 쓴다.
  */
 @Component
+// 오류 화면 해석기가 여러 개일 때 가장 먼저 이 구현이 쓰이게 한다
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ErrorPageViewResolver implements ErrorViewResolver {
 
+    // 공통 오류 템플릿 이름
     private static final String ERROR_VIEW = "error";
 
+    /** 상태 코드에 맞는 오류 코드·기본 문구를 템플릿 모델에 담아 공통 오류 화면을 돌려준다. */
     @Override
     public ModelAndView resolveErrorView(HttpServletRequest request, HttpStatus status, Map<String, Object> model) {
         ErrorCode errorCode = toErrorCode(status);
@@ -31,6 +34,7 @@ public class ErrorPageViewResolver implements ErrorViewResolver {
                 status);
     }
 
+    /** HTTP 상태를 오류 코드로 대응시킨다. 대응이 없는 4xx는 입력 오류, 5xx는 서버 오류로 본다. */
     private ErrorCode toErrorCode(HttpStatus status) {
         return switch (status) {
             case UNAUTHORIZED -> ErrorCode.UNAUTHORIZED;

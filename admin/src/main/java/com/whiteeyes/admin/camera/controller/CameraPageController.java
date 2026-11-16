@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class CameraPageController {
 
+    // 화면 틀(템플릿)만 돌려준다. 데이터는 화면이 뜬 뒤 JS가 API로 받아 채운다.
     @GetMapping("/cameras")
     public String cameraPage() {
         return "admin/cameras";

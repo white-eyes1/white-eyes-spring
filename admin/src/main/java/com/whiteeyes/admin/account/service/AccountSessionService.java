@@ -18,7 +18,9 @@ import com.whiteeyes.admin.account.repository.UserSessionStore;
 @RequiredArgsConstructor
 public class AccountSessionService {
 
+    // 사용자 앱 세션 저장소(SPRING_SESSION_USER)
     private final UserSessionStore userSessionStore;
+    // 관리자 앱의 세션 저장소. 관리자 앱의 기본 세션 저장소가 주입된다(SPRING_SESSION_ADMIN)
     private final FindByIndexNameSessionRepository<? extends Session> adminSessionRepository;
 
     /** 사용자의 세션을 모두 지우고 지운 수를 돌려준다. 세션이 없으면 0이다. */
@@ -38,8 +40,11 @@ public class AccountSessionService {
 
     // 세션 저장소로만 찾고 지운다. SQL을 직접 쓰지 않는다(conventions.md '세션 주인 이름': Redis 전환 대비)
     private static int deleteAll(FindByIndexNameSessionRepository<? extends Session> repository, String loginId) {
+        // 지운 세션 수
         int deleted = 0;
+        // findByPrincipalName은 {세션 번호: 세션} 맵을 돌려주므로 세션 번호들을 하나씩 지운다
         for (String sessionId : repository.findByPrincipalName(loginId).keySet()) {
+            // 지워진 세션의 브라우저는 다음 요청부터 로그인하지 않은 상태가 된다
             repository.deleteById(sessionId);
             deleted++;
         }

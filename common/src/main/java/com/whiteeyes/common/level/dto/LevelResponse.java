@@ -7,4 +7,5 @@ import java.math.BigDecimal;
  *
  * @param minDensity 이 단계가 시작되는 밀집도(명/㎡). 정상은 0
  */
+// level은 단계 번호(1~3), name은 화면 표시 이름, color는 지도·범례 색(#RRGGBB)이다
 public record LevelResponse(int level, String name, String color, BigDecimal minDensity) {}

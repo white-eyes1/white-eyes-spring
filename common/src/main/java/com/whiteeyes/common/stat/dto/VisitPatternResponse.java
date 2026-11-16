@@ -17,5 +17,6 @@ public record VisitPatternResponse(List<Cell> cells, List<BigDecimal> weekdayAvg
      * @param hour 0~23
      * @param avgCount 그 요일·시간의 평균 인원
      */
+    // 요일 × 시간 한 칸. 평일/주말 평균 목록은 이 칸들과 별도로 계산해 내려보낸다
     public record Cell(int weekday, int hour, BigDecimal avgCount) {}
 }

@@ -12,5 +12,6 @@ import java.time.LocalDateTime;
  * @param density 평균 밀집도(명/㎡)
  * @param sampleSec 그 1분에 분석 결과가 들어온 초(0이면 통계 그래프에서 빈 점)
  */
+// 엔티티(ZoneStatMinute) 전체를 화면 계층에 노출하지 않으려고 필요한 값만 담은 읽기용 레코드
 public record ZoneMinuteStat(
         Long zoneId, LocalDateTime statAt, BigDecimal countAvg, BigDecimal density, int sampleSec) {}

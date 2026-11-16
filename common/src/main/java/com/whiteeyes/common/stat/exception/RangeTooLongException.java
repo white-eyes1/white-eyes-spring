@@ -8,6 +8,7 @@ import com.whiteeyes.common.stat.dto.StatInterval;
 public class RangeTooLongException extends BusinessException {
 
     // 화면 문구 '최대 n까지 조회할 수 있습니다'(SCR-C-004 기간)와 같은 문장
+    // 단위 이름과 그 단위의 최대 기간으로 문구를 만든다(예: '1시간 단위는 최대 31일까지 조회할 수 있습니다.')
     public RangeTooLongException(StatInterval interval) {
         super(
                 ErrorCode.RANGE_TOO_LONG,
@@ -15,6 +16,7 @@ public class RangeTooLongException extends BusinessException {
     }
 
     /** 문구를 직접 정한다(엑셀 다운로드의 최대 기간처럼 조회와 기준이 다를 때). */
+    // 오류 코드는 같고 문구만 호출하는 쪽이 정한다
     public RangeTooLongException(String message) {
         super(ErrorCode.RANGE_TOO_LONG, message);
     }

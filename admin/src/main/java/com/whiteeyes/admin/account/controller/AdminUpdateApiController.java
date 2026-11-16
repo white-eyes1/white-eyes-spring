@@ -19,11 +19,13 @@ import com.whiteeyes.admin.account.service.AdminUpdateService;
 @RequiredArgsConstructor
 public class AdminUpdateApiController {
 
+    // 대상 검사(최고 관리자 불가)·변경 값 계산·작업 기록은 서비스가 맡는다
     private final AdminUpdateService adminUpdateService;
 
     /** 이름·메일·연락처를 고치고 수정된 관리자를 돌려준다. 형식 오류는 400(fieldErrors), 없는 관리자는 404다. */
     @PatchMapping("/{id}")
     public AdminListItem update(@PathVariable("id") Long id, @Valid @RequestBody AdminUpdateRequest request) {
+        // 경로의 id가 수정 대상, 본문이 바꿀 값이다. 보낸 필드만 반영된다
         return adminUpdateService.update(id, request);
     }
 }

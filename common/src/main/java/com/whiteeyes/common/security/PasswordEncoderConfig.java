@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * 비밀번호 암호화(FNC-C-005). 사용자 앱과 관리자 앱이 이 빈 하나를 주입받아 저장 시 encode,
  * 로그인·현재 비밀번호 확인 시 matches를 쓴다. 앱별 보안 설정에서 PasswordEncoder 빈을 다시 만들지 않는다.
  */
+// 스프링 설정 클래스. 아래 @Bean 메서드의 반환 값이 앱 전체에서 주입받는 빈으로 등록된다
 @Configuration
 public class PasswordEncoderConfig {
 

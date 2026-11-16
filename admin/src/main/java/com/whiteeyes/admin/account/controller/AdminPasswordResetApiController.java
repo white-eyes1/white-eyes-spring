@@ -18,11 +18,13 @@ import com.whiteeyes.admin.account.service.AdminPasswordResetService;
 @RequiredArgsConstructor
 public class AdminPasswordResetApiController {
 
+    // 재설정 업무는 서비스가 한다(권한 대상 검사·임시 비밀번호 발급·세션 삭제·작업 기록)
     private final AdminPasswordResetService adminPasswordResetService;
 
     /** 임시 비밀번호를 발급해 한 번만 돌려준다. 없는 관리자는 404다. */
     @PostMapping("/{id}/reset-password")
     public PasswordResetResponse resetPassword(@PathVariable("id") Long id) {
+        // 임시 비밀번호는 이 응답 한 번으로만 전달된다. 서버에는 bcrypt 값만 남는다
         return adminPasswordResetService.reset(id);
     }
 }

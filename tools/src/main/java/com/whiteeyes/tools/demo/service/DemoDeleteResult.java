@@ -8,6 +8,9 @@ package com.whiteeyes.tools.demo.service;
  */
 public record DemoDeleteResult(long hourly, long daily) {
 
+    /**
+     * 시간별과 일별 삭제 건수의 합.
+     */
     public long total() {
         return hourly + daily;
     }

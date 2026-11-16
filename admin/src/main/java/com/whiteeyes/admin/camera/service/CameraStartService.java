@@ -35,23 +35,34 @@ import com.whiteeyes.common.security.LoginAccount;
 @RequiredArgsConstructor
 public class CameraStartService {
 
+    // 가동에 실패했을 때 캠 오류 메시지로 저장하는 문구(화면 목록에 그대로 보인다).
     private static final String UNAVAILABLE_MESSAGE = "분석 서버 연결 실패";
     private static final String SOURCE_NOT_FOUND_MESSAGE = "영상 파일·스트림 없음";
+    // 준비 중으로 시작할 때의 진행률 초깃값.
     private static final int PREPARING_START_PROGRESS = 0;
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final CameraRepository cameraRepository;
     private final AnalyzerClient analyzerClient;
+    // 단계마다 트랜잭션을 따로 열고 닫기 위한 도구(메서드 전체에 @Transactional을 걸지 않는 이유는 클래스 설명 참고).
     private final TransactionTemplate transactionTemplate;
     private final AdminWorkRecorder workRecorder;
 
+    /**
+     * 캠 가동 요청의 전체 흐름. 단계마다 따로 커밋해, 분석 서버 호출이 실패해도 앞 단계 기록(run_requested=1, 오류 상태)이 남는다.
+     *
+     * @param cameraId 가동할 캠 ID
+     * @return 분석 서버가 돌려준 상태(PREPARING 또는 RUNNING)
+     */
     public CameraStartResponse start(Long cameraId) {
         // 로그인하지 않은 요청은 분석 서버를 부르기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
         // 처리 순서 1·2: STOPPED·ERROR인지 확인하고 run_requested=1 기록
+        // 호출에 필요한 값(입력 방식·주소)과 요청 전 run_requested를 이 트랜잭션에서 읽어 둔다. 이후엔 DB를 잡고 있지 않는다.
         StartTarget target = transactionTemplate.execute(status -> requestRun(cameraId));
 
         // 처리 순서 3: 분석 서버 호출. 실패해도 run_requested=1은 유지한다(분석 서버가 다시 켜지면 자동 가동)
+        // 분석 서버가 알려준 시작 직후 상태.
         CameraStatus started;
         try {
             started = analyzerClient.startCamera(cameraId, target.sourceType(), target.sourceUri());
@@ -73,6 +84,10 @@ public class CameraStartService {
         return new CameraStartResponse(started);
     }
 
+    /**
+     * 1단계(트랜잭션): 가동 가능한 상태인지 확인하고 run_requested=1로 기록한다.
+     * 이후 분석 서버 호출이 실패해도 이 값이 남아, 분석 서버가 다시 켜질 때 자동으로 가동된다(FNC-A-027).
+     */
     private StartTarget requestRun(Long cameraId) {
         Camera camera = cameraRepository
                 .findByIdAndDeletedAtIsNull(cameraId)
@@ -80,11 +95,13 @@ public class CameraStartService {
         if (!isStartable(camera.getStatus())) {
             throw new InvalidCameraStatusException(cameraId, camera.getStatus());
         }
+        // 분석 서버가 '직전 정지 미완료'로 거절하면 이 값으로 되돌리기 위해 요청 전 값을 기억해 둔다.
         boolean runRequestedBefore = camera.isRunRequested();
         camera.requestRun();
         return new StartTarget(camera.getSourceType(), camera.getSourceUri(), runRequestedBefore);
     }
 
+    /** 가동 실패를 캠 상태(ERROR와 사유)로 남긴다. 호출한 쪽이 곧 예외를 던지므로 별도 트랜잭션으로 커밋한다. */
     private void recordFailure(Long cameraId, String errorMessage) {
         transactionTemplate.executeWithoutResult(status -> cameraRepository
                 .findByIdAndDeletedAtIsNull(cameraId)
@@ -101,6 +118,7 @@ public class CameraStartService {
                 status -> cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(Camera::cancelRunRequest));
     }
 
+    /** 3단계(트랜잭션): 분석 서버가 알려준 상태를 저장하고 최초 가동 시각, 작업 기록(CAMERA_RUN)을 남긴다. */
     private void recordStarted(Long cameraId, CameraStatus started, LoginAccount actor) {
         transactionTemplate.executeWithoutResult(
                 status -> cameraRepository.findByIdAndDeletedAtIsNull(cameraId).ifPresent(camera -> {
@@ -113,6 +131,7 @@ public class CameraStartService {
                         Integer progress = started == CameraStatus.PREPARING ? PREPARING_START_PROGRESS : null;
                         camera.updateStatus(started, progress, null);
                     }
+                    // 최초 가동 시각은 삭제 방식(실제 삭제/삭제 표시)을 가르는 기준이라 처음 한 번만 기록한다.
                     camera.markFirstStartedIfAbsent(LocalDateTime.now(KST));
                     workRecorder.record(
                             actor,
@@ -124,9 +143,11 @@ public class CameraStartService {
                 }));
     }
 
+    // 정지(STOPPED)와 오류(ERROR) 상태에서만 가동을 시작할 수 있다. 준비 중·가동 중에 또 시작하는 것을 막는다.
     private boolean isStartable(CameraStatus status) {
         return status == CameraStatus.STOPPED || status == CameraStatus.ERROR;
     }
 
+    // 1단계에서 읽어 3단계까지 들고 가는 값 묶음.
     private record StartTarget(CameraSourceType sourceType, String sourceUri, boolean runRequested) {}
 }

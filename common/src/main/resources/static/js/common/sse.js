@@ -6,15 +6,20 @@ import { url } from './api.js';
  * 데이터는 JSON으로 읽어 처리기에 넘긴다. 읽을 수 없는 데이터는 건너뛴다.
  */
 export function connectStream(path, handlers, { onOpen, onError } = {}) {
+    // 앱 컨텍스트 경로를 붙여 SSE 연결을 연다. 쿠키(세션)는 같은 출처라 자동으로 간다
     const source = new EventSource(url(path));
+    // 연결 성공 콜백(선택)
     if (onOpen) {
         source.addEventListener('open', onOpen);
     }
+    // 오류(끊김) 콜백(선택). 재연결은 브라우저가 알아서 하므로 닫지 않는다
     if (onError) {
         source.addEventListener('error', onError);
     }
+    // 이벤트 이름(서버의 event: 값)마다 처리기를 하나씩 단다
     Object.entries(handlers).forEach(([name, handler]) => {
         source.addEventListener(name, (message) => {
+            // 데이터는 JSON 문자열이다
             try {
                 handler(JSON.parse(message.data));
             } catch {
@@ -22,5 +27,6 @@ export function connectStream(path, handlers, { onOpen, onError } = {}) {
             }
         });
     });
+    // 화면을 떠나거나 구독을 끝낼 때 호출한다
     return { close: () => source.close() };
 }

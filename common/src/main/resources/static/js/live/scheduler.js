@@ -15,6 +15,7 @@
  * }} options
  *   load: 카드 하나의 최신 화면을 읽는 함수, onResult: 읽은 결과(성공이면 ok=true와 값, 실패면 ok=false)
  */
+// 순수 로직이라 시계(now)를 바꿔 끼워 시험할 수 있다. 기본값: 동시 2개, 카드당 2초 간격
 export function createSnapshotScheduler({
     load,
     onResult,
@@ -22,15 +23,20 @@ export function createSnapshotScheduler({
     intervalMs = 2000,
     now = () => Date.now(),
 }) {
+    // 카드 id -> 상태
     const cards = new Map();
+    // 지금 진행 중인 요청 수
     let inFlight = 0;
+    // 탭이 숨겨졌는지
     let paused = false;
 
+    // 카드 상태를 가져오고 없으면 새로 만든다
     const ensure = (id) => {
         if (!cards.has(id)) {
             cards.set(id, {
                 visible: false,
                 running: false,
+                // 처음엔 요청한 적이 없는 것으로(-Infinity: 첫 틱에 바로 읽힌다)
                 requestedAt: -Infinity,
                 loading: false,
             });
@@ -38,16 +44,19 @@ export function createSnapshotScheduler({
         return cards.get(id);
     };
 
+    // 읽기 한 번을 시작한다. 읽기 시작 시각을 먼저 기록해 간격 계산에 쓴다
     function startLoad(id, card) {
         card.loading = true;
         card.requestedAt = now();
         inFlight += 1;
+        // load가 동기 예외를 던져도 실패로 처리되도록 Promise 체인 안에서 실행한다
         Promise.resolve()
             .then(() => load(id))
             .then(
                 (value) => onResult(id, true, value),
                 () => onResult(id, false),
             )
+            // 성공·실패 모두 끝나면 진행 중 표시를 풀고 동시 요청 수를 되돌린다
             .finally(() => {
                 card.loading = false;
                 inFlight -= 1;
@@ -56,6 +65,7 @@ export function createSnapshotScheduler({
 
     return {
         /** 카드가 화면에 들어오거나 나갔을 때 */
+        // 보이는지 여부는 관찰자가 알려 준다
         setVisible(id, visible) {
             ensure(id).visible = visible;
         },
@@ -80,6 +90,7 @@ export function createSnapshotScheduler({
                 return [];
             }
             const current = now();
+            // 읽을 차례가 된 카드: 보이고, 가동 중이고, 이전 요청이 끝났고, 간격이 지난 것
             const due = [...cards.entries()]
                 .filter(
                     ([, card]) =>
@@ -92,6 +103,7 @@ export function createSnapshotScheduler({
                 .sort((first, second) => first[1].requestedAt - second[1].requestedAt);
             const started = [];
             for (const [id, card] of due) {
+                // 동시 요청 한도에 닿으면 남은 카드는 다음 틱으로 미룬다
                 if (inFlight >= maxInFlight) {
                     break;
                 }

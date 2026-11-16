@@ -11,6 +11,8 @@ import java.time.OffsetDateTime;
  * @param mainDirection 유출이 가장 많은 방향(N/E/S/W). 유출이 없으면 null
  * @param todayMaxCount 오늘 최대 인원. 오늘 통계가 없으면 null
  */
+// 필드 요약: countAvg 최근 1분 평균 인원, density 평균 밀집도(명/㎡), level 혼잡 단계,
+// outflow 최근 1분 유출 합, todayEventCount 오늘 이벤트 수, cameraCount 대상 카메라 수, runningCameraCount 그중 가동 중인 수
 public record DashboardSummaryResponse(
         OffsetDateTime statAt,
         BigDecimal countAvg,

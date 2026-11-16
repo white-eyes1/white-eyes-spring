@@ -9,8 +9,10 @@ import java.util.Optional;
 public interface AccountProfileStore {
 
     /** 계정 번호로 내 정보를 찾는다. 계정이 없으면 빈 값. */
+    // 읽기 입구
     Optional<AccountProfile> findProfile(Long accountId);
 
     /** 이름·메일·연락처를 저장한다. 메일·연락처가 null이면 비운다. */
+    // 쓰기 입구. 서비스가 보내지 않은 칸을 기존 값으로 채워 넘기므로 구현은 그대로 덮어쓰면 된다
     void updateProfile(Long accountId, String name, String email, String phone);
 }

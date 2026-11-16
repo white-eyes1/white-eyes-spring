@@ -18,6 +18,7 @@ import com.whiteeyes.common.history.entity.WorkTargetType;
  * @param targetName 기록 당시 대상 이름. 없으면 null
  * @param detail 행동마다 다른 상세(JSON 객체). 없으면 null
  */
+// detail은 DB에 JSON 문자열로 저장된 값을 객체로 풀어 담는다(HistoryListService.parseDetail)
 public record HistoryListItem(
         Long id,
         OffsetDateTime at,

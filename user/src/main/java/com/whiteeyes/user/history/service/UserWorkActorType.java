@@ -9,6 +9,9 @@ import com.whiteeyes.common.history.service.WorkActorTypeProvider;
 @Component
 public class UserWorkActorType implements WorkActorTypeProvider {
 
+    /**
+     * 작업 기록에 남길 행동 주체 종류. 사용자 앱에서는 항상 USER다(관리자 앱은 ADMIN을 돌려주는 별도 구현을 쓴다).
+     */
     @Override
     public ActorType actorType() {
         return ActorType.USER;

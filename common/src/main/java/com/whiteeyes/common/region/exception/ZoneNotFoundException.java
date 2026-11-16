@@ -5,6 +5,7 @@ import com.whiteeyes.common.exception.ErrorCode;
 
 // 공통 화면(현재 현황 요약 등)용. 관리자 앱의 구역 관리는 admin region의 ZoneNotFoundException을 쓴다.
 // 두 예외는 같은 ErrorCode.ZONE_NOT_FOUND(404)를 쓰고, 메시지만 다르다(admin은 zoneId를 붙임). 합칠 계획은 없다.
+// 서비스에서 orElseThrow(ZoneNotFoundException::new)로 쓸 수 있게 인자 없는 생성자만 둔다
 public class ZoneNotFoundException extends BusinessException {
 
     public ZoneNotFoundException() {

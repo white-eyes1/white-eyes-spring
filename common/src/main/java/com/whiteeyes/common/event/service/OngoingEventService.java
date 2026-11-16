@@ -20,8 +20,10 @@ import com.whiteeyes.common.event.repository.EventRepository;
 @RequiredArgsConstructor
 public class OngoingEventService {
 
+    // 캠 이상은 현황 화면의 이벤트로 세지 않는다
     private static final List<EventType> COUNTED_TYPES = List.of(EventType.CONGESTION, EventType.SURGE);
 
+    // 이벤트 저장소. 다른 도메인에는 저장소를 노출하지 않고 이 서비스로만 답한다
     private final EventRepository eventRepository;
 
     /**
@@ -32,9 +34,11 @@ public class OngoingEventService {
      */
     @Transactional(readOnly = true)
     public Set<Long> findZoneIdsWithOngoingEvent(Collection<Long> zoneIds) {
+        // 빈 목록으로 IN 쿼리를 보내지 않는다
         if (zoneIds.isEmpty()) {
             return Set.of();
         }
+        // 구역마다 쿼리하지 않고 한 번에 구한다. 포함 여부를 빠르게 보도록 Set으로 돌려준다
         return new HashSet<>(eventRepository.findZoneIdsWithOpenEvent(zoneIds, COUNTED_TYPES));
     }
 }

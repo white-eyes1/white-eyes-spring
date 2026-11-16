@@ -22,9 +22,11 @@ public class AdminLoginRecordService implements LoginRecorder {
 
     private final AdminAccountRepository adminAccountRepository;
 
+    /** 로그인 성공 시각(KST)을 기록한다. 아이디에 해당하는 계정이 없으면 아무것도 하지 않는다. */
     @Override
     @Transactional
     public void record(String loginId) {
+        // 엔티티의 값만 바꾸면 트랜잭션이 끝날 때 JPA가 UPDATE한다(save 호출이 필요 없다)
         adminAccountRepository.findByLoginId(loginId).ifPresent(account -> account.recordLogin(LocalDateTime.now(KST)));
     }
 }

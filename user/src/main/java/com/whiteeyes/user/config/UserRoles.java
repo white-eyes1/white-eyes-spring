@@ -8,9 +8,11 @@ package com.whiteeyes.user.config;
  */
 public final class UserRoles {
 
+    // hasRole(...)에는 "ROLE_" 없이 이름만 넘기므로 접두사 없는 값으로 둔다.
     public static final String PENDING = "PENDING";
     public static final String USER = "USER";
     public static final String PENDING_AUTHORITY = "ROLE_" + PENDING;
 
+    // 상수만 담는 클래스라 인스턴스를 만들 수 없게 막는다.
     private UserRoles() {}
 }

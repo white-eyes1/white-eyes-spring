@@ -17,12 +17,16 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * 구역(zone 테이블). 읍·면·동 아래에 관리자가 그린 다각형 영역이고 캠 한 대가 관측한다. 삭제된 구역은 행을 지우지 않고 deleted_at만 채운다.
+ */
 @Entity
 @Table(name = "zone")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Zone {
 
+    // 기본키. DB 자동 증가 값
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -34,9 +38,11 @@ public class Zone {
     @Column(nullable = false, length = 50)
     private String name;
 
+    // 구역 면적(㎡). 밀집도(명/㎡) 계산의 분모가 된다
     @Column(name = "area_m2", nullable = false, precision = 10, scale = 2)
     private BigDecimal areaM2;
 
+    // 다각형 경계를 GeoJSON JSON 문자열로 저장한다
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private String boundary;
@@ -47,6 +53,7 @@ public class Zone {
     @Column(name = "center_lng", nullable = false, precision = 9, scale = 6)
     private BigDecimal centerLng;
 
+    // 삭제 표시 시각. 값이 있으면 삭제된 구역이다(과거 통계·다시보기가 이 구역을 가리키므로 행은 남긴다)
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
@@ -77,6 +84,7 @@ public class Zone {
         this.centerLng = centerLng;
     }
 
+    // 새 구역을 만든다. 삭제 시각은 비워 둔 상태로 시작한다
     public Zone(
             Long dongId, String name, BigDecimal areaM2, String boundary, BigDecimal centerLat, BigDecimal centerLng) {
         this.dongId = dongId;

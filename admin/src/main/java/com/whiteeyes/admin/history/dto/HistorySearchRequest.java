@@ -30,6 +30,7 @@ public record HistorySearchRequest(
         @Min(value = 0, message = PAGE_MESSAGE) Integer page,
         @Min(value = 1, message = SIZE_MESSAGE) @Max(value = MAX_SIZE, message = SIZE_MESSAGE) Integer size) {
 
+    // (아래 상수는 레코드 컴포넌트 어노테이션에서도 쓰이므로 static final로 둔다)
     // 페이지 기본값·최대값(conventions.md '공통 API 규칙 > 페이지')
     public static final int DEFAULT_SIZE = 20;
     public static final int MAX_SIZE = 100;
@@ -40,6 +41,7 @@ public record HistorySearchRequest(
     private static final String PAGE_MESSAGE = "페이지는 0 이상이어야 합니다.";
     private static final String SIZE_MESSAGE = "한 페이지 개수는 1~100이어야 합니다.";
 
+    // 컴팩트 생성자: 요청 값을 정규화한다(공백 아이디는 null, 앞뒤 공백 제거, page는 0, size는 20)
     public HistorySearchRequest {
         loginId = loginId == null || loginId.isBlank() ? null : loginId.strip();
         page = page == null ? 0 : page;

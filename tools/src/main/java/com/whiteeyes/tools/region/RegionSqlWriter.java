@@ -10,6 +10,7 @@ import java.util.List;
  */
 public final class RegionSqlWriter {
 
+    // INSERT에 쓰는 칸 목록. parent_id는 상위 지역의 id다.
     private static final String COLUMNS = "parent_id, level, code, name, boundary, center_lat, center_lng";
     // MySQL 8.0.20부터 VALUES()는 없어질 문법이라 행 별칭(AS new)을 쓴다. H2(MySQL 모드)는 행 별칭을 몰라 VALUES()를 쓴다
     private static final String MYSQL_UPDATE = " AS new ON DUPLICATE KEY UPDATE parent_id = new.parent_id,"
@@ -27,21 +28,28 @@ public final class RegionSqlWriter {
      * @param h2 시험용 H2(MySQL 모드)에 맞춰 쓴다. 경계 문자열을 JSON 값으로 읽게 하고(FORMAT JSON) VALUES()를 쓴다
      */
     public static String write(List<String> header, List<RegionSource> sources, boolean h2) {
+        // H2에서는 경계 문자열 뒤에 FORMAT JSON을 붙여 JSON 값으로 읽게 한다.
         String jsonSuffix = h2 ? " FORMAT JSON" : "";
+        // SQL 전체를 이어 붙일 버퍼.
         StringBuilder sql = new StringBuilder();
+        // 머리말은 줄마다 SQL 주석(--)으로 쓴다.
         header.forEach(line -> sql.append("-- ").append(line).append('\n'));
         sql.append('\n');
+        // 단계 순(RegionLevel 선언 순서), 같은 단계에서는 code 순으로 정렬한다. 상위가 먼저 들어가야 아래 SELECT로 parent_id를 찾을 수 있다.
         List<RegionSource> ordered = sources.stream()
                 .sorted(Comparator.comparing(RegionSource::level).thenComparing(RegionSource::code))
                 .toList();
         for (RegionSource source : ordered) {
+            // 시·도는 상위가 없어 NULL이다.
             String parent = "NULL";
+            // 상위 지역의 id를 SQL 변수에 담아 아래 INSERT가 쓴다.
             if (source.parentCode() != null) {
                 sql.append("SET @parent_id = (SELECT id FROM region WHERE code = ")
                         .append(text(source.parentCode()))
                         .append(");\n");
                 parent = "@parent_id";
             }
+            // 지역 한 행을 넣는다. 같은 code가 있으면 덮어써서 다시 적용해도 중복이 생기지 않는다(ON DUPLICATE KEY UPDATE).
             sql.append("INSERT INTO region (")
                     .append(COLUMNS)
                     .append(") VALUES (")
@@ -66,6 +74,9 @@ public final class RegionSqlWriter {
         return sql.toString();
     }
 
+    /**
+     * 값을 SQL 문자열 리터럴로 만든다. 작은따옴표는 두 개로 겹쳐 쓰고, 역슬래시가 들어 있으면 예외를 던진다.
+     */
     // MySQL은 \를 이스케이프로 읽고 H2는 읽지 않아 결과가 달라지므로 받지 않는다(경계·이름에는 나오지 않는다)
     private static String text(String value) {
         if (value.indexOf('\\') >= 0) {

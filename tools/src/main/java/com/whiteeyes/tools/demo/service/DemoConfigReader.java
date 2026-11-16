@@ -38,6 +38,7 @@ public class DemoConfigReader {
      * @throws IllegalArgumentException 파일을 읽을 수 없거나 설정이 틀렸을 때
      */
     public DemoGenerateConfig read(Path file) {
+        // 파일 내용을 ConfigFile로 읽는다. 적지 않은 항목은 null로 남는다.
         ConfigFile values;
         try {
             values = jsonMapper.readValue(file.toFile(), ConfigFile.class);
@@ -48,6 +49,7 @@ public class DemoConfigReader {
             // 예전 설정 파일에 남아 있어도 멈추지 않는다. 시작일은 구역마다 끝 시각에서 정한다
             log.warn("시연용 통계 설정의 startDate는 쓰지 않아 무시함 startDate={}", values.startDate());
         }
+        // 항목마다 파일에 값이 있으면 그것을, 없으면 기본값을 써서 하나의 설정으로 합친다.
         DemoGenerateConfig defaults = DemoGenerateConfig.defaults();
         DemoGenerateConfig config = new DemoGenerateConfig(
                 orDefault(values.seed(), defaults.seed()),
@@ -57,10 +59,14 @@ public class DemoConfigReader {
                 orDefault(values.dayOfWeekWeights(), defaults.dayOfWeekWeights()),
                 orDefault(values.seasonWeights(), defaults.seasonWeights()),
                 orDefault(values.surgeDays(), defaults.surgeDays()));
+        // 합친 결과를 검사한다. 틀리면 여기서 예외가 나므로, 이 읽기를 데이터 삭제보다 먼저 하면 설정 오류로 데이터가 지워지는 일이 없다.
         config.validate();
         return config;
     }
 
+    /**
+     * 값이 없으면(null) 기본값을 돌려준다.
+     */
     private static <T> T orDefault(T value, T defaultValue) {
         return value == null ? defaultValue : value;
     }

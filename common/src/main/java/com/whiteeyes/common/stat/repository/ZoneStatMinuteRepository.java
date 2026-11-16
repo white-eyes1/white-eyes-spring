@@ -13,12 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.whiteeyes.common.stat.entity.ZoneStatMinute;
 import com.whiteeyes.common.stat.entity.ZoneStatMinuteId;
 
+// 1분 통계 조회·저장용 저장소. 단순 조회는 메서드 이름 규칙, 복잡한 것은 @Query를 쓴다
 public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, ZoneStatMinuteId> {
 
     /** 그 구역의 행이 하나라도 있는지(구역 삭제 FNC-A-017 처리 순서 2의 이력 확인). */
     boolean existsByZoneId(Long zoneId);
 
     /** 저장된 가장 최근 1분 통계 시각. 통계가 하나도 없으면 null(실시간 통계 갱신 FNC-C-022가 5초마다 본다). */
+    // 전 구역의 가장 최근 시각 하나만 읽는다(5초마다 불리므로 가볍게 max만 조회)
     @Query("select max(s.statAt) from ZoneStatMinute s")
     LocalDateTime findLatestStatAt();
 
@@ -26,6 +28,7 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
      * 구역들의 from 이후(포함) 마지막 판정 가능 분(sample_sec >= minSampleSec)의 stat_at. 판정 가능한 행이 없는 구역은 결과에 없다.
      * 결과 끊김 종료(FNC-A-033 5번)가 열린 이벤트의 구역들을 한 번에 조회한다. 삭제된 구역의 행도 남아 있어 그대로 센다.
      */
+    // JPQL: 구역별로 판정 가능한 마지막 분을 group by로 구한다. 구역 목록을 한 번에 넘겨 구역마다 쿼리하는 N+1을 피한다
     @Query(
             """
             select s.zoneId as zoneId, max(s.statAt) as statAt from ZoneStatMinute s
@@ -54,6 +57,7 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
      * from(정시) 한 시간에 받은 초가 있는 1분 행(sample_sec>0)은 있는데 시간별 행이 없는 구역 번호(FNC-A-031).
      * 받은 초가 없는 시간은 시간별 행을 만들 수 없어 대상에서 뺀다. 안 그러면 매번 다시 집계하려다 건너뛰게 된다.
      */
+    // JPQL: 1분 행은 있는데 시간별 행이 없는 구역을 찾는다(보정 집계 대상). not exists로 이미 집계된 구역을 거른다
     @Query(
             """
             select distinct m.zoneId from ZoneStatMinute m
@@ -63,6 +67,7 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
     List<Long> findZoneIdsMissingHourly(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     /** 구역들의 from 이후 1분 통계를 같은 시각끼리 더한 count_max 합들. 오늘 최대 인원(FNC-C-016)에 쓴다. */
+    // JPQL: 구역들을 시각(stat_at)별로 묶어 count_max를 더한 값을 읽는다. 호출하는 쪽이 이 중 최대를 골라 '오늘 최대 인원'으로 쓴다
     @Query(
             "select sum(s.countMax) from ZoneStatMinute s where s.zoneId in :zoneIds and s.statAt >= :from group by s.statAt")
     List<Long> sumCountMaxByStatAt(@Param("zoneIds") Collection<Long> zoneIds, @Param("from") LocalDateTime from);
@@ -73,8 +78,10 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
      * @return 지운 건수
      */
     // 건수 제한이 있는 삭제는 JPQL로 쓸 수 없어 네이티브로 쓴다(MySQL·H2 모두 DELETE ... LIMIT 지원)
+    // @Modifying 쿼리는 쓰기 트랜잭션이 필요해 여기서 직접 연다. clearAutomatically로 삭제 뒤 1차 캐시를 비워 지운 행이 읽히지 않게 한다
     @Transactional
     @Modifying(clearAutomatically = true)
+    // 한 번에 지울 건수를 제한해 대량 삭제가 테이블을 오래 잠그지 않게 한다(호출하는 쪽이 0건이 될 때까지 반복)
     @Query(value = "DELETE FROM zone_stat_minute WHERE stat_at < :cutoff LIMIT :limit", nativeQuery = true)
     int deleteOlderThan(@Param("cutoff") LocalDateTime cutoff, @Param("limit") int limit);
 
@@ -82,8 +89,10 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
      * (zone_id, stat_at) 기준으로 넣거나 덮어쓴다(FNC-A-028 처리 순서 3).
      * 갱신 부분은 VALUES() 대신 값을 다시 써서 MySQL 8(VALUES() 사용 중단 예정)과 H2 모두에서 동작하게 한다.
      */
+    // upsert도 쓰기 트랜잭션이 필요하다. 1분 마감이 같은 분을 다시 저장해도(재시도) 중복 키 오류 없이 덮어쓴다
     @Transactional
     @Modifying(clearAutomatically = true)
+    // 네이티브 SQL: JPA의 save()는 먼저 조회한 뒤 넣기 때문에 같은 분을 동시에 저장하면 충돌할 수 있어, DB의 upsert(ON DUPLICATE KEY UPDATE)로 한 문장에 처리한다
     @Query(
             value =
                     """
@@ -109,6 +118,7 @@ public interface ZoneStatMinuteRepository extends JpaRepository<ZoneStatMinute, 
     void upsert(@Param("stat") ZoneStatMinute stat);
 
     /** 구역별 마지막 판정 가능 분. */
+    // 쿼리 결과를 담는 프로젝션 인터페이스. 별칭(zoneId, statAt)과 게터 이름을 맞춘다
     interface ZoneLastStatAt {
 
         Long getZoneId();

@@ -29,10 +29,14 @@ import com.whiteeyes.common.security.LoginAccount;
 @RequiredArgsConstructor
 public class ZoneUpdateService {
 
+    // 저장하는 면적(㎡)의 소수 자릿수(DB 컬럼 기준)
     private static final int AREA_SCALE = 2;
 
+    // 새 다각형의 검증·소속 동·면적·중심점 계산을 등록·미리보기와 같은 방식으로 재사용한다
     private final ZonePreviewService zonePreviewService;
+    // 구역 조회·저장·이름 중복 확인
     private final ZoneRepository zoneRepository;
+    // 관리자 작업 기록 저장과 로그인 계정 확인
     private final AdminWorkRecorder workRecorder;
 
     /**
@@ -46,6 +50,7 @@ public class ZoneUpdateService {
     public ZoneUpdateResponse update(Long zoneId, String name, JsonNode boundary) {
         // 로그인하지 않은 요청은 구역을 바꾸기 전에 거부한다(작업 기록의 행동한 계정을 채울 수 없다)
         LoginAccount actor = workRecorder.requireActor();
+        // 바꿀 것이 하나도 없는 요청은 의미가 없으므로 400으로 알린다
         if (name == null && boundary == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "name 또는 boundary 중 하나는 보내야 합니다.");
         }
@@ -53,6 +58,7 @@ public class ZoneUpdateService {
                 .findById(zoneId)
                 .filter(found -> found.getDeletedAt() == null)
                 .orElseThrow(() -> new ZoneNotFoundException(zoneId));
+        // 작업 기록에 '이전' 값을 남기려고 수정 전에 보관한다(엔티티는 곧 바뀐다)
         String beforeName = zone.getName();
         BigDecimal beforeArea = zone.getAreaM2();
 
@@ -62,12 +68,16 @@ public class ZoneUpdateService {
             throw new DongChangeNotAllowedException(calculation.dongName());
         }
         // 처리 순서 3: 같은 동의 다른 구역과 이름 중복 확인 후 저장
+        // 이름을 보내지 않았으면 기존 이름을 그대로 둔다
         String newName = name == null ? beforeName : name.trim();
+        // 이름이 실제로 바뀔 때만 중복을 검사하고, 자기 자신(IdNot zoneId)은 비교에서 뺀다
         if (!newName.equals(beforeName)
                 && zoneRepository.existsByDongIdAndNameAndDeletedAtIsNullAndIdNot(zone.getDongId(), newName, zoneId)) {
             throw new DuplicateZoneNameException(newName);
         }
+        // 이름이 같아도 호출하며, 값이 같으면 변화가 없다
         zone.rename(newName);
+        // 다각형을 보낸 경우에만 모양·면적·중심 좌표를 바꾼다. 소속 동은 위에서 같음을 확인했으므로 그대로다
         if (calculation != null) {
             zone.reshape(
                     BigDecimal.valueOf(calculation.areaM2()).setScale(AREA_SCALE, RoundingMode.HALF_UP),
@@ -75,6 +85,7 @@ public class ZoneUpdateService {
                     calculation.centerLat(),
                     calculation.centerLng());
         }
+        // 즉시 DB에 반영해 제약 위반을 이 트랜잭션 안에서 바로 드러낸다
         zoneRepository.saveAndFlush(zone);
 
         // 처리 순서 4: 작업 기록(이전·이후 이름·면적). 같은 트랜잭션이라 기록이 실패하면 수정도 취소된다
@@ -86,6 +97,7 @@ public class ZoneUpdateService {
         return new ZoneUpdateResponse(zone.getId(), zone.getDongId(), zone.getName(), zone.getAreaM2());
     }
 
+    /** 작업 기록에 남길 이름·면적 한 쌍을 순서가 유지되는 맵으로 만든다. */
     private Map<String, Object> snapshot(String name, BigDecimal areaM2) {
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("name", name);

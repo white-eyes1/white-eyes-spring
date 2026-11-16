@@ -23,17 +23,22 @@ import com.whiteeyes.common.web.PageResponse;
 @RequiredArgsConstructor
 public class UserApiController {
 
+    // 목록 조회와 승인은 각각 다른 서비스가 맡는다(한 서비스에 몰아 두지 않음)
     private final UserListService userListService;
     private final UserApproveService userApproveService;
 
+    /** 사용자 목록 조회. 검색어·상태·가입일·활동 여부·정렬·페이지 조건을 쿼리 문자열로 받는다. */
     @GetMapping
     public PageResponse<UserListItem> list(@Valid @ModelAttribute UserSearchRequest request) {
+        // @Valid로 형식·가입일 범위를 검사한 조건만 서비스로 넘긴다
         return userListService.list(request);
     }
 
+    /** 미승인 사용자를 승인한다(PENDING→ACTIVE). 성공하면 204다. 상태가 맞지 않으면 서비스가 409를 낸다. */
     @PostMapping("/{id}/approve")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void approve(@PathVariable Long id) {
+        // 상태 확인·변경·작업 기록은 서비스의 한 트랜잭션에서 처리한다
         userApproveService.approve(id);
     }
 }

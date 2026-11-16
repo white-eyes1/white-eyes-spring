@@ -20,10 +20,13 @@ import com.whiteeyes.admin.media.service.RecordingFileService;
 public class RecordingFileApiController {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    // nginx가 이 헤더를 보면 응답 본문 대신 그 내부 주소의 파일을 대신 내려 준다(Range 요청 포함). 앱이 큰 영상을 직접 읽지 않으려는 구조다.
     private static final String ACCEL_REDIRECT = "X-Accel-Redirect";
 
+    // 권한·존재·보관 기간 확인과 내부 주소 계산은 서비스가 한다.
     private final RecordingFileService recordingFileService;
 
+    /** 녹화 영상(mp4) 전송. 본문 없이 X-Accel-Redirect 헤더만 응답한다. */
     @GetMapping("/api/v1/recordings/{id}/video")
     public ResponseEntity<Void> video(@PathVariable("id") Long id) {
         return ResponseEntity.ok()
@@ -31,6 +34,7 @@ public class RecordingFileApiController {
                 .build();
     }
 
+    /** 녹화의 사람 좌표 파일(gzip JSON) 전송. 영상과 같은 방식이다. */
     @GetMapping("/api/v1/recordings/{id}/boxes")
     public ResponseEntity<Void> boxes(@PathVariable("id") Long id) {
         return ResponseEntity.ok()

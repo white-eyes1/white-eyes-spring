@@ -3,6 +3,7 @@ package com.whiteeyes.common.event.entity;
 /** 이벤트 조치 항목(conventions.md 코드 값 event.action_code). 조치완료로 바꿀 때 하나를 고른다(FNC-A-038). */
 public enum EventActionCode {
     /** 현장 확인·정상 */
+    // 아래 값들은 DB에 문자열로 저장되는 코드다(Event.actionCode가 name()을 저장)
     ONSITE_OK,
     /** 인력 배치 */
     STAFF,

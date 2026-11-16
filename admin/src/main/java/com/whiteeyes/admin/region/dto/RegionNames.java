@@ -7,4 +7,5 @@ package com.whiteeyes.admin.region.dto;
  * @param sigungu 시·군·구 이름
  * @param emd 읍·면·동 이름
  */
+// 상위 지역이 없는 경우(데이터 누락 등)에는 해당 이름이 null일 수 있다
 public record RegionNames(String sido, String sigungu, String emd) {}

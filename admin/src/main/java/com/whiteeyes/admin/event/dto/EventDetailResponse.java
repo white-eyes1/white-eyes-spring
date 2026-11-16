@@ -44,6 +44,9 @@ public record EventDetailResponse(
         List<EventHistoryItem> histories,
         boolean playbackAvailable) {
 
+    /**
+     * 목록 행 하나에 상세 전용 값들을 붙여 상세 응답을 만든다. 공통 필드는 목록 행에서 그대로 옮겨 두 응답이 어긋나지 않게 한다.
+     */
     public static EventDetailResponse of(
             EventListItem item,
             JsonNode thresholdSnapshot,
@@ -54,6 +57,7 @@ public record EventDetailResponse(
             OffsetDateTime handledAt,
             List<EventHistoryItem> histories,
             boolean playbackAvailable) {
+        // 앞쪽 15개는 목록 행에서 복사, 뒤쪽은 상세에서만 쓰는 값
         return new EventDetailResponse(
                 item.id(),
                 item.type(),

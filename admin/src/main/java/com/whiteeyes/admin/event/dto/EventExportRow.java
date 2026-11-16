@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
  * @param handlerLoginId 마지막으로 처리한 관리자의 아이디. 처리 전이면 null
  * @param handledAt 마지막 처리 시각
  */
+// 엑셀 한 행: item은 목록 화면과 같은 값이고, 나머지는 엑셀에만 필요한 지역 이름·처리 정보다(EventExportService.toRows에서 채운다)
 public record EventExportRow(
         EventListItem item,
         String sido,

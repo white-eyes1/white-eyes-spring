@@ -21,7 +21,9 @@ import com.whiteeyes.common.stat.repository.ZoneStatHourlyRepository;
 @RequiredArgsConstructor
 public class DailyStatService {
 
+    // 묶을 재료인 시간별 통계
     private final ZoneStatHourlyRepository zoneStatHourlyRepository;
+    // 묶은 결과를 저장하는 일별 통계
     private final ZoneStatDailyRepository zoneStatDailyRepository;
 
     /**
@@ -41,23 +43,29 @@ public class DailyStatService {
      * @param zoneIds 묶을 구역 번호. null이면 그날의 전 구역
      */
     public synchronized void aggregateDay(LocalDate date, Collection<Long> zoneIds) {
+        // 그 날짜 00:00 이상, 다음 날 00:00 미만인 시간별 행을 모두 읽는다(반열린 구간이라 경계 시각이 두 날에 겹치지 않는다)
         List<ZoneStatHourly> hours = zoneStatHourlyRepository.findByStatAtGreaterThanEqualAndStatAtLessThan(
                 date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+        // 구역별로 나눈다. zoneIds가 주어지면 그 구역만 남기고, null이면 전 구역을 대상으로 한다
         Map<Long, List<ZoneStatHourly>> hoursByZone = hours.stream()
                 .filter(hour -> zoneIds == null || zoneIds.contains(hour.getZoneId()))
                 .collect(Collectors.groupingBy(ZoneStatHourly::getZoneId));
 
+        // 구역마다 따로 저장한다. 한 구역이 실패해도 나머지 구역 집계는 계속한다
         hoursByZone.forEach((zoneId, zoneHours) -> {
             try {
                 save(zoneId, date, zoneHours);
             } catch (RuntimeException e) {
+                // 실패한 구역은 다음 보충(FNC-A-031)이 빠진 일별 행으로 찾아 다시 채운다
                 log.error("일별 통계 저장 실패 zoneId={} statDate={}", zoneId, date, e);
             }
         });
         log.info("일별 통계 저장 statDate={} zones={}", date, hoursByZone.size());
     }
 
+    /** 한 구역의 그날 시간별 행들을 일별 행 하나로 묶어 저장한다. 같은 키의 행이 있으면 덮어쓴다. */
     private void save(Long zoneId, LocalDate date, List<ZoneStatHourly> zoneHours) {
+        // 묶을 수 없는 경우(받은 초가 있는 시간별 행이 없음)에는 빈 값이 돌아와 저장하지 않고 경고만 남긴다
         ZoneStatDaily.rollUp(zoneId, date, zoneHours)
                 .ifPresentOrElse(
                         zoneStatDailyRepository::save,

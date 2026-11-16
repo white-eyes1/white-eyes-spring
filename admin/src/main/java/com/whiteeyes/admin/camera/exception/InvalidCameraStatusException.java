@@ -4,6 +4,7 @@ import com.whiteeyes.common.camera.entity.CameraStatus;
 import com.whiteeyes.common.exception.BusinessException;
 import com.whiteeyes.common.exception.ErrorCode;
 
+/** 현재 캠 상태에서는 가동할 수 없다(409 INVALID_STATUS). 가동은 STOPPED·ERROR 상태에서만 가능하다. */
 public class InvalidCameraStatusException extends BusinessException {
 
     public InvalidCameraStatusException(Long cameraId, CameraStatus status) {
