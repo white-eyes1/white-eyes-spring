@@ -5,3 +5,12 @@
 .env
 docs
 node_modules
+# .env 변형(.env.example은 남김), 비밀값이 이미지에 들어가지 않게 한다
+.env.*
+!.env.example
+# .gitignore와 맞춤: 로컬 빌드는 작업 폴더 전체가 컨텍스트라 영상·녹화 산출물이 build 단계에 들어갈 수 있다
+*.mp4
+*.json.gz
+# 작업 도구 파일
+.claude
+CLAUDE.local.md
