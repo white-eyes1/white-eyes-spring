@@ -3,13 +3,13 @@
 // 같은 분이면 같은 값이고, 단계는 서버가 판정한 level을 그대로 쓴다. 서버 값은 textContent로만 넣는다.
 import { get, url } from '../common/api.js';
 import { formatNumber } from '../common/format.js';
-import { countLine, flowBars, levelBars, niceMax } from './mini-charts.js';
+import { countLine, flowBars, levelBarsRich, niceMax } from './mini-charts.js';
 
 const SERIES_API = '/api/v1/stats/series';
 const MINUTE_MS = 60_000;
 const WINDOW_MINUTES = 60;
 const RECENT_MINUTES = 10;
-const BAR_HEIGHT = 90;
+const BAR_HEIGHT = 104;
 const COUNT_HEIGHT = 80;
 const FLOW_HEIGHT = 55;
 const DIRECTIONS = [
@@ -77,6 +77,7 @@ function render(items, cameraName) {
         value:
             point.countAvg === null || point.countAvg === undefined ? null : Number(point.countAvg),
         level: point.level ?? null,
+        at: point.at ?? null,
         inflow: sum(point.inflow),
         outflow: sum(point.outflow),
     }));
@@ -84,10 +85,10 @@ function render(items, cameraName) {
     const max = niceMax(points.map((point) => point.value));
     const recent = points.slice(-RECENT_MINUTES);
     byId('live-graph-10m').replaceChildren(
-        levelBars(recent, { height: BAR_HEIGHT, max, label: '최근 10분 인원, 혼잡 단계 색' }),
+        levelBarsRich(recent, { height: BAR_HEIGHT, max, label: '최근 10분 인원, 혼잡 단계 색' }),
     );
     byId('live-graph-60m').replaceChildren(
-        levelBars(points, { height: BAR_HEIGHT, max, label: '최근 1시간 인원, 혼잡 단계 색' }),
+        levelBarsRich(points, { height: BAR_HEIGHT, max, label: '최근 1시간 인원, 혼잡 단계 색' }),
     );
     byId('live-graph-count').replaceChildren(
         countLine(points, { height: COUNT_HEIGHT, max, label: '최근 1시간 인원' }),

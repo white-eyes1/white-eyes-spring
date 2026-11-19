@@ -5,13 +5,13 @@
 import { post } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
 import { bindNowCount } from '../../common/now-count.js';
-import { levelBars, niceMax } from '../../live/mini-charts.js';
+import { levelBarsRich, niceMax } from '../../live/mini-charts.js';
 import { createPreviewManager } from '../../live/preview.js';
 import { levelChip } from './panel.js';
 
 const MIN_MAP_HEIGHT = 64;
 const EXPAND_BELOW_MAP_HEIGHT = 360;
-const RECENT_BAR_HEIGHT = 40;
+const RECENT_BAR_HEIGHT = 64;
 // 주의 단계(GET /meta/levels의 level 2)의 시작 밀집도 × 면적 = 주의 기준 인원(막대 위 점선)
 const WARN_LEVEL = 2;
 
@@ -243,13 +243,15 @@ function recentBlock(camera, levels) {
     const values = recent.map((point) => point.countAvg);
     const warnDensity = levels.find((level) => level.level === WARN_LEVEL)?.minDensity;
     const warn = warnDensity ? Number(warnDensity) * camera.areaM2 : null;
-    const bars = levelBars(
-        recent.map((point) => ({ value: point.countAvg, level: point.level })),
+    const bars = levelBarsRich(
+        recent.map((point) => ({ value: point.countAvg, level: point.level, at: point.at })),
         {
             height: RECENT_BAR_HEIGHT,
             max: niceMax(values),
             warn,
             label: '최근 10분 인원, 혼잡 단계 색',
+            scale: false,
+            levelNames: Object.fromEntries(levels.map((level) => [level.level, level.name])),
         },
     );
 
