@@ -26,43 +26,9 @@ const TREND_COLOR = '#76a7ff';
 const DEFAULT_LEVEL_NAMES = { 1: '정상', 2: '주의', 3: '위험' };
 
 /**
- * 혼잡 단계 색 막대. 값이 없는 분은 빈칸, 값이 있는 마지막 분(지금)은 인디고(아직 집계 전인 지금 분은 값이 없어 건너뛴다).
- * @param {{value: number|null, level: number|null}[]} points 시각 순서
- * @param {{height: number, max: number, warn?: number|null, label: string}} options
- *   max: y축 최대(같은 줄의 그래프끼리 맞출 때 같은 값을 준다), warn: 주의 기준 인원(있으면 점선)
- */
-export function levelBars(points, { height, max, warn = null, label }) {
-    const svg = svgBox(height, label);
-    const step = WIDTH / Math.max(points.length, 1);
-    const nowIndex = points.findLastIndex(
-        (point) => point.value !== null && point.value !== undefined,
-    );
-    points.forEach((point, index) => {
-        if (point.value === null || point.value === undefined) {
-            return;
-        }
-        const barHeight = Math.max(1, (point.value / max) * (height - 2));
-        const isNow = index === nowIndex;
-        svg.append(
-            rect(
-                index * step + (step * GAP_RATIO) / 2,
-                height - barHeight,
-                step * (1 - GAP_RATIO),
-                barHeight,
-                isNow ? NOW_COLOR : (LEVEL_COLORS[point.level] ?? EMPTY_COLOR),
-            ),
-        );
-    });
-    if (warn !== null && warn > 0 && warn <= max) {
-        const y = height - (warn / max) * (height - 2);
-        svg.append(line(0, y, WIDTH, y, WARN_COLOR, '4 3'));
-    }
-    return svg;
-}
-
-/**
  * 혼잡 단계 색 막대(둥근 막대 + 점선 추세선 + 지금 ▼ + 눈금 + 호버 말풍선). 캠 카드와 실시간 보기 창이 쓴다.
- * 막대 색·마지막 '지금' 막대 인디고·주의 기준선은 levelBars와 같다. 서버 값은 textContent로만 넣는다.
+ * 값이 없는 분은 빈칸이고 추세선이 끊긴다. 값이 있는 마지막 분(지금)은 인디고(아직 집계 전인 지금 분은 값이 없어 건너뛴다).
+ * 막대 색은 서버가 판정한 level이다. 서버 값은 textContent로만 넣는다.
  * @param {{value: number|null, level: number|null, at?: string|null}[]} points 시각 순서
  * @param {{height: number, max: number, warn?: number|null, label: string, scale?: boolean,
  *   levelNames?: Record<number, string>}} options
@@ -189,11 +155,13 @@ export function levelBarsRich(
 }
 
 // 말풍선: 시각, 혼잡도(단계 색 점 + 이름), 인원수. 서버 값은 textContent로만 넣는다.
+// '지금' 막대는 막대가 인디고라서 단계를 말풍선에서만 알 수 있다. 점은 항상 단계 색이고, 지금은 시각 옆 글자로 알린다.
 function fillTip(tip, point, isNow, levelNames) {
     const time = document.createElement('b');
-    time.textContent = point.at ? String(point.at).slice(11, 16) : '-';
+    const clock = point.at ? String(point.at).slice(11, 16) : '-';
+    time.textContent = isNow ? `${clock} (지금)` : clock;
     const dot = document.createElement('i');
-    dot.style.background = isNow ? NOW_COLOR : (LEVEL_COLORS[point.level] ?? EMPTY_COLOR);
+    dot.style.background = LEVEL_COLORS[point.level] ?? EMPTY_COLOR;
     const levelLine = document.createElement('div');
     levelLine.append('혼잡도 ', dot, levelNames[point.level] ?? '-');
     const countLine = document.createElement('div');
