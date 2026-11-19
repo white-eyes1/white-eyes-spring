@@ -44,6 +44,15 @@
 .live-graph-legend .in { background: #a5b4fc; } .live-graph-legend .out { background: #4f46e5; }
 .live-graph-legend .l1 { background: #34a37f; } .live-graph-legend .l2 { background: #c98a1c; } .live-graph-legend .l3 { background: #d9475a; }
 .live-graph-legend .now { background: #818cf8; }
+
+/* 혼잡 단계 색 막대(둥근 막대·추세선·지금 ▼·호버 말풍선). 캠 카드와 실시간 보기 창이 같이 쓴다(mini-charts.js levelBarsRich) */
+.rbars { position: relative; }
+.rbars-tick { position: absolute; left: 2px; transform: translateY(-105%); font-size: 9px; color: #6f7c8d; pointer-events: none; }
+.rbars-now { position: absolute; top: 1px; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid #f5b942; transform: translateX(-4px); pointer-events: none; }
+.rbars-tip { position: absolute; bottom: 100%; margin-bottom: 4px; z-index: 6; padding: 7px 9px; border: 1px solid #33465c; border-radius: 8px; background: #1b2634; box-shadow: 0 10px 24px rgba(0, 0, 0, .45); font-size: 11px; line-height: 1.55; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .1s; }
+.rbars-tip.on { opacity: 1; }
+.rbars-tip b { display: block; margin-bottom: 1px; font-size: 12px; }
+.rbars-tip i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; }
 .live-graph-error { grid-column: 1 / -1; font-size: 12px; }
 .live-graph-error[hidden] { display: none; }
 

@@ -5,13 +5,15 @@
 import { post } from '../../common/api.js';
 import { formatNumber } from '../../common/format.js';
 import { bindNowCount } from '../../common/now-count.js';
-import { levelBars, niceMax } from '../../live/mini-charts.js';
+import { levelBarsRich, niceMax } from '../../live/mini-charts.js';
 import { createPreviewManager } from '../../live/preview.js';
 import { levelChip } from './panel.js';
 
 const MIN_MAP_HEIGHT = 64;
 const EXPAND_BELOW_MAP_HEIGHT = 360;
-const RECENT_BAR_HEIGHT = 40;
+const RECENT_BAR_HEIGHT = 64;
+const MINUTE_MS = 60_000;
+const RECENT_MINUTES = 10;
 // 주의 단계(GET /meta/levels의 level 2)의 시작 밀집도 × 면적 = 주의 기준 인원(막대 위 점선)
 const WARN_LEVEL = 2;
 
@@ -243,15 +245,14 @@ function recentBlock(camera, levels) {
     const values = recent.map((point) => point.countAvg);
     const warnDensity = levels.find((level) => level.level === WARN_LEVEL)?.minDensity;
     const warn = warnDensity ? Number(warnDensity) * camera.areaM2 : null;
-    const bars = levelBars(
-        recent.map((point) => ({ value: point.countAvg, level: point.level })),
-        {
-            height: RECENT_BAR_HEIGHT,
-            max: niceMax(values),
-            warn,
-            label: '최근 10분 인원, 혼잡 단계 색',
-        },
-    );
+    const bars = levelBarsRich(recentSlots(recent), {
+        height: RECENT_BAR_HEIGHT,
+        max: niceMax(values),
+        warn,
+        label: '최근 10분 인원, 혼잡 단계 색',
+        scale: false,
+        levelNames: Object.fromEntries(levels.map((level) => [level.level, level.name])),
+    });
 
     const foot = document.createElement('div');
     foot.className = 'recent-foot muted';
@@ -262,6 +263,22 @@ function recentBlock(camera, levels) {
     foot.append(span('-10분'), span(range), span('지금'));
     box.append(head, bars, foot);
     return box;
+}
+
+// recent10m은 결과가 들어오지 않은 분(sample_sec=0)을 빼고 내려온다(CameraListItem). 그대로 그리면 막대가 앞으로 당겨지고
+// 추세선이 이어지므로, 지금 분을 끝으로 10칸을 만들고 없는 분은 value: null(빈칸·추세선 끊김)로 채운다.
+// 끝 시각은 실시간 보기 창(live-graphs.js)의 to 계산과 같다.
+function recentSlots(recent) {
+    const end = Math.floor(Date.now() / MINUTE_MS) * MINUTE_MS + MINUTE_MS;
+    const byMinute = new Map(
+        recent.map((point) => [Math.floor(Date.parse(point.at) / MINUTE_MS), point]),
+    );
+    return Array.from({ length: RECENT_MINUTES }, (_, index) => {
+        const point = byMinute.get(end / MINUTE_MS - (RECENT_MINUTES - index));
+        return point
+            ? { value: point.countAvg, level: point.level, at: point.at }
+            : { value: null, level: null, at: null };
+    });
 }
 
 function span(text) {

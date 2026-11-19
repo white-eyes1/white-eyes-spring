@@ -17,40 +17,160 @@ const CONGESTION_FILL = 'rgba(239, 77, 85, .15)';
 const CONGESTED_LEVEL = 2;
 // 막대 사이 틈(칸 폭에 대한 비율)
 const GAP_RATIO = 0.18;
+// levelBarsRich: 위쪽에 지금 ▼ 자리, 눈금선·추세선·호버 색
+const RICH_TOP = 13;
+const RICH_BOTTOM = 2;
+const GRID_COLOR = '#253242';
+const HOVER_FILL = 'rgba(255, 255, 255, .07)';
+const TREND_COLOR = '#76a7ff';
+const DEFAULT_LEVEL_NAMES = { 1: '정상', 2: '주의', 3: '위험' };
 
 /**
- * 혼잡 단계 색 막대. 값이 없는 분은 빈칸, 값이 있는 마지막 분(지금)은 인디고(아직 집계 전인 지금 분은 값이 없어 건너뛴다).
- * @param {{value: number|null, level: number|null}[]} points 시각 순서
- * @param {{height: number, max: number, warn?: number|null, label: string}} options
- *   max: y축 최대(같은 줄의 그래프끼리 맞출 때 같은 값을 준다), warn: 주의 기준 인원(있으면 점선)
+ * 혼잡 단계 색 막대(둥근 막대 + 점선 추세선 + 지금 ▼ + 눈금 + 호버 말풍선). 캠 카드와 실시간 보기 창이 쓴다.
+ * 값이 없는 분은 빈칸이고 추세선이 끊긴다. 값이 있는 마지막 분(지금)은 인디고(아직 집계 전인 지금 분은 값이 없어 건너뛴다).
+ * 막대 색은 서버가 판정한 level이다. 서버 값은 textContent로만 넣는다.
+ * @param {{value: number|null, level: number|null, at?: string|null}[]} points 시각 순서
+ * @param {{height: number, max: number, warn?: number|null, label: string, scale?: boolean,
+ *   levelNames?: Record<number, string>}} options
+ *   max: y축 최대(같은 줄의 그래프끼리 맞출 때 같은 값을 준다), warn: 주의 기준 인원(있으면 점선),
+ *   scale: 눈금선·눈금 숫자(0·중간·최대)를 그릴지(기본 true. 작은 캠 카드는 끈다)
+ * @returns {HTMLDivElement} 막대 SVG, 지금 표시, 말풍선을 담은 상자
  */
-export function levelBars(points, { height, max, warn = null, label }) {
+export function levelBarsRich(
+    points,
+    { height, max, warn = null, label, scale = true, levelNames = DEFAULT_LEVEL_NAMES },
+) {
+    const wrap = document.createElement('div');
+    wrap.className = 'rbars';
+    const plotHeight = height - RICH_TOP - RICH_BOTTOM;
     const svg = svgBox(height, label);
+    svg.style.overflow = 'visible';
     const step = WIDTH / Math.max(points.length, 1);
+    // 막대가 많으면(1시간 60개) 둥근 정도와 틈을 줄인다
+    const dense = points.length > 20;
+    const gap = dense ? 0.16 : 0.14;
+    const radiusX = dense ? step * 0.3 : step * 0.16;
+    const radiusY = dense ? 2 : 3;
+    const baseY = RICH_TOP + plotHeight;
+
+    if (scale) {
+        [0, 0.5, 1].forEach((ratio) => {
+            const y = RICH_TOP + plotHeight * (1 - ratio);
+            svg.append(line(0, y, WIDTH, y, GRID_COLOR));
+        });
+    }
+    const highlight = rect(0, RICH_TOP - 2, step, plotHeight + 2, HOVER_FILL);
+    highlight.setAttribute('opacity', '0');
+    svg.append(highlight);
+
     const nowIndex = points.findLastIndex(
         (point) => point.value !== null && point.value !== undefined,
     );
+    const tops = [];
     points.forEach((point, index) => {
         if (point.value === null || point.value === undefined) {
+            tops.push(null);
             return;
         }
-        const barHeight = Math.max(1, (point.value / max) * (height - 2));
-        const isNow = index === nowIndex;
-        svg.append(
-            rect(
-                index * step + (step * GAP_RATIO) / 2,
-                height - barHeight,
-                step * (1 - GAP_RATIO),
-                barHeight,
-                isNow ? NOW_COLOR : (LEVEL_COLORS[point.level] ?? EMPTY_COLOR),
-            ),
+        const barHeight = Math.max(2, (point.value / max) * plotHeight);
+        const x = index * step + step * gap;
+        const width = step * (1 - gap * 2);
+        const bar = document.createElementNS(SVG_NS, 'path');
+        bar.setAttribute('d', roundTop(x, baseY - barHeight, width, barHeight, radiusX, radiusY));
+        bar.setAttribute(
+            'fill',
+            index === nowIndex ? NOW_COLOR : (LEVEL_COLORS[point.level] ?? EMPTY_COLOR),
         );
+        svg.append(bar);
+        tops.push([index * step + step / 2, baseY - barHeight]);
     });
     if (warn !== null && warn > 0 && warn <= max) {
-        const y = height - (warn / max) * (height - 2);
+        const y = baseY - (warn / max) * plotHeight;
         svg.append(line(0, y, WIDTH, y, WARN_COLOR, '4 3'));
     }
-    return svg;
+    // 값이 없는 분에서 추세선을 끊는다
+    let run = [];
+    const flushTrend = () => {
+        if (run.length > 1) {
+            const trend = document.createElementNS(SVG_NS, 'path');
+            trend.setAttribute('d', smoothPath(run));
+            trend.setAttribute('fill', 'none');
+            trend.setAttribute('stroke', TREND_COLOR);
+            trend.setAttribute('stroke-width', '1.6');
+            trend.setAttribute('stroke-dasharray', '4 3');
+            trend.setAttribute('stroke-linecap', 'round');
+            trend.setAttribute('vector-effect', 'non-scaling-stroke');
+            svg.append(trend);
+        }
+        run = [];
+    };
+    tops.forEach((top) => (top ? run.push(top) : flushTrend()));
+    flushTrend();
+    wrap.append(svg);
+
+    // 눈금 숫자(0·중간·최대)는 막대 위에 겹쳐 둔다
+    if (scale) {
+        [0, 0.5, 1].forEach((ratio) => {
+            const tick = document.createElement('span');
+            tick.className = 'rbars-tick';
+            tick.style.top = `${((RICH_TOP + plotHeight * (1 - ratio)) / height) * 100}%`;
+            tick.textContent = formatTick(max * ratio);
+            wrap.append(tick);
+        });
+    }
+    if (nowIndex >= 0) {
+        const mark = document.createElement('span');
+        mark.className = 'rbars-now';
+        mark.style.left = `${((nowIndex + 0.5) / points.length) * 100}%`;
+        wrap.append(mark);
+    }
+
+    const tip = document.createElement('div');
+    tip.className = 'rbars-tip';
+    tip.setAttribute('role', 'tooltip');
+    wrap.append(tip);
+    const hide = () => {
+        highlight.setAttribute('opacity', '0');
+        tip.classList.remove('on');
+    };
+    wrap.addEventListener('pointermove', (event) => {
+        const box = wrap.getBoundingClientRect();
+        const index = Math.floor(((event.clientX - box.left) / box.width) * points.length);
+        const point = points[Math.max(0, Math.min(points.length - 1, index))];
+        if (!point || point.value === null || point.value === undefined) {
+            hide();
+            return;
+        }
+        const safe = Math.max(0, Math.min(points.length - 1, index));
+        highlight.setAttribute('x', (safe * step).toFixed(1));
+        highlight.setAttribute('width', step.toFixed(1));
+        highlight.setAttribute('opacity', '1');
+        fillTip(tip, point, safe === nowIndex, levelNames);
+        const center = ((safe + 0.5) / points.length) * box.width;
+        tip.style.left = `${Math.max(0, Math.min(box.width - tip.offsetWidth, center - tip.offsetWidth / 2))}px`;
+        tip.classList.add('on');
+    });
+    wrap.addEventListener('pointerleave', hide);
+    return wrap;
+}
+
+// 말풍선: 시각, 혼잡도(단계 색 점 + 이름), 인원수. 서버 값은 textContent로만 넣는다.
+// '지금' 막대는 막대가 인디고라서 단계를 말풍선에서만 알 수 있다. 점은 항상 단계 색이고, 지금은 시각 옆 글자로 알린다.
+function fillTip(tip, point, isNow, levelNames) {
+    const time = document.createElement('b');
+    const clock = point.at ? String(point.at).slice(11, 16) : '-';
+    time.textContent = isNow ? `${clock} (지금)` : clock;
+    const dot = document.createElement('i');
+    dot.style.background = LEVEL_COLORS[point.level] ?? EMPTY_COLOR;
+    const levelLine = document.createElement('div');
+    levelLine.append('혼잡도 ', dot, levelNames[point.level] ?? '-');
+    const countLine = document.createElement('div');
+    countLine.textContent = `인원수 ${Math.round(point.value).toLocaleString('ko-KR')}명`;
+    tip.replaceChildren(time, levelLine, countLine);
+}
+
+function formatTick(value) {
+    return Math.round(value).toLocaleString('ko-KR');
 }
 
 /**
@@ -183,3 +303,25 @@ function line(x1, y1, x2, y2, stroke, dash) {
 }
 
 const pair = ([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
+
+// 위쪽만 둥근 막대 길
+function roundTop(x, y, width, height, radiusX, radiusY) {
+    const rx = Math.min(radiusX, width / 2);
+    const ry = Math.min(radiusY, height);
+    return `M${x},${y + height}V${y + ry}Q${x},${y} ${x + rx},${y}H${x + width - rx}Q${x + width},${y} ${x + width},${y + ry}V${y + height}Z`;
+}
+
+// 점들을 부드럽게 잇는 곡선(Catmull-Rom을 베지어로)
+function smoothPath(points) {
+    let path = `M${pair(points[0])}`;
+    for (let index = 0; index < points.length - 1; index++) {
+        const before = points[index - 1] ?? points[index];
+        const from = points[index];
+        const to = points[index + 1];
+        const after = points[index + 2] ?? to;
+        const c1 = [from[0] + (to[0] - before[0]) / 6, from[1] + (to[1] - before[1]) / 6];
+        const c2 = [to[0] - (after[0] - from[0]) / 6, to[1] - (after[1] - from[1]) / 6];
+        path += `C${pair(c1)} ${pair(c2)} ${pair(to)}`;
+    }
+    return path;
+}
